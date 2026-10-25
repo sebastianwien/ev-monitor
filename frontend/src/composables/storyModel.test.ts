@@ -533,3 +533,26 @@ describe('visibleGap: welche Lücke der Satz nennt', () => {
     expect(visibleGap(days([1], [2, 31], 5))).toBeNull()
   })
 })
+
+describe('Fahrten-Kachel und Abgleich mit den Ladungen', () => {
+  const tripMonth = { trips: 14, km: 151, driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY' as const, pct: 70 }, { key: 'HIGHWAY' as const, pct: 30 }], mainRoute: 'CITY' as const, longestKm: 42, tempMin: 6, tempMax: 14, standbyKwh: null, standbyLocked: true }
+
+  it('steht nach "Stimmt, was der Hersteller verspricht?", Zahl ist der Antriebsverbrauch', () => {
+    const tiles = buildStoryTiles(input({ flow, range, tripMonth }))
+    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'trips', 'flow', 'range', 'peer', 'battery'])
+    const t = tiles.find(x => x.id === 'trips')!
+    expect(t.value).toBe(18.2)
+    expect(t.tripMonth).toBe(tripMonth)
+  })
+
+  it('ohne Antriebsverbrauch keine Kachel', () => {
+    expect(buildStoryTiles(input({ tripMonth: { ...tripMonth, driveKwhPer100km: null } })).map(t => t.id)).not.toContain('trips')
+  })
+
+  it('Feed-Satz, wenn die Ladungen deutlich mehr zeigen als das Fahren', () => {
+    const month = stats({ avgConsumptionKwhPer100km: 26.9 })
+    const item = buildStoryFeed(input({ month, tripMonth })).find(f => f.id === 'drive_vs_charge')!
+    expect(item.params).toEqual({ drive: 18.2, charged: 26.9 })
+    expect(buildStoryFeed(input({ month: stats({ avgConsumptionKwhPer100km: 19.5 }), tripMonth })).map(f => f.id)).not.toContain('drive_vs_charge')
+  })
+})

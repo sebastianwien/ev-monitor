@@ -1,6 +1,7 @@
 import { tripTimestamp } from '../utils/recentActivity'
 import { tripConsumption, type TripForCalc } from '../utils/tripCalculations'
 import { calcCostPer100km } from './useDashboardStats'
+import { summarizeTripMonth, type TripForSummary } from '../utils/tripMonthSummary'
 import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
 
 /**
@@ -269,4 +270,60 @@ export function buildLatest(log: LatestLogSource | null | undefined, trip: Lates
     : null
   if (!charge && !latestTrip) return null
   return { charge, trip: latestTrip }
+}
+
+export type RouteKey = 'CITY' | 'COMBINED' | 'HIGHWAY'
+const ROUTE_KEYS: RouteKey[] = ['CITY', 'COMBINED', 'HIGHWAY']
+/** Ab diesem Anteil an den km gilt ein Streckentyp als Schwerpunkt ("meist Stadt"). */
+const MAIN_ROUTE_SHARE = 50
+
+/** Fahrten eines Monats für Kachel und Sheet "Wie fahre ich?". */
+export interface TripMonth {
+  trips: number
+  km: number
+  /** Antriebsverbrauch laut Fahrzeug, kWh/100 km. Null ohne Energiedaten der Fahrten. */
+  driveKwhPer100km: number | null
+  /** Anteile an den km je Streckentyp in ganzen Prozent; leer ohne Streckentypen. */
+  routeShares: { key: RouteKey; pct: number }[]
+  mainRoute: RouteKey | null
+  longestKm: number
+  tempMin: number | null
+  tempMax: number | null
+  /** Verlust zwischen den Fahrten (kWh). Null, wenn nicht freigeschaltet oder ohne Energiezähler. */
+  standbyKwh: number | null
+  standbyLocked: boolean
+}
+
+export type TripForMonth = TripForSummary & { routeType?: string | null }
+
+/**
+ * Baut die Monatszahlen der Fahrten aus der vorhandenen Auswertung (summarizeTripMonth) plus den
+ * Streckentypen. Der Standverlust ist ein Analytics-Wert und nur mit Freischaltung sichtbar.
+ */
+export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: number | null, standbyVisible: boolean): TripMonth | null {
+  const sum = summarizeTripMonth(trips, effectiveCapacityKwh)
+  if (!sum || sum.totalDistanceKm <= 0) return null
+  const kmByRoute = new Map<RouteKey, number>()
+  for (const t of trips) {
+    const key = t.routeType as RouteKey
+    if (!ROUTE_KEYS.includes(key)) continue
+    kmByRoute.set(key, (kmByRoute.get(key) ?? 0) + (t.distanceKm ?? 0))
+  }
+  const typedKm = [...kmByRoute.values()].reduce((a, b) => a + b, 0)
+  const routeShares = typedKm > 0
+    ? ROUTE_KEYS.filter(k => (kmByRoute.get(k) ?? 0) > 0).map(k => ({ key: k, pct: Math.round(((kmByRoute.get(k) ?? 0) / typedKm) * 100) }))
+    : []
+  const main = routeShares.find(r => r.pct >= MAIN_ROUTE_SHARE)
+  return {
+    trips: sum.tripCount,
+    km: sum.totalDistanceKm,
+    driveKwhPer100km: sum.consumptionKwhPer100km,
+    routeShares,
+    mainRoute: main?.key ?? null,
+    longestKm: Math.max(0, ...trips.map(t => t.distanceKm ?? 0)),
+    tempMin: sum.tempMin,
+    tempMax: sum.tempMax,
+    standbyKwh: standbyVisible ? sum.standbyKwh : null,
+    standbyLocked: !standbyVisible,
+  }
 }

@@ -97,3 +97,13 @@ describe('StoryFeedItem Zahl rechts', () => {
     expect(plain.querySelector('button')).toBeNull()
   })
 })
+
+describe('StoryFeedItem Abgleich Fahren und Laden', () => {
+  it('nennt beide Verbräuche, die Zeile führt zur Fahrten-Kachel', () => {
+    const opened: string[] = []
+    const host = mount({ id: 'drive_vs_charge', question: 2, relevance: 60, sentiment: 'neutral', params: { drive: 18.2, charged: 26.9 } }, { sheets: ['trips'], onOpen: (id: string) => opened.push(id) })
+    expect(host.textContent!.replace(/\s+/g, ' ')).toMatch(/Beim Fahren brauchst du 18,2\skWh\/100km, aus deinen Ladungen werden 26,9\skWh\/100km\. Der Unterschied entsteht im Stand\./)
+    host.querySelector('button')!.click()
+    expect(opened).toEqual(['trips'])
+  })
+})

@@ -14,7 +14,7 @@ import {
 import { buildEnergyFlow, buildRange, costLayers } from './storyEnergy'
 import {
   temperatureEffect, whatIfModels, dataQuality, countPricelessInMonth, bestRank,
-  type TripForTemperature, type RankEntry, buildLatest, sohIsEstimated, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
+  type TripForTemperature, type RankEntry, buildLatest, sohIsEstimated, buildTripMonth, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
   detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
   detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickMoment, momentFeedItems, DAY,
@@ -335,6 +335,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     temperatureLocked: !ctx().canViewLiveAnalytics && temperature.value == null,
     pricelessPrevious: pricelessInPreviousMonth.value,
     runningMonth: month.value.offset === 0,
+    tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewLiveAnalytics),
   } : null)
 
   /**

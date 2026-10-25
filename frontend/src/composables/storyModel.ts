@@ -7,12 +7,12 @@
 import type { StatisticsData, ChargeDataPoint } from './useDashboardStats'
 import { VERBRENNER_G_PER_KM, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
 import type { EnergyFlow, RangeEstimate } from './storyEnergy'
-import type { WhatIfModel, RankResult, DataQuality, TemperatureEffect } from './storyInsights'
+import type { WhatIfModel, RankResult, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
 import type { Moment } from './storyMoments'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
 /** Feste Reihenfolge der Kacheln, siehe TILE_ORDER. */
-export type TileId = 'cost' | 'flow' | 'range' | 'wltp' | 'peer' | 'battery'
+export type TileId = 'cost' | 'trips' | 'flow' | 'range' | 'wltp' | 'peer' | 'battery'
 export type SparkVariant = 'line' | 'bars' | 'range'
 
 export interface StoryTile {
@@ -43,11 +43,14 @@ export interface StoryTile {
   projection?: { eur: number; previousEur: number }
   /** Nur 'battery': berechneter Wert, keine eigene Messung. */
   estimated?: boolean
+  /** Nur 'trips': Fahrten des Monats. */
+  tripMonth?: TripMonth
 }
 
 export type FeedId =
   | 'consumption_trend' | 'home_savings' | 'most_expensive' | 'peer_position' | 'phantom_locked' | 'cost_trend' | 'distance_trend'
   | 'what_if_model' | 'community_rank' | 'data_quality' | 'temperature_effect' | 'temperature_locked' | 'moment'
+  | 'drive_vs_charge'
 
 export interface StoryFeedItem {
   id: FeedId
@@ -91,6 +94,8 @@ export interface StoryInput {
   pricelessPrevious: number
   /** Der gewählte Monat läuft noch: mit dem Vormonat erst ab dessen Strommenge vergleichen. */
   runningMonth?: boolean
+  /** Fahrten des Monats; null ohne Fahrten oder ohne Berechtigung. */
+  tripMonth?: TripMonth | null
 }
 
 export interface DayCoverage {
@@ -134,6 +139,8 @@ const FLOW_LOSS_WARN_PERCENT = 20
 /** Ein Fremdmodell muss mindestens so viel guenstiger sein, damit es einen Satz wert ist. */
 const WHAT_IF_MIN_SAVING_PERCENT = 5
 const FEED_MAX = 5
+/** Ab diesem Verhältnis Verbrauch aus Ladungen zu Verbrauch beim Fahren lohnt der Abgleich als Satz. */
+const DRIVE_VS_CHARGE_RATIO = 1.2
 /** Vergleiche gegen andere Fahrer erst ab so vielen Fahrern, darunter entfallen Satz und Kachel. */
 export const MIN_PEERS = 5
 
@@ -231,6 +238,20 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
       spark: input.monthlyConsumption,
       sparkVariant: 'line',
       reference: input.wltpConsumption,
+    })
+  }
+
+  const tm = input.tripMonth
+  if (tm && tm.driveKwhPer100km != null) {
+    tiles.push({
+      id: 'trips',
+      value: tm.driveKwhPer100km,
+      delta: null,
+      deltaPercent: null,
+      sentiment: 'neutral',
+      spark: [],
+      sparkVariant: 'bars',
+      tripMonth: tm,
     })
   }
 
@@ -440,6 +461,19 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
       relevance: Math.min(90, 45 + Math.abs(temp.deltaPercent)),
       sentiment: 'neutral',
       params: { deltaPercent: temp.deltaPercent, cold: temp.coldKwh100 ?? 0, mild: temp.mildKwh100 ?? 0 },
+    })
+  }
+
+  // Ladungen zeigen alles, was der Akku verliert; das Fahrzeug misst nur den Antrieb. Großer Abstand: Satz.
+  const drive = input.tripMonth?.driveKwhPer100km
+  const charged = m.avgConsumptionKwhPer100km
+  if (drive != null && drive > 0 && charged != null && charged / drive >= DRIVE_VS_CHARGE_RATIO) {
+    items.push({
+      id: 'drive_vs_charge',
+      question: 2,
+      relevance: 55 + Math.min(30, (charged / drive - 1) * 50),
+      sentiment: 'neutral',
+      params: { drive, charged },
     })
   }
 

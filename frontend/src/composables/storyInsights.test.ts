@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  temperatureEffect, scatterYScale, whatIfModels, dataQuality, countPricelessInMonth, bestRank, buildLatest, sohIsEstimated,
+  temperatureEffect, scatterYScale, whatIfModels, dataQuality, countPricelessInMonth, bestRank, buildLatest, sohIsEstimated, buildTripMonth,
   COLD_MAX_C, MILD_MIN_C, MIN_TRIPS_PER_SIDE,
 } from './storyInsights'
 import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
@@ -217,5 +217,44 @@ describe('scatterYScale', () => {
     expect(s.ticks.length).toBeLessThanOrEqual(7)
     expect(s.ticks[0]).toBe(0)
     expect(s.ticks[s.ticks.length - 1]).toBe(s.max)
+  })
+})
+
+describe('buildTripMonth: Fahrten des Monats für Kachel und Sheet', () => {
+  const tr = (id: string, start: string, km: number, routeType: string | null, kwh: number | null = null, temp: number | null = null) => ({
+    id, tripStartedAt: start, tripEndedAt: start, distanceKm: km, socStart: null, socEnd: null, estimatedConsumedKwh: kwh, outsideTempCelsius: temp, routeType,
+  })
+
+  it('zählt Fahrten und km, Anteile nach km je Streckentyp, längste Fahrt', () => {
+    const m = buildTripMonth([
+      tr('a', '2026-10-02T08:00:00Z', 70, 'CITY', 12, 8),
+      tr('b', '2026-10-03T08:00:00Z', 20, 'HIGHWAY', 5, 12),
+      tr('c', '2026-10-04T08:00:00Z', 10, 'COMBINED', 2),
+      tr('d', '2026-10-05T08:00:00Z', 5, null, 1),
+    ], 57, true)!
+    expect(m.trips).toBe(4)
+    expect(m.km).toBe(105)
+    expect(m.longestKm).toBe(70)
+    expect(m.routeShares).toEqual([{ key: 'CITY', pct: 70 }, { key: 'COMBINED', pct: 10 }, { key: 'HIGHWAY', pct: 20 }])
+    expect(m.mainRoute).toBe('CITY')
+    expect(m.driveKwhPer100km).toBeCloseTo(19, 0)
+    expect([m.tempMin, m.tempMax]).toEqual([8, 12])
+  })
+
+  it('ohne klaren Schwerpunkt kein Hauptstreckentyp, ohne Streckentypen keine Anteile', () => {
+    expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, 'CITY'), tr('b', '2026-10-03T08:00:00Z', 60, 'HIGHWAY')], 57, true)!.mainRoute).toBe('HIGHWAY')
+    expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, 'CITY'), tr('b', '2026-10-03T08:00:00Z', 35, 'HIGHWAY'), tr('c', '2026-10-03T09:00:00Z', 25, 'COMBINED')], 57, true)!.mainRoute).toBeNull()
+    expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, null)], 57, true)!.routeShares).toEqual([])
+  })
+
+  it('Standverlust nur sichtbar, wenn freigeschaltet', () => {
+    const locked = buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, 'CITY', 8)], 57, false)!
+    expect(locked.standbyKwh).toBeNull()
+    expect(locked.standbyLocked).toBe(true)
+  })
+
+  it('ohne Fahrten oder ohne km nichts', () => {
+    expect(buildTripMonth([], 57, true)).toBeNull()
+    expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 0, 'CITY')], 57, true)).toBeNull()
   })
 })

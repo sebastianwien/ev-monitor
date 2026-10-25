@@ -9,6 +9,7 @@ import SheetRange from './sheets/SheetRange.vue'
 import SheetPeer from './sheets/SheetPeer.vue'
 import SheetBattery from './sheets/SheetBattery.vue'
 import SheetWltp from './sheets/SheetWltp.vue'
+import SheetTrips from './sheets/SheetTrips.vue'
 import type { StoryTile } from '../../composables/storyModel'
 import type { StatisticsData } from '../../composables/useDashboardStats'
 import type { WhatIfModel, TemperatureEffect } from '../../composables/storyInsights'
@@ -49,7 +50,8 @@ const title = computed(() => props.tile.id === 'peer'
         <div class="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mb-3" />
         <h3 class="text-xl font-extrabold text-gray-900 dark:text-gray-50" :style="{ viewTransitionName: `story-tile-${tile.id}` }">{{ title }}</h3>
 
-        <SheetFlow v-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
+        <SheetTrips v-if="tile.id === 'trips' && tile.tripMonth" :trips="tile.tripMonth" :charged-kwh-per100km="context.stats?.avgConsumptionKwhPer100km ?? null" />
+        <SheetFlow v-else-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
         <SheetRange v-else-if="tile.id === 'range' && tile.range" :range="tile.range" :capacity-kwh="context.effectiveCapacityKwh" />
         <SheetPeer v-else-if="tile.id === 'peer'" :tile="tile" :stats="context.stats" :what-if="context.whatIf" />
         <SheetBattery v-else-if="tile.id === 'battery'" :tile="tile" :history="context.sohHistory" />

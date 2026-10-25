@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Spark from './Spark.vue'
 import FlowBar from './FlowBar.vue'
+import ShareBar from './ShareBar.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { StoryTile } from '../../composables/storyModel'
 
@@ -30,6 +31,7 @@ const value = computed(() => {
     case 'flow': return { n: formatDecimal(x.value, 0), unit: t('story.flow_unit') }
     case 'range': return { n: formatDecimal(x.value, 0), unit: distanceUnitLabel() }
     case 'wltp': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
+    case 'trips': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'peer': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'battery': return { n: `${x.estimated ? '~' : ''}${formatDecimal(x.value, 0)}`, unit: t('story.battery_unit') }
   }
@@ -55,6 +57,12 @@ const note = computed(() => {
       return x.flow?.partial
         ? t('story.flow_partial', { covered: x.flow.coveredLogCount, total: x.flow.totalLogCount })
         : t('story.flow_loss', { kwh: formatDecimal(x.flow?.lossKwh ?? 0, 0) })
+    case 'trips': {
+      const m = x.tripMonth
+      if (!m) return ''
+      const base = t('story.trips_note', { n: m.trips, km: formatDistance(m.km, { round: true }) }, m.trips)
+      return m.mainRoute ? `${base}, ${t('story.trips_main', { route: routeLabel(m.mainRoute) })}` : base
+    }
     case 'range':
       return `${t('story.range_basis_recent')}, ${t('story.range_window', { max: rangeWindow.value.max, min: rangeWindow.value.min })}`
     case 'wltp': {
@@ -75,6 +83,10 @@ const note = computed(() => {
     }
   }
 })
+
+const ROUTE_CLS = { CITY: 'bg-green-700 dark:bg-green-400', COMBINED: 'bg-sky-500', HIGHWAY: 'bg-gray-600 dark:bg-gray-300' } as const
+function routeLabel(key: keyof typeof ROUTE_CLS) { return t(`model.route_type_${key.toLowerCase()}`) }
+const routeSegments = computed(() => (props.tile.tripMonth?.routeShares ?? []).map(r => ({ key: r.key, label: routeLabel(r.key), pct: r.pct, cls: ROUTE_CLS[r.key] })))
 
 /** Position des eigenen Werts auf der Skala sparsam ... hoch: Schnitt in der Mitte, ±100 % an den Rändern. */
 const peerPos = computed(() => Math.min(1, Math.max(0, 0.5 + (props.tile.deltaPercent ?? 0) / 200)))
@@ -103,6 +115,7 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
     <span v-if="note" class="truncate text-[13.5px] text-gray-600 dark:text-gray-400">{{ note }}</span>
     <span data-role="graphic" class="mt-auto block">
       <FlowBar v-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
+      <ShareBar v-else-if="tile.id === 'trips'" :segments="routeSegments" />
       <span v-else-if="tile.id === 'range'" class="grid gap-1">
         <span class="relative block h-2.5 rounded-[3px] bg-gray-200 dark:bg-gray-700">
           <i class="absolute inset-y-0 rounded-[3px] bg-green-700 dark:bg-green-400" :style="{ left: `${rangeWindow.min}%`, width: `${rangeWindow.max - rangeWindow.min}%` }" />

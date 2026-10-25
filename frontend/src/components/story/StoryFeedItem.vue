@@ -85,6 +85,8 @@ const sentence = computed(() => {
     }
     case 'temperature_effect':
       return t('story.feed_temp', { pct: b(formatDecimal(Math.abs(p.deltaPercent), 0)), cold: 5, mild: 15 })
+    case 'drive_vs_charge':
+      return t('story.feed_drive_vs_charge', { drive: b(formatConsumption(p.drive)), charged: b(formatConsumption(p.charged)) })
     case 'temperature_locked':
       return t('story.feed_temp_locked')
     case 'phantom_locked':
@@ -114,6 +116,7 @@ const number = computed<string>(() => {
     case 'community_rank': return `#${p.rank}`
     case 'data_quality': return p.priceless > 0 ? `${p.priceless}` : `${p.estimated}/${p.total}`
     case 'temperature_effect': return `+${formatDecimal(Math.abs(p.deltaPercent), 0)} %`
+    case 'drive_vs_charge': return formatConsumption(p.drive, { showUnit: false })
     default: return ''
   }
 })
@@ -129,7 +132,7 @@ const numberClass = computed(() => {
 const SHEET_OF: Partial<Record<StoryFeedItem['id'], TileId>> = {
   consumption_trend: 'wltp', temperature_effect: 'wltp',
   cost_trend: 'cost', most_expensive: 'cost', home_savings: 'cost', data_quality: 'cost', distance_trend: 'cost',
-  peer_position: 'peer', what_if_model: 'peer',
+  peer_position: 'peer', what_if_model: 'peer', drive_vs_charge: 'trips',
 }
 const sheet = computed<TileId | null>(() => {
   const id = SHEET_OF[props.item.id]

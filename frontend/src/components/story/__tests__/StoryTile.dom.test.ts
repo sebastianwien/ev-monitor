@@ -116,3 +116,20 @@ describe('StoryTile Währung', () => {
     try { localStorage.removeItem('ev-country') } catch { /* egal */ }
   })
 })
+
+describe('StoryTile Fahrten', () => {
+  const trips = (over: Partial<Tile> = {}): Tile => ({
+    id: 'trips', value: 18.2, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [], sparkVariant: 'bars',
+    tripMonth: { trips: 14, km: 151, driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY', pct: 70 }, { key: 'HIGHWAY', pct: 30 }], mainRoute: 'CITY', longestKm: 42, tempMin: null, tempMax: null, standbyKwh: null, standbyLocked: true },
+    ...over,
+  })
+
+  it('Frage, Antriebsverbrauch, Satz mit Fahrten, km und Schwerpunkt, Balken nach Streckentyp', () => {
+    const text = mount(trips())
+    expect(text).toContain('Wie fahre ich?')
+    expect(text).toContain('18,2')
+    expect(text).toMatch(/14 Fahrten, 151\skm, meist Stadt/)
+    expect(text).toContain('Stadt 70 %')
+    expect(text).toContain('Autobahn 30 %')
+  })
+})
