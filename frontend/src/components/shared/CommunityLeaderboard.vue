@@ -50,7 +50,9 @@ const props = withDefaults(defineProps<{
   month?: 'current' | 'previous'
   /** Maximale Anzahl angezeigter Plaetze. Standard: alle gelieferten (Top 10). */
   maxEntries?: number
-}>(), { showHeader: true, month: 'current' })
+  /** Handy: Kategorie-Chips fest über der Bottom-Nav (Daumenreichweite). Nur in der App, die Landing hat keine Bottom-Nav. */
+  dockChips?: boolean
+}>(), { showHeader: true, month: 'current', dockChips: false })
 
 /** Meldet nach jedem Laden, ob verwertbare Eintraege vorliegen. Aufrufer entscheiden selbst (z.B. Sektion ausblenden). */
 const emit = defineEmits<{ available: [hasData: boolean] }>()
@@ -163,7 +165,8 @@ const displayedEntries = computed(() => {
 
 <template>
   <!-- Inhalt der Rangliste; Kante und Rundung setzt die einbettende Seite (App: ab md, Landing: immer). -->
-  <div class="grid min-w-0 gap-5 bg-white px-4 py-6 md:p-8 dark:bg-gray-900">
+  <!-- Angedockte Chips liegen auf dem Handy fest unten: Platz am Ende freihalten, damit die letzte Zeile nicht darunter verschwindet. -->
+  <div class="grid min-w-0 gap-5 bg-white px-4 py-6 md:p-8 dark:bg-gray-900" :class="{ 'max-md:pb-24': dockChips }">
     <p v-if="isFinalStandings" class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
       {{ t('leaderboard.final_standings', { month: periodLabel }) }}
     </p>
@@ -176,15 +179,25 @@ const displayedEntries = computed(() => {
       </p>
     </header>
 
-    <!-- Kategorien: Handy seitlich scrollbar bis an den Rand, ab md umbrechend -->
+    <!-- Kategorien: Handy seitlich scrollbar bis an den Rand (in der App fest über der Bottom-Nav), ab md umbrechend und zentriert -->
     <div class="grid gap-2">
-      <div ref="chipBar" role="group" :aria-label="t('leaderboard.title')"
-        class="scrollbar-hide -mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pt-0.5 pb-1.5 md:mx-0 md:flex-wrap md:justify-center md:px-0">
-        <ChoiceChip v-for="cat in CATEGORIES" :key="cat.key" size="sm" :active="cat.key === activeCategory"
-          class="relative snap-start before:absolute before:inset-x-0 before:-inset-y-1 before:content-['']"
-          @click="jumpToCategory(cat.key)">
-          <component :is="cat.icon" class="h-4 w-4" :class="cat.color" aria-hidden="true" />{{ cat.label }}
-        </ChoiceChip>
+      <!-- Angedockt stehen die Chips unten; oben nennt der Titel die gewählte Kategorie -->
+      <h2 v-if="dockChips" class="flex items-center gap-2 text-[18px] font-bold tracking-tight text-gray-900 md:hidden dark:text-gray-100">
+        <component :is="activeCategoryMeta?.icon" class="h-5 w-5 shrink-0" :class="activeCategoryMeta?.color" aria-hidden="true" />
+        {{ activeCategoryMeta?.label }}
+      </h2>
+      <div :class="dockChips
+        ? 'fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] z-30 border-t border-gray-200 bg-white/95 pt-2.5 pb-6 backdrop-blur md:static md:z-auto md:border-0 md:bg-transparent md:p-0 md:backdrop-blur-none dark:border-gray-800 dark:bg-gray-900/95 md:dark:bg-transparent'
+        : ''">
+        <div ref="chipBar" role="group" :aria-label="t('leaderboard.title')"
+          class="scrollbar-hide flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pt-0.5 pb-1.5 md:mx-0 md:flex-wrap md:justify-center md:px-0"
+          :class="dockChips ? 'mx-0' : '-mx-4'">
+          <ChoiceChip v-for="cat in CATEGORIES" :key="cat.key" size="sm" :active="cat.key === activeCategory"
+            class="relative snap-start before:absolute before:inset-x-0 before:-inset-y-1 before:content-['']"
+            @click="jumpToCategory(cat.key)">
+            <component :is="cat.icon" class="h-4 w-4" :class="cat.color" aria-hidden="true" />{{ cat.label }}
+          </ChoiceChip>
+        </div>
       </div>
       <p class="text-sm text-gray-600 md:text-center dark:text-gray-400">{{ activeCategoryMeta?.desc }}</p>
     </div>
