@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  temperatureEffect, whatIfModels, dataQuality, countPricelessInMonth, bestRank, buildLatest, sohIsEstimated,
+  temperatureEffect, scatterYScale, whatIfModels, dataQuality, countPricelessInMonth, bestRank, buildLatest, sohIsEstimated,
   COLD_MAX_C, MILD_MIN_C, MIN_TRIPS_PER_SIDE,
 } from './storyInsights'
 import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
@@ -186,5 +186,36 @@ describe('sohIsEstimated: Tilde am Akkuwert', () => {
 
   it('ohne Verlauf keine Tilde: der Wert kommt aus der eigenen Angabe am Auto', () => {
     expect(sohIsEstimated([])).toBe(false)
+  })
+})
+
+describe('scatterYScale', () => {
+  it('ohne Ausreißer: Achse ab 0 bis knapp über dem höchsten Wert, glatte Striche', () => {
+    const s = scatterYScale([12, 15, 18, 20], 14.7)
+    expect(s.max).toBe(25)
+    expect(s.ticks).toEqual([0, 5, 10, 15, 20, 25])
+    expect(s.above).toBe(0)
+  })
+
+  it('ein Ausreißer drückt die Achse nicht: er wird gezählt statt gezeichnet', () => {
+    const normal = Array.from({ length: 20 }, (_, i) => 15 + (i % 10))
+    const s = scatterYScale([...normal, 274], 14.7)
+    expect(s.max).toBeLessThanOrEqual(50)
+    expect(s.max).toBeGreaterThanOrEqual(24)
+    expect(s.above).toBe(1)
+    expect(s.aboveMax).toBe(274)
+  })
+
+  it('Herstellerwert über allen Fahrten bleibt im Bild', () => {
+    const s = scatterYScale([10, 11, 12], 30)
+    expect(s.max).toBeGreaterThanOrEqual(30)
+    expect(s.above).toBe(0)
+  })
+
+  it('höchstens sieben Striche, auch bei großem Bereich', () => {
+    const s = scatterYScale([20, 40, 60, 70], null)
+    expect(s.ticks.length).toBeLessThanOrEqual(7)
+    expect(s.ticks[0]).toBe(0)
+    expect(s.ticks[s.ticks.length - 1]).toBe(s.max)
   })
 })

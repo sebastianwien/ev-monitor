@@ -2,15 +2,17 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Spark from '../Spark.vue'
+import MonthBars from '../MonthBars.vue'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import type { StoryTile } from '../../../composables/storyModel'
 import type { StatisticsData } from '../../../composables/useDashboardStats'
 
-/** Kosten: groesseres Spark-Chart. Die Kosten-Balken sind Stromkosten in Nutzerwaehrung; Fixkosten des Monats stehen immer als Satz darunter, auch wenn es keine gibt. */
+/** Kosten: Monatsbalken mit Betraegen (MonthBars), sonst grosses Spark-Chart. Die Kosten-Balken sind Stromkosten in Nutzerwaehrung; Fixkosten des Monats stehen immer als Satz darunter, auch wenn es keine gibt. */
 const props = defineProps<{
   tile: StoryTile
   stats: StatisticsData | null
   monthLabels: string[]
+  runningMonth: boolean
 }>()
 
 const { t } = useI18n()
@@ -24,21 +26,19 @@ const fixedText = computed(() => {
   return t(s.fixedIncomeEur > 0 ? 'story.sheet_cost_fixed_income' : 'story.sheet_cost_fixed', p)
 })
 
-const labels = computed(() => props.tile.sparkVariant === 'line' ? props.monthLabels : [])
-const variant = computed(() => props.tile.sparkVariant === 'line' ? 'bars' : props.tile.sparkVariant)
+const partialLabel = computed(() => props.runningMonth ? t('story.sheet_partial', { month: props.monthLabels[props.monthLabels.length - 1] ?? '' }) : '')
 </script>
 
 <template>
   <div>
-    <div class="mt-4 h-28">
-      <Spark :values="tile.spark" :variant="variant" :tone="tile.sentiment" class="!h-28" />
+    <MonthBars
+      v-if="tile.sparkVariant === 'line'"
+      class="mt-4"
+      :values="tile.spark" :labels="monthLabels" :format="(v: number) => formatCurrency(v, { decimals: 0 })"
+      :partial-label="partialLabel" :tone="tile.sentiment" />
+    <div v-else class="mt-4 h-28">
+      <Spark :values="tile.spark" :variant="tile.sparkVariant" :tone="tile.sentiment" class="h-full [&_svg]:h-full" />
     </div>
-    <div v-if="labels.length" class="flex justify-between text-[11px] text-gray-500 dark:text-gray-400 mt-1 tabular-nums">
-      <span v-for="(l, i) in labels" :key="i">{{ l }}</span>
-    </div>
-    <div v-if="tile.sparkVariant === 'line'" class="flex justify-between text-[11px] text-gray-700 dark:text-gray-200 mt-0.5 tabular-nums">
-      <span v-for="(v, i) in tile.spark" :key="i">{{ formatCurrency(v, { decimals: 0 }) }}</span>
-    </div>
-    <p v-if="fixedText" data-testid="story-cost-fixed" class="text-sm text-gray-600 dark:text-gray-300 mt-3 text-pretty">{{ fixedText }}</p>
+    <p v-if="fixedText" data-testid="story-cost-fixed" class="text-sm text-gray-600 dark:text-gray-300 mt-4 text-pretty">{{ fixedText }}</p>
   </div>
 </template>

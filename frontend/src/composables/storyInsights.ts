@@ -56,6 +56,31 @@ function weightedKwh100(points: TempPoint[]): number {
   return (kwh / km) * 100
 }
 
+export interface ScatterYScale {
+  max: number
+  ticks: number[]
+  /** Fahrten über max: werden gezählt statt gezeichnet. */
+  above: number
+  aboveMax: number | null
+}
+
+/**
+ * y-Achse fürs Temperatur-Diagramm: ab 0, glatte Striche. Eine einzelne Kurzfahrt mit 274 kWh/100 km
+ * würde sonst alle anderen Punkte an den Boden drücken, daher endet die Achse knapp über dem
+ * 90. Perzentil (oder dem Herstellerwert, falls höher); was darüber liegt, wird gezählt.
+ */
+export function scatterYScale(values: number[], reference: number | null): ScatterYScale {
+  const sorted = [...values].sort((a, b) => a - b)
+  const p90 = sorted.length ? sorted[Math.min(sorted.length - 1, Math.ceil(sorted.length * 0.9) - 1)] : 0
+  const top = sorted.length ? sorted[sorted.length - 1] : 0
+  const cap = Math.max(top <= p90 * 1.3 ? top : p90 * 1.3, reference ?? 0) * 1.1
+  const step = cap > 60 ? 20 : cap > 30 ? 10 : 5
+  const max = Math.max(step, Math.ceil(cap / step) * step)
+  const ticks = Array.from({ length: max / step + 1 }, (_, i) => i * step)
+  const over = sorted.filter(v => v > max)
+  return { max, ticks, above: over.length, aboveMax: over.length ? over[over.length - 1] : null }
+}
+
 /** Null unter drei Fahrten mit Temperatur und Verbrauch. */
 export function temperatureEffect(trips: TripForTemperature[], effectiveCapacityKwh: number | null): TemperatureEffect | null {
   const points: TempPoint[] = []

@@ -18,6 +18,10 @@ import type { BatterySohEntry } from '../../api/carService'
 export interface StorySheetContext {
   stats: StatisticsData | null
   monthLabels: string[]
+  /** Ausgewaehlter Monat, ausgeschrieben. */
+  monthName: string
+  /** Ausgewaehlter Monat ist der laufende: letzter Balken heller. */
+  runningMonth: boolean
   whatIf: WhatIfModel[]
   temperature: TemperatureEffect | null
   sohHistory: BatterySohEntry[]
@@ -49,8 +53,8 @@ const title = computed(() => props.tile.id === 'peer'
         <SheetRange v-else-if="tile.id === 'range' && tile.range" :range="tile.range" :capacity-kwh="context.effectiveCapacityKwh" />
         <SheetPeer v-else-if="tile.id === 'peer'" :tile="tile" :stats="context.stats" :what-if="context.whatIf" />
         <SheetBattery v-else-if="tile.id === 'battery'" :tile="tile" :history="context.sohHistory" />
-        <SheetWltp v-else-if="tile.id === 'wltp'" :tile="tile" :month-labels="context.monthLabels" :temperature="context.temperature" />
-        <SheetGeneric v-else :tile="tile" :stats="context.stats" :month-labels="context.monthLabels" />
+        <SheetWltp v-else-if="tile.id === 'wltp'" :tile="tile" :month-labels="context.monthLabels" :month-name="context.monthName" :running-month="context.runningMonth" :temperature="context.temperature" />
+        <SheetGeneric v-else :tile="tile" :stats="context.stats" :month-labels="context.monthLabels" :running-month="context.runningMonth" />
         <SheetCloseButton class="mt-5" @click="close" />
       </div>
     </template>
