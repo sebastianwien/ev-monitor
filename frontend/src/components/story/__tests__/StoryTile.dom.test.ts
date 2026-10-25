@@ -171,6 +171,8 @@ describe('StoryTile CO₂, Laden, Stand', () => {
     const text = mount({ ...base, id: 'standby', value: 3.3, tripMonth })
     expect(text).toMatch(/3,3\s?kWh/)
     expect(text).toContain('am meisten 2,5 kWh in 3 Tagen')
-    expect(text).toMatch(/~0,99\s€/)
+    // Euro ist die große Zahl, kWh klein daneben
+    expect(text).toMatch(/~0,99\s?€ · 3,3\s?kWh/)
+    expect(document.querySelector('[data-testid="story-tile-standby"] b')!.textContent).toBe('~0,99')
   })
 })

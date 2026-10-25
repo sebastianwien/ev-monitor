@@ -3,9 +3,11 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Spark from './Spark.vue'
 import FlowBar from './FlowBar.vue'
+import UseBar from './UseBar.vue'
 import ShareBar from './ShareBar.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { StoryTile } from '../../composables/storyModel'
+import type { EnergyUse } from '../../composables/storyEnergy'
 
 /**
  * Eine Fahrerfrage als Kachel in fester Höhe, Inhalt oben: Label in Versalien, eine Zahl mit
@@ -23,12 +25,13 @@ const label = computed(() => t(`story.q_${props.tile.id}`))
 const value = computed(() => {
   const x = props.tile
   switch (x.id) {
-    case 'cost': {
-      // Symbol als kleine Einheit hinter der Zahl, ausser die Waehrung schreibt es davor (GBP).
-      const f = formatCurrency(x.value, { decimals: 0 })
-      return f.startsWith(currencySymbol.value) ? { n: f, unit: '' } : { n: f.replace(currencySymbol.value, '').trim(), unit: currencySymbol.value }
+    case 'cost': return euroParts(x.value)
+    case 'flow': {
+      if (!x.use) return { n: formatDecimal(x.value, 0), unit: t('story.flow_unit') }
+      if (x.use.lossEur == null) return { n: formatDecimal(x.value, 0), unit: t('story.use_loss_kwh_unit') }
+      const e = euroParts(x.value)
+      return { n: e.n, unit: `${e.unit} ${t('story.use_loss_unit')}`.trim() }
     }
-    case 'flow': return { n: formatDecimal(x.value, 0), unit: t('story.flow_unit') }
     case 'range': return { n: formatDecimal(x.value, 0), unit: distanceUnitLabel() }
     case 'wltp': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'trips': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
@@ -39,10 +42,41 @@ const value = computed(() => {
     case 'charging': return x.charging && x.charging.dcKwh === 0
       ? { n: '100', unit: t('story.charging_unit_normal') }
       : { n: formatDecimal(x.value, 0), unit: t('story.charging_unit') }
-    // Euro gerechnet aus den Ladepreisen, deshalb mit Tilde
-    case 'standby': return { n: formatDecimal(x.value, 1), unit: x.tripMonth?.standbyEur != null ? `kWh · ~${formatCurrency(x.tripMonth.standbyEur)}` : 'kWh' }
+    // Euro ist die wichtigere Zahl: groß, die kWh klein daneben. Gerechnet aus den Ladepreisen, deshalb mit Tilde.
+    case 'standby': {
+      const eur = x.tripMonth?.standbyEur
+      if (eur == null) return { n: formatDecimal(x.value, 1), unit: 'kWh' }
+      const kwh = `${formatDecimal(x.value, 1)} kWh`
+      const f = formatCurrency(eur)
+      return f.startsWith(currencySymbol.value)
+        ? { n: `~${f}`, unit: `· ${kwh}` }
+        : { n: `~${f.replace(currencySymbol.value, '').trim()}`, unit: `${currencySymbol.value} · ${kwh}` }
+    }
   }
   return { n: '', unit: '' }
+})
+
+/** Symbol als kleine Einheit hinter der Zahl, ausser die Waehrung schreibt es davor (GBP). */
+function euroParts(v: number) {
+  const f = formatCurrency(v, { decimals: 0 })
+  return f.startsWith(currencySymbol.value) ? { n: f, unit: '' } : { n: f.replace(currencySymbol.value, '').trim(), unit: currencySymbol.value }
+}
+
+/** Satz zur Strom-Kachel: Stand und Laden in kWh, Laden mit Tilde, sobald hochgerechnet. */
+function useNote(u: EnergyUse) {
+  const charge = `${u.estimatedCharges > 0 ? '~' : ''}${formatDecimal(u.chargeLossKwh, 0)}`
+  const standby = u.standbyKwh == null ? null : formatDecimal(u.standbyKwh, 0)
+  if (standby != null && u.chargeLossKwh > 0) return t('story.use_note', { standby, charge })
+  if (standby != null) return t('story.use_note_standby', { standby })
+  return u.chargeLossKwh > 0 ? t('story.use_note_charge', { charge }) : ''
+}
+
+const useOrigin = computed(() => {
+  const h = props.tile.use?.homePct
+  if (h == null) return ''
+  if (h === 100) return t('story.use_origin_home')
+  if (h === 0) return t('story.use_origin_public')
+  return t('story.use_origin_mixed', { home: h, pub: 100 - h })
 })
 
 const note = computed(() => {
@@ -62,6 +96,7 @@ const note = computed(() => {
       if (x.sentiment === 'neutral') return t('story.cost_same')
       return t('story.cost_delta', { delta: (x.delta > 0 ? '+' : '') + formatCurrency(x.delta, { decimals: 0 }) })
     case 'flow':
+      if (x.use) return useNote(x.use)
       return x.flow?.partial
         ? t('story.flow_partial', { covered: x.flow.coveredLogCount, total: x.flow.totalLogCount })
         : t('story.flow_loss', { kwh: formatDecimal(x.flow?.lossKwh ?? 0, 0) })
@@ -165,7 +200,11 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
     </span>
     <span v-if="note" class="truncate text-[13.5px] text-gray-600 dark:text-gray-400">{{ note }}</span>
     <span data-role="graphic" class="mt-auto block">
-      <FlowBar v-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
+      <span v-if="tile.id === 'flow' && tile.use" class="grid gap-1">
+        <UseBar :use="tile.use" />
+        <span v-if="useOrigin" class="truncate text-[11px] text-gray-500 dark:text-gray-400">{{ useOrigin }}</span>
+      </span>
+      <FlowBar v-else-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
       <ShareBar v-else-if="tile.id === 'trips'" :segments="lengthSegments" />
       <span v-else-if="tile.id === 'range'" class="grid gap-1">
         <span class="relative block h-2.5 rounded-[3px] bg-gray-200 dark:bg-gray-700">
