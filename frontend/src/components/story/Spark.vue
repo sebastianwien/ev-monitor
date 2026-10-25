@@ -26,7 +26,7 @@ const toneClass = computed(() => ({
   good: 'text-green-600 dark:text-green-400',
   warn: 'text-amber-600 dark:text-amber-400',
   bad: 'text-rose-600 dark:text-rose-400',
-  neutral: 'text-indigo-600 dark:text-indigo-400',
+  neutral: 'text-gray-500 dark:text-gray-400',
 }[props.tone]))
 
 const domain = computed(() => {
