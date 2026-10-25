@@ -72,7 +72,7 @@ async function remove() {
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
       <!-- Karte oben: auf dem Handy randlos über dem Formular, ab 1024 px oben in der rechten Spalte -->
-      <div v-if="trip && hasTripMap(trip)" class="-mx-4 -mt-4 mb-4 h-52 overflow-hidden border-b-2 border-gray-100 lg:mx-0 lg:mt-0 lg:h-72 lg:rounded-2xl lg:border-2 lg:border-gray-900 dark:border-gray-800"
+      <div v-if="trip && hasTripMap(trip)" class="relative -mx-4 -mt-4 mb-4 h-52 overflow-hidden border-b-2 border-gray-100 lg:mx-0 lg:mt-0 lg:h-72 lg:rounded-2xl lg:border-2 lg:border-gray-900 dark:border-gray-800"
         data-testid="day-trip-map">
         <ActivityLocationMap variant="panel" :label="t('dashboard.trip_map_alt')"
           :start-geohash="trip.locationStartGeohash" :end-geohash="trip.locationEndGeohash"

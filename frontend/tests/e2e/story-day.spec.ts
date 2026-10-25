@@ -82,6 +82,9 @@ for (const [width, height, voice] of [[390, 844, true], [820, 1180, true], [1440
       // Fahrt öffnen: große Karte oben, Formular in der neuen CI
       await page.getByTestId('day-row-trip').first().click();
       await expect(page.getByTestId('day-trip-map')).toBeVisible();
+      // Die Karte bleibt in ihrem Rahmen, statt das ganze Blatt zu füllen
+      const map = (await page.getByTestId('day-trip-map').locator('.activity-map').boundingBox())!;
+      expect(map.height).toBeLessThanOrEqual(300);
       await expect(page.getByTestId('day-trip-form')).toBeVisible();
 
       // Fahrt löschen, dann Rückgängig im Toast
