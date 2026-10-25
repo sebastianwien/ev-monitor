@@ -180,7 +180,7 @@ test.describe('Story: Katalog der Hero-Zustände', () => {
 
         await testInfo.attach(`${c.name} ${theme}`, { body: await page.screenshot({ fullPage: true, animations: 'disabled' }), contentType: 'image/png' });
         if (!process.env.CI) {
-          await expect(box).toHaveScreenshot(`${c.name}-${theme}.png`, { animations: 'disabled', maxDiffPixels: 30 });
+          await expect(box).toHaveScreenshot(`${c.name}-${theme}.png`, { animations: 'disabled', maxDiffPixels: 30, threshold: 0.05 });
         }
         expect(errors).toEqual([]);
       });
