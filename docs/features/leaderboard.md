@@ -37,7 +37,8 @@ Jede Kategorie wird zweimal berechnet: einmal bis heute Mitternacht, einmal bis 
 
 ## Darstellung
 
-- Kategorien als Chip-Leiste: auf dem Handy seitlich scrollbar, der gewählte Chip rückt ins Bild; ab 768 px umbrechend, alle Kategorien sichtbar. Darunter die Beschreibung der gewählten Kategorie.
+- Kategorien als Chip-Leiste: in der App auf dem Handy fest über der Bottom-Nav (Daumenreichweite), seitlich scrollbar, der gewählte Chip rückt ins Bild; oben nennt ein Titel die gewählte Kategorie. Ab 768 px und auf der Landing steht die Leiste über der Liste, ab 768 px umbrechend und zentriert. Darunter die Beschreibung der gewählten Kategorie.
+- Kategorie-Icons tragen ihre Kategoriefarbe, der eigene Platz ist in den Top 10 grau hinterlegt mit "(Du)", außerhalb der Top 10 unten angestellt.
 - Rang als neutrale Plakette: Platz 1 dunkel gefüllt, Platz 2 und 3 mit Kante, ab Platz 4 nur die Zahl. Keine Farbcodes, alles in Grau nach App-CI (`docs/design/ci.md`).
 - Dieselbe Komponente läuft in der App (`/leaderboard`) und als Top 5 auf der Landing Page.
 
