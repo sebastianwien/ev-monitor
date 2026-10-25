@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import type { StandbyGap } from '../../../composables/storyInsights'
 
-/** Die größten Verluste im Stand: wann, wie lange, wie viele kWh, als liegende Balken. */
+/** Die größten Verluste im Stand: wann, wie lange, wie viele kWh, als liegende Balken in Amber wie der Verlust im Strom-Balken. */
 const props = defineProps<{ gaps: StandbyGap[]; totalKwh: number }>()
 const { t, locale } = useI18n()
 const { formatDecimal } = useLocaleFormat()
@@ -25,9 +25,9 @@ const duration = (g: StandbyGap) => hours(g) >= 24 ? t('story.dur_days', { n: Ma
       <li v-for="(g, i) in gaps" :key="i" class="grid gap-1">
         <div class="flex justify-between gap-3 text-sm tabular-nums">
           <span class="text-gray-600 dark:text-gray-300">{{ when(g) }} · {{ duration(g) }}</span>
-          <b class="text-gray-900 dark:text-gray-100">{{ formatDecimal(g.kwh, 1) }} kWh</b>
+          <b :class="i === 0 ? 'text-amber-700 dark:text-amber-400' : 'text-gray-900 dark:text-gray-100'">{{ formatDecimal(g.kwh, 1) }} kWh</b>
         </div>
-        <span class="block h-2.5 rounded-[3px] bg-gray-100 dark:bg-gray-800"><i class="block h-full rounded-[3px]" :class="i === 0 ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-400 dark:bg-gray-500'" :style="{ width: `${(g.kwh / max) * 100}%` }" /></span>
+        <span class="block h-2.5 rounded-[3px] bg-gray-100 dark:bg-gray-800"><i class="block h-full rounded-[3px]" :class="i === 0 ? 'bg-amber-500 dark:bg-amber-400' : 'bg-amber-200 dark:bg-amber-400/40'" :style="{ width: `${(g.kwh / max) * 100}%` }" /></span>
       </li>
     </ul>
   </div>

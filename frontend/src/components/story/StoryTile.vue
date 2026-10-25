@@ -190,7 +190,7 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
       <ShareBar v-else-if="tile.id === 'charging'" :segments="chargingSegments" />
       <span v-else-if="tile.id === 'standby'" class="flex h-7 items-end gap-1" data-testid="story-standby-bars">
         <i v-for="(g, i) in tile.tripMonth?.standbyGaps ?? []" :key="i" class="block flex-1 rounded-t-[2px]"
-          :class="i === 0 ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-300 dark:bg-gray-600'" :style="{ height: `${Math.max(8, (g.kwh / standbyMax) * 100)}%` }" />
+          :class="i === 0 ? 'bg-amber-500 dark:bg-amber-400' : 'bg-amber-200 dark:bg-amber-400/40'" :style="{ height: `${Math.max(8, (g.kwh / standbyMax) * 100)}%` }" />
       </span>
       <Spark v-else :values="tile.spark" :variant="tile.sparkVariant" :reference="tile.reference" tone="good" :end-label="endLabel" />
     </span>
