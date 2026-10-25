@@ -3591,7 +3591,7 @@ logwizard:
   location_offer: "Ladesäulen in der Nähe anzeigen?"
   location_cta: "Standort nutzen"
   location_blocked: "Standort ist für diese Seite blockiert."
-  location_steps_ios: "So erlaubst du ihn wieder: Einstellungen öffnen, dann Apps, dann Safari, dann Standort und dort Fragen oder Erlauben wählen. Nutzt du Chrome, findest du es unter Einstellungen, dann Apps, dann Chrome, dann Standort."
+  location_steps_ios: "So erlaubst du ihn wieder: Einstellungen öffnen, dann Apps, dann Safari, dann Standort und dort Fragen oder Erlauben wählen. Nutzt du Chrome, findest du es unter Einstellungen, dann Apps, dann Chrome, dann Standort. Hilft das nicht: Einstellungen, dann Datenschutz & Sicherheit, dann Ortungsdienste. Dort Ortungsdienste einschalten und bei Safari-Websites nicht Nie wählen."
   location_steps_android: "So erlaubst du ihn wieder: Tippe auf das Symbol links neben der Adresse, dann Berechtigungen, dann Standort und wähle Zulassen."
   location_steps_desktop: "So erlaubst du ihn wieder: Klicke auf das Symbol links neben der Adresse und stelle Standort auf Zulassen."
   location_open_settings: "Einstellungen öffnen"

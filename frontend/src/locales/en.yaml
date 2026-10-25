@@ -3585,7 +3585,7 @@ logwizard:
   location_offer: "Show charging stations nearby?"
   location_cta: "Use location"
   location_blocked: "Location is blocked for this site."
-  location_steps_ios: "To allow it again: open Settings, then Apps, then Safari, then Location and choose Ask or Allow. If you use Chrome, go to Settings, then Apps, then Chrome, then Location."
+  location_steps_ios: "To allow it again: open Settings, then Apps, then Safari, then Location and choose Ask or Allow. If you use Chrome, go to Settings, then Apps, then Chrome, then Location. If that does not help: Settings, then Privacy & Security, then Location Services. Turn Location Services on and set Safari Websites to anything but Never."
   location_steps_android: "To allow it again: tap the icon left of the address, then Permissions, then Location and choose Allow."
   location_steps_desktop: "To allow it again: click the icon left of the address and set Location to Allow."
   location_open_settings: "Open settings"

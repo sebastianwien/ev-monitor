@@ -3468,7 +3468,7 @@ logwizard:
   location_offer: "Visa laddstationer i närheten?"
   location_cta: "Använd plats"
   location_blocked: "Platsen är blockerad för den här sidan."
-  location_steps_ios: "Så tillåter du den igen: öppna Inställningar, sedan Appar, sedan Safari, sedan Plats och välj Fråga eller Tillåt. Använder du Chrome: Inställningar, sedan Appar, sedan Chrome, sedan Plats."
+  location_steps_ios: "Så tillåter du den igen: öppna Inställningar, sedan Appar, sedan Safari, sedan Plats och välj Fråga eller Tillåt. Använder du Chrome: Inställningar, sedan Appar, sedan Chrome, sedan Plats. Hjälper inte det: Inställningar, sedan Integritet och säkerhet, sedan Platstjänster. Slå på Platstjänster och välj något annat än Aldrig för Safari-webbplatser."
   location_steps_android: "Så tillåter du den igen: tryck på ikonen till vänster om adressen, sedan Behörigheter, sedan Plats och välj Tillåt."
   location_steps_desktop: "Så tillåter du den igen: klicka på ikonen till vänster om adressen och sätt Plats till Tillåt."
   location_open_settings: "Öppna inställningar"
