@@ -1,27 +1,20 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { CostLayer } from '../../composables/storyEnergy'
 
 /**
- * Die Hero-Zahl aufgefaechert: Strom, Fixkosten, Einnahmen, Netto. Je 100 km, wenn
- * der Monat Strecke kennt, sonst absolut. Gestaffeltes Einblenden ueber @starting-style,
- * Browser ohne Unterstuetzung zeigen die Zeilen sofort.
+ * Die Kosten des Monats aufgefaechert: Strom, Fixkosten, Einnahmen, Netto. In Euro des Monats wie
+ * Hero-Satz und Knopf, damit Netto die Summe auf dem Knopf ist. Gestaffeltes Einblenden ueber
+ * @starting-style, Browser ohne Unterstuetzung zeigen die Zeilen sofort.
  */
-const props = defineProps<{
-  layers: CostLayer[]
-  distanceKm: number | null
-}>()
+defineProps<{ layers: CostLayer[] }>()
 
 const { t } = useI18n()
-const { formatCurrency, formatCostPerDistance } = useLocaleFormat()
-
-const perHundred = computed(() => props.distanceKm != null && props.distanceKm > 0)
+const { formatCurrency } = useLocaleFormat()
 
 function value(l: CostLayer): string {
-  const v = perHundred.value ? (l.eur / props.distanceKm!) * 100 : l.eur
-  const s = perHundred.value ? formatCostPerDistance(v) : formatCurrency(v)
+  const s = formatCurrency(l.eur)
   return l.kind === 'income' ? `-${s}` : s
 }
 </script>
@@ -36,7 +29,7 @@ function value(l: CostLayer): string {
       <span>{{ t(`story.layers_${l.kind}`) }}</span>
       <span class="tabular-nums" :class="l.kind === 'income' ? 'text-story-accent dark:text-story-accent-dark' : ''">{{ value(l) }}</span>
     </li>
-    <li class="text-xs text-gray-500 dark:text-gray-400 pt-1">{{ perHundred ? t('story.layers_per_100') : t('story.layers_absolute') }}</li>
+    <li class="text-xs text-gray-500 dark:text-gray-400 pt-1">{{ t('story.layers_absolute') }}</li>
   </ul>
 </template>
 

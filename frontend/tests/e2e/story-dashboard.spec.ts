@@ -79,15 +79,13 @@ test.describe('Story-Dashboard', () => {
     await page.goto('/story');
     await page.waitForLoadState('networkidle');
 
-    const hero = page.getByTestId('story-hero-value');
-    if (!(await hero.isVisible())) test.skip(true, 'Monat ohne Kosten');
-    // Nur wenn der Hero ein Button ist (Fixkosten vorhanden), gibt es Schichten.
-    const isButton = await hero.evaluate(el => el.tagName === 'BUTTON');
-    if (!isButton) test.skip(true, 'Test-User ohne Fixkosten');
-    await hero.click();
+    const toggle = page.getByTestId('story-hero-layers');
+    // Den Knopf gibt es nur in Monaten mit Fixkosten oder Einnahmen.
+    if (!(await toggle.isVisible())) test.skip(true, 'Test-User ohne Fixkosten');
+    await toggle.click();
     await expect(page.getByTestId('story-cost-layers')).toBeVisible();
-    await expect(hero).toHaveAttribute('aria-expanded', 'true');
-    await hero.click();
+    await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    await toggle.click();
     await expect(page.getByTestId('story-cost-layers')).toBeHidden();
   });
 });

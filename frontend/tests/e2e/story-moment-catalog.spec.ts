@@ -31,6 +31,19 @@ const CASES: Case[] = [
     },
   },
   {
+    name: 'monat-fixkosten',
+    data: () => {
+      const d = calmMonth();
+      return { ...d, monthStats: { ...(d.monthStats as Record<string, unknown>), fixedCostEur: 163, totalCostEur: 196 } };
+    },
+    check: async (page) => {
+      const toggle = page.getByTestId('story-hero-layers');
+      await expect(toggle).toHaveText(/Alle Kosten 196\s€/);
+      await expect(page.getByTestId('story-hero-value')).toContainText(/Oktober: 274\skm für 33\s€\./);
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    },
+  },
+  {
     name: 'gerade-geladen',
     data: () => ({ ...calmMonth(), logs: [log(NOW_MID, { loggedAt: iso(NOW_MID - 40 * 60_000), createdAt: iso(NOW_MID - 40 * 60_000), kwhAtVehicle: 28.5, kwhCharged: 30, socBeforeChargePercent: 35, socAfterChargePercent: 80, costEur: null })] }),
     check: async (page) => {

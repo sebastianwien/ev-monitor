@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest'
-import { createApp, type App } from 'vue'
+import { createApp, nextTick, type App } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { useCountryStore } from '../../../stores/country'
 import { i18n } from '../../../i18n'
@@ -99,10 +99,55 @@ describe('StoryHero', () => {
     expect(meta).not.toContain('100 km')
   })
 
-  it('mit Fixkosten ist der Satz ein Knopf, der die Kostenschichten aufklappt', () => {
-    const host = mount({ layers: [{ key: 'energy', eur: 33.4 }] as never })
-    const value = host.querySelector('[data-testid="story-hero-value"]')
-    expect(value?.tagName).toBe('BUTTON')
-    expect(value?.getAttribute('aria-expanded')).toBe('false')
+  const layers = [
+    { kind: 'energy', eur: 33.4 }, { kind: 'fixed', eur: 162.9 }, { kind: 'net', eur: 196.3 },
+  ]
+
+  it('mit Fixkosten: Knopf "Alle Kosten" mit der Summe der Schichten, der Satz bleibt Text', async () => {
+    const host = mount({ layers: layers as never })
+    expect(host.querySelector('[data-testid="story-hero-value"]')?.tagName).toBe('SPAN')
+    expect(host.querySelector('h1 button')).toBeNull()
+    const toggle = host.querySelector('[data-testid="story-hero-layers"]') as HTMLButtonElement
+    expect(toggle.tagName).toBe('BUTTON')
+    expect(text(toggle)).toBe('Alle Kosten 196 €')
+    expect(toggle.className).toContain('min-h-11')
+    expect(toggle.className).not.toMatch(/green|accent/)
+    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).not.toContain('Tippen')
+  })
+
+  it('der Knopf klappt die Kostenschichten auf und meldet das, aria-expanded wechselt', async () => {
+    const opened: boolean[] = []
+    const host = mount({ layers: layers as never, onLayers: (o: boolean) => opened.push(o) })
+    const toggle = host.querySelector('[data-testid="story-hero-layers"]') as HTMLButtonElement
+    const panel = document.getElementById(toggle.getAttribute('aria-controls')!)
+    expect(panel?.querySelector('[data-testid="story-cost-layers"]')).not.toBeNull()
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    toggle.click()
+    await nextTick()
+    expect(toggle.getAttribute('aria-expanded')).toBe('true')
+    expect(toggle.querySelector('svg')?.getAttribute('class')).toContain('rotate-180')
+    toggle.click()
+    await nextTick()
+    expect(toggle.getAttribute('aria-expanded')).toBe('false')
+    expect(opened).toEqual([true, false])
+  })
+
+  it('die Schichten stehen in Euro des Monats, Netto gleich der Summe auf dem Knopf', () => {
+    const host = mount({ layers: layers as never })
+    const rows = [...host.querySelectorAll('[data-testid="story-cost-layers"] li')].map(li => [...li.querySelectorAll('span')].map(text).join(' ') || text(li))
+    expect(rows.slice(0, 3)).toEqual(['Strom 33,40 €', 'Fixkosten 162,90 €', 'Netto 196,30 €'])
+    expect(rows.join(' ')).not.toContain('100')
+  })
+
+  it('ohne Fixkosten und Einnahmen kein Knopf', () => {
+    const host = mount()
+    expect(host.querySelector('[data-testid="story-hero-layers"]')).toBeNull()
+    expect(host.querySelector('[data-testid="story-cost-layers"]')).toBeNull()
+  })
+
+  it('Knopf auch ohne graue Zeile, etwa ohne Strecke', () => {
+    const host = mount({ distanceKm: 0, petrolEur: null as never, layers: layers as never })
+    expect(host.querySelector('[data-testid="story-hero-meta"]')).toBeNull()
+    expect(text(host.querySelector('[data-testid="story-hero-layers"]'))).toBe('Alle Kosten 196 €')
   })
 })

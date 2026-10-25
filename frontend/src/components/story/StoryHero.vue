@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ShareIcon } from '@heroicons/vue/24/outline'
+import { ShareIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import CostLayers from './CostLayers.vue'
+import Collapse from '../shared/Collapse.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { heroLine } from '../../composables/storyModel'
 import { keepUnits } from '../../utils/modelStory'
@@ -11,8 +12,8 @@ import type { CostLayer } from '../../composables/storyEnergy'
 /**
  * Die Antwort zuerst, als ein Satz in Kilometern und Euro: "Oktober: 274 km für 33 €."
  * Darunter eine graue Zeile mit Euro je 100 km und, nur wenn Benzin teurer gewesen wäre, was
- * ein Benziner gekostet hätte. Rechts der Teilen-Knopf. Mit Fixkosten klappt ein Tipp auf den
- * Satz die Kostenschichten auf.
+ * ein Benziner gekostet hätte. Rechts der Teilen-Knopf. Mit Fixkosten oder Einnahmen steht in der
+ * grauen Zeile ein Knopf "Alle Kosten" mit der Summe, er klappt die Kostenschichten auf.
  */
 const props = defineProps<{
   monthLabel: string
@@ -56,9 +57,14 @@ const meta = computed(() => [
   petrol.value ? t('story.hero_petrol_sub', { eur: petrol.value }) : null,
 ].filter(Boolean).map(x => keepUnits(x!)).join(' · '))
 
+/** Summe aller Schichten (Strom plus Fixkosten minus Einnahmen) für den Knopf. */
+const layersTotal = computed(() => {
+  const net = props.layers?.find(l => l.kind === 'net')
+  return net ? keepUnits(t('story.layers_toggle', { eur: formatCurrency(net.eur, { decimals: 0 }) })) : null
+})
+const layersId = useId()
 const layersOpen = ref(false)
 function toggleLayers() {
-  if (!props.layers) return
   layersOpen.value = !layersOpen.value
   emit('layers', layersOpen.value)
 }
@@ -70,22 +76,29 @@ watch(() => props.monthLabel, () => { layersOpen.value = false })
   <div class="story-hero flex items-start justify-between gap-3">
     <div class="grid min-w-0 gap-1.5">
       <h1 class="text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50">
-        <component
-          :is="layers ? 'button' : 'span'"
-          :type="layers ? 'button' : undefined"
-          :aria-expanded="layers ? layersOpen : undefined"
-          data-testid="story-hero-value"
-          class="block text-left"
-          :class="layers ? 'cursor-pointer rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent' : ''"
-          style="view-transition-name: story-hero-value"
-          @click="toggleLayers">
+        <span data-testid="story-hero-value" class="block" style="view-transition-name: story-hero-value">
           <template v-if="sentenceParts.month">{{ `${sentenceParts.month} ` }}</template><span class="whitespace-nowrap">{{ sentenceParts.rest }}</span>
-        </component>
+        </span>
       </h1>
-      <p v-if="meta || layers" data-testid="story-hero-meta" class="text-pretty text-[15px] font-semibold text-gray-600 tabular-nums md:text-[17px] dark:text-gray-300">
-        {{ meta }}<template v-if="layers && !layersOpen">{{ meta ? ' · ' : '' }}{{ t('story.layers_hint') }}</template>
-      </p>
-      <CostLayers v-if="layers && layersOpen" :layers="layers" :distance-km="distanceKm" />
+      <!-- Passt der Knopf nicht mehr hinter die graue Zeile, bricht er in eine eigene Zeile um.
+           -my gleicht die 44 px Tap-Fläche aus, damit die Zeile nicht höher wird als der Text. -->
+      <div v-if="meta || layersTotal" class="flex flex-wrap items-center gap-x-3 gap-y-1">
+        <p v-if="meta" data-testid="story-hero-meta" class="text-pretty text-[15px] font-semibold text-gray-600 tabular-nums md:text-[17px] dark:text-gray-300">{{ meta }}</p>
+        <button
+          v-if="layersTotal"
+          type="button"
+          data-testid="story-hero-layers"
+          :aria-expanded="layersOpen"
+          :aria-controls="layersId"
+          class="-my-2.5 inline-flex min-h-11 items-center gap-1 rounded-md text-[14px] font-bold text-gray-900 tabular-nums underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 md:text-[15px] dark:text-gray-50 dark:decoration-gray-600 dark:focus-visible:ring-gray-100"
+          @click="toggleLayers">
+          {{ layersTotal }}
+          <ChevronDownIcon class="h-4 w-4 shrink-0 transition-transform duration-300 ease-out" :class="layersOpen ? 'rotate-180' : ''" aria-hidden="true" />
+        </button>
+      </div>
+      <Collapse v-if="layers" :open="layersOpen">
+        <div :id="layersId"><CostLayers :layers="layers" /></div>
+      </Collapse>
     </div>
     <button
       type="button"
