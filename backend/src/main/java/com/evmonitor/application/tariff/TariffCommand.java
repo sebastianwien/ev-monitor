@@ -32,6 +32,6 @@ public record TariffCommand(
         boolean dynamicPricing,
         @NotNull(message = "Gültig ab ist Pflicht.") LocalDate validFrom,
         LocalDate validUntil,
-        // Nur Web-Links: die Quelle wird im Admin-Tab als Link gezeigt.
-        @Size(max = 500) @Pattern(regexp = "https?://\\S+", message = "Quelle muss ein http(s)-Link sein.") String sourceUrl) {
+        // Freiwillig, leer heisst keine Quelle. Sonst nur Web-Links: die Quelle wird im Admin-Tab als Link gezeigt.
+        @Size(max = 500) @Pattern(regexp = "(https?://\\S+)?", message = "Quelle muss ein http(s)-Link sein.") String sourceUrl) {
 }

@@ -72,6 +72,15 @@ class AdminChargingTariffControllerIntegrationTest extends AbstractIntegrationTe
     }
 
     @Test
+    void create_withoutSource_isAllowed() {
+        // Quelle ist freiwillig: ein leeres Feld im Formular heisst "keine Quelle"
+        ResponseEntity<Map> created = send(HttpMethod.POST, URL, with("sourceUrl", ""));
+
+        assertThat(created.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(created.getBody().get("sourceUrl")).isNull();
+    }
+
+    @Test
     void invalidInput_400() {
         assertThat(send(HttpMethod.POST, URL, with("pricePerKwh", -0.1)).getStatusCode()).as("negative price").isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(send(HttpMethod.POST, URL, with("pricePerKwh", 5)).getStatusCode()).as("absurd price").isEqualTo(HttpStatus.BAD_REQUEST);
