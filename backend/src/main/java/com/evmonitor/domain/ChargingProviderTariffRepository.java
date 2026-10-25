@@ -3,6 +3,7 @@ package com.evmonitor.domain;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface ChargingProviderTariffRepository {
 
@@ -12,6 +13,13 @@ public interface ChargingProviderTariffRepository {
 
     /** Tarife, die an diesem Tag gelten: begonnen und nicht beendet (das Enddatum zaehlt noch). */
     List<ChargingProviderTariff> findValidOn(LocalDate day);
+
+    /** Alle Tarife, auch beendete - fuer die Pflege im Admin-Tab. */
+    List<ChargingProviderTariff> findAll();
+
+    Optional<ChargingProviderTariff> findById(UUID id);
+
+    ChargingProviderTariff save(ChargingProviderTariff tariff);
 
     /**
      * Lookup-Reihenfolge für den Vergleichsrechner:

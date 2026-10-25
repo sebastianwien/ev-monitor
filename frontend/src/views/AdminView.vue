@@ -32,6 +32,7 @@ import AdminVoiceUsageTab from '../components/admin/AdminVoiceUsageTab.vue'
 import AdminRatingsTab from '../components/admin/AdminRatingsTab.vue'
 import AdminSpecsTab from '../components/admin/AdminSpecsTab.vue'
 import AdminSpecSuggestionsTab from '../components/admin/AdminSpecSuggestionsTab.vue'
+import AdminTariffsTab from '../components/admin/AdminTariffsTab.vue'
 import AdminSeoTab from '../components/admin/AdminSeoTab.vue'
 import { adminRatingService } from '../api/adminRatingService'
 
@@ -42,8 +43,8 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'seo' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'voice' | 'ratings' | 'specs' | 'vorschlaege' | 'wartung'
-const TABS: Tab[] = ['users', 'growth', 'activity', 'seo', 'stripe', 'webhooks', 'imports', 'surveys', 'voice', 'ratings', 'specs', 'vorschlaege', 'impersonate', 'wartung']
+type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'seo' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'voice' | 'ratings' | 'specs' | 'vorschlaege' | 'ladekarten' | 'wartung'
+const TABS: Tab[] = ['users', 'growth', 'activity', 'seo', 'stripe', 'webhooks', 'imports', 'surveys', 'voice', 'ratings', 'specs', 'vorschlaege', 'ladekarten', 'impersonate', 'wartung']
 /** Offene Erfahrungstexte für das Tab-Label, beim Öffnen der Seite einmal geladen. */
 const openRatingTexts = ref<number | null>(null)
 adminRatingService.openCount().then(n => { openRatingTexts.value = n }).catch(() => { /* Label ohne Zahl */ })
@@ -393,6 +394,7 @@ const onResizeUp = () => {
             { key: 'ratings', label: openRatingTexts === null ? 'Bewertungen' : `Bewertungen (${openRatingTexts} offen)` },
             { key: 'specs', label: 'Fahrzeug-Specs' },
             { key: 'vorschlaege', label: 'Spec-Vorschläge' },
+            { key: 'ladekarten', label: 'Ladekarten' },
             { key: 'impersonate', label: 'Impersonieren' },
             { key: 'wartung', label: 'Wartung' },
           ] as { key: Tab; label: string }[])"
@@ -613,6 +615,8 @@ const onResizeUp = () => {
       <AdminSpecsTab v-else-if="activeTab === 'specs'" />
 
       <AdminSpecSuggestionsTab v-else-if="activeTab === 'vorschlaege'" />
+
+      <AdminTariffsTab v-else-if="activeTab === 'ladekarten'" />
 
       <!-- Tab: Impersonate -->
       <!-- Tab: Wartung -->
