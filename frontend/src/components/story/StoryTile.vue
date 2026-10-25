@@ -188,9 +188,13 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
         </span>
       </span>
       <ShareBar v-else-if="tile.id === 'charging'" :segments="chargingSegments" />
-      <span v-else-if="tile.id === 'standby'" class="flex h-7 items-end gap-1" data-testid="story-standby-bars">
-        <i v-for="(g, i) in tile.tripMonth?.standbyGaps ?? []" :key="i" class="block flex-1 rounded-t-[2px]"
-          :class="i === 0 ? 'bg-amber-500 dark:bg-amber-400' : 'bg-amber-200 dark:bg-amber-400/40'" :style="{ height: `${Math.max(8, (g.kwh / standbyMax) * 100)}%` }" />
+      <span v-else-if="tile.id === 'standby'" class="flex h-10 items-end gap-1" data-testid="story-standby-bars">
+        <!-- je Stand eine Säule, kWh darüber; Höhe relativ zum größten Verlust -->
+        <span v-for="(g, i) in tile.tripMonth?.standbyGaps ?? []" :key="i" class="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-0.5">
+          <span class="text-[10.5px] font-semibold leading-none tabular-nums" :class="i === 0 ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400'">{{ formatDecimal(g.kwh, 1) }}</span>
+          <i class="block w-full rounded-t-[2px]" :class="i === 0 ? 'bg-amber-500 dark:bg-amber-400' : 'bg-amber-200 dark:bg-amber-400/40'"
+            :style="{ height: `${Math.max(3, (g.kwh / standbyMax) * 24)}px` }" />
+        </span>
       </span>
       <Spark v-else :values="tile.spark" :variant="tile.sparkVariant" :reference="tile.reference" tone="good" :end-label="endLabel" />
     </span>
