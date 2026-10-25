@@ -57,15 +57,16 @@ const emit = defineEmits<{ available: [hasData: boolean] }>()
 
 const { t, locale, n } = useI18n()
 
+// Kategoriefarbe nur am Icon: bewusste Ausnahme von der Grau-Regel der App-CI (siehe docs/design/ci.md).
 const CATEGORIES = computed(() => [
-  { key: 'MONTHLY_KWH', label: t('leaderboard.cat_kwh'), desc: t('leaderboard.desc_kwh'), icon: BoltIcon },
-  { key: 'MONTHLY_CHARGES', label: t('leaderboard.cat_charges'), desc: t('leaderboard.desc_charges'), icon: ArrowPathIcon },
-  { key: 'MONTHLY_DISTANCE', label: t('leaderboard.cat_distance'), desc: t('leaderboard.desc_distance'), icon: FireIcon },
-  { key: 'MONTHLY_CHEAPEST', label: t('leaderboard.cat_cheapest'), desc: t('leaderboard.desc_cheapest'), icon: StarIcon },
-  { key: 'MONTHLY_NIGHT_OWL', label: t('leaderboard.cat_night_owl'), desc: t('leaderboard.desc_night_owl'), icon: MoonIcon },
-  { key: 'MONTHLY_ICE_CHARGER', label: t('leaderboard.cat_ice_charger'), desc: t('leaderboard.desc_ice_charger'), icon: ArrowDownIcon },
-  { key: 'MONTHLY_HEAT_CHARGER', label: t('leaderboard.cat_heat_charger'), desc: t('leaderboard.desc_heat_charger'), icon: SunIcon },
-  { key: 'MONTHLY_POWER_CHARGER', label: t('leaderboard.cat_power_charger'), desc: t('leaderboard.desc_power_charger'), icon: BoltIcon },
+  { key: 'MONTHLY_KWH', label: t('leaderboard.cat_kwh'), desc: t('leaderboard.desc_kwh'), icon: BoltIcon, color: 'text-yellow-500' },
+  { key: 'MONTHLY_CHARGES', label: t('leaderboard.cat_charges'), desc: t('leaderboard.desc_charges'), icon: ArrowPathIcon, color: 'text-blue-500' },
+  { key: 'MONTHLY_DISTANCE', label: t('leaderboard.cat_distance'), desc: t('leaderboard.desc_distance'), icon: FireIcon, color: 'text-orange-500' },
+  { key: 'MONTHLY_CHEAPEST', label: t('leaderboard.cat_cheapest'), desc: t('leaderboard.desc_cheapest'), icon: StarIcon, color: 'text-green-500' },
+  { key: 'MONTHLY_NIGHT_OWL', label: t('leaderboard.cat_night_owl'), desc: t('leaderboard.desc_night_owl'), icon: MoonIcon, color: 'text-indigo-400' },
+  { key: 'MONTHLY_ICE_CHARGER', label: t('leaderboard.cat_ice_charger'), desc: t('leaderboard.desc_ice_charger'), icon: ArrowDownIcon, color: 'text-cyan-400' },
+  { key: 'MONTHLY_HEAT_CHARGER', label: t('leaderboard.cat_heat_charger'), desc: t('leaderboard.desc_heat_charger'), icon: SunIcon, color: 'text-orange-400' },
+  { key: 'MONTHLY_POWER_CHARGER', label: t('leaderboard.cat_power_charger'), desc: t('leaderboard.desc_power_charger'), icon: BoltIcon, color: 'text-red-500' },
 ])
 
 const authStore = useAuthStore()
@@ -150,7 +151,8 @@ const periodLabel = computed(() => {
 const isFinalStandings = computed(() => props.month === 'previous' && !!data.value)
 
 // ownEntry kommt nur, wenn der Nutzer ausserhalb der Top-Plaetze steht; in den Top-Plaetzen erkennt man ihn am Namen.
-const inTopEntries = computed(() => !!authStore.user?.username && (data.value?.entries ?? []).some(e => e.username === authStore.user?.username))
+const isOwn = (entry: LeaderboardEntry) => !!authStore.user?.username && entry.username === authStore.user.username
+const inTopEntries = computed(() => (data.value?.entries ?? []).some(isOwn))
 
 // Optional auf Top-N begrenzen (Landing zeigt nur Top 5, in-app weiter Top 10).
 const displayedEntries = computed(() => {
@@ -177,14 +179,14 @@ const displayedEntries = computed(() => {
     <!-- Kategorien: Handy seitlich scrollbar bis an den Rand, ab md umbrechend -->
     <div class="grid gap-2">
       <div ref="chipBar" role="group" :aria-label="t('leaderboard.title')"
-        class="scrollbar-hide -mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pt-0.5 pb-1.5 md:mx-0 md:flex-wrap md:px-0">
+        class="scrollbar-hide -mx-4 flex snap-x scroll-px-4 gap-2 overflow-x-auto px-4 pt-0.5 pb-1.5 md:mx-0 md:flex-wrap md:justify-center md:px-0">
         <ChoiceChip v-for="cat in CATEGORIES" :key="cat.key" size="sm" :active="cat.key === activeCategory"
           class="relative snap-start before:absolute before:inset-x-0 before:-inset-y-1 before:content-['']"
           @click="jumpToCategory(cat.key)">
-          <component :is="cat.icon" class="h-4 w-4" aria-hidden="true" />{{ cat.label }}
+          <component :is="cat.icon" class="h-4 w-4" :class="cat.color" aria-hidden="true" />{{ cat.label }}
         </ChoiceChip>
       </div>
-      <p class="text-sm text-gray-600 dark:text-gray-400">{{ activeCategoryMeta?.desc }}</p>
+      <p class="text-sm text-gray-600 md:text-center dark:text-gray-400">{{ activeCategoryMeta?.desc }}</p>
     </div>
 
     <div class="overflow-hidden">
@@ -215,12 +217,17 @@ const displayedEntries = computed(() => {
 
             <ol class="divide-y divide-gray-200 dark:divide-gray-700">
               <li v-for="entry in displayedEntries" :key="entry.rank"
-                class="flex items-center gap-3 first:pt-0 last:pb-0" :class="entry.rank === 1 ? 'py-3.5' : 'py-2.5'">
+                :data-testid="isOwn(entry) ? 'leaderboard-own' : undefined"
+                class="flex items-center gap-3"
+                :class="[entry.rank === 1 ? 'py-3.5' : 'py-2.5', isOwn(entry) ? '-mx-2 rounded-xl bg-gray-100 px-2 dark:bg-gray-800/60' : 'first:pt-0 last:pb-0']">
                 <div class="flex w-10 shrink-0 justify-center">
                   <span :class="plaqueClass(entry.rank)">{{ entry.rank }}</span>
                 </div>
                 <div class="min-w-0 flex-1">
-                  <div :class="usernameClass(entry.rank)">{{ entry.username }}</div>
+                  <div :class="usernameClass(entry.rank)">
+                    {{ entry.username }}
+                    <span v-if="isOwn(entry)" class="ml-1 text-[11.5px] font-bold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('leaderboard.you') }}</span>
+                  </div>
                   <div v-if="entry.carLabel" class="truncate text-[13px] text-gray-500 dark:text-gray-400">{{ entry.carLabel }}</div>
                   <div v-if="entry.kwhTotal != null && entry.sessionCount != null" class="truncate text-[12.5px] text-gray-500 tabular-nums dark:text-gray-400">
                     {{ t('leaderboard.cheapest_subtitle', { kwh: n(Number(entry.kwhTotal), { minimumFractionDigits: 1, maximumFractionDigits: 1 }), sessions: entry.sessionCount }) }}
@@ -238,8 +245,9 @@ const displayedEntries = computed(() => {
             </ol>
           </template>
 
-          <!-- Eigener Platz, wenn nicht in den Top 10 -->
-          <div v-if="data.ownEntry" class="flex items-center gap-3 rounded-2xl bg-white px-3 py-3 edge-card dark:bg-gray-800/60">
+          <!-- Eigener Platz, wenn nicht in den Top 10: unten angestellt, Abstand als Punkte -->
+          <p v-if="data.ownEntry" class="text-center text-sm font-bold tracking-[0.3em] text-gray-400 dark:text-gray-500" aria-hidden="true">···</p>
+          <div v-if="data.ownEntry" data-testid="leaderboard-own" class="flex items-center gap-3 rounded-2xl bg-white px-3 py-3 edge-card dark:bg-gray-800/60">
             <div class="flex w-10 shrink-0 justify-center">
               <span class="text-sm font-bold text-gray-900 tabular-nums dark:text-gray-100">{{ data.ownEntry.rank }}</span>
             </div>
