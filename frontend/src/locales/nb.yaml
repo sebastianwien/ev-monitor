@@ -1690,8 +1690,8 @@ coins:
   unit: Watt
   to_leaderboard: Gå til resultatlisten
   ranking_title: Din rangering denne måneden
-  collapse: skjul ▲
-  expand: vis mer ▼
+  collapse: skjul
+  expand: vis mer
   standings_loading: Laster...
   delta_new: NYTT
   type_achievement: Prestasjon
@@ -1777,6 +1777,7 @@ settings:
   password_confirm_placeholder: Bekreft nytt passord
   privacy_title: Data og personvern
   registered_since: Registrert siden
+  stats_charges: ladeøkter
   export_btn: Eksporter dataene mine (JSON)
   delete_btn: Slett kontoen permanent
   leaderboard_title: Poengliste
@@ -4200,7 +4201,6 @@ story:
   feed_phantom_cta: "Se det med AutoSync"
   map_title: "Hvor du lader"
   map_sub: "Ladesteder på kartet, dyre steder skiller seg ut."
-  sheet_close: "Lukk"
   places_period_aria: "Periode"
   places_period_12m: "12 måneder"
   places_period_all: "Alt"
@@ -4213,7 +4213,7 @@ story:
   places_empty_month: "Ingen lading med sted i {month}."
   places_empty_12m: "Ingen lading med sted siste 12 måneder."
   places_empty_all: "Ingen lading med sted."
-  places_trips: "Turer {n}"
+  places_trips: "Vis 1 tur | Vis {n} turer"
   places_trips_locked: "Alle turer på kartet"
   places_trips_cta: "Se med AutoSync"
   places_kind_home: "Hjemme"
@@ -4232,6 +4232,7 @@ story:
   places_legend_high: "dyrere enn andre"
   places_legend_trips: "Turer"
   places_list_aria: "Ladesteder"
+  sheet_close: "Lukk"
   sheet_prices_title: "Priser hos {cpo}"
   sheet_prices_you: "Du betalte {price}."
   sheet_prices_others: "Andre sjåfører betaler i snitt {median} der, halvparten mellom {low} og {high}."

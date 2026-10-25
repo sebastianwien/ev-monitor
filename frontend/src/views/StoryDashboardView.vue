@@ -195,22 +195,21 @@ function onPointerUp(e: PointerEvent) {
 const openTile = ref<TileId | null>(null)
 const openMap = ref(false)
 const openPrices = ref(false)
-/** Zeitraum der Ladekarte, bleibt beim Umweg über "Betreiber eintragen" erhalten. */
+/** Zeitraum der Ladekarte, bleibt beim Schließen und Wiederöffnen erhalten. */
 const placesPeriod = ref<PlacePeriod>('12m')
 const operatorLog = ref<EvLogResponse | null>(null)
-/** "Betreiber eintragen": die Karte ist schon zu, die Ladung öffnet im Ort, danach kommt die Karte zurück. */
+const placesSheet = ref<{ reload: () => void } | null>(null)
+/** "Betreiber eintragen": die Ladung öffnet im Ort, über der Karte und leichter abgedunkelt. */
 async function openOperator(logId: string) {
-  openMap.value = false
   try {
     operatorLog.value = (await api.get<EvLogResponse>(`/logs/${logId}`)).data
-  } catch {
-    openMap.value = true
-  }
+  } catch { /* Ladung weg oder offline: die Karte bleibt einfach stehen */ }
 }
 function closeOperator(changed: boolean) {
   operatorLog.value = null
-  openMap.value = true
-  if (changed) story.reload()
+  if (!changed) return
+  placesSheet.value?.reload()
+  story.reload()
 }
 /** Was der Nutzer bei der Ladung gezahlt hat, die den Moment "zu teuer geladen" ausloest. */
 const expensivePrice = computed(() => moment.value.kind === 'expensive' ? moment.value.pricePerKwh : null)
@@ -380,6 +379,7 @@ onMounted(() => analytics.track('story_viewed'))
 
     <PlacesSheet
       v-if="openMap && selectedCarId"
+      ref="placesSheet"
       v-model:period="placesPeriod"
       :car-id="selectedCarId"
       :month="month"
@@ -392,6 +392,7 @@ onMounted(() => analytics.track('story_viewed'))
       v-if="operatorLog"
       :log="operatorLog"
       start-section="place"
+      stacked
       @close="closeOperator(false)"
       @saved="closeOperator(true)"
       @deleted="closeOperator(true)" />

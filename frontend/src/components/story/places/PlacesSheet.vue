@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, ChevronLeftIcon, MapIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
 import api from '../../../api/axios'
 import { chargingBenchmarkService, type ChargingBenchmark } from '../../../api/chargingBenchmarkService'
 import BottomSheet from '../../shared/BottomSheet.vue'
 import ChoiceChip from '../../shared/ChoiceChip.vue'
-import StoryPriceDetail from '../StoryPriceDetail.vue'
+import ToggleSwitch from '../../shared/ToggleSwitch.vue'
 import PlacesList, { type PlaceRow } from './PlacesList.vue'
 import type { MapPin, MapView } from './PlacesMap.vue'
 import { PLACE_FILL, PIN_EDGE } from './placeStyle'
@@ -21,7 +21,8 @@ const PlacesMap = defineAsyncComponent(() => import('./PlacesMap.vue'))
 /**
  * Sheet "Wo du lädst": wo ich lade, was ich dort zahle und wo ich mehr zahle als andere.
  * Handy: Karte oben (40 %), Liste darunter. Ab lg Karte links, Liste rechts. Unter 3 Orten nur die Liste.
- * Der Preisvergleich eines Orts ist eine Unteransicht im selben Sheet (kein Sheet auf dem Sheet).
+ * Der Preisvergleich eines Orts klappt in seiner Zeile auf. "Betreiber eintragen" lässt das Sheet offen,
+ * der Bearbeiten-Dialog legt sich darüber (View).
  */
 const props = defineProps<{
   carId: string
@@ -43,7 +44,6 @@ const loading = ref(true)
 const error = ref(false)
 const showTrips = ref(false)
 const selection = ref<PlaceSelection<MapView | null>>({ active: null, saved: null })
-const pricesFor = ref<string | null>(null)
 
 const benchmarkOf = (p: ChargingPlace) => {
   const key = benchmarkKey(p)
@@ -58,6 +58,9 @@ const showMap = computed(() => rows.value.length >= 3)
 const pins = computed<MapPin[]>(() => rows.value.map(r => ({ geohash: r.place.geohash, cls: r.cls, kwh: r.place.kwh })))
 const allLines = computed(() => drawableTripLines(trips.value))
 const lines = computed(() => showTrips.value ? allLines.value : [])
+/** Fahrten gibt es nur auf der Karte, ohne Karte (unter 3 Orten) kein Schalter. */
+const showTripsToggle = computed(() => showMap.value && allLines.value.length > 0)
+const tripsLabel = computed(() => t('story.places_trips', { n: allLines.value.length }, allLines.value.length))
 /** Ohne Analytics trägt nur die neueste Fahrt ihre Linie, die übrigen kommen ohne. */
 const tripsLocked = computed(() => showTrips.value && !props.canViewLiveAnalytics && trips.value.length > allLines.value.length)
 const legend = computed(() => legendClasses(classes.value))
@@ -115,6 +118,8 @@ async function loadBenchmarks() {
 
 watch(period, load)
 onMounted(load)
+/** Nach "Betreiber eintragen" (Dialog im View) neu laden. */
+defineExpose({ reload: load })
 
 const mapRef = ref<{ currentView: () => MapView | null; focus: (gh: string) => void; restore: (v: MapView) => void } | null>(null)
 const listEl = ref<HTMLElement | null>(null)
@@ -131,45 +136,14 @@ function onTap(gh: string, fromMap: boolean) {
   }
 }
 
-const priceRow = computed(() => rows.value.find(r => r.place.geohash === pricesFor.value && r.benchmark) ?? null)
-
-// "Betreiber eintragen" öffnet die Ladung im eigenen Sheet: erst dieses schließen, dann melden.
-const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
-let operatorLogId: string | null = null
-function onOperator(logId: string) {
-  operatorLogId = logId
-  sheet.value?.requestClose()
-}
-function onClosed() {
-  if (operatorLogId) emit('operator', operatorLogId)
-  else emit('close')
-}
-
 const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[85vh] lg:max-w-6xl' : 'sm:max-w-2xl')
 </script>
 
 <template>
-  <BottomSheet ref="sheet" :label="t('story.map_title')" testid="places-sheet" :panel-class="panelClass" edge @close="onClosed">
+  <BottomSheet :label="t('story.map_title')" testid="places-sheet" :panel-class="panelClass" edge @close="emit('close')">
     <template #default="{ close }">
       <div class="flex min-h-0 flex-1 flex-col bg-white dark:bg-gray-900">
-        <!-- Unteransicht: Preise eines Orts, mit Pfeil zurück zur Karte -->
-        <template v-if="priceRow">
-          <div class="flex items-center gap-2 px-4 pt-4 lg:px-6 lg:pt-5">
-            <button type="button" data-testid="places-back" :aria-label="t('common.back')"
-              class="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-              @click="pricesFor = null">
-              <ChevronLeftIcon class="h-5 w-5" />
-            </button>
-            <h2 class="text-[20px] font-bold tracking-tight text-gray-900 dark:text-gray-50">
-              {{ t('story.sheet_prices_title', { cpo: priceRow.benchmark!.cpoName }) }}
-            </h2>
-          </div>
-          <div class="min-h-0 flex-1 overflow-y-auto px-4 pb-6 lg:px-6">
-            <StoryPriceDetail :benchmark="priceRow.benchmark!" :price-per-kwh="priceRow.place.pricePerKwh" />
-          </div>
-        </template>
-
-        <div v-show="!priceRow" class="flex min-h-0 flex-1 flex-col">
+        <div class="flex min-h-0 flex-1 flex-col">
           <div class="flex items-start justify-between gap-3 px-4 pt-4 lg:px-6 lg:pt-5">
             <div class="grid min-w-0 gap-1">
               <h2 class="text-[22px] font-bold tracking-tight text-gray-900 lg:text-[26px] dark:text-gray-50">{{ t('story.map_title') }}</h2>
@@ -182,11 +156,17 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
             </button>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2 px-4 pt-3 lg:px-6">
+          <!-- Zeitraum ist eine Auswahl, Fahrten ein eigener Schalter: anders geformt, sonst wirkt er wie ein vierter Zeitraum.
+               Handy eigene Zeile, ab sm rechts daneben. -->
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1 px-4 pt-3 lg:px-6">
             <div role="group" :aria-label="t('story.places_period_aria')" class="flex gap-1.5">
               <ChoiceChip v-for="p in periods" :key="p.id" size="sm" :active="period === p.id" :data-testid="`places-period-${p.id}`" @click="period = p.id">
                 {{ p.label }}
               </ChoiceChip>
+            </div>
+            <div v-if="showTripsToggle" data-testid="places-trips" class="flex w-full items-center justify-between gap-3 sm:ml-auto sm:w-auto sm:justify-start">
+              <span class="text-[14px] font-semibold text-gray-800 dark:text-gray-200" aria-hidden="true">{{ tripsLabel }}</span>
+              <ToggleSwitch v-model="showTrips" :label="tripsLabel" />
             </div>
           </div>
 
@@ -203,19 +183,13 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
           <div class="mt-3 grid min-h-0 flex-1" :class="showMap ? 'grid-rows-[40%_1fr] lg:grid-cols-[1.4fr_1fr] lg:grid-rows-1' : 'grid-rows-1'">
             <div v-if="showMap" class="relative min-h-0 border-y-2 border-gray-900 lg:border-b-0 lg:border-r-2 dark:border-gray-800">
               <PlacesMap ref="mapRef" :pins="pins" :lines="lines" :active="selection.active" @tap="gh => onTap(gh, true)" />
-              <!-- Auf der Karte, nicht in der Chip-Reihe: nur hier wirkt er, und auf 390 px passt die Reihe sonst nicht -->
-              <span v-if="allLines.length" class="absolute right-2 top-2 z-[500] rounded-full bg-white dark:bg-gray-900">
-                <ChoiceChip size="sm" :active="showTrips" data-testid="places-trips" @click="showTrips = !showTrips">
-                  <MapIcon class="h-4 w-4" aria-hidden="true" />{{ t('story.places_trips', { n: allLines.length }) }}
-                </ChoiceChip>
-              </span>
               <div aria-hidden="true" data-testid="places-legend"
                 class="pointer-events-none absolute bottom-2 left-2 z-[500] flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-white/90 px-2.5 py-1.5 text-[11.5px] font-semibold text-gray-700 dark:bg-gray-900/90 dark:text-gray-300">
                 <span v-for="c in legend" :key="c" class="inline-flex items-center gap-1">
                   <i class="inline-block h-2.5 w-2.5" :class="[PIN_EDGE, PLACE_FILL[c]]" />{{ t(`story.places_legend_${c}`) }}
                 </span>
                 <span v-if="lines.length" class="inline-flex items-center gap-1">
-                  <i class="inline-block h-0.5 w-4 bg-gray-500 dark:bg-gray-400" />{{ t('story.places_legend_trips') }}
+                  <i class="inline-block h-0.5 w-4 bg-green-700 dark:bg-green-400" />{{ t('story.places_legend_trips') }}
                 </span>
               </div>
             </div>
@@ -229,7 +203,7 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
                 <button type="button" class="ml-2 min-h-[44px] font-semibold underline" @click="load">{{ t('story.retry') }}</button>
               </p>
               <PlacesList v-else :rows="rows" :active="selection.active"
-                @tap="gh => onTap(gh, false)" @prices="gh => pricesFor = gh" @operator="onOperator" />
+                @tap="gh => onTap(gh, false)" @operator="logId => emit('operator', logId)" />
             </div>
           </div>
         </div>

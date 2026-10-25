@@ -923,8 +923,7 @@ const demoLogin = async (source: 'hero' | 'models_section' | 'dashboard_preview'
         </div>
 
         <!-- Echtes, interaktives Leaderboard-Widget im Brand-Rahmen (live aus /api/public/leaderboard) -->
-        <!-- Mobile clippt der Rahmen sauber; ab sm overflow-visible, damit die Galerie-Pfeile ausserhalb sichtbar sind -->
-        <div class="rounded-xl border-2 border-gray-900 dark:border-gray-100 shadow-[8px_8px_0_0_#15803d] dark:shadow-[8px_8px_0_0_#22c55e] overflow-hidden sm:overflow-visible">
+        <div class="overflow-hidden rounded-3xl edge-box">
           <CommunityLeaderboard :show-header="false" :month="leaderboardMonth" :max-entries="5" @available="leaderboardReady = leaderboardReady || $event">
             <!-- Footer (Login-Hinweise) auf der Landing unterdruecken; CTA liegt unter dem Widget -->
             <template #footer />

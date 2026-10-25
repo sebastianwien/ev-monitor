@@ -1690,8 +1690,8 @@ coins:
   unit: Watt
   to_leaderboard: Gå till resultatlistan
   ranking_title: Din placering denna månad
-  collapse: dölj ▲
-  expand: visa mer ▼
+  collapse: dölj
+  expand: visa mer
   standings_loading: Laddar...
   delta_new: NYTT
   type_achievement: Prestation
@@ -1777,6 +1777,7 @@ settings:
   password_confirm_placeholder: Bekräfta det nya lösenordet
   privacy_title: Data och integritet
   registered_since: Registrerad sedan
+  stats_charges: laddningar
   export_btn: Exportera mina data (JSON)
   delete_btn: Ta bort kontot permanent
   leaderboard_title: Resultatlista
@@ -4200,7 +4201,6 @@ story:
   feed_phantom_cta: "Se det med AutoSync"
   map_title: "Var du laddar"
   map_sub: "Laddplatser på kartan, dyra platser sticker ut."
-  sheet_close: "Stäng"
   places_period_aria: "Period"
   places_period_12m: "12 månader"
   places_period_all: "Allt"
@@ -4213,7 +4213,7 @@ story:
   places_empty_month: "Ingen laddning med plats i {month}."
   places_empty_12m: "Ingen laddning med plats senaste 12 månaderna."
   places_empty_all: "Ingen laddning med plats."
-  places_trips: "Resor {n}"
+  places_trips: "Visa 1 resa | Visa {n} resor"
   places_trips_locked: "Alla resor på kartan"
   places_trips_cta: "Se med AutoSync"
   places_kind_home: "Hemma"
@@ -4232,6 +4232,7 @@ story:
   places_legend_high: "dyrare än andra"
   places_legend_trips: "Resor"
   places_list_aria: "Laddplatser"
+  sheet_close: "Stäng"
   sheet_prices_title: "Priser hos {cpo}"
   sheet_prices_you: "Du betalade {price}."
   sheet_prices_others: "Andra förare betalar i snitt {median} där, hälften mellan {low} och {high}."

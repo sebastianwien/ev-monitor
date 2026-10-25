@@ -28,9 +28,12 @@ withDefaults(defineProps<{
   testid?: string
   /** CI-Kante (Outline plus harter Schatten, edge-box) statt weichem Schatten. */
   edge?: boolean
+  /** Liegt über einem anderen Sheet: leichter abdunkeln, das untere bleibt erkennbar. */
+  stacked?: boolean
 }>(), {
   panelClass: 'sm:max-w-lg',
   edge: false,
+  stacked: false,
 })
 
 const emit = defineEmits<{ close: [] }>()
@@ -55,7 +58,7 @@ defineExpose({ requestClose })
         aria-modal="true"
         :aria-label="label"
         @click.self="requestClose">
-        <div class="absolute inset-0 bg-black/50" @click="requestClose" />
+        <div class="absolute inset-0" :class="stacked ? 'bg-black/25' : 'bg-black/50'" @click="requestClose" />
         <div
           :data-testid="testid"
           class="sheet-panel relative w-full max-h-[90vh] flex flex-col overflow-hidden bg-white dark:bg-gray-800 rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0"

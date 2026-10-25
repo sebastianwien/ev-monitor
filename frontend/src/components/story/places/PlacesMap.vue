@@ -78,7 +78,7 @@ function drawLines() {
   if (!map || !tripLayer) return
   tripLayer.clearLayers()
   for (const line of props.lines) {
-    L.polyline(line.points, { className: 'places-trip', weight: 2, opacity: 0.45, interactive: false }).addTo(tripLayer)
+    L.polyline(line.points, { className: 'places-trip', weight: 2.5, opacity: 0.55, interactive: false }).addTo(tripLayer)
   }
   const routed = props.lines.some(l => l.source === 'matched')
   if (routed !== orsShown) {
@@ -86,6 +86,12 @@ function drawLines() {
     else map.attributionControl.removeAttribution(ORS)
     orsShown = routed
   }
+}
+
+/** Ausschnitt auf Punkte einpassen, animiert außer bei "weniger Bewegung". */
+function fitTo(points: L.LatLngExpression[], maxZoom: number) {
+  if (!map || !points.length) return
+  map.fitBounds(L.latLngBounds(points).pad(0.15), { maxZoom, animate: !reducedMotion() })
 }
 
 function markActive() {
@@ -146,7 +152,13 @@ watch(() => props.pins, (pins) => {
   drawPins(key !== placesKey)
   placesKey = key
 })
-watch(() => props.lines, drawLines)
+// Einschalten passt auf die Fahrten ein (sie liegen oft in einer Gegend, aus der Ferne nur ein Strich),
+// Ausschalten zurück auf die Orte.
+watch(() => props.lines, (lines, before) => {
+  drawLines()
+  if (lines.length && !before?.length) fitTo(lines.flatMap(l => l.points), 13)
+  else if (!lines.length && before?.length) fitTo(props.pins.map(p => latLngOf(p.geohash)), 12)
+})
 watch(() => props.active, markActive)
 
 onMounted(() => {
@@ -187,8 +199,8 @@ onUnmounted(() => {
 .places-map .places-pin { display: grid; place-items: center; box-shadow: 2px 2px 0 0 #111827; transition: transform 0.15s ease; }
 .dark .places-map .places-pin { box-shadow: none; }
 .places-map .places-pin.is-active { transform: scale(1.35); }
-.places-map .places-trip { stroke: #6b7280; }
-.dark .places-map .places-trip { stroke: #9ca3af; }
+.places-map .places-trip { stroke: #15803d; }
+.dark .places-map .places-trip { stroke: #4ade80; }
 .places-map .leaflet-control-attribution { font-size: 10px; }
 .dark .places-map .leaflet-control-attribution { background: rgba(17, 24, 39, 0.8); color: #9ca3af; }
 .dark .places-map .leaflet-control-attribution a { color: #9ca3af; }

@@ -46,13 +46,13 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
   <div v-if="donationsAvailable() && variant === 'block'" class="flex gap-3">
     <button
       @click="openPaypal"
-      class="btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition font-medium shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#312e81] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+      class="btn-3d cta-shadow-sm flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-white px-4 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50 dark:border-transparent dark:bg-white/10 dark:text-gray-100 dark:shadow-none! dark:hover:bg-white/15">
       <img src="https://www.paypalobjects.com/webstatic/icon/pp16.png" alt="PayPal" class="h-4 w-4" />
       <span>Per PayPal</span>
     </button>
     <button
       @click="openKofi"
-      class="btn-3d flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 rounded-sm hover:bg-indigo-200 dark:hover:bg-indigo-900/60 transition font-medium shadow-[0_4px_0_0_#a5b4fc] dark:shadow-[0_4px_0_0_#312e81] active:shadow-none active:translate-y-1" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
+      class="btn-3d cta-shadow-sm flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-white px-4 text-sm font-semibold text-gray-900 transition-colors hover:bg-gray-50 dark:border-transparent dark:bg-white/10 dark:text-gray-100 dark:shadow-none! dark:hover:bg-white/15">
       <HeartIcon class="h-4 w-4" />
       <span>Per Ko-fi</span>
     </button>

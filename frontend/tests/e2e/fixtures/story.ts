@@ -35,6 +35,8 @@ export interface StoryData {
   lifetime: unknown
   live: unknown | null
   benchmark: unknown | null
+  /** Antwort von /api/logs/places (Ladekarte), unabhängig vom Zeitraum. */
+  places: unknown[]
 }
 
 const stats = (over: Record<string, unknown> = {}) => ({
@@ -81,8 +83,12 @@ export function calmMonth(now: number = NOW_MID): StoryData {
     lifetime: stats({ chargesOverTime: [point(new Date(2025, 2, 1).getTime(), { charges: 45, distanceKm: 4000 }), point(now - 5 * DAY, { charges: 5 })] }),
     live: null,
     benchmark: null,
+    places: [],
   };
 }
+
+/** 1x1 transparent: Kartenkacheln ohne Aufruf bei OpenStreetMap. */
+const EMPTY_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 
 function json(route: Route, body: unknown) {
   return body == null ? route.fulfill({ status: 204, body: '' }) : route.fulfill({ json: body });
@@ -118,6 +124,8 @@ export async function mockStory(page: Page, data: StoryData) {
     return json(route, { ownEntry: data.ranks[category] ?? null, entries: [] });
   });
   await page.route(/\/api\/charging-benchmarks\?/, route => json(route, data.benchmark));
+  await page.route(/\/api\/logs\/places\?/, route => route.fulfill({ json: data.places }));
+  await page.route(/tile\.openstreetmap\.org/, route => route.fulfill({ contentType: 'image/png', body: EMPTY_PNG }));
   // Ticker leer: sein Text wechselt im Takt und läge in Bildern langer Boxen über dem Inhalt.
   await page.route(/\/api\/(public\/leaderboard\/ticker|ticker\/(today|me))$/, route => json(route, []));
   await page.route(/\/api\/stats\/charging-savings/, route => json(route, null));

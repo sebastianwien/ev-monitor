@@ -6,9 +6,14 @@ import { useCarStore } from '../stores/car'
 import { purchasesAvailable, donationsAvailable } from '../utils/iapPolicy'
 import { hasOnlyUnsupportedBrands } from '../composables/useCarAutoSyncProvider'
 import { COUNTRY_OPTIONS } from '../config/countries'
-import { UserIcon, KeyIcon, TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ShareIcon, ClipboardDocumentIcon, CheckIcon, HeartIcon, ArrowRightOnRectangleIcon, BoltIcon, CreditCardIcon, ChevronRightIcon, EyeIcon } from '@heroicons/vue/24/outline'
+import { TrashIcon, ArrowDownTrayIcon, AcademicCapIcon, ClipboardDocumentIcon, CheckIcon, CheckCircleIcon, ExclamationCircleIcon, ExclamationTriangleIcon, ArrowRightOnRectangleIcon, CreditCardIcon, ChevronRightIcon, TrophyIcon, ClockIcon } from '@heroicons/vue/24/outline'
 import SupportPopover from '../components/settings/SupportPopover.vue'
 import DemoSettingsModal from '../components/demo/DemoSettingsModal.vue'
+import ModelBox from '../components/models/ModelBox.vue'
+import ChoiceChip from '../components/shared/ChoiceChip.vue'
+import ToggleSwitch from '../components/shared/ToggleSwitch.vue'
+import BottomSheet from '../components/shared/BottomSheet.vue'
+import Collapse from '../components/shared/Collapse.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useStoryOptIn } from '../composables/useStoryOptIn'
 import { useAccountSettings } from '../composables/useAccountSettings'
@@ -102,15 +107,33 @@ function openDowngradeConfirm() { tierConfirmAction.value = 'downgrade' }
 function openCancelConfirm() { tierConfirmAction.value = 'cancel' }
 function closeTierConfirm() { tierConfirmAction.value = null }
 
-async function confirmTierAction() {
+// `close` faehrt das Sheet animiert zu; erst danach meldet es `close` und setzt die Aktion zurueck.
+async function confirmTierAction(close: () => void) {
   const action = tierConfirmAction.value
-  closeTierConfirm()
+  close()
   if (action === 'downgrade') {
     await downgradeToAutoSync()
   } else if (action === 'cancel') {
     await cancelSubscription()
   }
 }
+
+function resetDeleteConfirm() {
+  showDeleteConfirm.value = false
+  deletePassword.value = ''
+  deleteCode.value = ''
+  deleteCodeSent.value = false
+}
+
+// App-CI (docs/design/ci.md): Kante, harter Schatten, 44 px. Sekundaer weiss, primaer gruen, rot nur beim Loeschen.
+const BTN = 'btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 dark:border-transparent dark:shadow-none!'
+const BTN_SECONDARY = `${BTN} bg-white text-gray-900 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15`
+const BTN_PRIMARY = `${BTN} bg-green-600 text-white hover:bg-green-700`
+const BTN_DANGER = `${BTN} bg-red-600 text-white hover:bg-red-700`
+const INPUT = 'h-11 w-full rounded-xl border border-gray-200 bg-white px-3 text-base text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100'
+const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'
+const H2 = 'text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100'
+const ROW = 'flex items-center justify-between gap-4 border-t border-gray-200 py-3 first:border-t-0 first:pt-0 last:pb-0 dark:border-gray-700'
 
 onMounted(async () => {
   fetchUserData()
@@ -123,596 +146,356 @@ onMounted(async () => {
 </script>
 
 <template>
-<div>
-  <div class="md:max-w-4xl md:mx-auto md:p-6">
-    <div class="bg-white dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6">
-      <!-- Header -->
-      <div class="flex items-center gap-3 mb-6">
-        <UserIcon class="h-8 w-8 text-gray-700 dark:text-gray-300" />
-        <h1 class="text-3xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.title') }}</h1>
-      </div>
+<div class="grid gap-2 pb-6 max-md:-mt-[var(--ticker-lasche-h)] md:mx-auto md:max-w-2xl md:gap-4 md:p-6">
+  <!-- Konto -->
+  <!-- Handy: erste Box läuft unter die Ticker-Lasche, Inhalt rückt um die Lasche nach unten -->
+  <ModelBox class="max-md:pt-[calc(1.5rem+var(--ticker-lasche-h))]">
+    <header class="flex items-center justify-between gap-3">
+      <h1 class="text-[28px] font-bold leading-[1.1] text-gray-900 md:text-[36px] dark:text-gray-50">{{ t('settings.title') }}</h1>
+      <button type="button" :class="BTN_SECONDARY" @click="authStore.logout()">
+        <ArrowRightOnRectangleIcon class="h-4 w-4" aria-hidden="true" />
+        {{ t('settings.logout') }}
+      </button>
+    </header>
 
-      <!-- Message Banner -->
-      <div v-if="message" :class="[
-        'mb-6 p-4 rounded-sm',
-        message.type === 'success' ? 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700 text-green-700 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300'
-      ]">
-        {{ message.text }}
-      </div>
+    <div v-if="message" role="status"
+      class="flex items-start gap-2 rounded-xl bg-gray-100 px-3 py-2.5 text-sm font-semibold text-gray-900 dark:bg-gray-800/60 dark:text-gray-100">
+      <CheckCircleIcon v-if="message.type === 'success'" class="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+      <ExclamationCircleIcon v-else class="mt-0.5 h-5 w-5 shrink-0 text-gray-700 dark:text-gray-300" aria-hidden="true" />
+      <span>{{ message.text }}</span>
+    </div>
 
-      <!-- Account Section -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          <UserIcon class="h-6 w-6" />
-          {{ t('settings.account') }}
-          <button
-            @click="authStore.logout()"
-            class="ml-auto flex items-center gap-2 px-3 py-1.5 rounded-sm border border-red-300 dark:border-red-700 text-red-600 dark:text-red-400 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/30 transition shadow-[0_4px_0_0_#fca5a5] dark:shadow-[0_4px_0_0_#7f1d1d] active:shadow-none active:translate-y-1 cursor-pointer" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
-            <ArrowRightOnRectangleIcon class="h-4 w-4" />
-            Logout
+    <section class="grid gap-3">
+      <h2 :class="H2">{{ t('settings.account') }}</h2>
+      <div>
+        <!-- E-Mail -->
+        <div :class="ROW" class="flex-wrap">
+          <div class="min-w-0">
+            <p :class="LABEL">{{ t('settings.email_label') }}</p>
+            <p class="truncate font-semibold text-gray-900 dark:text-gray-100">{{ email }}</p>
+          </div>
+          <button v-if="authStore.user?.authProvider === 'LOCAL'" type="button" :class="BTN_SECONDARY" :aria-expanded="showEmailForm" @click="showEmailForm = !showEmailForm">
+            {{ t('settings.email_change') }}
           </button>
-        </h2>
-
-        <!-- Email -->
-        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm">
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.email_label') }}</p>
-              <p class="font-medium">{{ email }}</p>
-            </div>
-            <button
-              v-if="authStore.user?.authProvider === 'LOCAL'"
-              @click="showEmailForm = !showEmailForm"
-              class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 transition">
-              {{ t('settings.email_change') }}
-            </button>
-            <span v-else class="text-xs text-gray-400">{{ t('settings.via_provider', { provider: authStore.user?.authProvider }) }}</span>
-          </div>
-
-          <div v-if="showEmailForm" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 space-y-3">
-            <input
-              v-model="newEmail"
-              type="email"
-              :placeholder="t('settings.email_new_placeholder')"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-indigo-500 focus:border-indigo-500">
-            <input
-              v-model="emailCurrentPassword"
-              type="password"
-              :placeholder="t('settings.email_password_placeholder')"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-indigo-500 focus:border-indigo-500">
-            <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('settings.email_logout_hint') }}</p>
+          <span v-else class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('settings.via_provider', { provider: authStore.user?.authProvider }) }}</span>
+          <Collapse :open="showEmailForm" class="w-full">
+          <div class="grid gap-3 pt-1">
+            <input v-model="newEmail" type="email" :placeholder="t('settings.email_new_placeholder')" :aria-label="t('settings.email_new_placeholder')" :class="INPUT">
+            <input v-model="emailCurrentPassword" type="password" :placeholder="t('settings.email_password_placeholder')" :aria-label="t('settings.email_password_placeholder')" :class="INPUT">
+            <p class="text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('settings.email_logout_hint') }}</p>
             <div class="flex gap-2">
-              <button
-                @click="changeEmail"
-                :disabled="loading || !newEmail || !emailCurrentPassword"
-                class="btn-3d px-4 py-2 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:opacity-50 transition">
-                {{ t('settings.save') }}
-              </button>
-              <button
-                @click="showEmailForm = false; newEmail = ''; emailCurrentPassword = ''"
-                class="btn-3d px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition">
-                {{ t('settings.cancel') }}
-              </button>
+              <button type="button" :class="BTN_PRIMARY" :disabled="loading || !newEmail || !emailCurrentPassword" @click="changeEmail">{{ t('settings.save') }}</button>
+              <button type="button" :class="BTN_SECONDARY" @click="showEmailForm = false; newEmail = ''; emailCurrentPassword = ''">{{ t('settings.cancel') }}</button>
             </div>
           </div>
+          </Collapse>
         </div>
 
-        <!-- Username -->
-        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm">
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.username_label') }}</p>
-              <p class="font-medium">{{ username }}</p>
-            </div>
-            <button
-              @click="showUsernameForm = !showUsernameForm"
-              class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 transition">
-              {{ t('settings.email_change') }}
-            </button>
+        <!-- Benutzername -->
+        <div :class="ROW" class="flex-wrap">
+          <div class="min-w-0">
+            <p :class="LABEL">{{ t('settings.username_label') }}</p>
+            <p class="truncate font-semibold text-gray-900 dark:text-gray-100">{{ username }}</p>
           </div>
-
-          <div v-if="showUsernameForm" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600">
-            <input
-              v-model="newUsername"
-              type="text"
-              :placeholder="t('settings.username_new_placeholder')"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-indigo-500 focus:border-indigo-500 mb-3">
+          <button type="button" :class="BTN_SECONDARY" :aria-expanded="showUsernameForm" @click="showUsernameForm = !showUsernameForm">
+            {{ t('settings.email_change') }}
+          </button>
+          <Collapse :open="showUsernameForm" class="w-full">
+          <div class="grid gap-3 pt-1">
+            <input v-model="newUsername" type="text" :placeholder="t('settings.username_new_placeholder')" :aria-label="t('settings.username_new_placeholder')" :class="INPUT">
             <div class="flex gap-2">
-              <button
-                @click="changeUsername"
-                :disabled="loading"
-                class="btn-3d px-4 py-2 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:opacity-50 transition">
-                Speichern
-              </button>
-              <button
-                @click="showUsernameForm = false; newUsername = ''"
-                class="btn-3d px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition">
-                Abbrechen
-              </button>
+              <button type="button" :class="BTN_PRIMARY" :disabled="loading" @click="changeUsername">{{ t('settings.save') }}</button>
+              <button type="button" :class="BTN_SECONDARY" @click="showUsernameForm = false; newUsername = ''">{{ t('settings.cancel') }}</button>
             </div>
           </div>
+          </Collapse>
         </div>
 
-        <!-- Password: Konten aus dem Mail-Code-Gate haben noch keins -->
-        <div v-if="!hasPassword" class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm">
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.password_label') }}</p>
-          <p class="font-medium">{{ t('settings.no_password') }}</p>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">{{ t('settings.no_password_hint') }}</p>
-          <p v-if="setPasswordLinkSent" class="text-sm font-semibold text-green-700 dark:text-green-400 mt-2">{{ t('settings.set_password_sent') }}</p>
-          <button v-else @click="sendSetPasswordLink" :disabled="loading"
-                  class="btn-3d mt-2 px-3 py-1 text-sm bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 transition disabled:opacity-50">
+        <!-- Passwort: Konten aus dem Mail-Code-Gate haben noch keins -->
+        <div v-if="!hasPassword" :class="ROW" class="flex-wrap">
+          <div class="min-w-0">
+            <p :class="LABEL">{{ t('settings.password_label') }}</p>
+            <p class="font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.no_password') }}</p>
+            <p class="mt-0.5 text-[13px] text-gray-600 dark:text-gray-400">{{ t('settings.no_password_hint') }}</p>
+            <p v-if="setPasswordLinkSent" class="mt-1 text-[13px] font-semibold text-gray-900 dark:text-gray-100" role="status">{{ t('settings.set_password_sent') }}</p>
+          </div>
+          <button v-if="!setPasswordLinkSent" type="button" :class="BTN_SECONDARY" :disabled="loading" @click="sendSetPasswordLink">
             {{ t('settings.set_password_btn') }}
           </button>
         </div>
-        <div v-else class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm">
-          <div class="flex justify-between items-center">
-            <div>
-              <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.password_label') }}</p>
-              <p class="font-medium">••••••••••</p>
-            </div>
-            <button
-              @click="showPasswordForm = !showPasswordForm"
-              class="btn-3d px-3 py-1 text-sm bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 transition">
-              {{ t('settings.email_change') }}
-            </button>
+        <div v-else :class="ROW" class="flex-wrap">
+          <div class="min-w-0">
+            <p :class="LABEL">{{ t('settings.password_label') }}</p>
+            <p class="font-semibold text-gray-900 dark:text-gray-100" aria-hidden="true">••••••••••</p>
           </div>
-
-          <div v-if="showPasswordForm" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-600 space-y-3">
-            <input
-              v-model="currentPassword"
-              type="password"
-              :placeholder="t('settings.password_current_placeholder')"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-indigo-500 focus:border-indigo-500">
-            <input
-              v-model="newPassword"
-              type="password"
-              :placeholder="t('settings.password_new_placeholder')"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-indigo-500 focus:border-indigo-500">
-            <input
-              v-model="confirmPassword"
-              type="password"
-              :placeholder="t('settings.password_confirm_placeholder')"
-              class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-indigo-500 focus:border-indigo-500">
+          <button type="button" :class="BTN_SECONDARY" :aria-expanded="showPasswordForm" @click="showPasswordForm = !showPasswordForm">
+            {{ t('settings.email_change') }}
+          </button>
+          <Collapse :open="showPasswordForm" class="w-full">
+          <div class="grid gap-3 pt-1">
+            <input v-model="currentPassword" type="password" :placeholder="t('settings.password_current_placeholder')" :aria-label="t('settings.password_current_placeholder')" :class="INPUT">
+            <input v-model="newPassword" type="password" :placeholder="t('settings.password_new_placeholder')" :aria-label="t('settings.password_new_placeholder')" :class="INPUT">
+            <input v-model="confirmPassword" type="password" :placeholder="t('settings.password_confirm_placeholder')" :aria-label="t('settings.password_confirm_placeholder')" :class="INPUT">
             <div class="flex gap-2">
-              <button
-                @click="changePassword"
-                :disabled="loading"
-                class="btn-3d px-4 py-2 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:opacity-50 transition">
-                Speichern
-              </button>
-              <button
-                @click="showPasswordForm = false; currentPassword = ''; newPassword = ''; confirmPassword = ''"
-                class="btn-3d px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition">
-                Abbrechen
-              </button>
+              <button type="button" :class="BTN_PRIMARY" :disabled="loading" @click="changePassword">{{ t('settings.save') }}</button>
+              <button type="button" :class="BTN_SECONDARY" @click="showPasswordForm = false; currentPassword = ''; newPassword = ''; confirmPassword = ''">{{ t('settings.cancel') }}</button>
             </div>
           </div>
+          </Collapse>
         </div>
       </div>
+    </section>
+  </ModelBox>
 
-      <!-- Pro Subscription -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          {{ t('upgrade.pro_section_title') }}
-          <span class="text-xs font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">PRO</span>
-        </h2>
-        <div v-if="authStore.isPremium || authStore.isSupporter" class="space-y-3">
-          <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-sm">
-            <div class="flex items-center gap-3">
-              <div class="w-8 h-8 bg-indigo-100 dark:bg-indigo-900/40 rounded-full flex items-center justify-center shrink-0">
-                <svg class="w-4 h-4 text-indigo-600 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-                </svg>
-              </div>
-              <div>
-                <span class="text-sm font-medium text-indigo-800 dark:text-indigo-200">
-                  {{ subscriptionTier === 'AUTOSYNC_LIVE' ? t('settings.tier_live') : subscriptionTier === 'SUPPORTER' ? t('settings.tier_supporter') : t('settings.tier_autosync') }}
-                </span>
-                <p v-if="subscriptionPeriodEnd" class="text-xs text-indigo-600/70 dark:text-indigo-400/70 mt-0.5">
-                  {{ t('settings.tier_period_end', { date: formattedPeriodEnd }) }}
-                </p>
-              </div>
-            </div>
-            <button
-              v-if="purchasesAvailable()"
-              @click="openPortal"
-              :disabled="portalLoading"
-              class="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 disabled:opacity-50 transition-colors"
-            >
-              {{ portalLoading ? t('upgrade.pro_manage_loading') : t('upgrade.pro_manage_btn') }}
-            </button>
-          </div>
-          <p class="text-xs text-gray-500 dark:text-gray-400 px-1 -mt-1">{{ t('settings.portal_hint') }}</p>
-
-          <!-- Live tier but no Tesla in garage -> repair-CTA -->
-          <router-link
-            v-if="liveButNoTesla"
-            to="/imports"
-            class="block bg-amber-50 dark:bg-amber-900/20 border border-amber-300 dark:border-amber-800 rounded-sm p-3 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors"
-          >
-            <div class="flex items-center gap-2">
-              <svg class="w-5 h-5 shrink-0 text-amber-600 dark:text-amber-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
-              </svg>
-              <div class="flex-1">
-                <p class="text-sm font-medium text-amber-800 dark:text-amber-200">{{ t('settings.tier_live_disconnected_warning') }}</p>
-                <p class="text-xs text-amber-700 dark:text-amber-300">{{ t('settings.tier_live_repair_cta') }} →</p>
-              </div>
-            </div>
-          </router-link>
-
-          <!-- AUTOSYNC_LIVE tier -> downgrade + cancel actions -->
-          <div v-if="subscriptionTier === 'AUTOSYNC_LIVE'" class="flex flex-col gap-2 pt-1">
-            <button
-              @click="openDowngradeConfirm"
-              :disabled="tierActionLoading"
-              class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-sm py-2 disabled:opacity-50"
-            >
-              {{ t('settings.downgrade_to_autosync_cta') }}
-            </button>
-            <button
-              @click="openCancelConfirm"
-              :disabled="tierActionLoading"
-              class="text-xs text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 underline disabled:opacity-50"
-            >
-              {{ t('settings.cancel_live_cta') }}
-            </button>
-          </div>
-          <p v-if="tierActionError" class="text-xs text-red-600 dark:text-red-400 text-center">{{ tierActionError }}</p>
-        </div>
-        <div v-else-if="purchasesAvailable() && !onlyUnsupportedBrands" class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-sm">
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
-          <router-link to="/upgrade" class="shrink-0 ml-4 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors whitespace-nowrap">
-            {{ t('upgrade.pro_upgrade_btn') }}
-          </router-link>
-        </div>
-      </div>
-
-      <!-- Country / Region -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-1">{{ t('settings.country_title') }}</h2>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ t('settings.country_desc') }}</p>
-        <div class="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-hide">
-          <button
-            v-for="c in COUNTRY_OPTIONS"
-            :key="c.code"
-            @click="countryStore.setCountry(c.code)"
-            class="flex flex-col items-center gap-1 min-w-[72px] px-3 py-2.5 rounded-sm border-2 transition-all shrink-0 cursor-pointer"
-            :class="countryStore.country === c.code
-              ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
-              : 'border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500'">
-            <span class="text-2xl">{{ c.flag }}</span>
-            <span class="text-xs font-medium" :class="countryStore.country === c.code ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'">{{ c.name[locale] || c.name.en }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Anzeige Section -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          <EyeIcon class="h-6 w-6" />
-          {{ t('settings.display_title') }}
-        </h2>
-        <div class="p-4 bg-gray-50 dark:bg-gray-700 rounded-sm space-y-4">
-          <div class="flex items-center justify-between gap-4">
-            <div>
-              <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.implausible_banner_label') }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.implausible_banner_hint') }}</p>
-            </div>
-            <button
-              @click="toggleImplausibleBanner"
-              :class="[
-                'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
-                implausibleBannerEnabled ? 'bg-green-500' : 'bg-gray-300'
-              ]">
-              <span
-                :class="[
-                  'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
-                  implausibleBannerEnabled ? 'translate-x-5' : 'translate-x-0'
-                ]" />
-            </button>
-          </div>
-          <div class="flex items-center justify-between gap-4 border-t border-gray-200 dark:border-gray-600 pt-4">
-            <div>
-              <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.savings_card_label') }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.savings_card_hint') }}</p>
-            </div>
-            <button
-              @click="toggleSavingsCard"
-              role="switch"
-              :aria-checked="savingsCardVisible"
-              :aria-label="t('settings.savings_card_label')"
-              :class="[
-                'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
-                savingsCardVisible ? 'bg-green-500' : 'bg-gray-300'
-              ]">
-              <span
-                :class="[
-                  'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
-                  savingsCardVisible ? 'translate-x-5' : 'translate-x-0'
-                ]" />
-            </button>
-          </div>
-          <div v-if="storyEnabled" class="flex items-center justify-between gap-4 border-t border-gray-200 dark:border-gray-600 pt-4">
-            <div>
-              <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.story_always_month_label') }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.story_always_month_hint') }}</p>
-            </div>
-            <button
-              data-testid="settings-story-always-month"
-              @click="setAlwaysMonth(!alwaysMonth)"
-              role="switch"
-              :aria-checked="alwaysMonth"
-              :aria-label="t('settings.story_always_month_label')"
-              :class="[
-                'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
-                alwaysMonth ? 'bg-green-500' : 'bg-gray-300'
-              ]">
-              <span
-                :class="[
-                  'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
-                  alwaysMonth ? 'translate-x-5' : 'translate-x-0'
-                ]" />
-            </button>
+  <!-- Abo -->
+  <ModelBox v-if="authStore.isPremium || authStore.isSupporter || (purchasesAvailable() && !onlyUnsupportedBrands)">
+    <h2 :class="H2" class="flex items-center gap-2">
+      {{ t('upgrade.pro_section_title') }}
+      <span class="rounded-full bg-gray-900 px-2 py-0.5 text-[11.5px] font-bold tracking-wide text-white dark:bg-gray-100 dark:text-gray-900">PRO</span>
+    </h2>
+    <div v-if="authStore.isPremium || authStore.isSupporter" class="grid gap-3">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex min-w-0 items-center gap-3">
+          <CheckCircleIcon class="h-6 w-6 shrink-0 text-gray-900 dark:text-gray-100" aria-hidden="true" />
+          <div class="min-w-0">
+            <p class="font-semibold text-gray-900 dark:text-gray-100">
+              {{ subscriptionTier === 'AUTOSYNC_LIVE' ? t('settings.tier_live') : subscriptionTier === 'SUPPORTER' ? t('settings.tier_supporter') : t('settings.tier_autosync') }}
+            </p>
+            <p v-if="subscriptionPeriodEnd" class="text-[13px] text-gray-500 tabular-nums dark:text-gray-400">
+              {{ t('settings.tier_period_end', { date: formattedPeriodEnd }) }}
+            </p>
           </div>
         </div>
-      </div>
-
-      <!-- Meine Ladekarten: verwaltet unter /charging-providers -->
-      <div class="mb-8">
-        <router-link to="/charging-providers"
-          class="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition">
-          <CreditCardIcon class="h-6 w-6 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-          <span class="min-w-0 flex-1">
-            <span class="block font-semibold text-gray-800 dark:text-gray-100">{{ t('settings.tariff_title') }}</span>
-            <span class="block text-sm text-gray-500 dark:text-gray-400">{{ t('settings.tariff_moved_hint') }}</span>
-          </span>
-          <ChevronRightIcon class="h-5 w-5 text-gray-400 flex-shrink-0" />
-        </router-link>
-      </div>
-
-      <!-- Watt Balance -->
-      <div class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-6">
-        <div class="flex items-center gap-3 mb-3">
-          <BoltIcon class="h-6 w-6 text-gray-500 dark:text-gray-400" />
-          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.watt_account') }}</h2>
-          <span class="ml-auto text-3xl font-bold text-amber-600">{{ coinBalance }}</span>
-        </div>
-        <div class="flex items-center justify-between mb-4">
-          <router-link to="/coins/history" class="btn-3d px-3 py-1.5 rounded-sm bg-amber-100 hover:bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-300 text-xs font-semibold border border-amber-300 dark:border-amber-700 transition">
-            {{ t('settings.watt_history') }}
-          </router-link>
-          <router-link to="/leaderboard" class="btn-3d px-3 py-1.5 rounded-sm bg-amber-100 hover:bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:hover:bg-amber-900/50 dark:text-amber-300 text-xs font-semibold border border-amber-300 dark:border-amber-700 transition">
-            {{ t('coins.to_leaderboard') }}
-          </router-link>
-        </div>
-        <div class="pt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-4">
-          <div>
-            <p class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.leaderboard_visible_label') }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.leaderboard_visible_hint') }}</p>
-          </div>
-          <button
-            @click="toggleLeaderboardVisible"
-            :class="[
-              'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none',
-              leaderboardVisible ? 'bg-green-500' : 'bg-gray-300'
-            ]"
-            :title="leaderboardVisible ? t('settings.leaderboard_disable') : t('settings.leaderboard_enable')">
-            <span
-              :class="[
-                'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
-                leaderboardVisible ? 'translate-x-5' : 'translate-x-0'
-              ]" />
-          </button>
-        </div>
-        <div class="pt-4 mt-4 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-4">
-          <div>
-            <p id="ticker-share-label" class="font-medium text-gray-800 dark:text-gray-200 text-sm">{{ t('settings.ticker_share_label') }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('settings.ticker_share_hint') }}</p>
-          </div>
-          <button
-            type="button"
-            role="switch"
-            :aria-checked="tickerShareCharges"
-            aria-labelledby="ticker-share-label"
-            @click="toggleTickerShareCharges"
-            :class="[
-              'relative flex-shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500',
-              tickerShareCharges ? 'bg-green-500' : 'bg-gray-300'
-            ]">
-            <span
-              :class="[
-                'absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200',
-                tickerShareCharges ? 'translate-x-5' : 'translate-x-0'
-              ]" />
-          </button>
-        </div>
-      </div>
-
-      <!-- Referral Section -->
-      <div v-if="referralCode" class="mb-8 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm p-6">
-        <div class="flex items-center gap-3 mb-2">
-          <ShareIcon class="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-          <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200">{{ t('settings.referral_title') }}</h2>
-        </div>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4" v-html="t('settings.referral_desc')" />
-        <div class="flex gap-2">
-          <input
-            :value="referralLink()"
-            readonly
-            class="flex-1 min-w-0 px-3 py-2 text-sm bg-white dark:bg-gray-700 border border-indigo-200 dark:border-indigo-700 rounded-sm text-gray-700 dark:text-gray-300 focus:outline-none cursor-default select-all" />
-          <button
-            @click="copyReferralLink"
-            class="btn-3d flex-shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-sm transition"
-            :class="referralCopied
-              ? 'bg-green-600 text-white'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'">
-            <CheckIcon v-if="referralCopied" class="h-4 w-4" />
-            <ClipboardDocumentIcon v-else class="h-4 w-4" />
-            {{ referralCopied ? t('settings.copied') : t('settings.copy') }}
-          </button>
-        </div>
-      </div>
-
-      <!-- Help & Support Section -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          <AcademicCapIcon class="h-6 w-6" />
-          {{ t('settings.help_title') }}
-        </h2>
-        <div class="p-4 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 border border-indigo-200 dark:border-indigo-700 rounded-sm">
-          <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-2 flex items-center gap-2">
-            <span class="text-xl">👋</span>
-            {{ t('settings.tutorial_title') }}
-          </h3>
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {{ t('settings.tutorial_desc') }}
-          </p>
-          <button
-            @click="restartOnboarding"
-            class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 transition">
-            <AcademicCapIcon class="h-5 w-5" />
-            <span>{{ t('settings.tutorial_btn') }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Support Section: Spenden-Aufruf inkl. Links nativ verboten (Apple-Reject, siehe iapPolicy) -->
-      <div v-if="donationsAvailable()" class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          <HeartIcon class="h-6 w-6 text-red-500" />
-          {{ t('settings.support_title') }}
-        </h2>
-        <div class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm">
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
-            {{ t('settings.support_desc') }}
-          </p>
-          <SupportPopover variant="block" />
-        </div>
-      </div>
-
-      <!-- Data & Privacy Section -->
-      <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          <KeyIcon class="h-6 w-6" />
-          {{ t('settings.privacy_title') }}
-        </h2>
-
-        <!-- Stats -->
-        <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-sm">
-          <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">{{ t('settings.registered_since') }}</p>
-          <p class="font-medium mb-3">{{ registeredSince }}</p>
-
-          <p class="text-sm text-gray-600 dark:text-gray-400">
-            <strong>{{ totalLogs }}</strong> Ladevorgänge ·
-            <strong>{{ Math.round(totalKwh) }}</strong> kWh ·
-            <strong>{{ formatCurrency(totalCostEur ?? 0) }}</strong>
-          </p>
-        </div>
-
-        <!-- Export Data -->
-        <button
-          @click="exportData"
-          :disabled="loading"
-          class="btn-3d w-full mb-4 flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 disabled:opacity-50 transition">
-          <ArrowDownTrayIcon class="h-5 w-5" />
-          <span>{{ t('settings.export_btn') }}</span>
-        </button>
-
-        <!-- Delete Account -->
-        <button
-          @click="showDeleteConfirm = true"
-          class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-600 text-white rounded-sm hover:bg-red-700 transition">
-          <TrashIcon class="h-5 w-5" />
-          <span>{{ t('settings.delete_btn') }}</span>
+        <button v-if="purchasesAvailable()" type="button" :class="BTN_SECONDARY" :disabled="portalLoading" @click="openPortal">
+          {{ portalLoading ? t('upgrade.pro_manage_loading') : t('upgrade.pro_manage_btn') }}
         </button>
       </div>
+      <p class="text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.portal_hint') }}</p>
 
-      <!-- Delete Confirmation Modal -->
-      <div
-        v-if="showDeleteConfirm"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
-        @click.self="showDeleteConfirm = false">
-        <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] max-w-md w-full p-6">
-          <h3 class="text-2xl font-bold text-red-600 mb-4">{{ t('settings.delete_modal_title') }}</h3>
-          <p class="text-gray-700 dark:text-gray-300 mb-4" v-html="t('settings.delete_modal_desc')" />
+      <!-- Live ohne Tesla in der Garage: Amber, weil etwas fehlt, mit Handlung -->
+      <router-link v-if="liveButNoTesla" to="/imports"
+        class="flex items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-900/20 dark:hover:bg-amber-900/30">
+        <ExclamationTriangleIcon class="h-5 w-5 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true" />
+        <span class="flex-1">
+          <span class="block text-sm font-semibold text-amber-900 dark:text-amber-200">{{ t('settings.tier_live_disconnected_warning') }}</span>
+          <span class="block text-[13px] text-amber-800 dark:text-amber-300">{{ t('settings.tier_live_repair_cta') }}</span>
+        </span>
+        <ChevronRightIcon class="h-4 w-4 shrink-0 text-amber-700 dark:text-amber-400" aria-hidden="true" />
+      </router-link>
 
-          <input
-            v-if="hasPassword"
-            v-model="deletePassword"
-            type="password"
-            :placeholder="t('settings.delete_password_placeholder')"
-            class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-red-500 focus:border-red-500 mb-4">
+      <div v-if="subscriptionTier === 'AUTOSYNC_LIVE'" class="grid gap-2 pt-1">
+        <button type="button" :class="BTN_SECONDARY" :disabled="tierActionLoading" @click="openDowngradeConfirm">
+          {{ t('settings.downgrade_to_autosync_cta') }}
+        </button>
+        <button type="button" class="min-h-11 text-[13px] font-semibold text-gray-500 underline underline-offset-2 hover:text-gray-800 disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-200"
+          :disabled="tierActionLoading" @click="openCancelConfirm">
+          {{ t('settings.cancel_live_cta') }}
+        </button>
+      </div>
+      <p v-if="tierActionError" class="text-center text-[13px] font-semibold text-gray-900 dark:text-gray-100" role="alert">{{ tierActionError }}</p>
+    </div>
+    <div v-else class="flex flex-wrap items-center justify-between gap-3">
+      <p class="min-w-0 flex-1 text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
+      <router-link to="/upgrade" :class="BTN_SECONDARY">{{ t('upgrade.pro_upgrade_btn') }}</router-link>
+    </div>
+  </ModelBox>
 
+  <!-- Land -->
+  <ModelBox>
+    <div class="grid gap-1">
+      <h2 :class="H2">{{ t('settings.country_title') }}</h2>
+      <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.country_desc') }}</p>
+    </div>
+    <div role="group" :aria-label="t('settings.country_title')" class="scrollbar-hide -mx-4 flex gap-2 overflow-x-auto px-4 pt-0.5 pb-1.5 md:mx-0 md:flex-wrap md:px-0">
+      <ChoiceChip v-for="c in COUNTRY_OPTIONS" :key="c.code" size="lg" :active="countryStore.country === c.code" @click="countryStore.setCountry(c.code)">
+        <span aria-hidden="true">{{ c.flag }}</span>{{ c.name[locale] || c.name.en }}
+      </ChoiceChip>
+    </div>
+  </ModelBox>
+
+  <!-- Anzeige -->
+  <ModelBox>
+    <h2 :class="H2">{{ t('settings.display_title') }}</h2>
+    <div>
+      <div :class="ROW">
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.implausible_banner_label') }}</p>
+          <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.implausible_banner_hint') }}</p>
+        </div>
+        <ToggleSwitch :model-value="implausibleBannerEnabled" :label="t('settings.implausible_banner_label')" @update:model-value="toggleImplausibleBanner()" />
+      </div>
+      <div :class="ROW">
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.savings_card_label') }}</p>
+          <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.savings_card_hint') }}</p>
+        </div>
+        <ToggleSwitch :model-value="savingsCardVisible" :label="t('settings.savings_card_label')" @update:model-value="toggleSavingsCard()" />
+      </div>
+      <div v-if="storyEnabled" :class="ROW">
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.story_always_month_label') }}</p>
+          <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.story_always_month_hint') }}</p>
+        </div>
+        <ToggleSwitch data-testid="settings-story-always-month" :model-value="alwaysMonth" :label="t('settings.story_always_month_label')" @update:model-value="setAlwaysMonth($event)" />
+      </div>
+    </div>
+  </ModelBox>
+
+  <!-- Meine Ladekarten: verwaltet unter /charging-providers, die ganze Box ist der Link -->
+  <router-link to="/charging-providers"
+    class="flex items-center gap-3 bg-white px-4 py-5 transition-colors hover:bg-gray-50 md:rounded-3xl md:px-8 md:edge-box dark:bg-gray-900 dark:hover:bg-gray-800">
+    <CreditCardIcon class="h-6 w-6 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+    <span class="min-w-0 flex-1">
+      <span class="block font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.tariff_title') }}</span>
+      <span class="block text-sm text-gray-500 dark:text-gray-400">{{ t('settings.tariff_moved_hint') }}</span>
+    </span>
+    <ChevronRightIcon class="h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />
+  </router-link>
+
+  <!-- Watt -->
+  <ModelBox>
+    <div class="flex items-baseline justify-between gap-3">
+      <h2 :class="H2">{{ t('settings.watt_account') }}</h2>
+      <p class="flex items-baseline gap-1 leading-none">
+        <b class="text-[26px] font-extrabold tracking-tight text-gray-900 tabular-nums dark:text-gray-50">{{ coinBalance }}</b>
+        <span class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ t('coins.unit') }}</span>
+      </p>
+    </div>
+    <div class="grid gap-3 sm:grid-cols-2">
+      <router-link to="/coins/history" :class="BTN_SECONDARY">
+        <ClockIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span class="truncate">{{ t('settings.watt_history') }}</span>
+      </router-link>
+      <router-link to="/leaderboard" :class="BTN_PRIMARY">
+        <TrophyIcon class="h-4 w-4 shrink-0" aria-hidden="true" />
+        <span class="truncate">{{ t('coins.to_leaderboard') }}</span>
+      </router-link>
+    </div>
+    <div>
+      <div :class="ROW">
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.leaderboard_visible_label') }}</p>
+          <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.leaderboard_visible_hint') }}</p>
+        </div>
+        <ToggleSwitch :model-value="leaderboardVisible" :label="t('settings.leaderboard_visible_label')" @update:model-value="toggleLeaderboardVisible()" />
+      </div>
+      <div :class="ROW">
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.ticker_share_label') }}</p>
+          <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.ticker_share_hint') }}</p>
+        </div>
+        <ToggleSwitch :model-value="tickerShareCharges" :label="t('settings.ticker_share_label')" @update:model-value="toggleTickerShareCharges()" />
+      </div>
+    </div>
+  </ModelBox>
+
+  <!-- Einladen -->
+  <ModelBox v-if="referralCode">
+    <div class="grid gap-1">
+      <h2 :class="H2">{{ t('settings.referral_title') }}</h2>
+      <p class="text-sm text-gray-600 dark:text-gray-400" v-html="t('settings.referral_desc')" />
+    </div>
+    <div class="flex gap-2">
+      <input :value="referralLink()" readonly :aria-label="t('settings.referral_title')" :class="INPUT" class="min-w-0 flex-1 cursor-default select-all text-sm">
+      <button type="button" :class="BTN_SECONDARY" class="shrink-0" @click="copyReferralLink">
+        <CheckIcon v-if="referralCopied" class="h-4 w-4" aria-hidden="true" />
+        <ClipboardDocumentIcon v-else class="h-4 w-4" aria-hidden="true" />
+        {{ referralCopied ? t('settings.copied') : t('settings.copy') }}
+      </button>
+    </div>
+  </ModelBox>
+
+  <!-- Hilfe -->
+  <ModelBox>
+    <div class="grid gap-1">
+      <h2 :class="H2">{{ t('settings.help_title') }}</h2>
+      <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.tutorial_title') }}</p>
+      <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.tutorial_desc') }}</p>
+    </div>
+    <button type="button" :class="BTN_SECONDARY" class="w-full" @click="restartOnboarding">
+      <AcademicCapIcon class="h-5 w-5" aria-hidden="true" />
+      {{ t('settings.tutorial_btn') }}
+    </button>
+  </ModelBox>
+
+  <!-- Unterstützen: Spenden-Aufruf inkl. Links nativ verboten (Apple-Reject, siehe iapPolicy) -->
+  <ModelBox v-if="donationsAvailable()">
+    <div class="grid gap-1">
+      <h2 :class="H2">{{ t('settings.support_title') }}</h2>
+      <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('settings.support_desc') }}</p>
+    </div>
+    <SupportPopover variant="block" />
+  </ModelBox>
+
+  <!-- Daten und Datenschutz -->
+  <ModelBox>
+    <h2 :class="H2">{{ t('settings.privacy_title') }}</h2>
+    <div class="grid gap-1">
+      <p :class="LABEL">{{ t('settings.registered_since') }}</p>
+      <p class="font-semibold text-gray-900 tabular-nums dark:text-gray-100">{{ registeredSince }}</p>
+      <p class="text-sm text-gray-600 tabular-nums dark:text-gray-400">
+        <b class="text-gray-900 dark:text-gray-100">{{ totalLogs }}</b> {{ t('settings.stats_charges') }} ·
+        <b class="text-gray-900 dark:text-gray-100">{{ Math.round(totalKwh) }}</b> kWh ·
+        <b class="text-gray-900 dark:text-gray-100">{{ formatCurrency(totalCostEur ?? 0) }}</b>
+      </p>
+    </div>
+    <div class="grid gap-3">
+      <button type="button" :class="BTN_SECONDARY" class="w-full" :disabled="loading" @click="exportData">
+        <ArrowDownTrayIcon class="h-5 w-5" aria-hidden="true" />
+        {{ t('settings.export_btn') }}
+      </button>
+      <button type="button" :class="BTN_SECONDARY" class="w-full" @click="showDeleteConfirm = true">
+        <TrashIcon class="h-5 w-5" aria-hidden="true" />
+        {{ t('settings.delete_btn') }}
+      </button>
+    </div>
+  </ModelBox>
+
+  <!-- Konto löschen: einziger rote Knopf der Seite -->
+  <BottomSheet v-if="showDeleteConfirm" :label="t('settings.delete_modal_title')" edge @close="resetDeleteConfirm">
+    <template #default="{ close }">
+      <div class="grid gap-4 overflow-y-auto px-4 pt-3 pb-4 sm:px-6 sm:pt-6">
+        <div class="mx-auto h-1 w-10 rounded-full bg-gray-300 sm:hidden dark:bg-gray-600" />
+        <h3 class="text-xl font-extrabold text-gray-900 dark:text-gray-50">{{ t('settings.delete_modal_title') }}</h3>
+        <p class="text-sm text-gray-700 dark:text-gray-300" v-html="t('settings.delete_modal_desc')" />
+
+        <input v-if="hasPassword" v-model="deletePassword" type="password" :placeholder="t('settings.delete_password_placeholder')" :aria-label="t('settings.delete_password_placeholder')" :class="INPUT">
+        <template v-else>
+          <button v-if="!deleteCodeSent" type="button" data-testid="delete-send-code" :class="BTN_SECONDARY" class="w-full" :disabled="loading" @click="sendDeleteCode">
+            {{ t('settings.delete_code_send') }}
+          </button>
           <template v-else>
-            <button
-              v-if="!deleteCodeSent"
-              type="button"
-              data-testid="delete-send-code"
-              @click="sendDeleteCode"
-              :disabled="loading"
-              class="btn-3d w-full px-4 py-2 mb-4 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-100 rounded-sm disabled:opacity-50">
-              {{ t('settings.delete_code_send') }}
-            </button>
-            <template v-else>
-              <p class="text-sm text-gray-600 dark:text-gray-400 mb-2" aria-live="polite">{{ t('settings.delete_code_sent') }}</p>
-              <input
-                v-model="deleteCode"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                maxlength="6"
-                :aria-label="t('settings.delete_code_placeholder')"
-                :placeholder="t('settings.delete_code_placeholder')"
-                class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-sm focus:ring-red-500 focus:border-red-500 mb-4">
-            </template>
+            <p class="text-sm text-gray-600 dark:text-gray-400" aria-live="polite">{{ t('settings.delete_code_sent') }}</p>
+            <input v-model="deleteCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+              :aria-label="t('settings.delete_code_placeholder')" :placeholder="t('settings.delete_code_placeholder')" :class="INPUT" class="tabular-nums">
           </template>
+        </template>
 
-          <div class="flex gap-3">
-            <button
-              @click="deleteAccount"
-              :disabled="loading || (hasPassword ? !deletePassword : deleteCode.trim().length !== 6)"
-              class="btn-3d flex-1 px-4 py-2 bg-red-600 text-white rounded-sm hover:bg-red-700 disabled:opacity-50 transition">
-              {{ t('settings.delete_confirm_btn') }}
-            </button>
-            <button
-              @click="showDeleteConfirm = false; deletePassword = ''; deleteCode = ''; deleteCodeSent = false"
-              class="btn-3d flex-1 px-4 py-2 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-sm hover:bg-gray-400 dark:hover:bg-gray-500 transition">
-              {{ t('settings.cancel') }}
-            </button>
-          </div>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" :class="BTN_SECONDARY" @click="close">{{ t('settings.cancel') }}</button>
+          <button type="button" :class="BTN_DANGER" :disabled="loading || (hasPassword ? !deletePassword : deleteCode.trim().length !== 6)" @click="deleteAccount">
+            {{ t('settings.delete_confirm_btn') }}
+          </button>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </BottomSheet>
+
+  <!-- Abo downgraden oder kündigen -->
+  <BottomSheet v-if="tierConfirmAction" :label="tierConfirmTitle" edge @close="closeTierConfirm">
+    <template #default="{ close }">
+      <div class="grid gap-4 overflow-y-auto px-4 pt-3 pb-4 sm:px-6 sm:pt-6">
+        <div class="mx-auto h-1 w-10 rounded-full bg-gray-300 sm:hidden dark:bg-gray-600" />
+        <h3 class="text-xl font-extrabold text-gray-900 dark:text-gray-50">{{ tierConfirmTitle }}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">{{ tierConfirmBody }}</p>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" :class="BTN_SECONDARY" @click="close">{{ t('settings.cancel_confirm_keep') }}</button>
+          <button type="button" :class="BTN_SECONDARY" :disabled="tierActionLoading" @click="confirmTierAction(close)">{{ t('settings.cancel_confirm_proceed') }}</button>
+        </div>
+      </div>
+    </template>
+  </BottomSheet>
+
   <DemoSettingsModal />
-
-  <!-- Tier-action confirmation dialog (downgrade or cancel) -->
-  <Teleport to="body">
-    <div
-      v-if="tierConfirmAction"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
-      @click.self="closeTierConfirm"
-    >
-      <div class="bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] max-w-sm w-full p-6 border border-gray-200 dark:border-gray-700">
-        <h3 class="text-lg font-bold text-gray-900 dark:text-gray-100 mb-3">{{ tierConfirmTitle }}</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400 mb-6">{{ tierConfirmBody }}</p>
-        <div class="flex gap-2 justify-end">
-          <button
-            @click="closeTierConfirm"
-            class="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 px-4 py-2"
-          >
-            {{ t('settings.cancel_confirm_keep') }}
-          </button>
-          <button
-            @click="confirmTierAction"
-            :disabled="tierActionLoading"
-            class="text-sm font-medium bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-sm disabled:opacity-50"
-          >
-            {{ t('settings.cancel_confirm_proceed') }}
-          </button>
-        </div>
-      </div>
-    </div>
-  </Teleport>
 </div>
 </template>

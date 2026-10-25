@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { HomeIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { HomeIcon, ChevronRightIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import Collapse from '../../shared/Collapse.vue'
+import StoryPriceDetail from '../StoryPriceDetail.vue'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import { placeName, needsOperator, type ChargingPlace, type PlaceClass } from '../../../composables/storyPlaces'
 import type { ChargingBenchmark } from '../../../api/chargingBenchmarkService'
@@ -14,13 +17,17 @@ export interface PlaceRow {
 
 /**
  * Die Liste der Ladeorte ist die vollständige Fassung der Karte (die Karte ist aria-hidden).
- * Zeile antippen markiert den Ort, Amber-Chips führen zum Vergleich oder zum Eintragen des Betreibers.
+ * Zeile antippen markiert den Ort. Der Amber-Chip "teurer" klappt den Preisvergleich in der Zeile auf,
+ * "Betreiber eintragen" meldet die neueste Ladung des Orts.
  */
 defineProps<{
   rows: PlaceRow[]
   active: string | null
 }>()
-const emit = defineEmits<{ tap: [geohash: string]; prices: [geohash: string]; operator: [logId: string] }>()
+const emit = defineEmits<{ tap: [geohash: string]; operator: [logId: string] }>()
+/** Ort mit aufgeklapptem Preisvergleich, höchstens einer. */
+const expanded = ref<string | null>(null)
+const toggleExpanded = (gh: string) => { expanded.value = expanded.value === gh ? null : gh }
 
 const { t, locale } = useI18n()
 const { formatCurrency, formatCostPerKwh, formatDecimal } = useLocaleFormat()
@@ -76,9 +83,11 @@ const AMBER = 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-
           type="button"
           data-testid="places-chip-high"
           :class="[CHIP, AMBER]"
-          @click="emit('prices', r.place.geohash)">
+          :aria-expanded="expanded === r.place.geohash"
+          :aria-controls="`places-prices-${r.place.geohash}`"
+          @click="toggleExpanded(r.place.geohash)">
           {{ t('story.places_high_chip', { price: formatCostPerKwh(r.benchmark.medianPricePerKwh, { subunitDecimals: 0 }), n: r.benchmark.drivers }) }}
-          <ChevronRightIcon class="h-3 w-3" aria-hidden="true" />
+          <ChevronDownIcon class="h-3 w-3 transition-transform motion-reduce:transition-none" :class="expanded === r.place.geohash ? 'rotate-180' : ''" aria-hidden="true" />
         </button>
         <span
           v-else-if="r.cls === 'low' && r.benchmark"
@@ -96,6 +105,11 @@ const AMBER = 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-
           <ChevronRightIcon class="h-3 w-3" aria-hidden="true" />
         </button>
       </div>
+      <Collapse v-if="r.cls === 'high' && r.benchmark" :open="expanded === r.place.geohash">
+        <div :id="`places-prices-${r.place.geohash}`" data-testid="places-prices" class="pb-4 pl-[60px] pr-4 lg:pl-[68px] lg:pr-6">
+          <StoryPriceDetail :benchmark="r.benchmark" :price-per-kwh="r.place.pricePerKwh" />
+        </div>
+      </Collapse>
     </li>
   </ul>
 </template>
