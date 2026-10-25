@@ -253,6 +253,16 @@ describe('buildTripMonth: Fahrten des Monats für Kachel und Sheet', () => {
     expect(locked.standbyLocked).toBe(true)
   })
 
+  it('Fahrtlängen: Anteil der Fahrten bis 5 km, 5 bis 30 km, ab 30 km, dazu Ø km je Fahrt', () => {
+    const m = buildTripMonth([
+      tr('a', '2026-10-02T08:00:00Z', 2, null), tr('b', '2026-10-02T09:00:00Z', 3, null), tr('c', '2026-10-02T10:00:00Z', 4.9, null),
+      tr('d', '2026-10-03T08:00:00Z', 12, null), tr('e', '2026-10-04T08:00:00Z', 30, null),
+    ], 57, true)!
+    expect(m.lengthShares).toEqual([{ key: 'SHORT', pct: 60 }, { key: 'MEDIUM', pct: 20 }, { key: 'LONG', pct: 20 }])
+    expect(m.avgKm).toBeCloseTo(10.4, 1)
+    expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 2, null)], 57, true)!.lengthShares).toEqual([{ key: 'SHORT', pct: 100 }])
+  })
+
   it('ohne Fahrten oder ohne km nichts', () => {
     expect(buildTripMonth([], 57, true)).toBeNull()
     expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 0, 'CITY')], 57, true)).toBeNull()

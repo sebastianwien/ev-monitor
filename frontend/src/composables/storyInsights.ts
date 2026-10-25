@@ -276,11 +276,19 @@ export type RouteKey = 'CITY' | 'COMBINED' | 'HIGHWAY'
 const ROUTE_KEYS: RouteKey[] = ['CITY', 'COMBINED', 'HIGHWAY']
 /** Ab diesem Anteil an den km gilt ein Streckentyp als Schwerpunkt ("meist Stadt"). */
 const MAIN_ROUTE_SHARE = 50
+export type LengthKey = 'SHORT' | 'MEDIUM' | 'LONG'
+/** Grenzen der Fahrtlängen in km: kurz bis unter 5, mittel bis unter 30, lang ab 30. Kurze Fahrten treiben den Verbrauch. */
+const SHORT_KM = 5
+const LONG_KM = 30
 
 /** Fahrten eines Monats für Kachel und Sheet "Wie fahre ich?". */
 export interface TripMonth {
   trips: number
   km: number
+  /** Durchschnittliche Länge einer Fahrt in km. */
+  avgKm: number
+  /** Anteil der Fahrten je Länge in ganzen Prozent, ohne leere Klassen. */
+  lengthShares: { key: LengthKey; pct: number }[]
   /** Antriebsverbrauch laut Fahrzeug, kWh/100 km. Null ohne Energiedaten der Fahrten. */
   driveKwhPer100km: number | null
   /** Anteile an den km je Streckentyp in ganzen Prozent; leer ohne Streckentypen. */
@@ -314,9 +322,17 @@ export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: numb
     ? ROUTE_KEYS.filter(k => (kmByRoute.get(k) ?? 0) > 0).map(k => ({ key: k, pct: Math.round(((kmByRoute.get(k) ?? 0) / typedKm) * 100) }))
     : []
   const main = routeShares.find(r => r.pct >= MAIN_ROUTE_SHARE)
+  const lengthOf = (km: number): LengthKey => km < SHORT_KM ? 'SHORT' : km < LONG_KM ? 'MEDIUM' : 'LONG'
+  const byLength = new Map<LengthKey, number>()
+  for (const t of trips) byLength.set(lengthOf(t.distanceKm ?? 0), (byLength.get(lengthOf(t.distanceKm ?? 0)) ?? 0) + 1)
+  const lengthShares = (['SHORT', 'MEDIUM', 'LONG'] as LengthKey[])
+    .filter(k => (byLength.get(k) ?? 0) > 0)
+    .map(k => ({ key: k, pct: Math.round(((byLength.get(k) ?? 0) / trips.length) * 100) }))
   return {
     trips: sum.tripCount,
     km: sum.totalDistanceKm,
+    avgKm: sum.totalDistanceKm / sum.tripCount,
+    lengthShares,
     driveKwhPer100km: sum.consumptionKwhPer100km,
     routeShares,
     mainRoute: main?.key ?? null,

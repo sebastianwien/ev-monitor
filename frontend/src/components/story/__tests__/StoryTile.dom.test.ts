@@ -120,16 +120,16 @@ describe('StoryTile Währung', () => {
 describe('StoryTile Fahrten', () => {
   const trips = (over: Partial<Tile> = {}): Tile => ({
     id: 'trips', value: 18.2, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [], sparkVariant: 'bars',
-    tripMonth: { trips: 14, km: 151, driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY', pct: 70 }, { key: 'HIGHWAY', pct: 30 }], mainRoute: 'CITY', longestKm: 42, tempMin: null, tempMax: null, standbyKwh: null, standbyLocked: true },
+    tripMonth: { trips: 14, km: 151, avgKm: 10.8, driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY', pct: 70 }, { key: 'HIGHWAY', pct: 30 }], mainRoute: 'CITY', lengthShares: [{ key: 'SHORT', pct: 64 }, { key: 'MEDIUM', pct: 36 }], longestKm: 42, tempMin: null, tempMax: null, standbyKwh: null, standbyLocked: true },
     ...over,
   })
 
-  it('Frage, Antriebsverbrauch, Satz mit Fahrten, km und Schwerpunkt, Balken nach Streckentyp', () => {
+  it('Frage, Antriebsverbrauch, Satz mit Fahrten, Ø-Länge und Schwerpunkt, Balken nach Fahrtlänge', () => {
     const text = mount(trips())
     expect(text).toContain('Wie fahre ich?')
     expect(text).toContain('18,2')
-    expect(text).toMatch(/14 Fahrten, 151\skm, meist Stadt/)
-    expect(text).toContain('Stadt 70 %')
-    expect(text).toContain('Autobahn 30 %')
+    expect(text).toMatch(/14 Fahrten, Ø 11\skm, meist Stadt/)
+    expect(text).toContain('bis 5 km 64 %')
+    expect(text).toContain('5 bis 30 km 36 %')
   })
 })

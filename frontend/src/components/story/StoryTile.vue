@@ -60,7 +60,7 @@ const note = computed(() => {
     case 'trips': {
       const m = x.tripMonth
       if (!m) return ''
-      const base = t('story.trips_note', { n: m.trips, km: formatDistance(m.km, { round: true }) }, m.trips)
+      const base = t('story.trips_note', { n: m.trips, km: formatDistance(m.avgKm, { round: true }) }, m.trips)
       return m.mainRoute ? `${base}, ${t('story.trips_main', { route: routeLabel(m.mainRoute) })}` : base
     }
     case 'range':
@@ -84,9 +84,10 @@ const note = computed(() => {
   }
 })
 
-const ROUTE_CLS = { CITY: 'bg-green-700 dark:bg-green-400', COMBINED: 'bg-sky-500', HIGHWAY: 'bg-gray-600 dark:bg-gray-300' } as const
-function routeLabel(key: keyof typeof ROUTE_CLS) { return t(`model.route_type_${key.toLowerCase()}`) }
-const routeSegments = computed(() => (props.tile.tripMonth?.routeShares ?? []).map(r => ({ key: r.key, label: routeLabel(r.key), pct: r.pct, cls: ROUTE_CLS[r.key] })))
+function routeLabel(key: string) { return t(`model.route_type_${key.toLowerCase()}`) }
+// Kachel: Fahrtlängen, die gibt es immer und sie erklären den Verbrauch (kurze Fahrten kosten mehr).
+const LENGTH_CLS = { SHORT: 'bg-gray-700 dark:bg-gray-300', MEDIUM: 'bg-green-700 dark:bg-green-400', LONG: 'bg-sky-500' } as const
+const lengthSegments = computed(() => (props.tile.tripMonth?.lengthShares ?? []).map(r => ({ key: r.key, label: t(`story.trips_len_${r.key.toLowerCase()}`), pct: r.pct, cls: LENGTH_CLS[r.key] })))
 
 /** Position des eigenen Werts auf der Skala sparsam ... hoch: Schnitt in der Mitte, ±100 % an den Rändern. */
 const peerPos = computed(() => Math.min(1, Math.max(0, 0.5 + (props.tile.deltaPercent ?? 0) / 200)))
@@ -115,7 +116,7 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
     <span v-if="note" class="truncate text-[13.5px] text-gray-600 dark:text-gray-400">{{ note }}</span>
     <span data-role="graphic" class="mt-auto block">
       <FlowBar v-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
-      <ShareBar v-else-if="tile.id === 'trips'" :segments="routeSegments" />
+      <ShareBar v-else-if="tile.id === 'trips'" :segments="lengthSegments" />
       <span v-else-if="tile.id === 'range'" class="grid gap-1">
         <span class="relative block h-2.5 rounded-[3px] bg-gray-200 dark:bg-gray-700">
           <i class="absolute inset-y-0 rounded-[3px] bg-green-700 dark:bg-green-400" :style="{ left: `${rangeWindow.min}%`, width: `${rangeWindow.max - rangeWindow.min}%` }" />

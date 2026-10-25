@@ -535,7 +535,7 @@ describe('visibleGap: welche Lücke der Satz nennt', () => {
 })
 
 describe('Fahrten-Kachel und Abgleich mit den Ladungen', () => {
-  const tripMonth = { trips: 14, km: 151, driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY' as const, pct: 70 }, { key: 'HIGHWAY' as const, pct: 30 }], mainRoute: 'CITY' as const, longestKm: 42, tempMin: 6, tempMax: 14, standbyKwh: null, standbyLocked: true }
+  const tripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, routeShares: [{ key: 'CITY' as const, pct: 70 }, { key: 'HIGHWAY' as const, pct: 30 }], mainRoute: 'CITY' as const, longestKm: 42, tempMin: 6, tempMax: 14, standbyKwh: null, standbyLocked: true }
 
   it('steht nach "Stimmt, was der Hersteller verspricht?", Zahl ist der Antriebsverbrauch', () => {
     const tiles = buildStoryTiles(input({ flow, range, tripMonth }))
