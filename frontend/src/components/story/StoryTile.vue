@@ -39,7 +39,8 @@ const value = computed(() => {
     case 'charging': return x.charging && x.charging.dcKwh === 0
       ? { n: '100', unit: t('story.charging_unit_normal') }
       : { n: formatDecimal(x.value, 0), unit: t('story.charging_unit') }
-    case 'standby': return { n: formatDecimal(x.value, 1), unit: 'kWh' }
+    // Euro gerechnet aus den Ladepreisen, deshalb mit Tilde
+    case 'standby': return { n: formatDecimal(x.value, 1), unit: x.tripMonth?.standbyEur != null ? `kWh · ~${formatCurrency(x.tripMonth.standbyEur)}` : 'kWh' }
   }
   return { n: '', unit: '' }
 })

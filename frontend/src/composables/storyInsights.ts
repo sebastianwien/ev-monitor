@@ -338,25 +338,68 @@ export interface TripMonth {
   standbyLocked: boolean
   /** Größte Verluste im Stand (höchstens sechs, größter zuerst); leer, wenn nicht freigeschaltet. */
   standbyGaps: StandbyGap[]
+  /** Alle Standverluste des Monats in Euro (siehe StandbyGap.eur); null ohne jeden Preis. */
+  standbyEur: number | null
 }
 
 /** Ein Stand zwischen zwei Fahrten, in dem der Akku Energie verloren hat. */
-export interface StandbyGap { kwh: number; from: string; to: string }
+export interface StandbyGap {
+  kwh: number
+  from: string
+  to: string
+  /** Wert in Euro zum Preis der letzten Ladung mit Preis davor, sonst zum Monatsschnitt; null ohne Preis. */
+  eur: number | null
+}
+
+/** Was der Preis eines Standverlusts braucht: Ladungen mit Zeit und Kosten, dazu der Monatsschnitt. */
+export interface StandbyPricing {
+  charges: { loggedAt: string; costEur: number | null; kwhCharged: number | null; kwhAtVehicle?: number | null }[]
+  avgCostPerKwh: number | null
+}
 
 const STANDBY_GAPS_MAX = 6
+
+/** Größte Standzeiten für Kachel und Sheet, Euro über alle Standzeiten des Monats. */
+function standbyOf(trips: TripForMonth[], visible: boolean, pricing: StandbyPricing | undefined): Pick<TripMonth, 'standbyGaps' | 'standbyEur'> {
+  if (!visible) return { standbyGaps: [], standbyEur: null }
+  const all = standbyGapsOf(trips, pricing)
+  const priced = all.filter(g => g.eur != null)
+  return {
+    standbyGaps: all.slice(0, STANDBY_GAPS_MAX),
+    standbyEur: priced.length ? Math.round(priced.reduce((a, g) => a + g.eur!, 0) * 100) / 100 : null,
+  }
+}
 const iso = (d: string | Date | null) => (d instanceof Date ? d.toISOString() : d ?? '')
 const kwhOf = (v: number | string | null | undefined) => (v == null ? null : typeof v === 'string' ? parseFloat(v) : v)
 
 /** Abfall des Energiezählers zwischen Ende einer Fahrt und Beginn der nächsten; ein Anstieg heißt geladen und zählt nicht. */
-function standbyGapsOf(trips: TripForMonth[]): StandbyGap[] {
+function standbyGapsOf(trips: TripForMonth[], pricing: StandbyPricing | undefined): StandbyGap[] {
   const sorted = [...trips].sort((a, b) => new Date(a.tripStartedAt ?? 0).getTime() - new Date(b.tripStartedAt ?? 0).getTime())
   const gaps: StandbyGap[] = []
   for (let i = 0; i < sorted.length - 1; i++) {
     const end = kwhOf(sorted[i].energyRemainingEndKwh), next = kwhOf(sorted[i + 1].energyRemainingStartKwh)
     if (end == null || next == null || !(end - next > 0)) continue
-    gaps.push({ kwh: Math.round((end - next) * 100) / 100, from: iso(sorted[i].tripEndedAt), to: iso(sorted[i + 1].tripStartedAt) })
+    const kwh = Math.round((end - next) * 100) / 100
+    const from = iso(sorted[i].tripEndedAt)
+    const price = priceBefore(from, pricing)
+    gaps.push({ kwh, from, to: iso(sorted[i + 1].tripStartedAt), eur: price == null ? null : Math.round(kwh * price * 100) / 100 })
   }
-  return gaps.sort((a, b) => b.kwh - a.kwh).slice(0, STANDBY_GAPS_MAX)
+  return gaps.sort((a, b) => b.kwh - a.kwh)
+}
+
+/** €/kWh der letzten Ladung mit Preis vor dem Zeitpunkt (dort wurde der verlorene Strom gekauft), sonst der Monatsschnitt. */
+function priceBefore(at: string, pricing: StandbyPricing | undefined): number | null {
+  if (!pricing) return null
+  const t = new Date(at).getTime()
+  let best: { at: number; price: number } | null = null
+  for (const c of pricing.charges) {
+    const kwh = c.kwhCharged ?? c.kwhAtVehicle ?? null
+    const ct = new Date(c.loggedAt).getTime()
+    if (c.costEur == null || kwh == null || kwh <= 0 || ct > t) continue
+    if (!best || ct > best.at) best = { at: ct, price: c.costEur / kwh }
+  }
+  if (best) return best.price
+  return pricing.avgCostPerKwh != null && pricing.avgCostPerKwh > 0 ? pricing.avgCostPerKwh : null
 }
 
 export type TripForMonth = TripForSummary & { routeType?: string | null }
@@ -365,7 +408,7 @@ export type TripForMonth = TripForSummary & { routeType?: string | null }
  * Baut die Monatszahlen der Fahrten aus der vorhandenen Auswertung (summarizeTripMonth) plus den
  * Streckentypen. Der Standverlust ist ein Analytics-Wert und nur mit Freischaltung sichtbar.
  */
-export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: number | null, standbyVisible: boolean): TripMonth | null {
+export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: number | null, standbyVisible: boolean, pricing?: StandbyPricing): TripMonth | null {
   const sum = summarizeTripMonth(trips, effectiveCapacityKwh)
   if (!sum || sum.totalDistanceKm <= 0) return null
   const kmByRoute = new Map<RouteKey, number>()
@@ -400,6 +443,6 @@ export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: numb
     tempMax: sum.tempMax,
     standbyKwh: standbyVisible ? sum.standbyKwh : null,
     standbyLocked: !standbyVisible,
-    standbyGaps: standbyVisible ? standbyGapsOf(trips) : [],
+    ...standbyOf(trips, standbyVisible, pricing),
   }
 }

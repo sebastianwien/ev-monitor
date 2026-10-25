@@ -25,8 +25,11 @@ describe('Sheets der neuen Kacheln', () => {
     expect(mount(SheetCharging, { split: { acKwh: 300, dcKwh: 100, unknownKwh: 0, acEurPerKwh: 0.3, dcEurPerKwh: null } })).not.toContain('mehr')
   })
   it('Stand: je Stand Dauer und kWh', () => {
-    const text = mount(SheetStandby, { totalKwh: 3.3, gaps: [{ kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z' }, { kwh: 0.8, from: '2026-10-02T20:00:00Z', to: '2026-10-03T06:00:00Z' }] })
-    expect(text).toContain('3 Tagen')
+    const text = mount(SheetStandby, { totalKwh: 3.3, totalEur: 1.05, gaps: [{ kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z', eur: 0.75 }, { kwh: 0.8, from: '2026-10-02T20:00:00Z', to: '2026-10-03T06:00:00Z', eur: null }] })
+    expect(text).toMatch(/~1,05\s€/)
+    expect(text).toMatch(/~0,75\s€/)
+    expect(text).toContain('3 Tage')
+    expect(text).not.toContain('3 Tagen')
     expect(text).toContain('10 Stunden')
     expect(text).toContain('2,5 kWh')
   })

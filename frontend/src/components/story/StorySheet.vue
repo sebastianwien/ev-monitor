@@ -65,7 +65,7 @@ const title = computed(() => props.tile.id === 'peer'
         <SheetFlow v-else-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
         <SheetCo2 v-else-if="tile.id === 'co2' && tile.co2" :tile="tile" />
         <SheetCharging v-else-if="tile.id === 'charging' && tile.charging" :split="tile.charging" />
-        <SheetStandby v-else-if="tile.id === 'standby' && tile.tripMonth" :gaps="tile.tripMonth.standbyGaps" :total-kwh="tile.value" />
+        <SheetStandby v-else-if="tile.id === 'standby' && tile.tripMonth" :gaps="tile.tripMonth.standbyGaps" :total-kwh="tile.value" :total-eur="tile.tripMonth.standbyEur" />
         <SheetRange v-else-if="tile.id === 'range' && tile.range" :range="tile.range" :capacity-kwh="context.effectiveCapacityKwh" />
         <SheetPeer v-else-if="tile.id === 'peer'" :tile="tile" :stats="context.stats" :model-peers="context.modelPeers" :model-name="context.modelName" />
         <SheetBattery v-else-if="tile.id === 'battery'" :tile="tile" :history="context.sohHistory" />

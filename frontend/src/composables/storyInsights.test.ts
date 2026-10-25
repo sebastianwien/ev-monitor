@@ -279,10 +279,36 @@ describe('buildTripMonth: Fahrten des Monats für Kachel und Sheet', () => {
     ]
     const m = buildTripMonth(trips, 57, true)!
     expect(m.standbyGaps).toEqual([
-      { kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z' },
-      { kwh: 0.8, from: '2026-10-02T08:30:00Z', to: '2026-10-03T08:00:00Z' },
+      { kwh: 2.5, from: '2026-10-03T08:30:00Z', to: '2026-10-06T08:00:00Z', eur: null },
+      { kwh: 0.8, from: '2026-10-02T08:30:00Z', to: '2026-10-03T08:00:00Z', eur: null },
     ])
     expect(buildTripMonth(trips, 57, false)!.standbyGaps).toEqual([])
+  })
+
+  it('Standverluste in Euro: Preis der letzten Ladung mit Preis davor, sonst Monatsschnitt, sonst keiner', () => {
+    const e = (id: string, start: string, end: string, eStart: number, eEnd: number) => ({
+      id, tripStartedAt: start, tripEndedAt: end, distanceKm: 10, socStart: null, socEnd: null, estimatedConsumedKwh: 2,
+      energyRemainingStartKwh: eStart, energyRemainingEndKwh: eEnd, routeType: null,
+    })
+    const trips = [
+      e('a', '2026-10-02T08:00:00Z', '2026-10-02T08:30:00Z', 60, 58),
+      e('b', '2026-10-03T08:00:00Z', '2026-10-03T08:30:00Z', 57, 55),   // Stand davor: 1 kWh, letzte Ladung 01.10. zu 0,40 €/kWh
+      e('c', '2026-10-06T08:00:00Z', '2026-10-06T08:30:00Z', 53, 50),   // Stand davor: 2 kWh, letzte Ladung 02.10. abends zu 0,60 €/kWh
+    ]
+    const charges = [
+      { loggedAt: '2026-10-01T18:00:00Z', costEur: 8, kwhCharged: 20, kwhAtVehicle: null },
+      { loggedAt: '2026-10-02T20:00:00Z', costEur: 3, kwhCharged: 5, kwhAtVehicle: null },
+      { loggedAt: '2026-10-02T22:00:00Z', costEur: null, kwhCharged: 10, kwhAtVehicle: null }, // ohne Preis: zählt nicht
+    ]
+    const m = buildTripMonth(trips, 57, true, { charges, avgCostPerKwh: 0.3 })!
+    expect(m.standbyGaps.map(g => g.eur)).toEqual([1.2, 0.4])
+    expect(m.standbyEur).toBeCloseTo(1.6, 2)
+    // ohne passende Ladung: Monatsschnitt
+    expect(buildTripMonth(trips, 57, true, { charges: [], avgCostPerKwh: 0.3 })!.standbyGaps.map(g => g.eur)).toEqual([0.6, 0.3])
+    // ohne jeden Preis: kein Euro-Betrag
+    const none = buildTripMonth(trips, 57, true, { charges: [], avgCostPerKwh: null })!
+    expect(none.standbyGaps.map(g => g.eur)).toEqual([null, null])
+    expect(none.standbyEur).toBeNull()
   })
 
   it('Fahrtlängen: Anteil der km auf Fahrten unter 5 km, 5 bis 30 km, ab 30 km, dazu Ø km je Fahrt', () => {

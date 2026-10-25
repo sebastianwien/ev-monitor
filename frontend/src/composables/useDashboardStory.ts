@@ -13,7 +13,7 @@ import {
 import { buildEnergyFlow, buildRange, costLayers, monthCosts, type MonthCosts } from './storyEnergy'
 import {
   temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, bestRank,
-  type TripForTemperature, type RankEntry, buildLatest, sohIsEstimated, buildTripMonth, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
+  type TripForTemperature, type RankEntry, buildLatest, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
   detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
   detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickMoment, momentFeedItems, DAY,
@@ -98,6 +98,18 @@ async function fetchTrips(carId: string, start: string, end: string): Promise<Tr
   }
 }
 
+/** Ladungen vom Beginn des Vormonats bis Monatsende: die Ladung vor einem Stand am Monatsanfang liegt oft davor. */
+async function fetchCharges(carId: string, start: string, end: string): Promise<StandbyPricing['charges']> {
+  const from = new Date(`${start}T00:00:00Z`).toISOString()
+  const to = new Date(new Date(`${end}T00:00:00Z`).getTime() + 86_400_000).toISOString()
+  try {
+    const res = await api.get<StandbyPricing['charges']>(`/logs?carId=${carId}&from=${from}&to=${to}`)
+    return Array.isArray(res.data) ? res.data : []
+  } catch {
+    return []
+  }
+}
+
 type RankResponse = { category: string; ownEntry: RankEntry | null } | null
 
 async function fetchRanks(monthsBack: number): Promise<RankResponse[]> {
@@ -114,6 +126,8 @@ interface MonthBundle {
   series: StatisticsData | null
   trips: TripForTemperature[]
   ranks: RankResponse[]
+  /** Ladungen ab Vormonat, nur mit Freischaltung: Preis der Standverluste. */
+  charges: StandbyPricing['charges']
 }
 
 /**
@@ -149,6 +163,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const previousStats = ref<StatisticsData | null>(null)
   const series = ref<StatisticsData | null>(null)
   const trips = ref<TripForTemperature[]>([])
+  const charges = ref<StandbyPricing['charges']>([])
   const ranks = ref<RankResponse[]>([])
   const savingsEur = ref<number | null>(null)
   const amortisationYearsRemaining = ref<number | null>(null)
@@ -178,6 +193,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     series.value = b.series
     trips.value = b.trips
     ranks.value = b.ranks
+    charges.value = b.charges
   }
 
   async function load() {
@@ -198,12 +214,13 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     const prev = monthWindow(m.year, m.month, -1)
     const first = monthWindow(m.year, m.month, -5)
     const monthsBack = -m.offset
-    const [a, b, c, t, r] = await Promise.all([
+    const [a, b, c, t, r, ch] = await Promise.all([
       fetchStats(carId, cur.start, cur.end, 'DAY'),
       fetchStats(carId, prev.start, prev.end, 'MONTH'),
       fetchStats(carId, first.start, cur.end, 'MONTH'),
       fetchTrips(carId, cur.start, cur.end),
       monthsBack <= 1 ? fetchRanks(monthsBack) : Promise.resolve([] as RankResponse[]),
+      ctx().canViewLiveAnalytics ? fetchCharges(carId, prev.start, cur.end) : Promise.resolve([]),
     ])
     if (id !== requestId) return
     if (a == null) {
@@ -212,7 +229,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       loading.value = false
       return
     }
-    const bundle: MonthBundle = { monthStats: a, previousStats: b, series: c, trips: t, ranks: r }
+    const bundle: MonthBundle = { monthStats: a, previousStats: b, series: c, trips: t, ranks: r, charges: ch }
     monthCache.set(key, bundle)
     apply(bundle)
     loading.value = false
@@ -353,7 +370,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     temperatureLocked: !ctx().canViewLiveAnalytics && temperature.value == null,
     pricelessPrevious: pricelessInPreviousMonth.value,
     runningMonth: month.value.offset === 0,
-    tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewLiveAnalytics),
+    tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewLiveAnalytics,
+      { charges: charges.value, avgCostPerKwh: monthStats.value?.avgCostPerKwh ?? null }),
   } : null)
 
   /**
