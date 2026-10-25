@@ -4,6 +4,7 @@
     :label="t('dashboard.edit_title')"
     testid="edit-log-modal"
     panel-class="sm:max-w-xl"
+    :stacked="stacked"
     @close="onClosed">
     <template #default="{ close }">
       <!-- Header: in einer Unteransicht fuehrt der Pfeil zurueck zur Uebersicht -->
@@ -191,6 +192,8 @@ const props = defineProps<{
   log: EvLogResponse
   /** Direkt in einer Unteransicht öffnen, z. B. "place" für "Betreiber eintragen" auf der Ladekarte. */
   startSection?: SummarySection
+  /** Über einem anderen Sheet geöffnet (Ladekarte): leichter abdunkeln. */
+  stacked?: boolean
 }>()
 const emit = defineEmits<{ close: []; saved: [log: EvLogResponse]; deleted: [logId: string] }>()
 const { t } = useI18n()
