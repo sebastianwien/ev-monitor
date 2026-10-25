@@ -6,6 +6,7 @@ import com.evmonitor.domain.ChargingType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +23,11 @@ public class PostgresChargingProviderTariffRepositoryImpl implements ChargingPro
     @Override
     public List<ChargingProviderTariff> findAllCurrentTariffs() {
         return jpaRepository.findAllCurrentTariffs().stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<ChargingProviderTariff> findValidOn(LocalDate day) {
+        return jpaRepository.findValidOn(day).stream().map(this::toDomain).toList();
     }
 
     @Override

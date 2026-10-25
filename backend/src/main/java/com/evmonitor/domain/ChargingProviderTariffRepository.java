@@ -1,5 +1,6 @@
 package com.evmonitor.domain;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,6 +9,9 @@ public interface ChargingProviderTariffRepository {
     List<ChargingProviderTariff> findAllCurrentTariffs();
 
     List<ChargingProviderTariff> findCurrentTariffsByEmp(String empName);
+
+    /** Tarife, die an diesem Tag gelten: begonnen und nicht beendet (das Enddatum zaehlt noch). */
+    List<ChargingProviderTariff> findValidOn(LocalDate day);
 
     /**
      * Lookup-Reihenfolge für den Vergleichsrechner:
