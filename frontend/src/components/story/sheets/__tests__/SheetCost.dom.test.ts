@@ -56,7 +56,19 @@ describe('SheetCost', () => {
     expect(chip(host, 'Strom').getAttribute('aria-pressed')).toBe('true')
     expect(chip(host, 'Mit Fixkosten').getAttribute('aria-pressed')).toBe('false')
     expect([...host.querySelectorAll('[data-role="value"]')].map(e => text(e))).toEqual(['40 €', '30 €', '20 €', '25 €', '18 €', '15 €'])
-    expect(host.querySelector('[data-role="stack"]')).toBeNull()
+    expect([...host.querySelectorAll<HTMLElement>('[data-role="stack"]')].every(b => b.style.height === '0%')).toBe(true)
+  })
+
+  it('Umschalten ist eine Grafik: dieselben Balken, Stromfarbe bleibt, Fixkosten wachsen darauf', async () => {
+    const host = await mount({ tile: { ...base.tile, sentiment: 'warn' } })
+    const bars = [...host.querySelectorAll('[data-role="bar"]')]
+    chip(host, 'Mit Fixkosten').click()
+    await flush()
+    expect([...host.querySelectorAll('[data-role="bar"]')]).toEqual(bars)
+    expect(bars[0].className).toContain('bg-amber-600')
+    expect(bars[0].className).not.toContain('bg-green')
+    expect(host.querySelector<HTMLElement>('[data-role="stack"]')!.style.height).not.toBe('0%')
+    expect(bars[0].className).toContain('transition-')
   })
 
   it('"Mit Fixkosten": gestapelt, Summe über dem Balken, Satz zum Monat, Einnahmen als eigener Satz', async () => {
@@ -66,6 +78,7 @@ describe('SheetCost', () => {
     await flush()
     expect([...host.querySelectorAll('[data-role="value"]')].map(e => text(e))).toEqual(['85 €', '75 €', '20 €', '70 €', '63 €', '60 €'])
     expect(host.querySelectorAll('[data-role="stack"]')).toHaveLength(6)
+    expect(host.querySelector('[data-testid="story-cost-split"]')!.closest('[inert]:not([inert="false"])')).toBeNull()
     expect(text(host.querySelector('[data-testid="story-cost-split"]'))).toBe('Oktober: 15 € Strom, 45 € Fixkosten.')
     expect(text(host.querySelector('[data-testid="story-cost-income"]'))).toBe('Dazu Einnahmen: 20 €.')
     expect(track).toHaveBeenCalledWith('story_cost_fixed_on')
@@ -78,7 +91,7 @@ describe('SheetCost', () => {
     app!.unmount(); document.body.innerHTML = ''
     host = await mount()
     expect(chip(host, 'Mit Fixkosten').getAttribute('aria-pressed')).toBe('true')
-    expect(host.querySelectorAll('[data-role="stack"]')).toHaveLength(6)
+    expect([...host.querySelectorAll<HTMLElement>('[data-role="stack"]')].some(b => b.style.height !== '0%')).toBe(true)
   })
 
   it('unten eine Zeile zu allen Kosten des Autos', async () => {
@@ -100,13 +113,12 @@ describe('SheetCost', () => {
   it('Monat ohne Fixkosten, andere Monate mit: keine Chips, Zeile zu allen Kosten', async () => {
     const host = await mount({ stats: { energyCostEur: 15, fixedCostEur: 0, fixedIncomeEur: 0, totalCostEur: 15 } })
     expect(chip(host, 'Mit Fixkosten')).toBeUndefined()
-    expect(host.querySelector('[data-role="stack"]')).toBeNull()
     expect(text(host.querySelector('[data-testid="story-cost-cars"]'))).toBe('Alle Kosten deines Autos')
   })
 
   it('Monat ohne Fixkosten: eine gemerkte Wahl zählt nicht', async () => {
     try { localStorage.setItem('story_cost_fixed', 'true') } catch { /* egal */ }
     const host = await mount({ stats: { energyCostEur: 15, fixedCostEur: 0, fixedIncomeEur: 0, totalCostEur: 15 } })
-    expect(host.querySelector('[data-role="stack"]')).toBeNull()
+    expect([...host.querySelectorAll<HTMLElement>('[data-role="stack"]')].every(b => b.style.height === '0%')).toBe(true)
   })
 })

@@ -5,6 +5,7 @@ import { RouterLink } from 'vue-router'
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 import MonthBars from '../MonthBars.vue'
 import ChoiceChip from '../../shared/ChoiceChip.vue'
+import Collapse from '../../shared/Collapse.vue'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import { costStack, type MonthCosts } from '../../../composables/storyEnergy'
 import { analytics } from '../../../services/analytics'
@@ -14,7 +15,8 @@ import type { StatisticsData } from '../../../composables/useDashboardStats'
 /**
  * Kosten je Monat. Standard sind die Stromkosten (wie Kachel und Hero). Wer Fixkosten erfasst hat,
  * schaltet in Monaten mit Fixkosten auf "Mit Fixkosten": Strom unten, Fixkosten grau darauf, die Summe darüber. Die Wahl
- * merkt sich das Gerät. Die Fixkosten je Monat kommen erst beim Umschalten.
+ * merkt sich das Gerät. Beide Ansichten sind dieselbe Grafik: die Fixkosten wachsen auf die
+ * Strombalken, Satz und Legende klappen auf. Die Fixkosten je Monat kommen erst beim Umschalten.
  */
 const props = defineProps<{
   tile: StoryTile
@@ -55,11 +57,17 @@ watch(showFixed, async (on) => {
   months.value = await props.loadMonthlyCosts()
 }, { immediate: true })
 
-const stack = computed(() => showFixed.value && months.value ? costStack(months.value) : null)
+/** Fixkosten sichtbar, sobald sie geladen sind; bis dahin bleibt die Strom-Ansicht stehen. */
+const stacked = computed(() => showFixed.value && months.value != null)
+/** Graues Segment je Balken, in der Strom-Ansicht 0: so gleitet die Grafik zwischen beiden. */
+const fixedStack = computed(() => {
+  const fixed = stacked.value ? costStack(months.value!).fixed : []
+  return props.tile.spark.map((_, i) => fixed[i] ?? 0)
+})
 
 const split = computed(() => {
   const s = props.stats
-  if (!showFixed.value || !s) return null
+  if (!monthHasFixed.value || !s) return null
   return {
     line: t('story.sheet_cost_split', { month: props.monthName, energy: eur(s.energyCostEur), fixed: eur(s.fixedCostEur) }),
     income: s.fixedIncomeEur > 0 ? t('story.sheet_cost_income', { income: eur(s.fixedIncomeEur) }) : null,
@@ -76,20 +84,14 @@ const partialLabel = computed(() => props.runningMonth ? t('story.sheet_partial'
       <ChoiceChip size="sm" :active="withFixed" @click="choose(true)">{{ t('story.sheet_cost_mode_fixed') }}</ChoiceChip>
     </div>
     <MonthBars
-      v-if="stack"
       class="mt-4"
-      :values="stack.energy" :stack="stack.fixed" :labels="monthLabels" :format="eur"
+      :values="tile.spark" :stack="fixedStack" :labels="monthLabels" :format="eur"
       :stack-labels="{ base: t('story.layers_energy'), stack: t('story.layers_fixed') }"
-      :partial-label="partialLabel" tone="good" />
-    <MonthBars
-      v-else
-      class="mt-4"
-      :values="tile.spark" :labels="monthLabels" :format="eur"
       :partial-label="partialLabel" :tone="tile.sentiment" />
-    <template v-if="split">
+    <Collapse v-if="split" :open="stacked">
       <p data-testid="story-cost-split" class="mt-4 text-sm text-gray-600 tabular-nums text-pretty dark:text-gray-300">{{ split.line }}</p>
       <p v-if="split.income" data-testid="story-cost-income" class="mt-1 text-sm text-gray-600 tabular-nums text-pretty dark:text-gray-300">{{ split.income }}</p>
-    </template>
+    </Collapse>
     <RouterLink
       to="/cars"
       data-testid="story-cost-cars"
