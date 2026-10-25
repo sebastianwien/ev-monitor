@@ -71,7 +71,7 @@ class ChargingBenchmarkQueryPostgresIT extends AbstractPostgresIT {
         evLogRepository.softDelete(deleted.getId());
 
         List<PublicChargePrice> rows = queryRepository.publicChargePrices(NOW.minusMonths(12)).stream()
-                .filter(r -> r.userId().equals(user.getId()))
+                .filter(r -> r.driverId().equals(user.getId()))
                 .toList();
 
         assertThat(rows).extracting(PublicChargePrice::cpoName, PublicChargePrice::chargingType, PublicChargePrice::cardName)
@@ -79,6 +79,21 @@ class ChargingBenchmarkQueryPostgresIT extends AbstractPostgresIT {
         assertThat(rows).extracting(r -> r.pricePerKwh().setScale(3, java.math.RoundingMode.HALF_UP))
                 .containsExactlyInAnyOrder(new BigDecimal("0.590"), new BigDecimal("0.500"),
                         new BigDecimal("0.400"), new BigDecimal("0.450"));
+    }
+
+    @Test
+    void anonymizedCar_countsAsItsOwnDriver() {
+        // DSGVO-Kontolöschung: user_id NULL, die Ladungen bleiben für die Community-Statistik
+        User user = userRepository.save(TestDataBuilder.createTestUser("bench-anon-" + UUID.randomUUID().toString().substring(0, 12) + "@example.com"));
+        Car car = carRepository.save(TestDataBuilder.createTestCar(user.getId(), CarBrand.CarModel.MODEL_3, BigDecimal.valueOf(60)));
+        save(log(car, "40", null, "23.60"));
+        carRepository.save(car.anonymize());
+
+        List<PublicChargePrice> rows = queryRepository.publicChargePrices(NOW.minusMonths(12)).stream()
+                .filter(r -> car.getId().equals(r.driverId()))
+                .toList();
+
+        assertThat(rows).hasSize(1);
     }
 
     @Test

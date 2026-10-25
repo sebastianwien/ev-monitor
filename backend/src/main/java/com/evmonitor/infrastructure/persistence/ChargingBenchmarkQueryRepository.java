@@ -31,10 +31,12 @@ public class ChargingBenchmarkQueryRepository {
      * Ladungen seit {@code since}: oeffentlich, mit Betreiber, AC oder DC, mit Kosten und fuer
      * die Statistik freigegeben. Die Karte nur, wenn sie weder privat noch geloescht ist - eine
      * private Karte ist der Heimtarif, eine geloeschte hat der Nutzer zurueckgenommen.
+     * Fahrer ist der Nutzer, bei anonymisierten Autos (Kontoloeschung, user_id NULL) das Auto
+     * selbst - wie bei den uebrigen Community-Zaehlungen.
      */
     public List<PublicChargePrice> publicChargePrices(LocalDateTime since) {
         return jdbc.query("""
-                SELECT c.user_id, e.cpo_name, e.charging_type,
+                SELECT COALESCE(c.user_id, c.id) AS driver_id, e.cpo_name, e.charging_type,
                        e.cost_eur / COALESCE(NULLIF(e.kwh_charged, 0), e.kwh_at_vehicle) AS price,
                        p.provider_name, p.emp_name
                 FROM ev_log e
@@ -51,7 +53,7 @@ public class ChargingBenchmarkQueryRepository {
                   AND e.logged_at >= ?
                 """,
                 (rs, i) -> new PublicChargePrice(
-                        rs.getObject("user_id", UUID.class),
+                        rs.getObject("driver_id", UUID.class),
                         rs.getString("cpo_name"),
                         ChargingType.valueOf(rs.getString("charging_type")),
                         rs.getBigDecimal("price"),
@@ -61,6 +63,6 @@ public class ChargingBenchmarkQueryRepository {
     }
 
     /** Eine bezahlte Ladung; {@code cardName}/{@code cardEmp} null ohne (zaehlbare) Karte. */
-    public record PublicChargePrice(UUID userId, String cpoName, ChargingType chargingType,
+    public record PublicChargePrice(UUID driverId, String cpoName, ChargingType chargingType,
                                     BigDecimal pricePerKwh, String cardName, String cardEmp) {}
 }

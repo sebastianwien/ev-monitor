@@ -64,7 +64,7 @@ public class CpoPriceBenchmarkService {
 
         List<PublicChargePrice> others = queryRepository.publicChargePrices(LocalDateTime.now().minusMonths(WINDOW_MONTHS)).stream()
                 .filter(r -> r.chargingType() == type)
-                .filter(r -> !r.userId().equals(requesterId))
+                .filter(r -> !r.driverId().equals(requesterId))
                 .filter(r -> plausible(r.pricePerKwh()))
                 .filter(r -> operator.equals(cpoNameNormalizer.canonicalOperator(r.cpoName())))
                 .toList();
@@ -138,7 +138,7 @@ public class CpoPriceBenchmarkService {
 
     private static List<BigDecimal> driverMedians(List<PublicChargePrice> rows) {
         return rows.stream()
-                .collect(Collectors.groupingBy(PublicChargePrice::userId,
+                .collect(Collectors.groupingBy(PublicChargePrice::driverId,
                         Collectors.mapping(PublicChargePrice::pricePerKwh, Collectors.toList())))
                 .values().stream()
                 .map(prices -> percentile(prices, 0.5))
