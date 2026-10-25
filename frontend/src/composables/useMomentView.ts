@@ -36,6 +36,7 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
     const n = new Date(now.value); n.setHours(0, 0, 0, 0)
     return cap(rtf.value.format(Math.round((a.getTime() - n.getTime()) / DAY), 'day'))
   }
+  const shortDate = (at: number) => new Date(at).toLocaleDateString(locale.value, { day: 'numeric', month: 'numeric' })
   function agoWord(at: number): string {
     const min = Math.max(1, Math.round((now.value - at) / 60_000))
     return min < 60 ? rtf.value.format(-min, 'minute') : rtf.value.format(-Math.round(min / 60), 'hour')
@@ -113,6 +114,20 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
           secondary: m.autoSync ? { id: 'autosync', label: t('story.moment_action_autosync'), to: '/imports' } : undefined,
           dismiss: true,
         }
+      case 'gap': {
+        const date = shortDate(m.at)
+        return {
+          eyebrow: t('story.moment_gap_eyebrow'),
+          sentence: m.count > 1 ? t('story.moment_gap_many', { n: m.count, date: shortDate(m.since) })
+            : m.kwh != null ? t('story.moment_gap_kwh', { kwh: `${formatDecimal(m.kwh, 1)} kWh`, date })
+            : t('story.moment_gap', { date }),
+          action: props.carId
+            ? { id: 'add_price', label: t(m.count > 1 ? 'story.moment_action_add_prices' : 'story.moment_action_add_price'), to: `/logs?car=${encodeURIComponent(props.carId)}&nachtragen=preis` }
+            : undefined,
+          // Je Eintrag: bei mehreren entscheidet der Nutzer in der Liste.
+          secondary: m.count === 1 ? { id: 'price_unknown', label: t('story.moment_action_price_unknown') } : undefined,
+        }
+      }
       default:
         return { eyebrow: '', sentence: '' }
     }

@@ -32,6 +32,22 @@ describe('StoryMomentHero', () => {
     expect(host.querySelector('a')!.getAttribute('href')).toBe('/logs?car=c1&nachtragen=preis')
   })
 
+  it('Lücke: fragt nach der einen Ladung, mit "Weiß ich nicht mehr"', () => {
+    const onAct = vi.fn()
+    const host = mount({ ...b, kind: 'gap', key: 'k', at: NOW - 2 * DAY, actionable: true, logId: 'l1', count: 1, kwh: 28.5, since: NOW - 2 * DAY }, { onAct })
+    expect(text(host)).toContain('Was haben die 28,5 kWh vom 22.10. gekostet?')
+    expect(host.querySelector('a')!.getAttribute('href')).toBe('/logs?car=c1&nachtragen=preis')
+    ;[...host.querySelectorAll('button')].find(x => x.textContent!.includes('Weiß ich nicht mehr'))!.click()
+    expect(onAct).toHaveBeenCalledWith('price_unknown')
+  })
+
+  it('Lücke: mehrere Ladungen nur mit Zahl, entschieden wird in der Liste', () => {
+    const host = mount({ ...b, kind: 'gap', key: 'k', at: NOW - DAY, actionable: true, logId: 'l1', count: 3, kwh: 20, since: NOW - 12 * DAY })
+    expect(text(host)).toContain('3 Ladungen seit dem 12.10. haben noch keinen Preis.')
+    expect(text(host)).toContain('Preise nachtragen')
+    expect(text(host)).not.toContain('Weiß ich nicht mehr')
+  })
+
   it('lange Fahrt mit Stopp und Kosten, Tag relativ', () => {
     const host = mount({ ...b, kind: 'long_trip', key: 'k', at: NOW - 20 * HOUR, km: 340, stops: 1, costEur: 18 })
     expect(text(host)).toContain('Gestern: 340 km, 1 Ladestopp für 18 €.')

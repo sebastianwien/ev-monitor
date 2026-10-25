@@ -62,6 +62,19 @@ async function applyHomeTariff() {
   }
 }
 
+/** "Weiß ich nicht mehr": die Ladung verlässt die Liste und wird nicht mehr nachgefragt. */
+const unknownError = ref<string | null>(null)
+async function markUnknown(log: EvLogResponse) {
+  unknownError.value = null
+  try {
+    await api.patch(`/logs/${log.id}/gap`, { field: 'PRICE' })
+    logs.value = logs.value.filter(l => l.id !== log.id)
+    emit('updated')
+  } catch {
+    unknownError.value = t('priceless.home_error')
+  }
+}
+
 async function loadLogs() {
   if (!props.carId) return
   loading.value = true
@@ -118,6 +131,7 @@ function formatDate(iso: string) {
         </div>
 
         <p class="px-5 pt-3 pb-1 text-xs text-gray-500 dark:text-gray-400">{{ t('priceless.info') }}</p>
+        <p v-if="unknownError" role="status" class="px-5 pb-1 text-[11px] text-amber-600 dark:text-amber-400">{{ unknownError }}</p>
 
         <!-- Ein Klick statt N Nachtraege - nur sichtbar, wenn genau ein Heimtarif gilt und
              es ueberhaupt etwas zu bepreisen gibt. -->
@@ -144,9 +158,9 @@ function formatDate(iso: string) {
             </div>
 
             <ul v-else class="divide-y divide-gray-100 dark:divide-gray-700">
-              <li v-for="log in logs" :key="log.id">
+              <li v-for="log in logs" :key="log.id" data-testid="priceless-row">
                 <button type="button" @click="amendingLog = log"
-                  class="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/60 active:bg-gray-100 dark:active:bg-gray-700 transition-colors">
+                  class="w-full flex items-center gap-3 px-5 pt-3 pb-1 text-left hover:bg-gray-50 dark:hover:bg-gray-700/60 active:bg-gray-100 dark:active:bg-gray-700 transition-colors">
                   <div class="min-w-0 flex-1">
                     <div class="text-sm font-medium text-gray-900 dark:text-gray-100 tabular-nums">{{ formatDate(log.loggedAt) }}</div>
                     <div class="mt-0.5 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
@@ -157,6 +171,10 @@ function formatDate(iso: string) {
                   </div>
                   <WattBadge :amount="wattPossibleForLog(coinStore.catalog, log)" up-to size="md" />
                   <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+                </button>
+                <button type="button" data-testid="priceless-unknown" @click="markUnknown(log)"
+                  class="mx-5 mb-1 inline-flex min-h-[36px] items-center text-xs font-medium text-gray-500 underline underline-offset-2 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                  {{ t('priceless.unknown') }}
                 </button>
               </li>
             </ul>

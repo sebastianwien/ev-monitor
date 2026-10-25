@@ -26,7 +26,7 @@ const tone = computed(() => ({
     </div>
     <p class="mt-1 text-[11px] tabular-nums" :class="tone">
       {{ t('story.quality_line', { measured, total: quality.total }) }}<template v-if="quality.estimated > 0">, {{ t('story.quality_estimated', { n: quality.estimated }) }}</template><template v-if="quality.priceless > 0">, {{ t('story.quality_priceless', { n: quality.priceless }) }}
-        <router-link to="/logs" class="underline underline-offset-2 font-semibold">{{ t('story.quality_fix') }}</router-link></template>
+        <router-link v-if="quality.pricelessOpen > 0" to="/logs" class="underline underline-offset-2 font-semibold">{{ t('story.quality_fix') }}</router-link></template>
     </p>
   </div>
 </template>

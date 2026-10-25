@@ -12,7 +12,7 @@ export const HOUR = 3_600_000
 export const DAY = 24 * HOUR
 
 export type MomentKind =
-  | 'live' | 'just_charged' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'rank' | 'silence' | 'month'
+  | 'live' | 'just_charged' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'rank' | 'silence' | 'gap' | 'month'
 
 interface MomentBase {
   /** Zustand plus Ereignis-ID: Schluessel fuer "gesehen" und "weggeklickt". */
@@ -37,6 +37,7 @@ export type MomentData =
   | { kind: 'battery'; sohPercent: number; estimated: boolean; previousSohPercent: number | null; previousAt: number | null }
   | { kind: 'rank'; category: string; rank: number }
   | { kind: 'silence'; days: number; kwh: number | null; autoSync: boolean }
+  | { kind: 'gap'; logId: string; count: number; kwh: number | null; since: number }
 
 export type Moment = MomentBase & MomentData
 
@@ -57,6 +58,8 @@ export interface MomentLog {
   socBeforeChargePercent?: number | null
   socAfterChargePercent?: number | null
   dataSource?: string | null
+  /** "Weiß ich nicht mehr": nicht mehr nach dem Preis fragen. */
+  priceUnknown?: boolean
 }
 
 export interface MomentTrip {
@@ -78,6 +81,9 @@ const BATTERY_COMPARE_MIN_MS = 90 * DAY
 const RANK_MAX = 3
 const RANK_MS = 7 * DAY
 const SILENCE_MS = 14 * DAY
+/** Juenger gehoert die Ladung zu "gerade geladen", aelter ist sie kein Moment mehr. */
+const GAP_MIN_MS = JUST_CHARGED_MS
+const GAP_MAX_MS = 31 * DAY
 
 const ms = (s: string | null | undefined): number | null => {
   if (!s) return null
@@ -242,8 +248,31 @@ export function detectSilence(input: { log: MomentLog | null; now: number; autoS
   }
 }
 
+/**
+ * Ladungen ohne Preis aus dem letzten Monat. Eine: Frage nach genau ihr, mit "Weiß ich nicht mehr".
+ * Mehrere: die Zahl, nachgetragen wird in der Liste. skipLogId: die Ladung von "gerade geladen".
+ */
+export function detectGap(input: { logs: MomentLog[]; now: number; skipLogId?: string | null }): Moment | null {
+  const { now } = input
+  const open = input.logs
+    .filter(l => l.costEur == null && !l.priceUnknown && l.id !== input.skipLogId)
+    .map(l => ({ log: l, t: ms(l.loggedAt) }))
+    .filter((x): x is { log: MomentLog; t: number } => x.t != null && now - x.t >= GAP_MIN_MS && now - x.t <= GAP_MAX_MS)
+    .sort((a, b) => b.t - a.t)
+  if (open.length === 0) return null
+  const newest = open[0]
+  return {
+    ...base(`gap:${newest.log.id}`, newest.t, Infinity, true),
+    kind: 'gap',
+    logId: newest.log.id,
+    count: open.length,
+    kwh: newest.log.kwhAtVehicle ?? newest.log.kwhCharged ?? null,
+    since: open[open.length - 1].t,
+  }
+}
+
 const BASE: Record<MomentKind, number> = {
-  live: 1000, just_charged: 90, long_trip: 80, first_frost: 75, month_change: 70, battery: 60, rank: 55, silence: 50, month: 10,
+  live: 1000, just_charged: 90, long_trip: 80, first_frost: 75, month_change: 70, battery: 60, rank: 55, silence: 50, gap: 40, month: 10,
 }
 const ACTION_BONUS = 20
 /** Gross genug, dass ein gesehener Moment unter den Monat faellt. */
@@ -286,7 +315,7 @@ export function pickMoment(candidates: Moment[], now: number, seen: MomentSeen):
 
 /** Fahrerfrage je Moment im Feed (1 Kosten, 2 Realitaet, 3 Community, 4 Gesundheit). */
 const QUESTION: Partial<Record<MomentKind, StoryFeedItem['question']>> = {
-  just_charged: 1, long_trip: 2, first_frost: 2, month_change: 1, battery: 4, silence: 1,
+  just_charged: 1, long_trip: 2, first_frost: 2, month_change: 1, battery: 4, silence: 1, gap: 1,
 }
 
 /** Rang fehlt bewusst: den nennt der Feed schon als community_rank. */

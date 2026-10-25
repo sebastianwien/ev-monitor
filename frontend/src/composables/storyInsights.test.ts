@@ -113,6 +113,11 @@ describe('dataQuality', () => {
   it('teilt nicht durch null', () => {
     expect(dataQuality({ totalCharges: 0, estimatedConsumptionCount: 0 }, 0).estimatedShare).toBe(0)
   })
+
+  it('trennt offene Lücken von Preisen, die der Nutzer nicht mehr weiß', () => {
+    expect(dataQuality(base, 3, 1)).toMatchObject({ priceless: 3, pricelessOpen: 1, severity: 'warn' })
+    expect(dataQuality(base, 2).pricelessOpen).toBe(2)
+  })
 })
 
 describe('countPricelessInMonth', () => {

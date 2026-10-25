@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
-  detectRank, detectSilence, detectLive, monthMoment, momentScore, pickMoment,
+  detectRank, detectSilence, detectLive, detectGap, monthMoment, momentScore, pickMoment,
   momentFeedItems, HOUR, DAY, type MomentSeen, type Moment,
 } from './storyMoments'
 
@@ -137,6 +137,30 @@ describe('detectRank und detectSilence', () => {
     expect(detectSilence({ log, now: NOW, autoSync: true })).toMatchObject({ kind: 'silence', key: 'silence:l', days: 16, kwh: 28.5, autoSync: true, dismissible: true, actionable: true })
     expect(detectSilence({ log: { ...log, dataSource: 'SMARTCAR_LIVE' }, now: NOW, autoSync: false })).toBeNull()
     expect(detectSilence({ log: { ...log, loggedAt: iso(NOW - 10 * DAY) }, now: NOW, autoSync: false })).toBeNull()
+  })
+})
+
+describe('detectGap', () => {
+  const gap = (id: string, hoursAgo: number, extra: object = {}) =>
+    ({ id, loggedAt: iso(NOW - hoursAgo * HOUR), kwhAtVehicle: 28.5, costEur: null, priceUnknown: false, ...extra })
+
+  it('fragt nach der einen Ladung ohne Preis, mit kWh', () => {
+    const m = detectGap({ logs: [gap('a', 30)], now: NOW })
+    expect(m).toMatchObject({ kind: 'gap', key: 'gap:a', logId: 'a', count: 1, kwh: 28.5, actionable: true, at: NOW - 30 * HOUR })
+  })
+
+  it('zählt mehrere Lücken, Schlüssel und Zeitpunkt von der neuesten, Datum ab der ältesten', () => {
+    const m = detectGap({ logs: [gap('old', 10 * 24), gap('new', 5)], now: NOW })
+    expect(m).toMatchObject({ key: 'gap:new', count: 2, at: NOW - 5 * HOUR, since: NOW - 10 * DAY })
+  })
+
+  it('übergeht "Weiß ich nicht mehr", Ladungen mit Preis und die gerade geladene', () => {
+    const logs = [gap('unknown', 30, { priceUnknown: true }), gap('priced', 30, { costEur: 9 }), gap('fresh', 1), gap('skip', 30)]
+    expect(detectGap({ logs, now: NOW, skipLogId: 'skip' })).toBeNull()
+  })
+
+  it('ignoriert Lücken älter als 31 Tage', () => {
+    expect(detectGap({ logs: [gap('a', 32 * 24)], now: NOW })).toBeNull()
   })
 })
 

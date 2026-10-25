@@ -1344,6 +1344,7 @@ priceless:
   banner_cta: Lägg till
   dismiss: Dölj
   add_price: Lägg till pris
+  unknown: "Minns inte"
   close: Stäng
   apply_home: Prissätt alla hemmaladdningar med "{card}"
   apply_home_hint: Gäller alla privata laddningar utan pris. Priser du redan angett lämnas orörda.
@@ -4306,6 +4307,12 @@ story:
   moment_silence_plain: "Senaste laddning för {days} dagar sedan."
   moment_silence_autosync: "Din {car} kan registrera laddningar och resor själv."
   moment_action_add_price: "Lägg till pris"
+  moment_action_add_prices: "Lägg till priser"
+  moment_action_price_unknown: "Minns inte"
+  moment_gap_eyebrow: "En snabb fråga"
+  moment_gap_kwh: "Vad kostade de {kwh} den {date}?"
+  moment_gap: "Vad kostade laddningen den {date}?"
+  moment_gap_many: "{n} laddningar sedan {date} saknar pris."
   moment_action_trips: "Visa resor"
   moment_action_winter: "Visa vintervärden"
   moment_action_share: "Dela"

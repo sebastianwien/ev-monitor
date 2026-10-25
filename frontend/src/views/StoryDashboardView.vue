@@ -131,6 +131,7 @@ function onMomentAct(id: string) {
   analytics.track('story_moment_tapped', { moment: moment.value.kind, action: id })
   if (id === 'share') shareMoment()
   else if (id === 'winter') openSheet('range')
+  else if (id === 'price_unknown' && moment.value.kind === 'gap') story.markPriceUnknown(moment.value.logId)
   else if (id === 'battery') {
     // Ohne Akku-Kachel (kein SoH am Auto) fuehrt der Verlauf zur Fahrzeugseite.
     if (tiles.value.some(x => x.id === 'battery')) openSheet('battery')

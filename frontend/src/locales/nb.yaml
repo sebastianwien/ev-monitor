@@ -1344,6 +1344,7 @@ priceless:
   banner_cta: Legg til
   dismiss: Skjul
   add_price: Legg til pris
+  unknown: "Husker ikke"
   close: Lukk
   apply_home: Prissett alle hjemmeladinger med "{card}"
   apply_home_hint: Gjelder alle private ladinger uten pris. Priser du allerede har lagt inn, forblir uendret.
@@ -4306,6 +4307,12 @@ story:
   moment_silence_plain: "Siste lading for {days} dager siden."
   moment_silence_autosync: "Din {car} kan registrere ladinger og turer selv."
   moment_action_add_price: "Legg inn pris"
+  moment_action_add_prices: "Legg inn priser"
+  moment_action_price_unknown: "Husker ikke"
+  moment_gap_eyebrow: "Et raskt spørsmål"
+  moment_gap_kwh: "Hva kostet de {kwh} den {date}?"
+  moment_gap: "Hva kostet ladingen den {date}?"
+  moment_gap_many: "{n} ladinger siden {date} har ingen pris ennå."
   moment_action_trips: "Se turer"
   moment_action_winter: "Se vinterverdier"
   moment_action_share: "Del"

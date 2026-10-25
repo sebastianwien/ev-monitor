@@ -62,6 +62,21 @@ test.describe('Story Moment-Hero', () => {
     await expect(page.getByTestId('story-moment-silence')).toBeHidden();
   });
 
+  test('Lücke fragt nach dem Preis, "Weiß ich nicht mehr" lässt sie verschwinden', async ({ page }) => {
+    const twoDays = new Date(Date.now() - 2 * 86_400_000).toISOString();
+    const gap = log({ id: '00000000-0000-0000-0000-00000000e2e2', loggedAt: twoDays, createdAt: twoDays, kwhAtVehicle: 28.5, priceUnknown: false });
+    await page.route(/\/api\/logs\/priceless\?carId=[^&]+&includeUnknown=true$/, route => route.fulfill({ json: [gap] }));
+    const marked: unknown[] = [];
+    await page.route(/\/api\/logs\/[^/]+\/gap$/, route => { marked.push(route.request().postDataJSON()); return route.fulfill({ json: {} }); });
+    await setup(page, { logs: [log({ loggedAt: twoDays, createdAt: twoDays, costEur: 9 })] });
+
+    const hero = page.getByTestId('story-moment-gap');
+    await expect(hero.getByTestId('story-moment-sentence')).toContainText(/Was haben die 28,5\skWh vom/);
+    await hero.getByRole('button', { name: 'Weiß ich nicht mehr' }).click();
+    await expect(page.getByTestId('story-moment-gap')).toBeHidden();
+    expect(marked).toEqual([{ field: 'PRICE' }]);
+  });
+
   test('"Immer den Monat zeigen" lässt den Moment weg', async ({ page }) => {
     await setup(page, { logs: [log({})], alwaysMonth: true });
     await expect(page.getByTestId('story-view')).toBeVisible();

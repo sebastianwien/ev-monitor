@@ -16,7 +16,7 @@ import {
   type TripForTemperature, type RankEntry, buildLatest, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
   detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
-  detectSilence, pickMoment, momentFeedItems, DAY, type Moment, type MomentLog, type MomentTrip,
+  detectSilence, detectGap, pickMoment, momentFeedItems, DAY, type Moment, type MomentLog, type MomentTrip,
 } from './storyMoments'
 import { useMomentSeen } from './useMomentSeen'
 
@@ -152,7 +152,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const savingsEur = ref<number | null>(null)
   const amortisationYearsRemaining = ref<number | null>(null)
   const peerModels = ref<PeerModelComparisonItem[]>([])
-  const pricelessLogs = ref<Array<{ loggedAt: string }>>([])
+  /** Alle Ladungen ohne Preis, auch "Weiß ich nicht mehr": die Kosten des Monats bleiben unvollständig. */
+  const pricelessLogs = ref<MomentLog[]>([])
   const sohHistory = ref<BatterySohEntry[]>([])
   /** Statistik der letzten 4 Wochen, Basis der Reichweiten-Kachel. */
   const recentStats = ref<StatisticsData | null>(null)
@@ -217,7 +218,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips] = await Promise.allSettled([
       chargingSavingsService.get(),
       peerModelComparisonService.getPeerModelComparison(carId),
-      api.get<Array<{ loggedAt: string }>>(`/logs/priceless?carId=${carId}`),
+      api.get<MomentLog[]>(`/logs/priceless?carId=${carId}&includeUnknown=true`),
       carService.getSohHistory(carId),
       fetchFuelPrices(),
       api.get<Array<LatestLogSource & MomentLog>>(`/logs?carId=${carId}&limit=${RECENT_LOGS}`),
@@ -279,7 +280,9 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   })
 
   const quality = computed(() => monthStats.value
-    ? dataQuality(monthStats.value, countPricelessInMonth(pricelessLogs.value, month.value.year, month.value.month))
+    ? dataQuality(monthStats.value,
+      countPricelessInMonth(pricelessLogs.value, month.value.year, month.value.month),
+      countPricelessInMonth(pricelessLogs.value.filter(l => !l.priceUnknown), month.value.year, month.value.month))
     : null)
 
   const pricelessInPreviousMonth = computed(() => {
@@ -319,9 +322,10 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     const lastLog = recentLogs.value[0] ?? null
     const prev = previousStats.value
     const prevMonth = new Date(month.value.year, month.value.month - 2, 1)
+    const justCharged = detectJustCharged({ log: lastLog, now, consumptionKwh100: range.value?.consumption ?? null })
     const candidates = [
       live,
-      detectJustCharged({ log: lastLog, now, consumptionKwh100: range.value?.consumption ?? null }),
+      justCharged,
       detectLongTrip({ trips: recentTrips.value, logs: recentLogs.value, now }),
       detectFirstFrost({ trips: recentTrips.value, now, range: range.value }),
       detectMonthChange({
@@ -336,6 +340,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       detectBattery({ history: sohHistory.value, now }),
       detectRank({ rank: bestRank(ranks.value), now }),
       detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
+      // Die gerade geladene fragt schon selbst nach ihrem Preis.
+      detectGap({ logs: pricelessLogs.value, now, skipLogId: justCharged?.kind === 'just_charged' ? justCharged.logId : null }),
     ].filter((m): m is Moment => m != null)
     return pickMoment(candidates, now, seen.value)
   })
@@ -353,6 +359,17 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     buildDayCoverage(monthStats.value?.chargesOverTime ?? [], month.value.year, month.value.month))
   const hasCharges = computed(() => (monthStats.value?.totalCharges ?? 0) > 0)
 
+  /** "Weiß ich nicht mehr" aus dem Hero: die Frage verschwindet sofort, die Ladung bleibt ohne Preis. */
+  async function markPriceUnknown(logId: string): Promise<boolean> {
+    try {
+      await api.patch(`/logs/${logId}/gap`, { field: 'PRICE' })
+      pricelessLogs.value = pricelessLogs.value.map(l => l.id === logId ? { ...l, priceUnknown: true } : l)
+      return true
+    } catch {
+      return false
+    }
+  }
+
   function setOffset(o: number) {
     if (STORY_MONTH_OFFSETS.includes(o as typeof STORY_MONTH_OFFSETS[number])) offset.value = o
   }
@@ -361,6 +378,6 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     offset, month, months, setOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
     layers, quality, temperature, whatIf, sohHistory, petrol, latest, moment,
-    reload: load,
+    reload: load, markPriceUnknown,
   }
 }

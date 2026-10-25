@@ -84,7 +84,7 @@ describe('buildStoryTiles', () => {
   })
 
   it('Kosten-Kachel: Ladungen ohne Preis im Monat - kein Delta, stattdessen ihre Zahl', () => {
-    const quality = { estimated: 0, total: 14, estimatedShare: 0, priceless: 2, severity: 'warn' as const }
+    const quality = { estimated: 0, total: 14, estimatedShare: 0, priceless: 2, pricelessOpen: 2, severity: 'warn' as const }
     const cost = buildStoryTiles(input({ quality })).find(t => t.id === 'cost')!
     expect(cost.delta).toBeNull()
     expect(cost.pricelessCharges).toBe(2)
@@ -167,7 +167,7 @@ describe('buildStoryFeed', () => {
   it('kein Kostentrend, wenn einem der beiden Monate Preise fehlen: 0 € heißt dort ohne Preis', () => {
     const month = stats({ energyCostEur: 55, totalCostEur: 55 })
     const previousMonth = stats({ energyCostEur: 126, totalCostEur: 126 })
-    const quality = { estimated: 0, total: 14, estimatedShare: 0, priceless: 2, severity: 'warn' as const }
+    const quality = { estimated: 0, total: 14, estimatedShare: 0, priceless: 2, pricelessOpen: 2, severity: 'warn' as const }
     expect(buildStoryFeed(input({ month, previousMonth })).map(f => f.id)).toContain('cost_trend')
     expect(buildStoryFeed(input({ month, previousMonth, quality })).map(f => f.id)).not.toContain('cost_trend')
     expect(buildStoryFeed(input({ month, previousMonth, pricelessPrevious: 1 })).map(f => f.id)).not.toContain('cost_trend')
@@ -335,10 +335,10 @@ describe('buildStoryFeed v2: neue Quellen konkurrieren um fuenf Plaetze', () => 
   })
 
   it('Datenqualitaet: nur bei warn oder bad, bad ist relevanter', () => {
-    const ok = buildStoryFeed(input({ quality: { estimated: 0, total: 14, estimatedShare: 0, priceless: 0, severity: 'ok' } }))
+    const ok = buildStoryFeed(input({ quality: { estimated: 0, total: 14, estimatedShare: 0, priceless: 0, pricelessOpen: 0, severity: 'ok' } }))
     expect(ok.find(i => i.id === 'data_quality')).toBeUndefined()
-    const warn = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, quality: { estimated: 4, total: 14, estimatedShare: 0.29, priceless: 0, severity: 'warn' } })).find(i => i.id === 'data_quality')!
-    const bad = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 2, severity: 'bad' } })).find(i => i.id === 'data_quality')!
+    const warn = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, quality: { estimated: 4, total: 14, estimatedShare: 0.29, priceless: 0, pricelessOpen: 0, severity: 'warn' } })).find(i => i.id === 'data_quality')!
+    const bad = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 2, pricelessOpen: 2, severity: 'bad' } })).find(i => i.id === 'data_quality')!
     expect(warn.question).toBe(1)
     expect(bad.relevance).toBeGreaterThan(warn.relevance)
     expect(bad.sentiment).toBe('bad')
@@ -364,7 +364,7 @@ describe('buildStoryFeed v2: neue Quellen konkurrieren um fuenf Plaetze', () => 
       energySplitLocked: false,
       whatIf: [{ name: 'B', costPer100km: 3.6, deltaPercent: -18, cars: 40, isUser: false }],
       rank: { category: 'MONTHLY_KWH', rank: 3, value: 300, unit: 'kWh' },
-      quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 2, severity: 'bad' },
+      quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 2, pricelessOpen: 2, severity: 'bad' },
       temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 },
     }))
     expect(all).toHaveLength(5)

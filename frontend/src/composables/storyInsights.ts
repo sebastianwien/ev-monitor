@@ -123,6 +123,8 @@ export interface DataQuality {
   /** 0 bis 1. */
   estimatedShare: number
   priceless: number
+  /** Davon noch nachtragbar: ohne "Weiß ich nicht mehr". */
+  pricelessOpen: number
   severity: QualitySeverity
 }
 
@@ -130,14 +132,14 @@ const SHARE_WARN = 0.25
 const SHARE_BAD = 0.5
 const PRICELESS_BAD_SHARE = 0.25
 
-export function dataQuality(stats: { totalCharges: number; estimatedConsumptionCount: number }, pricelessInMonth: number): DataQuality {
+export function dataQuality(stats: { totalCharges: number; estimatedConsumptionCount: number }, pricelessInMonth: number, openInMonth = pricelessInMonth): DataQuality {
   const total = stats.totalCharges
   const share = total > 0 ? stats.estimatedConsumptionCount / total : 0
   const pricelessShare = total > 0 ? pricelessInMonth / total : 0
   const severity: QualitySeverity = share >= SHARE_BAD || pricelessShare >= PRICELESS_BAD_SHARE ? 'bad'
     : share >= SHARE_WARN || pricelessInMonth > 0 ? 'warn'
     : 'ok'
-  return { estimated: stats.estimatedConsumptionCount, total, estimatedShare: share, priceless: pricelessInMonth, severity }
+  return { estimated: stats.estimatedConsumptionCount, total, estimatedShare: share, priceless: pricelessInMonth, pricelessOpen: openInMonth, severity }
 }
 
 /** Zaehlt Logs, deren loggedAt (UTC) im Monat liegt. */
