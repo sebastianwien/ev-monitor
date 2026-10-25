@@ -28,16 +28,24 @@ Die ersten fuenf Kategorien (`hasMonthEndReward=true`) gewaehren Monatsende-Bonu
 ## Rang-Delta
 
 Jede Kategorie wird zweimal berechnet: einmal bis heute Mitternacht, einmal bis gestern Mitternacht (gleicher Monat). Die Differenz ergibt das Delta:
-- Gruener Pfeil nach oben = Rang verbessert
-- Roter Pfeil nach unten = Rang verschlechtert
+- Pfeil nach oben = Rang verbessert
+- Pfeil nach unten = Rang verschlechtert
 - `NEU` = User war gestern noch nicht im Ranking
 - `-` = unveraendert oder erster Tag des Monats
 
 ---
 
+## Darstellung
+
+- Kategorien als Chip-Leiste: auf dem Handy seitlich scrollbar, der gewählte Chip rückt ins Bild; ab 768 px umbrechend, alle Kategorien sichtbar. Darunter die Beschreibung der gewählten Kategorie.
+- Rang als neutrale Plakette: Platz 1 dunkel gefüllt, Platz 2 und 3 mit Kante, ab Platz 4 nur die Zahl. Keine Farbcodes, alles in Grau nach App-CI (`docs/design/ci.md`).
+- Dieselbe Komponente läuft in der App (`/leaderboard`) und als Top 5 auf der Landing Page.
+
+---
+
 ## Top 10 + eigener Rang
 
-Die API gibt immer die Top 10 zurueck. Ist der authentifizierte User nicht in den Top 10, wird sein eigener Eintrag zusaetzlich als `ownEntry` mitgeliefert - angezeigt unter einer Trennlinie mit Indigo-Highlight.
+Die API gibt immer die Top 10 zurueck. Ist der authentifizierte User nicht in den Top 10, wird sein eigener Eintrag zusaetzlich als `ownEntry` mitgeliefert - angezeigt als eigene Karte mit Kante und "Du"-Label unter der Liste.
 
 ---
 
