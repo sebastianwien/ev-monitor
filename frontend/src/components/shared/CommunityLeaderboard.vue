@@ -166,24 +166,22 @@ const displayedEntries = computed(() => {
 <template>
   <!-- Inhalt der Rangliste; Kante und Rundung setzt die einbettende Seite (App: ab md, Landing: immer). -->
   <!-- Angedockte Chips liegen auf dem Handy fest unten: Platz am Ende freihalten, damit die letzte Zeile nicht darunter verschwindet. -->
-  <div class="grid min-w-0 gap-5 bg-white px-4 py-6 md:p-8 dark:bg-gray-900" :class="{ 'max-md:pb-24': dockChips }">
-    <p v-if="isFinalStandings" class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+  <div class="grid min-w-0 gap-4 bg-white px-4 py-6 md:gap-5 md:p-8 dark:bg-gray-900" :class="{ 'max-md:pb-24': dockChips }">
+    <p v-if="isFinalStandings" class="text-center text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
       {{ t('leaderboard.final_standings', { month: periodLabel }) }}
     </p>
 
     <!-- Kopf (auf der Landing aus, dort führt die Marketing-Überschrift ein) -->
-    <header v-if="showHeader" class="grid gap-1">
-      <h1 class="text-[28px] font-bold leading-[1.1] text-gray-900 md:text-[36px] dark:text-gray-50">{{ t('leaderboard.title') }}</h1>
-      <p class="text-sm text-gray-600 dark:text-gray-400">
-        {{ t('leaderboard.subtitle') }}<span v-if="data"> · {{ periodLabel }}</span>
-      </p>
-    </header>
+    <!-- Kopf als Label: Seite und Monat in einer Zeile, die Kategorie darunter ist die eigentliche Überschrift -->
+    <h1 v-if="showHeader" class="text-center text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+      {{ t('leaderboard.title') }}<span v-if="data"> · {{ periodLabel }}</span>
+    </h1>
 
     <!-- Kategorien: Handy seitlich scrollbar bis an den Rand (in der App fest über der Bottom-Nav), ab md umbrechend und zentriert -->
-    <div class="grid gap-2">
+    <div class="grid gap-1.5">
       <!-- Angedockt stehen die Chips unten; oben nennt der Titel die gewählte Kategorie -->
-      <h2 v-if="dockChips" class="flex items-center gap-2 text-[18px] font-bold tracking-tight text-gray-900 md:hidden dark:text-gray-100">
-        <component :is="activeCategoryMeta?.icon" class="h-5 w-5 shrink-0" :class="activeCategoryMeta?.color" aria-hidden="true" />
+      <h2 v-if="dockChips" class="flex items-center justify-center gap-2 text-[22px] font-bold leading-tight tracking-tight text-gray-900 md:hidden dark:text-gray-50">
+        <component :is="activeCategoryMeta?.icon" class="h-6 w-6 shrink-0" :class="activeCategoryMeta?.color" aria-hidden="true" />
         {{ activeCategoryMeta?.label }}
       </h2>
       <div :class="dockChips
@@ -199,7 +197,9 @@ const displayedEntries = computed(() => {
           </ChoiceChip>
         </div>
       </div>
-      <p class="text-sm text-gray-600 md:text-center dark:text-gray-400">{{ activeCategoryMeta?.desc }}</p>
+      <p class="text-center text-sm text-gray-600 md:pt-1 dark:text-gray-400">
+        {{ activeCategoryMeta?.desc }}<template v-if="data?.lowerIsBetter"> · <b class="font-semibold text-gray-900 dark:text-gray-100">{{ t('leaderboard.lower_is_better') }}</b></template>
+      </p>
     </div>
 
     <div class="overflow-hidden">
@@ -222,12 +222,6 @@ const displayedEntries = computed(() => {
           </div>
 
           <template v-else>
-            <!-- Spaltenkopf: Einheit einmal statt in jeder Zeile -->
-            <p class="flex items-baseline justify-end gap-2 pr-11 text-[12px] font-semibold text-gray-500 dark:text-gray-400">
-              <span v-if="data.lowerIsBetter" class="uppercase tracking-wide">{{ t('leaderboard.lower_is_better') }}</span>
-              <span class="text-[13px]">{{ data.unit }}</span>
-            </p>
-
             <ol class="divide-y divide-gray-200 dark:divide-gray-700">
               <li v-for="entry in displayedEntries" :key="entry.rank"
                 :data-testid="isOwn(entry) ? 'leaderboard-own' : undefined"
@@ -246,7 +240,7 @@ const displayedEntries = computed(() => {
                     {{ t('leaderboard.cheapest_subtitle', { kwh: n(Number(entry.kwhTotal), { minimumFractionDigits: 1, maximumFractionDigits: 1 }), sessions: entry.sessionCount }) }}
                   </div>
                 </div>
-                <div class="shrink-0 text-right" :class="valueClass(entry.rank)">{{ entry.value }}</div>
+                <div class="shrink-0 text-right whitespace-nowrap"><span :class="valueClass(entry.rank)">{{ entry.value }}</span> <span class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ data.unit }}</span></div>
                 <div class="flex w-8 shrink-0 flex-col items-center text-[11px] font-semibold text-gray-500 tabular-nums dark:text-gray-400">
                   <ArrowUpIcon v-if="entry.rankDelta && entry.rankDelta > 0" class="h-3.5 w-3.5" aria-hidden="true" />
                   <ArrowDownIcon v-else-if="entry.rankDelta && entry.rankDelta < 0" class="h-3.5 w-3.5" aria-hidden="true" />
@@ -274,7 +268,7 @@ const displayedEntries = computed(() => {
                 {{ t('leaderboard.cheapest_subtitle', { kwh: n(Number(data.ownEntry.kwhTotal), { minimumFractionDigits: 1, maximumFractionDigits: 1 }), sessions: data.ownEntry.sessionCount }) }}
               </div>
             </div>
-            <div class="shrink-0 text-right text-base font-bold text-gray-900 tabular-nums dark:text-gray-100">{{ data.ownEntry.value }}</div>
+            <div class="shrink-0 text-right whitespace-nowrap"><span class="text-base font-bold text-gray-900 tabular-nums dark:text-gray-100">{{ data.ownEntry.value }}</span> <span class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ data.unit }}</span></div>
             <div class="flex w-8 shrink-0 flex-col items-center text-[11px] font-semibold text-gray-500 tabular-nums dark:text-gray-400">
               <ArrowUpIcon v-if="data.ownEntry.rankDelta && data.ownEntry.rankDelta > 0" class="h-3.5 w-3.5" aria-hidden="true" />
               <ArrowDownIcon v-else-if="data.ownEntry.rankDelta && data.ownEntry.rankDelta < 0" class="h-3.5 w-3.5" aria-hidden="true" />
