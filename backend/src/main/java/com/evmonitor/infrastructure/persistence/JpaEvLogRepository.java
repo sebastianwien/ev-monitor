@@ -525,14 +525,16 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
      * Aufrufer gleicht diese Kandidaten dort gegen und markiert die Treffer.
      *
      * <p>Eingegrenzt wird stattdessen auf das, was ueberhaupt in Frage kommt: Ladungen des Users
-     * aus einer Tesla-Quelle, ohne Kosten, oeffentlich oder per DC geladen. Heimladen faellt damit
+     * aus einer Tesla-Quelle, ohne Kosten oder als Supercharger bepreist, aber ohne Brutto-Energie,
+     * oeffentlich oder per DC geladen. Heimladen faellt damit
      * heraus - fuer Supercharger gilt beides immer.
      */
     @Query("""
             SELECT e FROM EvLogEntity e, CarEntity c
             WHERE e.carId = c.id
               AND c.userId = :userId
-              AND e.costEur IS NULL
+              AND (e.costEur IS NULL
+                   OR (e.kwhCharged IS NULL AND e.cpoName LIKE 'Tesla Supercharger%'))
               AND e.dataSource IN :dataSources
               AND (e.publicCharging = true OR e.chargingType = 'DC')
               AND e.loggedAt >= :cutoff
@@ -577,6 +579,33 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                                @Param("costEur") BigDecimal costEur,
                                @Param("cpoName") String cpoName,
                                @Param("dataSources") List<String> dataSources);
+
+    /**
+     * Traegt die von Tesla abgerechnete Brutto-Energie an der Saeule nach. Telemetrie-Logs kennen
+     * nur die Netto-Energie am Fahrzeug; mit Brutto gilt das Log als an der Saeule gemessen.
+     * Schreibt nur, wenn Brutto noch leer ist - gleiche Schutzbedingungen wie die Bepreisung.
+     *
+     * <p>Brutto muss zur Netto-Energie passen: mindestens Netto, hoechstens 30 % darueber. Sonst
+     * gehoert die Session nicht zu diesem Log (Sammelabrechnung, zweiter Tesla am selben Standort)
+     * - ein falscher Wert wuerde nie wieder korrigiert, ein leerer kann spaeter noch kommen.
+     */
+    @Modifying(clearAutomatically = true)
+    @Query("""
+            UPDATE EvLogEntity e
+               SET e.kwhCharged = :kwhCharged,
+                   e.measurementType = 'AT_CHARGER',
+                   e.updatedAt = CURRENT_TIMESTAMP
+             WHERE e.id = :id
+               AND e.kwhCharged IS NULL
+               AND (e.kwhAtVehicle IS NULL
+                    OR (:kwhCharged >= e.kwhAtVehicle AND :kwhCharged <= e.kwhAtVehicle * 1.3))
+               AND e.dataSource IN :dataSources
+               AND e.carId IN (SELECT c.id FROM CarEntity c WHERE c.userId = :userId)
+            """)
+    int fillTeslaGrossKwh(@Param("id") UUID id,
+                          @Param("userId") UUID userId,
+                          @Param("kwhCharged") BigDecimal kwhCharged,
+                          @Param("dataSources") List<String> dataSources);
 
     /**
      * Aggregated basic stats for a car model.

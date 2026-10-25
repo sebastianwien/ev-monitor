@@ -222,7 +222,8 @@ public class EvLogService {
                                         BigDecimal kwhCharged) {}
 
     /**
-     * Listet Tesla-Ladungen des Users ohne Kosten, die aus Teslas Billing-API stammen koennten.
+     * Listet Tesla-Ladungen des Users ohne Kosten oder ohne Brutto-Energie, die aus Teslas
+     * Billing-API stammen koennten.
      * Der {@code TeslaSuperchargerEnrichmentJob} gleicht sie gegen {@code /dx/charging/history} ab -
      * welche davon Supercharger waren, weiss nur Tesla.
      */
@@ -237,17 +238,19 @@ public class EvLogService {
     }
 
     /**
-     * Traegt Tesla-Abrechnungsdaten in ein Tesla-Log nach. Das Repository erzwingt als
-     * Defense-in-Depth costEur IS NULL, eine Tesla-Datenquelle und die Zugehoerigkeit zum
-     * angegebenen User; der Aufruf ist damit idempotent und kann bei falscher id weder fremde
+     * Traegt Tesla-Abrechnungsdaten (Kosten, Standort, Brutto-kWh an der Saeule) in ein Tesla-Log
+     * nach. Das Repository fuellt nur leere Felder und erzwingt als Defense-in-Depth eine
+     * Tesla-Datenquelle und die Zugehoerigkeit zum angegebenen User; der Aufruf ist damit idempotent und kann bei falscher id weder fremde
      * Quellen noch fremde Konten ueberschreiben.
      * @return true wenn geschrieben wurde, false wenn das Log bereits Kosten trug, die id auf kein
      *         anreicherbares Tesla-Log zeigt oder es einem anderen User gehoert.
      */
     @Transactional
-    public boolean enrichWithTeslaPricing(UUID logId, UUID userId, BigDecimal costEur, String cpoName) {
+    public boolean enrichWithTeslaPricing(UUID logId, UUID userId, BigDecimal costEur, String cpoName,
+                                          BigDecimal kwhCharged) {
         BigDecimal cost = costEur != null ? costEur : BigDecimal.ZERO;
-        int affected = evLogRepository.enrichWithTeslaPricing(logId, userId, cost, cpoName);
+        BigDecimal kwh = kwhCharged != null && kwhCharged.signum() > 0 ? kwhCharged : null;
+        int affected = evLogRepository.enrichWithTeslaPricing(logId, userId, cost, cpoName, kwh);
         if (affected == 0) {
             log.debug("Tesla SuC enrichment skipped for log {} (already enriched or non-pending)", logId);
         }

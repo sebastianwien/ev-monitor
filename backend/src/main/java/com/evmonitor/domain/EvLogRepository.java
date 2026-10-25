@@ -267,9 +267,9 @@ public interface EvLogRepository {
     List<EvLog> findEnrichableTeslaLogs(UUID userId, LocalDateTime cutoff);
 
     /**
-     * Enriches a Tesla log with billing data. Returns the number of affected rows
-     * (0 = already priced or wrong id - idempotent). Implementation must filter by
-     * costEur IS NULL and a Tesla data source to prevent collateral updates.
+     * Enriches a Tesla log with billing data (cost, location, gross kWh at the charger). Only empty
+     * fields are filled. Returns the number of affected rows (0 = nothing left to fill or wrong id -
+     * idempotent). Implementation must filter by a Tesla data source to prevent collateral updates.
      */
-    int enrichWithTeslaPricing(UUID id, UUID userId, BigDecimal costEur, String cpoName);
+    int enrichWithTeslaPricing(UUID id, UUID userId, BigDecimal costEur, String cpoName, BigDecimal kwhCharged);
 }
