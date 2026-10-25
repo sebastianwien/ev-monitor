@@ -87,7 +87,9 @@ const note = computed(() => {
 function routeLabel(key: string) { return t(`model.route_type_${key.toLowerCase()}`) }
 // Kachel: Fahrtlängen, die gibt es immer und sie erklären den Verbrauch (kurze Fahrten kosten mehr).
 const LENGTH_CLS = { SHORT: 'bg-gray-700 dark:bg-gray-300', MEDIUM: 'bg-green-700 dark:bg-green-400', LONG: 'bg-sky-500' } as const
-const lengthSegments = computed(() => (props.tile.tripMonth?.lengthShares ?? []).map(r => ({ key: r.key, label: t(`story.trips_len_${r.key.toLowerCase()}`), pct: r.pct, cls: LENGTH_CLS[r.key] })))
+/** Beschriftung in der Farbe ihres Abschnitts; Blau dunkler als der Balken, damit kleiner Text auf Weiß lesbar bleibt */
+const LENGTH_TEXT = { SHORT: 'text-gray-700 dark:text-gray-300', MEDIUM: 'text-green-700 dark:text-green-400', LONG: 'text-sky-700 dark:text-sky-400' } as const
+const lengthSegments = computed(() => (props.tile.tripMonth?.lengthShares ?? []).map(r => ({ key: r.key, label: t(`story.trips_len_${r.key.toLowerCase()}`), pct: r.pct, cls: LENGTH_CLS[r.key], text: LENGTH_TEXT[r.key] })))
 
 /** Position des eigenen Werts auf der Skala sparsam ... hoch: Schnitt in der Mitte, ±100 % an den Rändern. */
 const peerPos = computed(() => Math.min(1, Math.max(0, 0.5 + (props.tile.deltaPercent ?? 0) / 200)))
