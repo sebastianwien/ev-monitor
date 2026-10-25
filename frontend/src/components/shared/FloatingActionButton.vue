@@ -54,7 +54,7 @@ function handleClick() {
     v-if="extended"
     type="button"
     data-testid="fab"
-    class="fab-pill fixed right-6 bottom-6 z-40 flex h-14 items-center rounded-full border-2 border-gray-900 bg-green-600 pl-[14px] pr-[14px] text-white shadow-[3px_3px_0_0_#111827] transition-[transform,box-shadow,background-color] duration-150 hover:bg-green-700 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-600 dark:border-transparent dark:shadow-[3px_3px_0_0_#000]"
+    class="fab-pill fixed right-6 bottom-6 z-40 flex h-14 items-center rounded-full border-2 border-edge bg-green-600 pl-[14px] pr-[14px] text-white shadow-[3px_3px_0_0_var(--color-edge)] transition-[transform,box-shadow,background-color] duration-150 hover:bg-green-700 active:translate-x-[3px] active:translate-y-[3px] active:shadow-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-600"
     :aria-label="t('nav.bottom.record')"
     @click="handleClick"
   >

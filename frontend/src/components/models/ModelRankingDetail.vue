@@ -36,7 +36,7 @@
       <button
         type="button"
         class="inline-flex min-h-11 items-center justify-center gap-1.5 rounded-xl border-2 px-4 font-semibold disabled:cursor-not-allowed disabled:opacity-40 lg:hidden"
-        :class="inCompare ? 'border-green-600 bg-green-600 text-white dark:border-green-400 dark:bg-green-400 dark:text-gray-950' : 'border-gray-900 bg-white text-gray-900 dark:border-transparent dark:bg-white/10 dark:text-gray-100'"
+        :class="inCompare ? 'border-green-600 bg-green-600 text-white dark:border-green-400 dark:bg-green-400 dark:text-gray-950' : 'border-edge bg-white text-gray-900 dark:bg-white/10 dark:text-gray-100'"
         :aria-pressed="inCompare"
         :disabled="!inCompare && !canAddCompare"
         data-testid="compare-open"

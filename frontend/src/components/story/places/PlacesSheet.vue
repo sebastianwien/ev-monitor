@@ -121,7 +121,7 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
               <p data-testid="places-lead" class="min-h-[1.4em] text-[15px] font-semibold text-gray-600 dark:text-gray-300" aria-live="polite">{{ lead }}</p>
             </div>
             <button type="button" :aria-label="t('story.sheet_close')"
-              class="btn-3d cta-shadow-sm grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-white text-gray-900 dark:border-transparent dark:bg-gray-800 dark:text-gray-100 dark:shadow-none!"
+              class="btn-3d cta-shadow-sm grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100"
               @click="close">
               <XMarkIcon class="h-5 w-5" />
             </button>

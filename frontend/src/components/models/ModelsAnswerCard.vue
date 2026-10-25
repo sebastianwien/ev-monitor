@@ -62,7 +62,7 @@
             </div>
           </div>
           <button v-if="!gateOpen" ref="gateButton" type="button" data-testid="ranking-gate-open"
-                  class="btn-3d cta-shadow-sm inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-green-600 px-5 text-[16px] font-bold text-white hover:bg-green-700 max-md:w-full dark:border-transparent"
+                  class="btn-3d cta-shadow-sm inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-edge bg-green-600 px-5 text-[16px] font-bold text-white hover:bg-green-700 max-md:w-full"
                   @click="openGate">
             <LockOpenIcon class="h-5 w-5" aria-hidden="true" />{{ t('ranking_card.gate_cta') }}
           </button>

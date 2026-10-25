@@ -9,7 +9,7 @@
                 class="inline-flex min-h-11 min-w-[96px] items-center justify-center rounded-full border-2 px-5 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                 :class="inputs.homeCharging === opt
                   ? 'btn-3d cta-shadow-sm border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
-                  : 'btn-3d cta-shadow-sm border-gray-900 bg-white text-gray-800 dark:border-transparent dark:bg-white/10 dark:text-gray-200'"
+                  : 'btn-3d cta-shadow-sm border-edge bg-white text-gray-800 dark:bg-white/10 dark:text-gray-200'"
                 :data-testid="`wallbox-${opt ? 'yes' : 'no'}`"
                 @click="setHome(opt)">
           {{ opt ? t('personal_range.wallbox_yes') : t('personal_range.wallbox_no') }}

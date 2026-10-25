@@ -2,7 +2,7 @@
   <div ref="root" class="relative">
     <!-- Two lines, so it reads as a choice: "Variante wählen" over the battery the page is calculated with -->
     <button ref="trigger" type="button" data-testid="variant-picker"
-            class="btn-3d cta-shadow-sm inline-flex max-w-full items-center rounded-2xl border-2 border-gray-900 bg-white py-1.5 text-left text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15"
+            class="btn-3d cta-shadow-sm inline-flex max-w-full items-center rounded-2xl border-2 border-edge bg-white py-1.5 text-left text-gray-900 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15"
             :class="compact ? 'min-h-11 justify-between gap-1.5 pl-3 pr-2 md:gap-3 md:pl-3.5 md:pr-3' : 'gap-3 pl-3.5 pr-3'"
             aria-haspopup="dialog" :aria-expanded="open" @click="toggle">
       <!-- compact (narrow compare columns on the phone): just the variant's name, the battery stands in the table below -->

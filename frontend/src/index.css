@@ -9,6 +9,8 @@
   /* Story-Dashboard: das Gruen der Modellseiten, hell green-700, dunkel green-400 (Werte aus Tailwind) */
   --color-story-accent: oklch(52.7% 0.154 150.069);
   --color-story-accent-dark: oklch(79.2% 0.209 151.711);
+  /* Kante der App-CI (Rand und harter Schatten). Hell gray-900, dunkel 35 % Weiß (rund 3:1 gegen gray-900). */
+  --color-edge: var(--color-gray-900);
 }
 
 /* Tailwind 4 setzt Buttons auf cursor: default - bei uns sind sie klickbar. */
@@ -193,19 +195,21 @@ html {
   box-shadow: 1px 1px 0 0 var(--btn-shadow-color, rgba(0,0,0,0.2));
   transform: translate(3px, 3px);
 }
-/* The app's edge look (header, ranking tiles): black outline and a hard shadow. As utilities, so a
-   breakpoint picks the level: on the model page cards carry it on the phone, the boxes from md up.
-   Dark mode drops the line (a light outline glares on dark) and lets the surface carry the edge;
-   the border stays transparent so nothing shifts. */
+/* The app's edge look (header, ranking tiles): outline and a hard shadow in the edge colour. As utilities,
+   so a breakpoint picks the level: on the model page cards carry it on the phone, the boxes from md up.
+   Dark mode: only what you press keeps the edge (buttons, chips via border-edge). Cards drop it for a
+   1 px hairline, so a dense page does not turn into a grid; the border stays transparent so nothing shifts.
+   The hairline gets a 1 px hard shadow (--edge-dark-shadow), a small echo of the light edge. */
+.dark { --color-edge: rgb(255 255 255 / 0.35); --edge-dark-shadow: 1px 1px 0 0 rgb(255 255 255 / 0.20); }
 @utility edge-card {
-  border: 2px solid var(--color-gray-900);
-  box-shadow: 2px 2px 0 0 var(--color-gray-900);
-  @variant dark { border-color: transparent; box-shadow: none; }
+  border: 2px solid var(--color-edge);
+  box-shadow: 2px 2px 0 0 var(--color-edge);
+  @variant dark { border-color: transparent; box-shadow: var(--edge-dark-shadow, none); outline: 1px solid rgb(255 255 255 / 0.10); outline-offset: -1px; }
 }
 @utility edge-box {
-  border: 2px solid var(--color-gray-900);
-  box-shadow: 2px 2px 0 0 var(--color-gray-900);
-  @variant dark { border-color: transparent; box-shadow: none; }
+  border: 2px solid var(--color-edge);
+  box-shadow: 2px 2px 0 0 var(--color-edge);
+  @variant dark { border-color: transparent; box-shadow: var(--edge-dark-shadow, none); outline: 1px solid rgb(255 255 255 / 0.10); outline-offset: -1px; }
 }
 /* Landing CTA: force the crisp bottom-right 3D shadow (overrides btn-3d default,
    keeps the :active press via higher pseudo-class specificity) */
@@ -215,7 +219,7 @@ html {
 .dark .cta-shadow:active { box-shadow: 1px 1px 0 0 #000000 !important; }
 /* The same in the model page's 2 px edge look (cards and boxes carry 2 px): a press sinks the full 2 px */
 .cta-shadow-sm { box-shadow: 2px 2px 0 0 #111827 !important; }
-.dark .cta-shadow-sm { box-shadow: 2px 2px 0 0 #000000 !important; }
+.dark .cta-shadow-sm { box-shadow: 2px 2px 0 0 var(--color-edge) !important; }
 .cta-shadow-sm:active { box-shadow: 0 0 0 0 #111827 !important; transform: translate(2px, 2px); }
 /* A chosen chip stays pressed in (ChoiceChip) */
 .cta-shadow-sm.active { box-shadow: 0 0 0 0 #111827 !important; transform: translate(2px, 2px); }

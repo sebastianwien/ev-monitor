@@ -17,7 +17,7 @@
           </svg>
         </p>
       </div>
-      <a href="#profil" class="group inline-flex min-h-12 items-center justify-center gap-2 justify-self-center rounded-xl bg-green-600 px-6 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 btn-3d cta-shadow-sm border-2 border-gray-900 dark:border-transparent"
+      <a href="#profil" class="group inline-flex min-h-12 items-center justify-center gap-2 justify-self-center rounded-xl bg-green-600 px-6 text-[16px] font-bold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 btn-3d cta-shadow-sm border-2 border-edge"
          data-testid="hero-jump" @click="go">
         {{ t('model.page.cta_button') }}<ArrowDownIcon class="h-5 w-5 motion-safe:transition-transform motion-safe:group-hover:translate-y-0.5" aria-hidden="true" />
       </a>

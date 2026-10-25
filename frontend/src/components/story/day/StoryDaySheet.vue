@@ -162,7 +162,7 @@ const selectedId = computed(() => detail.value?.kind === 'charge' ? detail.value
               <ChevronRightIcon class="h-5 w-5" />
             </button>
             <button type="button" data-testid="day-close" :aria-label="t('story.sheet_close')" @click="sheet?.requestClose()"
-              class="btn-3d -mr-1 ml-1 grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-white dark:border-transparent dark:bg-gray-800">
+              class="btn-3d -mr-1 ml-1 grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-edge bg-white dark:bg-gray-800">
               <XMarkIcon class="h-5 w-5" />
             </button>
           </div>
@@ -196,11 +196,11 @@ const selectedId = computed(() => detail.value?.kind === 'charge' ? detail.value
         <footer class="shrink-0 border-t-2 border-gray-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dark:border-gray-800 lg:px-6">
           <div class="flex gap-2">
             <button type="button" data-testid="day-add-charge" @click="addCharge"
-              class="btn-3d inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-gray-900 bg-green-600 px-2 text-[14px] font-semibold text-white dark:border-transparent">
+              class="btn-3d inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-edge bg-green-600 px-2 text-[14px] font-semibold text-white">
               <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('storyday.add_charge') }}
             </button>
             <button type="button" data-testid="day-add-trip" @click="openDetail({ kind: 'trip', trip: null })"
-              class="btn-3d inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-gray-900 bg-white px-2 text-[14px] font-semibold dark:border-transparent dark:bg-white/10">
+              class="btn-3d inline-flex min-h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border-2 border-edge bg-white px-2 text-[14px] font-semibold dark:bg-white/10">
               <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('storyday.add_trip') }}
             </button>
           </div>

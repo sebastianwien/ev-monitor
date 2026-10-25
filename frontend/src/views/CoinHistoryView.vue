@@ -114,7 +114,7 @@ const LEGEND = [
 ] as const
 
 // Einzige gruene Flaeche der Seite: der Weg zur Bestenliste.
-const BTN_PRIMARY = 'btn-3d cta-shadow-sm inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-gray-900 bg-green-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent dark:shadow-none!'
+const BTN_PRIMARY = 'btn-3d cta-shadow-sm inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-2 border-edge bg-green-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600'
 const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'
 </script>
 

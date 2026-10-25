@@ -7,11 +7,11 @@
     :to="href"
     :type="href ? undefined : 'button'"
     :aria-pressed="href ? undefined : active"
-    class="btn-3d cta-shadow-sm inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-gray-900 font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent dark:shadow-none!"
+    class="btn-3d cta-shadow-sm inline-flex flex-none items-center gap-1.5 whitespace-nowrap rounded-full border-2 border-edge font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
     :class="[
       SIZES[size],
       active
-        ? 'active bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+        ? 'active bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
         : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15',
     ]"
   ><slot /></component>

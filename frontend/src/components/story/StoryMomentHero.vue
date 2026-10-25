@@ -16,7 +16,7 @@ const { t } = useI18n()
 const view = useMomentView(props)
 
 // Primärknopf grün mit Kante wie die Modellseiten, die einzige grüne Fläche im Hero.
-const pill = 'btn-3d inline-flex min-h-[44px] items-center rounded-sm border-2 border-gray-900 bg-green-600 px-3.5 text-[13px] font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:border-transparent'
+const pill = 'btn-3d inline-flex min-h-[44px] items-center rounded-sm border-2 border-edge bg-green-600 px-3.5 text-[13px] font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600'
 const quiet = 'inline-flex min-h-[44px] items-center text-sm font-semibold text-gray-700 underline underline-offset-2 dark:text-gray-200'
 </script>
 

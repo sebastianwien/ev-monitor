@@ -42,11 +42,11 @@ const input = 'min-h-12 w-full min-w-0 rounded-xl border-2 border-gray-900 bg-wh
         <span class="relative"><input v-model="form.socEnd" type="number" inputmode="numeric" min="0" max="100" :class="[input, 'pr-9']" /><span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[15px] text-gray-500">%</span></span></label>
     </div>
     <div class="flex gap-2 pt-1">
-      <button type="button" class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-gray-900 bg-white px-3 text-[15px] font-semibold dark:border-transparent dark:bg-white/10" @click="emit('cancel')">
+      <button type="button" class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[15px] font-semibold dark:bg-white/10" @click="emit('cancel')">
         {{ t('common.cancel') }}
       </button>
       <button type="submit" data-testid="day-trip-save" :disabled="saving"
-        class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-gray-900 bg-green-600 px-3 text-[15px] font-semibold text-white disabled:opacity-40 dark:border-transparent">
+        class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white disabled:opacity-40">
         {{ t('logfields.save') }}
       </button>
     </div>

@@ -126,7 +126,7 @@ function resetDeleteConfirm() {
 }
 
 // App-CI (docs/design/ci.md): Kante, harter Schatten, 44 px. Sekundaer weiss, primaer gruen, rot nur beim Loeschen.
-const BTN = 'btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-gray-900 px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50 dark:border-transparent dark:shadow-none!'
+const BTN = 'btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border-2 border-edge px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 disabled:opacity-50'
 const BTN_SECONDARY = `${BTN} bg-white text-gray-900 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15`
 const BTN_PRIMARY = `${BTN} bg-green-600 text-white hover:bg-green-700`
 const BTN_DANGER = `${BTN} bg-red-600 text-white hover:bg-red-700`
