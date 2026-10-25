@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  temperatureEffect, scatterYScale, whatIfModels, dataQuality, countPricelessInMonth, bestRank, buildLatest, sohIsEstimated, buildTripMonth,
+  temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, bestRank, buildLatest, sohIsEstimated, buildTripMonth,
   COLD_MAX_C, MILD_MIN_C, MIN_TRIPS_PER_SIDE,
 } from './storyInsights'
 import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
@@ -66,33 +66,46 @@ describe('temperatureEffect', () => {
   })
 })
 
-describe('whatIfModels', () => {
-  const item = (name: string, cons: number | null, cost: number | null, isUser = false): PeerModelComparisonItem => ({
+describe('modelPeers', () => {
+  const item = (name: string, cons: number | null, cost: number | null, cars: number, isUser = false): PeerModelComparisonItem => ({
     vehicleSpecificationId: name,
     displayName: name,
     isUserVehicleSpec: isUser,
     netBatteryCapacityKwh: 60,
-    userMetrics: null,
-    peerMetrics: { avgConsumptionKwhPer100km: cons, avgCostPerKwh: cost, uniqueCars: 40 },
+    userMetrics: isUser ? { consumptionKwhPer100km: 18.8, costPerKwh: 0.31 } : null,
+    peerMetrics: { avgConsumptionKwhPer100km: cons, avgCostPerKwh: cost, uniqueCars: cars },
+  })
+  const all = { avgConsumptionKwhPer100km: 17.9, avgCostPerKwh: 0.24, uniqueCars: 50 }
+  const mine = { costPerKwh: 0.31, consumption: 18.8 }
+
+  it('alle Varianten gegen den eigenen Wert: Unterschied je 100 km, Preis erklärt mehr als Verbrauch', () => {
+    const r = modelPeers({ modelComparisons: [], allVariants: all }, mine)!
+    expect(r.cars).toBe(50)
+    expect(r.theirs.costPer100km).toBeCloseTo(4.296)
+    expect(r.mine.costPer100km).toBeCloseTo(5.828)
+    expect(r.deltaPercent).toBeCloseTo(-26.3, 1)
+    expect(r.reason).toBe('price')
   })
 
-  it('sortiert nach Euro je 100 km und rechnet das Delta zum Nutzer', () => {
-    const list = whatIfModels([item('Teuer', 20, 0.40), item('Meins', 18, 0.25, true), item('Billig', 15, 0.20)], 4.5)
-    expect(list.map(m => m.name)).toEqual(['Billig', 'Meins', 'Teuer'])
-    expect(list[0].costPer100km).toBeCloseTo(3)
-    expect(list[0].deltaPercent).toBeCloseTo(-33.33, 1)
-    expect(list[1].isUser).toBe(true)
-    expect(list[0].cars).toBe(40)
+  it('Verbrauch als Grund, wenn er den größeren Anteil hat', () => {
+    const r = modelPeers({ modelComparisons: [], allVariants: { avgConsumptionKwhPer100km: 15, avgCostPerKwh: 0.30, uniqueCars: 9 } }, mine)!
+    expect(r.reason).toBe('consumption')
   })
 
-  it('laesst Modelle ohne vollstaendige Werte weg und gibt ohne Nutzerwert nichts zurueck', () => {
-    expect(whatIfModels([item('A', null, 0.3), item('B', 16, null)], 4)).toEqual([])
-    expect(whatIfModels([item('A', 16, 0.3)], null)).toEqual([])
+  it('ohne Werte aller Varianten oder ohne eigenen Wert kein Vergleich', () => {
+    expect(modelPeers({ modelComparisons: [], allVariants: null }, mine)).toBeNull()
+    expect(modelPeers({ modelComparisons: [], allVariants: { ...all, avgCostPerKwh: null } }, mine)).toBeNull()
+    expect(modelPeers({ modelComparisons: [], allVariants: all }, null)).toBeNull()
+    expect(modelPeers(null, mine)).toBeNull()
   })
 
-  it('Modellname ohne Klammerwert der Akkugröße', () => {
-    const list = whatIfModels([item('Model 3 Premium RWD Highland (82.00kWh)', 15, 0.2)], 4.5)
-    expect(list[0].name).toBe('Model 3 Premium RWD Highland')
+  it('Varianten mit vollständigen Werten, nach Euro je 100 km, Name ohne Akkugröße', () => {
+    const r = modelPeers({ modelComparisons: [
+      item('Teuer (75.00kWh)', 20, 0.40, 12), item('Meins (60.00kWh)', 18, 0.25, 1, true), item('Billig (82.00kWh)', 15, 0.20, 30), item('Leer', null, 0.2, 8),
+    ], allVariants: all }, mine)!
+    expect(r.variants.map(v => v.name)).toEqual(['Billig', 'Meins', 'Teuer'])
+    expect(r.variants[1]).toMatchObject({ isUser: true, cars: 1 })
+    expect(r.variants[0].costPer100km).toBeCloseTo(3)
   })
 })
 

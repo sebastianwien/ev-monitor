@@ -3,13 +3,13 @@ import { useI18n } from 'vue-i18n'
 import { MapIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import StoryFeedItem from './StoryFeedItem.vue'
 import type { StoryFeedItem as Item, TileId } from '../../composables/storyModel'
-import type { WhatIfModel } from '../../composables/storyInsights'
 
 /** "Diesen Monat": die Feed-Zeilen und darunter die Zeile zur Karte. Steht auf dem Handy unter "Zuletzt", ab lg rechts neben dem Hero. */
 defineProps<{
   feed: Item[]
   upsellTo: string
-  whatIf: WhatIfModel[]
+  /** Modell ohne Variante für den Modellvergleich. */
+  modelName: string
   carId: string | null
   carName: string
   sheets: TileId[]
@@ -26,7 +26,7 @@ const { t } = useI18n()
       :key="item.moment?.key ?? item.id"
       :item="item"
       :upsell-to="upsellTo"
-      :what-if="whatIf"
+      :model-name="modelName"
       :car-id="carId"
       :car-name="carName"
       :sheets="sheets"

@@ -60,7 +60,7 @@ function input(over: Partial<StoryInput> = {}): StoryInput {
     energySplitLocked: true,
     flow: null,
     range: null,
-    whatIf: [],
+    modelPeers: null,
     rank: null,
     quality: null,
     temperature: null,
@@ -426,36 +426,33 @@ describe('buildStoryFeed: mindestens ein positiver Satz', () => {
 })
 
 describe('buildStoryFeed v2: neue Quellen konkurrieren um fuenf Plaetze', () => {
-  it('Was-waere-wenn: guenstigstes Fremdmodell ab 5 Prozent Ersparnis, sonst Lob', () => {
-    const cheaper = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, whatIf: [
-      { name: 'Modell B', costPer100km: 3.6, deltaPercent: -18, cars: 40, isUser: false },
-      { name: 'Meins', costPer100km: 4.4, deltaPercent: 0, cars: 300, isUser: true },
-    ] })).find(i => i.id === 'what_if_model')!
+  const peers = (deltaPercent: number, reason: 'price' | 'consumption', cars = 50) => ({
+    cars, deltaPercent, reason,
+    theirs: { costPerKwh: 0.24, consumption: 17.9, costPer100km: 4.3 },
+    mine: { costPerKwh: 0.31, consumption: 18.8, costPer100km: 5.83 },
+    variants: [],
+  })
+  const modelItem = (modelPeers: ReturnType<typeof peers>) =>
+    buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, modelPeers })).find(i => i.id === 'model_peers')
+
+  it('Modellvergleich: alle Fahrer des Modells, Grund Preis oder Verbrauch, neutral wenn sie günstiger sind', () => {
+    const cheaper = modelItem(peers(-26, 'price'))!
     expect(cheaper.question).toBe(3)
     expect(cheaper.sentiment).toBe('neutral')
-    expect(cheaper.params.deltaPercent).toBe(-18)
-    expect(cheaper.params.modelIndex).toBe(0)
-
-    const best = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, whatIf: [
-      { name: 'Meins', costPer100km: 4.4, deltaPercent: 0, cars: 300, isUser: true },
-      { name: 'Modell C', costPer100km: 4.5, deltaPercent: 2, cars: 20, isUser: false },
-    ] })).find(i => i.id === 'what_if_model')!
-    expect(best.sentiment).toBe('good')
+    expect(cheaper.params).toMatchObject({ deltaPercent: -26, cars: 50, same: 0, reasonPrice: 1, theirsPrice: 0.24, minePrice: 0.31, theirsCons: 17.9, mineCons: 18.8 })
+    expect(modelItem(peers(-26, 'consumption'))!.params.reasonPrice).toBe(0)
   })
 
-  it('Was-waere-wenn erst ab 5 Autos je Modell: kleinere Modelle zaehlen nicht', () => {
-    const ids = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, whatIf: [
-      { name: 'Selten', costPer100km: 3.0, deltaPercent: -30, cars: 4, isUser: false },
-      { name: 'Meins', costPer100km: 4.4, deltaPercent: 0, cars: 300, isUser: true },
-    ] })).map(i => i.id)
-    expect(ids).not.toContain('what_if_model')
-    const best = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, whatIf: [
-      { name: 'Selten', costPer100km: 3.0, deltaPercent: -30, cars: 1, isUser: false },
-      { name: 'Meins', costPer100km: 4.4, deltaPercent: 0, cars: 300, isUser: true },
-      { name: 'Modell C', costPer100km: 4.5, deltaPercent: 2, cars: 20, isUser: false },
-    ] })).find(i => i.id === 'what_if_model')!
-    expect(best.sentiment).toBe('good')
-    expect(best.params.cars).toBe(1)
+  it('Modellvergleich: gut, wenn du günstiger fährst; unter 5 % Unterschied "so günstig wie"', () => {
+    expect(modelItem(peers(12, 'price'))!.sentiment).toBe('good')
+    const same = modelItem(peers(-4.9, 'price'))!
+    expect(same.params.same).toBe(1)
+    expect(same.sentiment).toBe('neutral')
+  })
+
+  it('Modellvergleich erst ab 5 Autos aller Varianten', () => {
+    expect(modelItem(peers(-26, 'price', 4))).toBeUndefined()
+    expect(modelItem(peers(-26, 'price', 5))).toBeDefined()
   })
 
   it('Community-Rang: je besser der Platz, desto relevanter', () => {
@@ -494,7 +491,7 @@ describe('buildStoryFeed v2: neue Quellen konkurrieren um fuenf Plaetze', () => 
   it('bleibt bei fuenf Saetzen, auch wenn alle Quellen liefern', () => {
     const all = buildStoryFeed(input({
       energySplitLocked: false,
-      whatIf: [{ name: 'B', costPer100km: 3.6, deltaPercent: -18, cars: 40, isUser: false }],
+      modelPeers: { cars: 40, deltaPercent: -18, reason: 'price', theirs: { costPerKwh: 0.24, consumption: 17.9, costPer100km: 4.3 }, mine: { costPerKwh: 0.31, consumption: 18.8, costPer100km: 5.83 }, variants: [] },
       rank: { category: 'MONTHLY_KWH', rank: 3, value: 300, unit: 'kWh' },
       quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 2, pricelessOpen: 2, severity: 'bad' },
       temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 },

@@ -107,3 +107,30 @@ describe('StoryFeedItem Abgleich Fahren und Laden', () => {
     expect(opened).toEqual(['trips'])
   })
 })
+
+describe('StoryFeedItem Modellvergleich', () => {
+  const params = { deltaPercent: -26.3, cars: 50, same: 0, reasonPrice: 1, theirsPrice: 0.24, minePrice: 0.31, theirsCons: 17.9, mineCons: 18.8 }
+  const item = (p: Record<string, number>, sentiment: 'good' | 'neutral' = 'neutral'): Item => ({ id: 'model_peers', question: 3, relevance: 60, sentiment, params: { ...params, ...p } })
+  const text = (host: Element) => host.textContent!.replace(/\s+/g, ' ')
+
+  it('Fahrer aller Varianten zahlen weniger, Grund Ladepreis', () => {
+    const host = mount(item({}), { modelName: 'Model 3' })
+    expect(text(host)).toMatch(/Model 3-Fahrer zahlen 26 % weniger je 100\skm als du\. Sie laden für 24\sct\/kWh statt 31\sct\/kWh\./)
+    expect(text(host)).toContain('-26 %')
+    // "100 km" und "26 %" brechen nicht um
+    expect(host.textContent).toContain('100\u00a0km')
+    expect(host.textContent).toContain('26\u00a0%')
+  })
+
+  it('du fährst günstiger, Grund Verbrauch', () => {
+    const host = mount(item({ deltaPercent: 12, reasonPrice: 0 }, 'good'), { modelName: 'Model 3' })
+    expect(text(host)).toMatch(/Model 3-Fahrer zahlen 12 % mehr je 100\skm als du\. Sie verbrauchen 17,9\skWh\/100km statt 18,8\skWh\/100km\./)
+  })
+
+  it('unter 5 % Unterschied: so günstig wie andere, ohne Grund und ohne Zahl rechts', () => {
+    const host = mount(item({ deltaPercent: -3, same: 1 }), { modelName: 'Model 3' })
+    expect(text(host)).toContain('Du fährst so günstig wie andere Model 3-Fahrer.')
+    expect(text(host)).not.toContain('Sie laden')
+    expect(text(host)).not.toContain('%')
+  })
+})

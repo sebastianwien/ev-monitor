@@ -7,7 +7,7 @@
 import type { StatisticsData, ChargeDataPoint } from './useDashboardStats'
 import { VERBRENNER_G_PER_KM, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
 import type { EnergyFlow, RangeEstimate } from './storyEnergy'
-import type { WhatIfModel, RankResult, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
+import type { ModelPeers, RankResult, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
 import type { Moment } from './storyMoments'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
@@ -49,7 +49,7 @@ export interface StoryTile {
 
 export type FeedId =
   | 'consumption_trend' | 'home_savings' | 'most_expensive' | 'peer_position' | 'phantom_locked' | 'cost_trend' | 'distance_trend'
-  | 'what_if_model' | 'community_rank' | 'data_quality' | 'temperature_effect' | 'temperature_locked' | 'moment'
+  | 'model_peers' | 'community_rank' | 'data_quality' | 'temperature_effect' | 'temperature_locked' | 'moment'
   | 'drive_vs_charge'
 
 export interface StoryFeedItem {
@@ -83,8 +83,8 @@ export interface StoryInput {
   energySplitLocked: boolean
   flow: EnergyFlow | null
   range: RangeEstimate | null
-  /** Aufsteigend nach Kosten, Nutzermodell markiert. Lifetime-Daten. */
-  whatIf: WhatIfModel[]
+  /** Du gegen alle Fahrer deines Modells (alle Varianten, Lifetime); null ohne Vergleich. */
+  modelPeers: ModelPeers | null
   rank: RankResult | null
   quality: DataQuality | null
   temperature: TemperatureEffect | null
@@ -136,8 +136,8 @@ const MIN_CONSUMPTION_DIFF = 0.2
 /** Ladeverlust: bis 12 Prozent ueblich (AC-Pauschale 10), bis 20 auffaellig, darueber Problem. */
 const FLOW_LOSS_GOOD_PERCENT = 12
 const FLOW_LOSS_WARN_PERCENT = 20
-/** Ein Fremdmodell muss mindestens so viel guenstiger sein, damit es einen Satz wert ist. */
-const WHAT_IF_MIN_SAVING_PERCENT = 5
+/** Darunter fährst du so günstig wie die anderen Fahrer deines Modells. */
+const MODEL_PEERS_SAME_PERCENT = 5
 const FEED_MAX = 5
 /** Ab diesem Verhältnis Verbrauch aus Ladungen zu Verbrauch beim Fahren lohnt der Abgleich als Satz. */
 const DRIVE_VS_CHARGE_RATIO = 1.2
@@ -407,27 +407,20 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
     })
   }
 
-  // Fremdmodelle erst ab MIN_PEERS Autos: darunter waere der Vergleich ein Einzelwert.
-  const models = input.whatIf.filter(w => w.isUser || w.cars >= MIN_PEERS)
-  const cheapest = models.find(w => !w.isUser)
-  const own = models.find(w => w.isUser)
-  if (cheapest && cheapest.deltaPercent <= -WHAT_IF_MIN_SAVING_PERCENT) {
-    // Eigener Wert: aus der Liste, sonst aus dem Delta zurueckgerechnet.
-    const mine = own?.costPer100km ?? cheapest.costPer100km / (1 + cheapest.deltaPercent / 100)
+  // Alle Varianten des Modells zusammen: der Unterschied kommt meist vom Ladepreis, nicht von der Variante.
+  const mp = input.modelPeers
+  if (mp && mp.cars >= MIN_PEERS) {
+    const same = Math.abs(mp.deltaPercent) < MODEL_PEERS_SAME_PERCENT
     items.push({
-      id: 'what_if_model',
+      id: 'model_peers',
       question: 3,
-      relevance: 40 + Math.min(35, Math.abs(cheapest.deltaPercent)),
-      sentiment: 'neutral',
-      params: { deltaPercent: cheapest.deltaPercent, modelIndex: input.whatIf.indexOf(cheapest), cars: cheapest.cars, mine, theirs: cheapest.costPer100km },
-    })
-  } else if (own && models[0] === own && models.length > 1) {
-    items.push({
-      id: 'what_if_model',
-      question: 3,
-      relevance: 50,
-      sentiment: 'good',
-      params: { deltaPercent: 0, modelIndex: -1, cars: models.length - 1, mine: own.costPer100km, theirs: models[1].costPer100km },
+      relevance: same ? 45 : 40 + Math.min(35, Math.abs(mp.deltaPercent)),
+      // Nie Amber: teurer als andere ist hier eine Auskunft, kein Fehler.
+      sentiment: !same && mp.deltaPercent > 0 ? 'good' : 'neutral',
+      params: {
+        deltaPercent: mp.deltaPercent, cars: mp.cars, same: same ? 1 : 0, reasonPrice: mp.reason === 'price' ? 1 : 0,
+        theirsPrice: mp.theirs.costPerKwh, minePrice: mp.mine.costPerKwh, theirsCons: mp.theirs.consumption, mineCons: mp.mine.consumption,
+      },
     })
   }
 

@@ -22,6 +22,8 @@ export interface PeerMetrics {
 
 export interface PeerModelComparisonResponse {
   modelComparisons: PeerModelComparisonItem[]
+  /** Alle Autos aller Varianten des Modells, ohne die eigenen; null ohne Spec. */
+  allVariants: PeerMetrics | null
 }
 
 export const peerModelComparisonService = {

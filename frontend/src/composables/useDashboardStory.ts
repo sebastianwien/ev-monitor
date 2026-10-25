@@ -1,19 +1,18 @@
 import { ref, computed, watch, type Ref } from 'vue'
 import api from '../api/axios'
 import chargingSavingsService from '../api/chargingSavingsService'
-import { peerModelComparisonService, type PeerModelComparisonItem } from '../api/peerModelComparisonService'
+import { peerModelComparisonService, type PeerModelComparisonResponse } from '../api/peerModelComparisonService'
 import { carService, type BatterySohEntry } from '../api/carService'
 import { fuelPriceService, type FuelPrices } from '../api/fuelPriceService'
 import { chargingBenchmarkService, type ChargingBenchmark } from '../api/chargingBenchmarkService'
 import type { StatisticsData } from './useDashboardStats'
-import { calcCostPer100km } from './useDashboardStats'
 import {
   buildStoryTiles, buildStoryFeed, buildDayCoverage, monthWindow, PETROL_EUR_PER_L_DE,
   type StoryTile, type StoryFeedItem, type DayCoverage,
 } from './storyModel'
 import { buildEnergyFlow, buildRange, costLayers, monthCosts, type MonthCosts } from './storyEnergy'
 import {
-  temperatureEffect, whatIfModels, dataQuality, countPricelessInMonth, bestRank,
+  temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, bestRank,
   type TripForTemperature, type RankEntry, buildLatest, sohIsEstimated, buildTripMonth, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
   detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
@@ -27,7 +26,7 @@ import { useMomentSeen } from './useMomentSeen'
  *
  * Eigene Abfragen statt des Dashboard-Zeitraums: das Story-Dashboard denkt in Monaten,
  * das alte Dashboard in frei waehlbaren Zeitraeumen. Beide teilen sich keinen localStorage.
- * Je Monat: drei Statistiken, Fahrten, Leaderboard. Je Auto einmal: Ersparnis, Peer-Modelle,
+ * Je Monat: drei Statistiken, Fahrten, Leaderboard. Je Auto einmal: Ersparnis, Peer-Modelle (alle Varianten),
  * preislose Ladungen, SoH-Verlauf. Alles je Monat wartet gemeinsam, damit der Feed nicht
  * nach dem ersten Paint umsortiert.
  */
@@ -153,7 +152,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const ranks = ref<RankResponse[]>([])
   const savingsEur = ref<number | null>(null)
   const amortisationYearsRemaining = ref<number | null>(null)
-  const peerModels = ref<PeerModelComparisonItem[]>([])
+  const peerModels = ref<PeerModelComparisonResponse | null>(null)
   /** Alle Ladungen ohne Preis, auch "Weiß ich nicht mehr": die Kosten des Monats bleiben unvollständig. */
   const pricelessLogs = ref<MomentLog[]>([])
   const sohHistory = ref<BatterySohEntry[]>([])
@@ -256,7 +255,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       : { eurPerLitre: PETROL_EUR_PER_L_DE, live: false }
     savingsEur.value = savings.status === 'fulfilled' ? savings.value.savings?.savingsEur ?? null : null
     amortisationYearsRemaining.value = savings.status === 'fulfilled' ? savings.value.savings?.amortisationYearsRemaining ?? null : null
-    peerModels.value = models.status === 'fulfilled' ? models.value.modelComparisons ?? [] : []
+    peerModels.value = models.status === 'fulfilled' ? models.value : null
     pricelessLogs.value = priceless.status === 'fulfilled' && Array.isArray(priceless.value.data) ? priceless.value.data : []
     sohHistory.value = soh.status === 'fulfilled' ? soh.value : []
     recentStats.value = recent.status === 'fulfilled' ? recent.value : null
@@ -312,12 +311,15 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   }
   const temperature = computed(() => temperatureEffect(trips.value, ctx().effectiveBatteryCapacityKwh))
 
-  /** Lifetime gegen Lifetime: eigener Wert aus dem Peer-Modell-Vergleich, sonst der Monat. */
-  const whatIf = computed(() => {
-    const own = peerModels.value.find(x => x.isUserVehicleSpec)?.userMetrics
-    const lifetime = own ? calcCostPer100km(own.costPerKwh, own.consumptionKwhPer100km) : null
-    const monthly = monthStats.value ? calcCostPer100km(monthStats.value.avgCostPerKwh, monthStats.value.avgConsumptionKwhPer100km) : null
-    return whatIfModels(peerModels.value, lifetime ?? monthly)
+  /** Lifetime gegen Lifetime: eigener Wert aus dem Peer-Modell-Vergleich, sonst der Monat. Preis und Verbrauch aus derselben Quelle. */
+  const peers = computed(() => {
+    const own = peerModels.value?.modelComparisons?.find(x => x.isUserVehicleSpec)?.userMetrics
+    const lifetime = own?.costPerKwh != null && own.consumptionKwhPer100km != null
+      ? { costPerKwh: own.costPerKwh, consumption: own.consumptionKwhPer100km }
+      : null
+    const m = monthStats.value
+    const monthly = m ? { costPerKwh: m.avgCostPerKwh, consumption: m.avgConsumptionKwhPer100km } : null
+    return modelPeers(peerModels.value, lifetime ?? monthly)
   })
 
   const quality = computed(() => monthStats.value
@@ -344,7 +346,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     energySplitLocked: ctx().energySplitLocked,
     flow: flow.value,
     range: range.value,
-    whatIf: whatIf.value,
+    modelPeers: peers.value,
     rank: bestRank(ranks.value),
     quality: quality.value,
     temperature: temperature.value,
@@ -423,7 +425,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   return {
     offset, month, months, setOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
-    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, whatIf, sohHistory, petrol, latest, moment, benchmark,
+    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, moment, benchmark,
     reload: load, markPriceUnknown,
   }
 }

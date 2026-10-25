@@ -114,6 +114,8 @@ const heroMode = computed<'live' | 'moment' | 'month'>(() => {
 const priceInHero = computed(() => heroMode.value === 'moment' && moment.value.kind === 'just_charged'
   && moment.value.costEur == null && moment.value.logId === story.latest.value?.charge?.id)
 const carName = computed(() => selectedCar.value ? carDisplayName(selectedCar.value) : '')
+/** Modell ohne Variante für den Vergleich mit allen Fahrern des Modells. */
+const modelName = computed<string>(() => selectedCar.value?.modelDisplayName ?? '')
 const heroView = useMomentView({
   get moment() { return moment.value },
   get carId() { return selectedCarId.value },
@@ -224,7 +226,8 @@ const sheetContext = computed(() => ({
   monthLabels: sixMonthLabels.value,
   monthName: monthLabel(month.value),
   runningMonth: month.value.offset === 0,
-  whatIf: story.whatIf.value,
+  modelPeers: story.modelPeers.value,
+  modelName: modelName.value,
   temperature: story.temperature.value,
   sohHistory: story.sohHistory.value,
   effectiveCapacityKwh: effectiveCapacity.value,
@@ -356,14 +359,14 @@ onMounted(() => analytics.track('story_viewed'))
             <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" :car-id="selectedCarId" :price-in-hero="priceInHero" />
             <StoryFeed
               v-if="narrow && showFeed"
-              :feed="feed" :upsell-to="upsellTo" :what-if="story.whatIf.value" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
+              :feed="feed" :upsell-to="upsellTo" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
               @open="openSheet" @map="openMap = true" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
           </template>
         </div>
         <div v-if="!narrow && showFeed" class="min-w-0 lg:col-span-5 lg:pt-9">
           <StoryFeed
-            :feed="feed" :upsell-to="upsellTo" :what-if="story.whatIf.value" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
+            :feed="feed" :upsell-to="upsellTo" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
             @open="openSheet" @map="openMap = true" />
         </div>
       </section>

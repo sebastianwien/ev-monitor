@@ -5,7 +5,6 @@ import { LockClosedIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { CAT_LABEL } from '../../composables/useTickerItems'
 import type { StoryFeedItem, TileId } from '../../composables/storyModel'
-import type { WhatIfModel } from '../../composables/storyInsights'
 import { useMomentView } from '../../composables/useMomentView'
 import type { Moment } from '../../composables/storyMoments'
 import { keepUnits } from '../../utils/modelStory'
@@ -17,18 +16,18 @@ import { keepUnits } from '../../utils/modelStory'
 const props = withDefaults(defineProps<{
   item: StoryFeedItem
   upsellTo: string
-  /** Fuer den Was-waere-wenn-Satz: Modellnamen in der Reihenfolge der Liste. */
-  whatIf?: WhatIfModel[]
+  /** Fuer den Modellvergleich: Modell ohne Variante, z. B. "Model 3". */
+  modelName?: string
   /** Fuer Moment-Eintraege: Ziel von "Preis nachtragen" und Name im AutoSync-Satz. */
   carId?: string | null
   carName?: string
   /** Kacheln, die ein Sheet haben: nur dahin fuehrt ein Tipp auf die Zeile. */
   sheets?: TileId[]
-}>(), { whatIf: () => [], carId: null, carName: '', sheets: () => [] })
+}>(), { modelName: '', carId: null, carName: '', sheets: () => [] })
 const emit = defineEmits<{ open: [id: TileId] }>()
 
 const { t } = useI18n()
-const { formatCurrency, formatConsumption, formatDecimal, formatDistance, convertConsumption, consumptionUnitLabel } = useLocaleFormat()
+const { formatCurrency, formatConsumption, formatCostPerKwh, formatDecimal, formatDistance, convertConsumption, consumptionUnitLabel } = useLocaleFormat()
 
 // Nur fuer id 'moment' gelesen; der computed wertet sonst nie aus.
 const momentView = useMomentView({
@@ -71,10 +70,16 @@ const sentence = computed(() => {
     }
     case 'peer_position':
       return t(p.diffCt <= 0 ? 'story.feed_peer_cheaper' : 'story.feed_peer_pricier', { ct: b(formatDecimal(Math.abs(p.diffCt), 1)), peers: p.peers })
-    case 'what_if_model':
-      return p.modelIndex >= 0
-        ? t('story.feed_what_if_cheaper', { model: props.whatIf[p.modelIndex]?.name ?? '', pct: b(formatDecimal(Math.abs(p.deltaPercent), 0)), cars: p.cars })
-        : t('story.feed_what_if_best', { cars: p.cars })
+    case 'model_peers': {
+      const model = props.modelName
+      if (p.same) return t('story.feed_model_peers_same', { model })
+      const head = t(p.deltaPercent < 0 ? 'story.feed_model_peers_less' : 'story.feed_model_peers_more', { model, pct: b(formatDecimal(Math.abs(p.deltaPercent), 0)) })
+      const reason = p.reasonPrice
+        ? t('story.feed_model_peers_reason_price', { theirs: formatCostPerKwh(p.theirsPrice, { subunitDecimals: 0 }), mine: formatCostPerKwh(p.minePrice, { subunitDecimals: 0 }) })
+        : t('story.feed_model_peers_reason_consumption', { theirs: formatConsumption(p.theirsCons), mine: formatConsumption(p.mineCons) })
+      // Die Fett-Marke steht zwischen Zahl und %, keepUnits sieht dort keine Ziffer.
+      return keepUnits(`${head} ${reason}`).replace(`${B_CLOSE} %`, `${B_CLOSE}\u00a0%`)
+    }
     case 'community_rank':
       return t('story.feed_rank', { rank: b(p.rank), category: t(`leaderboard.cat_${CAT_LABEL[props.item.label ?? ''] ?? 'kwh'}`) })
     case 'data_quality': {
@@ -112,7 +117,7 @@ const number = computed<string>(() => {
     case 'most_expensive': return formatCurrency(p.eur)
     case 'home_savings': return formatCurrency(p.eur, { decimals: 0 })
     case 'peer_position': return `${p.diffCt <= 0 ? '-' : '+'}${formatDecimal(Math.abs(p.diffCt), 1)} ct`
-    case 'what_if_model': return p.modelIndex >= 0 ? `-${formatDecimal(Math.abs(p.deltaPercent), 0)} %` : ''
+    case 'model_peers': return p.same ? '' : `${p.deltaPercent < 0 ? '-' : '+'}${formatDecimal(Math.abs(p.deltaPercent), 0)} %`
     case 'community_rank': return `#${p.rank}`
     case 'data_quality': return p.priceless > 0 ? `${p.priceless}` : `${p.estimated}/${p.total}`
     case 'temperature_effect': return `+${formatDecimal(Math.abs(p.deltaPercent), 0)} %`
@@ -132,7 +137,7 @@ const numberClass = computed(() => {
 const SHEET_OF: Partial<Record<StoryFeedItem['id'], TileId>> = {
   consumption_trend: 'wltp', temperature_effect: 'wltp',
   cost_trend: 'cost', most_expensive: 'cost', home_savings: 'cost', data_quality: 'cost', distance_trend: 'cost',
-  peer_position: 'peer', what_if_model: 'peer', drive_vs_charge: 'trips',
+  peer_position: 'peer', model_peers: 'peer', drive_vs_charge: 'trips',
 }
 const sheet = computed<TileId | null>(() => {
   const id = SHEET_OF[props.item.id]

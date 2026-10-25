@@ -2,11 +2,11 @@ import { tripTimestamp } from '../utils/recentActivity'
 import { tripConsumption, type TripForCalc } from '../utils/tripCalculations'
 import { calcCostPer100km } from './useDashboardStats'
 import { summarizeTripMonth, type TripForSummary } from '../utils/tripMonthSummary'
-import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
+import type { PeerModelComparisonResponse } from '../api/peerModelComparisonService'
 
 /**
- * Erkenntnisse fuer den Story-Feed: Temperatur-Effekt aus Fahrten, Was-waere-wenn
- * ueber andere Modelle, Datenqualitaet des Monats, bester Community-Rang.
+ * Erkenntnisse fuer den Story-Feed: Temperatur-Effekt aus Fahrten, Vergleich mit allen
+ * Fahrern des eigenen Modells, Datenqualitaet des Monats, bester Community-Rang.
  * Reine Funktionen ohne Vue. Verbrauch je Fahrt kommt aus tripConsumption(),
  * es gibt hier keine eigene Verbrauchsformel.
  */
@@ -114,13 +114,67 @@ export function temperatureEffect(trips: TripForTemperature[], effectiveCapacity
   return { points, bins, coldKwh100, mildKwh100, deltaPercent }
 }
 
-export interface WhatIfModel {
+/** Preis, Verbrauch und was beides zusammen je 100 km kostet. */
+export interface PeerValues {
+  costPerKwh: number
+  consumption: number
+  costPer100km: number
+}
+
+export interface ModelVariant {
   name: string
   costPer100km: number
-  /** Gegen die Euro je 100 km des Nutzers, negativ ist guenstiger. */
-  deltaPercent: number
   cars: number
   isUser: boolean
+}
+
+/** Du gegen alle Fahrer deines Modells, über alle Varianten (Lifetime). */
+export interface ModelPeers {
+  /** Autos aller Varianten, ohne deine. */
+  cars: number
+  theirs: PeerValues
+  mine: PeerValues
+  /** Ihre Euro je 100 km gegen deine, negativ heißt: sie zahlen weniger. */
+  deltaPercent: number
+  /** Was den Unterschied mehr erklärt: Ladepreis oder Verbrauch. */
+  reason: 'price' | 'consumption'
+  /** Je Variante mit vollständigen Werten, aufsteigend nach Euro je 100 km. */
+  variants: ModelVariant[]
+}
+
+function peerValues(costPerKwh: number | null | undefined, consumption: number | null | undefined): PeerValues | null {
+  const cost = calcCostPer100km(costPerKwh ?? null, consumption ?? null)
+  return cost == null || cost <= 0 ? null : { costPerKwh: costPerKwh!, consumption: consumption!, costPer100km: cost }
+}
+
+/**
+ * Vergleich mit allen Fahrern des Modells statt mit einer einzelnen Variante. Der Grund ist der
+ * größere der beiden relativen Unterschiede, Preis oder Verbrauch. Null ohne eigenen Wert oder
+ * ohne Werte der anderen; die Mindestzahl an Autos prüft der Aufrufer.
+ */
+export function modelPeers(
+  res: Pick<PeerModelComparisonResponse, 'modelComparisons' | 'allVariants'> | null,
+  own: { costPerKwh: number | null; consumption: number | null } | null,
+): ModelPeers | null {
+  const all = res?.allVariants
+  const theirs = peerValues(all?.avgCostPerKwh, all?.avgConsumptionKwhPer100km)
+  const mine = own ? peerValues(own.costPerKwh, own.consumption) : null
+  if (!all || !theirs || !mine) return null
+  const priceShare = Math.abs(theirs.costPerKwh / mine.costPerKwh - 1)
+  const consumptionShare = Math.abs(theirs.consumption / mine.consumption - 1)
+  const variants: ModelVariant[] = []
+  for (const it of res!.modelComparisons) {
+    const v = peerValues(it.peerMetrics.avgCostPerKwh, it.peerMetrics.avgConsumptionKwhPer100km)
+    if (v) variants.push({ name: modelNameWithoutCapacity(it.displayName), costPer100km: v.costPer100km, cars: it.peerMetrics.uniqueCars, isUser: it.isUserVehicleSpec })
+  }
+  return {
+    cars: all.uniqueCars,
+    theirs,
+    mine,
+    deltaPercent: ((theirs.costPer100km - mine.costPer100km) / mine.costPer100km) * 100,
+    reason: priceShare >= consumptionShare ? 'price' : 'consumption',
+    variants: variants.sort((a, b) => a.costPer100km - b.costPer100km),
+  }
 }
 
 /**
@@ -137,24 +191,6 @@ export function sohIsEstimated(history: { recordedAt: string; source: string }[]
 /** "Model 3 Premium RWD Highland (82.00kWh)" wird "Model 3 Premium RWD Highland". */
 export function modelNameWithoutCapacity(name: string): string {
   return name.replace(/\s*\([\d.,]+\s*kWh\)\s*$/i, '')
-}
-
-/** Leer ohne Nutzerwert. Modelle ohne Verbrauch oder Preis fallen weg. Aufsteigend nach Kosten. */
-export function whatIfModels(items: PeerModelComparisonItem[], userCostPer100km: number | null): WhatIfModel[] {
-  if (userCostPer100km == null || userCostPer100km <= 0) return []
-  const out: WhatIfModel[] = []
-  for (const it of items) {
-    const cost = calcCostPer100km(it.peerMetrics.avgCostPerKwh, it.peerMetrics.avgConsumptionKwhPer100km)
-    if (cost == null) continue
-    out.push({
-      name: modelNameWithoutCapacity(it.displayName),
-      costPer100km: cost,
-      deltaPercent: ((cost - userCostPer100km) / userCostPer100km) * 100,
-      cars: it.peerMetrics.uniqueCars,
-      isUser: it.isUserVehicleSpec,
-    })
-  }
-  return out.sort((a, b) => a.costPer100km - b.costPer100km)
 }
 
 export type QualitySeverity = 'ok' | 'warn' | 'bad'

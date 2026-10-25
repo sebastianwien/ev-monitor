@@ -13,7 +13,7 @@ import SheetWltp from './sheets/SheetWltp.vue'
 import SheetTrips from './sheets/SheetTrips.vue'
 import type { StoryTile } from '../../composables/storyModel'
 import type { StatisticsData } from '../../composables/useDashboardStats'
-import type { WhatIfModel, TemperatureEffect } from '../../composables/storyInsights'
+import type { ModelPeers, TemperatureEffect } from '../../composables/storyInsights'
 import type { BatterySohEntry } from '../../api/carService'
 import type { MonthCosts } from '../../composables/storyEnergy'
 
@@ -25,7 +25,9 @@ export interface StorySheetContext {
   monthName: string
   /** Ausgewaehlter Monat ist der laufende: letzter Balken heller. */
   runningMonth: boolean
-  whatIf: WhatIfModel[]
+  modelPeers: ModelPeers | null
+  /** Modell ohne Variante, z. B. "Model 3". */
+  modelName: string
   temperature: TemperatureEffect | null
   sohHistory: BatterySohEntry[]
   effectiveCapacityKwh: number | null
@@ -59,7 +61,7 @@ const title = computed(() => props.tile.id === 'peer'
         <SheetTrips v-if="tile.id === 'trips' && tile.tripMonth" :trips="tile.tripMonth" :charged-kwh-per100km="context.stats?.avgConsumptionKwhPer100km ?? null" />
         <SheetFlow v-else-if="tile.id === 'flow' && tile.flow" :flow="tile.flow" />
         <SheetRange v-else-if="tile.id === 'range' && tile.range" :range="tile.range" :capacity-kwh="context.effectiveCapacityKwh" />
-        <SheetPeer v-else-if="tile.id === 'peer'" :tile="tile" :stats="context.stats" :what-if="context.whatIf" />
+        <SheetPeer v-else-if="tile.id === 'peer'" :tile="tile" :stats="context.stats" :model-peers="context.modelPeers" :model-name="context.modelName" />
         <SheetBattery v-else-if="tile.id === 'battery'" :tile="tile" :history="context.sohHistory" />
         <SheetWltp v-else-if="tile.id === 'wltp'" :tile="tile" :month-labels="context.monthLabels" :month-name="context.monthName" :running-month="context.runningMonth" :temperature="context.temperature" />
         <SheetCost
