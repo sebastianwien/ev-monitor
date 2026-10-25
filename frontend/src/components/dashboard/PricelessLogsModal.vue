@@ -114,35 +114,38 @@ function formatDate(iso: string) {
     <div v-if="open" data-testid="priceless-logs-modal" class="fixed inset-0 z-40 flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
 
-      <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 sm:rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] ring-1 ring-black/10 dark:ring-white/10 overflow-hidden flex flex-col max-h-[90dvh]">
+      <div class="relative w-full sm:max-w-2xl bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl edge-box overflow-hidden flex flex-col max-h-[90dvh] pb-[env(safe-area-inset-bottom)] sm:pb-0">
         <!-- Header -->
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-          <div class="flex items-center gap-2">
-            <CurrencyEuroIcon class="h-5 w-5 text-amber-500" />
-            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">{{ t('priceless.title') }}</h2>
+        <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-2.5">
+            <span class="grid h-8 w-8 place-items-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">
+              <CurrencyEuroIcon class="h-[18px] w-[18px]" aria-hidden="true" />
+            </span>
+            <h2 class="text-[17px] font-bold text-gray-900 dark:text-gray-50">{{ t('priceless.title') }}</h2>
             <span v-if="logs.length > 0"
               class="text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full font-medium tabular-nums">
               {{ logs.length }}
             </span>
           </div>
-          <button @click="emit('close')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-sm">
-            <XMarkIcon class="h-5 w-5" />
+          <button type="button" @click="emit('close')" :aria-label="t('priceless.close')"
+            class="btn-3d cta-shadow-sm grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-gray-800 dark:bg-white/10 dark:text-gray-200">
+            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
-        <p class="px-5 pt-3 pb-1 text-xs text-gray-500 dark:text-gray-400">{{ t('priceless.info') }}</p>
-        <p v-if="unknownError" role="status" class="px-5 pb-1 text-[11px] text-amber-600 dark:text-amber-400">{{ unknownError }}</p>
+        <p class="px-5 pt-3 pb-1 text-[14px] text-gray-600 dark:text-gray-300">{{ t('priceless.info') }}</p>
+        <p v-if="unknownError" role="status" class="px-5 pb-1 text-[13px] text-amber-700 dark:text-amber-400">{{ unknownError }}</p>
 
         <!-- Ein Klick statt N Nachtraege - nur sichtbar, wenn genau ein Heimtarif gilt und
              es ueberhaupt etwas zu bepreisen gibt. -->
         <div v-if="homeCard && logs.length > 0" class="px-5 pt-2 pb-1">
           <button type="button" :disabled="applyingHome" @click="applyHomeTariff"
-            class="btn-3d w-full flex items-center justify-center gap-2 px-4 py-2 rounded-sm bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition">
+            class="btn-3d w-full flex min-h-11 items-center justify-center gap-2 px-4 rounded-xl border-2 border-edge bg-green-600 text-white text-[15px] font-semibold hover:bg-green-700 disabled:opacity-50 transition">
             <HomeIcon class="h-4 w-4" aria-hidden="true" />
             {{ t('priceless.apply_home', { card: homeCard.label || homeCard.providerName }) }}
           </button>
-          <p v-if="homeError" role="status" class="mt-1 text-[11px] text-amber-600 dark:text-amber-400">{{ homeError }}</p>
-          <p v-else class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">{{ t('priceless.apply_home_hint') }}</p>
+          <p v-if="homeError" role="status" class="mt-1.5 text-[13px] text-amber-700 dark:text-amber-400">{{ homeError }}</p>
+          <p v-else class="mt-1.5 text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('priceless.apply_home_hint') }}</p>
         </div>
 
         <!-- Content -->
@@ -153,17 +156,17 @@ function formatDate(iso: string) {
 
           <template v-else>
             <div v-if="logs.length === 0" class="flex flex-col items-center justify-center py-12 gap-2">
-              <CheckCircleIcon class="h-10 w-10 text-green-400" />
-              <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('priceless.all_clear') }}</p>
+              <CheckCircleIcon class="h-10 w-10 text-green-600 dark:text-green-400" aria-hidden="true" />
+              <p class="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{{ t('priceless.all_clear') }}</p>
             </div>
 
-            <ul v-else class="divide-y divide-gray-100 dark:divide-gray-700">
+            <ul v-else class="divide-y divide-gray-200 dark:divide-gray-700">
               <li v-for="log in logs" :key="log.id" data-testid="priceless-row">
                 <button type="button" @click="amendingLog = log"
-                  class="w-full flex items-center gap-3 px-5 pt-3 pb-1 text-left hover:bg-gray-50 dark:hover:bg-gray-700/60 active:bg-gray-100 dark:active:bg-gray-700 transition-colors">
+                  class="w-full flex items-center gap-3 px-5 pt-3 pb-1 text-left hover:bg-gray-50 dark:hover:bg-white/5 active:bg-gray-100 dark:active:bg-white/10 transition-colors">
                   <div class="min-w-0 flex-1">
-                    <div class="text-sm font-medium text-gray-900 dark:text-gray-100 tabular-nums">{{ formatDate(log.loggedAt) }}</div>
-                    <div class="mt-0.5 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <div class="text-[15px] font-semibold text-gray-900 dark:text-gray-100 tabular-nums">{{ formatDate(log.loggedAt) }}</div>
+                    <div class="mt-0.5 flex items-center gap-2 text-[13px] text-gray-500 dark:text-gray-400">
                       <span class="tabular-nums">{{ amendKwh(log) != null ? formatDecimal(amendKwh(log)!, 1) + ' kWh' : t('priceamend.kwh_unknown') }}</span>
                       <span v-if="log.chargingType && log.chargingType !== 'UNKNOWN'">{{ log.chargingType }}</span>
                       <span v-if="sourceInfo(log.dataSource)">{{ sourceInfo(log.dataSource)!.label }}</span>
@@ -173,7 +176,7 @@ function formatDate(iso: string) {
                   <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
                 </button>
                 <button type="button" data-testid="priceless-unknown" @click="markUnknown(log)"
-                  class="mx-5 mb-1 inline-flex min-h-[36px] items-center text-xs font-medium text-gray-500 underline underline-offset-2 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                  class="mx-5 mb-1 inline-flex min-h-10 items-center text-[13px] font-semibold text-gray-600 underline decoration-gray-300 underline-offset-4 hover:text-gray-900 hover:decoration-gray-900 dark:text-gray-300 dark:decoration-gray-600 dark:hover:text-gray-100">
                   {{ t('priceless.unknown') }}
                 </button>
               </li>
@@ -182,9 +185,9 @@ function formatDate(iso: string) {
         </div>
 
         <!-- Footer -->
-        <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex justify-end">
-          <button @click="emit('close')"
-            class="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-sm transition">
+        <div class="px-5 py-3 border-t border-gray-200 dark:border-gray-700">
+          <button type="button" @click="emit('close')"
+            class="btn-3d cta-shadow-sm flex min-h-11 w-full items-center justify-center rounded-full border-2 border-edge bg-white text-sm font-semibold text-gray-800 transition-colors hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15">
             {{ t('priceless.close') }}
           </button>
         </div>

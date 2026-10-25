@@ -74,44 +74,47 @@ const mergedPreview = computed(() => {
 
       <!-- Modal -->
       <div
-        class="relative w-full sm:max-w-lg bg-white dark:bg-gray-800 sm:rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] ring-1 ring-black/10 dark:ring-white/10 overflow-hidden flex flex-col max-h-[90dvh]"
+        class="relative w-full sm:max-w-lg bg-white dark:bg-gray-800 rounded-t-2xl sm:rounded-2xl edge-box overflow-hidden flex flex-col max-h-[90dvh] pb-[env(safe-area-inset-bottom)] sm:pb-0"
         role="dialog"
         aria-modal="true"
         :aria-labelledby="'merge-modal-title'"
       >
         <!-- Header -->
-        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-          <div class="flex items-center gap-2">
-            <LinkIcon class="h-5 w-5 text-blue-500" aria-hidden="true" />
-            <h2 id="merge-modal-title" class="text-base font-semibold text-gray-900 dark:text-gray-100">
+        <div class="flex items-center justify-between gap-3 px-5 py-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div class="flex items-center gap-2.5">
+            <span class="grid h-8 w-8 place-items-center rounded-full bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200">
+              <LinkIcon class="h-[18px] w-[18px]" aria-hidden="true" />
+            </span>
+            <h2 id="merge-modal-title" class="text-[17px] font-bold text-gray-900 dark:text-gray-50">
               {{ t('dashboard.merge_title') }}
             </h2>
           </div>
           <button
+            type="button"
             @click="emit('close')"
-            class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-1 rounded-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
+            class="btn-3d cta-shadow-sm grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-gray-800 dark:bg-white/10 dark:text-gray-200"
             :aria-label="t('dashboard.trip_cancel')"
           >
-            <XMarkIcon class="h-5 w-5" />
+            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
 
         <!-- Info banner -->
-        <div class="px-5 py-3 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-100 dark:border-blue-800/40 flex items-start gap-2 flex-shrink-0">
-          <InformationCircleIcon class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" aria-hidden="true" />
-          <p class="text-xs text-blue-700 dark:text-blue-300 leading-relaxed">{{ t('dashboard.merge_info') }}</p>
+        <div class="mx-5 mt-3 flex items-start gap-2 rounded-xl bg-gray-50 px-3 py-2.5 flex-shrink-0 dark:bg-white/5">
+          <InformationCircleIcon class="mt-0.5 h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          <p class="text-[13px] leading-relaxed text-gray-700 dark:text-gray-300">{{ t('dashboard.merge_info') }}</p>
         </div>
 
         <!-- Target log info -->
-        <div class="px-5 py-3 border-b border-gray-100 dark:border-gray-700 flex-shrink-0">
-          <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{{ t('dashboard.edit_title') }}</p>
-          <div class="flex items-center justify-between gap-2 text-sm text-gray-900 dark:text-gray-100">
-            <span class="font-medium">{{ formatDate(entry.loggedAt) }}</span>
+        <div class="px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <p class="mb-1.5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('dashboard.edit_title') }}</p>
+          <div class="flex items-center justify-between gap-2 text-[15px] text-gray-900 tabular-nums dark:text-gray-100">
+            <span class="font-semibold">{{ formatDate(entry.loggedAt) }}</span>
             <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-              <span v-if="entry.kwhCharged != null" class="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded">
+              <span v-if="entry.kwhCharged != null" class="rounded-full bg-gray-100 px-1.5 py-0.5 font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-200">
                 {{ formatKwh(entry.kwhCharged) }}
               </span>
-              <span v-if="entry.kwhAtVehicle != null" class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded">
+              <span v-if="entry.kwhAtVehicle != null" class="rounded-full bg-gray-100 px-1.5 py-0.5 font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-200">
                 {{ formatKwh(entry.kwhAtVehicle) }}
               </span>
               <span class="text-gray-400 dark:text-gray-500">{{ sourceLabel(entry) }}</span>
@@ -122,14 +125,14 @@ const mergedPreview = computed(() => {
         <!-- Candidate list -->
         <div class="overflow-y-auto flex-1">
           <div class="px-5 pt-3 pb-1">
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('dashboard.merge_select_hint') }}</p>
+            <p class="text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('dashboard.merge_select_hint') }}</p>
           </div>
 
           <div v-if="candidates.length === 0" class="px-5 py-6 text-center">
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('dashboard.merge_no_candidates') }}</p>
           </div>
 
-          <ul v-else class="divide-y divide-gray-100 dark:divide-gray-700">
+          <ul v-else class="divide-y divide-gray-200 dark:divide-gray-700">
             <li
               v-for="candidate in candidates"
               :key="candidate.id"
@@ -137,8 +140,8 @@ const mergedPreview = computed(() => {
               :class="[
                 'flex items-center gap-3 px-5 py-3.5 cursor-pointer transition',
                 selectedSourceId === candidate.id
-                  ? 'bg-blue-50 dark:bg-blue-900/20'
-                  : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
+                  ? 'bg-gray-50 dark:bg-white/10'
+                  : 'hover:bg-gray-50 dark:hover:bg-white/5'
               ]"
               role="radio"
               :aria-checked="selectedSourceId === candidate.id"
@@ -149,23 +152,23 @@ const mergedPreview = computed(() => {
               <div :class="[
                 'w-4 h-4 rounded-full border-2 flex-shrink-0 flex items-center justify-center',
                 selectedSourceId === candidate.id
-                  ? 'border-blue-500 bg-blue-500'
+                  ? 'border-gray-900 bg-gray-900 dark:border-gray-100 dark:bg-gray-100'
                   : 'border-gray-300 dark:border-gray-500'
               ]">
-                <div v-if="selectedSourceId === candidate.id" class="w-1.5 h-1.5 rounded-full bg-white" />
+                <div v-if="selectedSourceId === candidate.id" class="w-1.5 h-1.5 rounded-full bg-white dark:bg-gray-900" />
               </div>
 
               <!-- Candidate info -->
               <div class="min-w-0 flex-1">
                 <div class="flex items-center justify-between gap-2 flex-wrap">
-                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                  <span class="text-[15px] font-semibold text-gray-900 tabular-nums dark:text-gray-100">
                     {{ formatDate(candidate.loggedAt) }}
                   </span>
                   <div class="flex items-center gap-1.5 text-xs">
-                    <span v-if="candidate.kwhCharged != null" class="bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-1.5 py-0.5 rounded">
+                    <span v-if="candidate.kwhCharged != null" class="rounded-full bg-gray-100 px-1.5 py-0.5 font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-200">
                       {{ formatKwh(candidate.kwhCharged) }}
                     </span>
-                    <span v-if="candidate.kwhAtVehicle != null" class="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-1.5 py-0.5 rounded">
+                    <span v-if="candidate.kwhAtVehicle != null" class="rounded-full bg-gray-100 px-1.5 py-0.5 font-semibold text-gray-700 dark:bg-white/10 dark:text-gray-200">
                       {{ formatKwh(candidate.kwhAtVehicle) }}
                     </span>
                     <span class="text-gray-400 dark:text-gray-500">{{ sourceLabel(candidate) }}</span>
@@ -176,16 +179,16 @@ const mergedPreview = computed(() => {
           </ul>
 
           <!-- Preview -->
-          <div v-if="mergedPreview" class="mx-5 my-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-sm border border-gray-200 dark:border-gray-600">
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">{{ t('dashboard.merge_preview_label') }}</p>
-            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+          <div v-if="mergedPreview" class="mx-5 my-3 rounded-xl border-2 border-gray-900 p-3 dark:border-gray-700">
+            <p class="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('dashboard.merge_preview_label') }}</p>
+            <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[13px] tabular-nums">
               <template v-if="mergedPreview.kwhCharged != null">
                 <span class="text-gray-500 dark:text-gray-400">{{ t('dashboard.merge_kwh_charged') }}</span>
-                <span class="font-medium text-orange-700 dark:text-orange-300">{{ formatKwh(mergedPreview.kwhCharged) }}</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ formatKwh(mergedPreview.kwhCharged) }}</span>
               </template>
               <template v-if="mergedPreview.kwhAtVehicle != null">
                 <span class="text-gray-500 dark:text-gray-400">{{ t('dashboard.merge_kwh_vehicle') }}</span>
-                <span class="font-medium text-green-700 dark:text-green-300">{{ formatKwh(mergedPreview.kwhAtVehicle) }}</span>
+                <span class="font-semibold text-gray-900 dark:text-gray-100">{{ formatKwh(mergedPreview.kwhAtVehicle) }}</span>
               </template>
               <template v-if="mergedPreview.socStart != null">
                 <span class="text-gray-500 dark:text-gray-400">SoC Start</span>
@@ -200,12 +203,12 @@ const mergedPreview = computed(() => {
         </div>
 
         <!-- preferSource toggle -->
-        <div v-if="selectedSourceId" class="px-5 py-3 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
+        <div v-if="selectedSourceId" class="px-5 py-3 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <label class="flex items-start gap-3 cursor-pointer select-none">
             <input
               type="checkbox"
               v-model="preferSource"
-              class="mt-0.5 h-4 w-4 rounded border-gray-300 dark:border-gray-600 text-blue-600 focus:ring-blue-500 focus:ring-2 cursor-pointer"
+              class="mt-0.5 h-5 w-5 cursor-pointer rounded border-2 border-gray-900 accent-gray-900 dark:border-gray-300 dark:accent-gray-100"
             />
             <span class="text-sm text-gray-700 dark:text-gray-300">
               {{ t('dashboard.merge_prefer_source') }}
@@ -215,16 +218,16 @@ const mergedPreview = computed(() => {
         </div>
 
         <!-- Error -->
-        <div v-if="error" class="mx-5 mb-3 px-3 py-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-sm text-xs text-red-700 dark:text-red-300 flex-shrink-0">
+        <div v-if="error" role="alert" class="mx-5 mb-3 flex-shrink-0 rounded-xl bg-amber-50 px-3 py-2 text-[13px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
           {{ error }}
         </div>
 
         <!-- Footer -->
-        <div class="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-100 dark:border-gray-700 flex-shrink-0">
+        <div class="flex items-center gap-2 px-5 py-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
           <button
             type="button"
             @click="emit('close')"
-            class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 rounded-sm"
+            class="min-h-12 flex-1 rounded-xl px-3 text-[15px] font-semibold text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100"
           >
             {{ t('dashboard.trip_cancel') }}
           </button>
@@ -232,12 +235,7 @@ const mergedPreview = computed(() => {
             type="button"
             :disabled="!selectedSourceId || saving"
             @click="selectedSourceId && emit('merge', { sourceLogId: selectedSourceId, preferSource: preferSource })"
-            :class="[
-              'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-sm transition focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-400',
-              selectedSourceId && !saving
-                ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-            ]"
+            class="btn-3d flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40"
           >
             <span v-if="saving" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
             <CheckIcon v-else class="w-4 h-4" />
