@@ -1,5 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.ChargingPlaceResponse;
+import com.evmonitor.application.ChargingPlacesService;
 import com.evmonitor.application.DeletedLogResponse;
 
 import ch.hsr.geohash.GeoHash;
@@ -45,6 +47,7 @@ public class EvLogController {
     private final CarRepository carRepository;
     private final com.evmonitor.application.EvLogShareService evLogShareService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final ChargingPlacesService chargingPlacesService;
 
 
     @PostMapping
@@ -349,6 +352,17 @@ public class EvLogController {
         List<GeohashResponse> data = evLogStatisticsService.getGeohashData(carId, principal.getUser().getId());
         return ResponseEntity.ok(data);
 
+    }
+
+    /** Ladeorte des eigenen Autos (Story-Karte), from/to inklusiv, beide fehlen = alles. Fremdes Auto 404. */
+    @GetMapping("/places")
+    public ResponseEntity<List<ChargingPlaceResponse>> getPlaces(
+            @RequestParam UUID carId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate to,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity.ok(chargingPlacesService.getPlaces(carId, principal.getUser().getId(), from, to));
     }
 
     @GetMapping("/implausible")
