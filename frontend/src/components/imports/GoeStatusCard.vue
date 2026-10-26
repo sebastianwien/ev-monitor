@@ -8,6 +8,8 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useCarStore } from '@/stores/car'
 import type { Car } from '@/api/carService'
 import { carLabel } from '@/composables/useCarLabel'
+import ToggleSwitch from '../shared/ToggleSwitch.vue'
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_ICON_BTN, CI_INPUT, CI_CARD, CI_NOTE } from '@/utils/ciClasses'
 
 const { t } = useI18n()
 const { formatCostPerKwh } = useLocaleFormat()
@@ -43,17 +45,19 @@ const stateConfig = computed(() => {
 })
 
 const isCharging = computed(() => conn.value?.carState === 2)
-const hasError   = computed(() => conn.value?.carState === 5 || !!conn.value?.lastPollError)
 
 // ── Colors ───────────────────────────────────────────────────────────────────
 
+// App-CI: Grün nur, solange geladen wird oder fertig ist (Ergebnis), alles andere grau, Rot nirgends
 const colorMap = {
-  gray:  { ring: 'border-gray-200',  icon: 'text-gray-400',  bg: 'bg-gray-50 dark:bg-gray-700',                      badge: 'bg-gray-100 text-gray-600'                        },
-  green: { ring: 'border-green-400', icon: 'text-green-500', bg: 'bg-green-50 dark:bg-green-900/30',                  badge: 'bg-green-100 text-green-700 dark:text-green-300'  },
-  amber: { ring: 'border-amber-400', icon: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/30',                  badge: 'bg-amber-100 text-amber-700 dark:text-amber-300'  },
-  blue:  { ring: 'border-blue-400',  icon: 'text-blue-500',  bg: 'bg-blue-50 dark:bg-blue-900/30',                    badge: 'bg-blue-100 text-blue-700 dark:text-blue-300'     },
-  red:   { ring: 'border-red-400',   icon: 'text-red-500',   bg: 'bg-red-50 dark:bg-red-900/30',                      badge: 'bg-red-100 text-red-700 dark:text-red-300'        },
+  gray:  { ring: 'border-gray-300 dark:border-gray-600', icon: 'text-gray-500 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800/60', badge: 'bg-white text-gray-700 dark:bg-gray-900 dark:text-gray-300' },
+  green: { ring: 'border-green-600 dark:border-green-400', icon: 'text-green-700 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/20', badge: 'bg-white text-green-800 dark:bg-gray-900 dark:text-green-300' },
+  amber: { ring: 'border-gray-300 dark:border-gray-600', icon: 'text-gray-500 dark:text-gray-400', bg: 'bg-gray-100 dark:bg-gray-800/60', badge: 'bg-white text-gray-700 dark:bg-gray-900 dark:text-gray-300' },
+  blue:  { ring: 'border-gray-300 dark:border-gray-600', icon: 'text-green-700 dark:text-green-400', bg: 'bg-gray-100 dark:bg-gray-800/60', badge: 'bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100' },
+  red:   { ring: 'border-gray-900 dark:border-gray-100', icon: 'text-gray-900 dark:text-gray-100', bg: 'bg-gray-100 dark:bg-gray-800/60', badge: 'bg-white font-bold text-gray-900 dark:bg-gray-900 dark:text-gray-100' },
 }
+// Bearbeiten-Links der Zeilen (Tarif, Standort, Auto)
+const EDIT_LINK = 'inline-flex min-h-11 shrink-0 items-center gap-1 text-[13px] font-semibold text-gray-700 underline-offset-2 hover:text-gray-900 hover:underline dark:text-gray-300 dark:hover:text-gray-100'
 
 const colors = computed(() => colorMap[stateConfig.value.color])
 
@@ -267,227 +271,201 @@ async function saveCar() {
 
 <template>
   <!-- Skeleton -->
-  <div v-if="loading" class="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 animate-pulse">
-    <div class="h-4 bg-gray-100 dark:bg-gray-700 rounded w-1/2 mb-4" />
-    <div class="h-20 bg-gray-100 dark:bg-gray-700 rounded mb-4" />
-    <div class="h-3 bg-gray-100 dark:bg-gray-700 rounded w-1/3" />
+  <div v-if="loading" :class="[CI_CARD, 'animate-pulse']">
+    <div class="mb-4 h-4 w-1/2 rounded bg-gray-200 dark:bg-gray-600" />
+    <div class="mb-4 h-20 rounded bg-gray-200 dark:bg-gray-600" />
+    <div class="h-3 w-1/3 rounded bg-gray-200 dark:bg-gray-600" />
   </div>
 
-  <div v-else-if="conn"
-    :class="['rounded-2xl border bg-white dark:bg-gray-800 overflow-hidden shadow-sm transition-all duration-300',
-             hasError ? 'border-red-200 dark:border-red-700' : 'border-gray-200 dark:border-gray-700']"
-  >
+  <div v-else-if="conn" :class="[CI_CARD, 'overflow-hidden p-0']">
     <!-- Header -->
-    <div class="flex items-center justify-between px-5 pt-4 pb-3">
-      <div class="flex items-center gap-2 min-w-0">
-        <span class="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
+    <div class="flex items-center justify-between gap-2 px-4 pb-3 pt-3">
+      <div class="flex min-w-0 items-center gap-2">
+        <span class="truncate text-[15px] font-semibold text-gray-900 dark:text-gray-100">
           {{ conn.displayName || t('goe.default_name') }}
         </span>
         <!-- Online dot -->
-        <span :class="['inline-block w-2 h-2 rounded-full flex-shrink-0',
-                       conn.active && !conn.lastPollError ? 'bg-green-400' : 'bg-gray-300']"
+        <span :class="['inline-block h-2 w-2 shrink-0 rounded-full',
+                       conn.active && !conn.lastPollError ? 'bg-green-600 dark:bg-green-400' : 'bg-gray-300 dark:bg-gray-600']"
               :title="conn.active && !conn.lastPollError ? t('goe.title_connected') : t('goe.title_disconnected')" />
       </div>
-      <button @click="handleDisconnect"
-        class="text-gray-300 hover:text-red-400 transition p-1 rounded-md hover:bg-red-50 flex-shrink-0"
-        :title="t('goe.title_disconnect')">
-        <XMarkIcon class="h-4 w-4" />
+      <button type="button" :class="CI_ICON_BTN" :title="t('goe.title_disconnect')" :aria-label="t('goe.title_disconnect')" @click="handleDisconnect">
+        <XMarkIcon class="h-5 w-5" aria-hidden="true" />
       </button>
     </div>
 
     <!-- State Visualisation -->
-    <div :class="['mx-4 rounded-xl py-6 flex flex-col items-center gap-3 transition-colors duration-500', colors.bg]">
-      <!-- Icon with optional pulse ring -->
+    <div :class="['mx-4 flex flex-col items-center gap-3 rounded-2xl py-6 transition-colors duration-500', colors.bg]">
       <div class="relative flex items-center justify-center">
         <!-- Outer pulse ring (charging only) -->
         <span v-if="stateConfig.pulse"
-          :class="['absolute inset-0 rounded-full border-2 animate-ping opacity-40', colors.ring]" />
-        <!-- Inner ring -->
-        <span :class="['flex items-center justify-center w-16 h-16 rounded-full border-2 bg-white dark:bg-gray-800', colors.ring]">
-          <BoltIcon          v-if="conn.carState === 2" :class="['h-8 w-8', colors.icon]" />
-          <ClockIcon         v-else-if="conn.carState === 3" :class="['h-8 w-8', colors.icon]" />
-          <CheckCircleIcon   v-else-if="conn.carState === 4" :class="['h-8 w-8', colors.icon]" />
-          <ExclamationTriangleIcon v-else-if="conn.carState === 5" :class="['h-8 w-8', colors.icon]" />
-          <!-- State 1: Bereit — custom plug icon -->
-          <svg v-else :class="['h-8 w-8', colors.icon]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+          :class="['absolute inset-0 animate-ping rounded-full border-2 opacity-40', colors.ring]" />
+        <span :class="['flex h-16 w-16 items-center justify-center rounded-full border-2 bg-white dark:bg-gray-900', colors.ring]">
+          <BoltIcon          v-if="conn.carState === 2" :class="['h-8 w-8', colors.icon]" aria-hidden="true" />
+          <ClockIcon         v-else-if="conn.carState === 3" :class="['h-8 w-8', colors.icon]" aria-hidden="true" />
+          <CheckCircleIcon   v-else-if="conn.carState === 4" :class="['h-8 w-8', colors.icon]" aria-hidden="true" />
+          <ExclamationTriangleIcon v-else-if="conn.carState === 5" :class="['h-8 w-8', colors.icon]" aria-hidden="true" />
+          <!-- State 1: Bereit - custom plug icon -->
+          <svg v-else :class="['h-8 w-8', colors.icon]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
           </svg>
         </span>
       </div>
 
-      <!-- State label -->
-      <span :class="['text-sm font-semibold px-3 py-1 rounded-full', colors.badge]">
+      <span :class="['rounded-full px-3 py-1 text-sm font-semibold', colors.badge]">
         {{ t('goe.' + stateConfig.key) }}
       </span>
     </div>
 
     <!-- Error details -->
-    <div v-if="conn.lastPollError"
-      class="mx-4 mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg px-3 py-2">
-      <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
-      <p class="text-xs text-red-700 dark:text-red-300 leading-snug">
-        <span v-if="conn.lastPollError.includes('cloud api not enabled')" v-html="t('goe.cloud_api_error')" />
-        <span v-else>{{ conn.lastPollError }}</span>
-      </p>
-    </div>
+    <p v-if="conn.lastPollError" role="alert" :class="[CI_NOTE, 'mx-4 mt-3 flex items-start gap-2 py-3 text-[13px] text-gray-900 dark:text-gray-100']">
+      <ExclamationTriangleIcon class="mt-0.5 h-4 w-4 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />
+      <span v-if="conn.lastPollError.includes('cloud api not enabled')" v-html="t('goe.cloud_api_error')" />
+      <span v-else class="font-semibold">{{ conn.lastPollError }}</span>
+    </p>
 
     <!-- Action error -->
-    <div v-if="actionError"
-      class="mx-4 mt-3 flex items-start gap-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-lg px-3 py-2">
-      <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
-      <p class="text-xs text-red-700 dark:text-red-300 leading-snug">{{ actionError }}</p>
-    </div>
+    <p v-if="actionError" role="alert" :class="[CI_NOTE, 'mx-4 mt-3 flex items-start gap-2 py-3 text-[13px] font-semibold text-gray-900 dark:text-gray-100']">
+      <ExclamationTriangleIcon class="mt-0.5 h-4 w-4 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />{{ actionError }}
+    </p>
 
-    <!-- Tariff -->
-    <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
-      <div v-if="!editingTariff" class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 dark:text-gray-400">
-          {{ t('goe.tariff_label') }}
-          <span class="font-medium text-gray-700 dark:text-gray-300">
-            {{ conn.tariffCentsPerKwh > 0 ? formatCostPerKwh(Number(conn.tariffCentsPerKwh) / 100) : t('goe.tariff_unset') }}
+    <div class="mt-3 divide-y divide-gray-200 border-t border-gray-200 text-sm dark:divide-white/10 dark:border-white/10">
+      <!-- Tariff -->
+      <div class="px-4 py-2">
+        <div v-if="!editingTariff" class="flex items-center justify-between gap-3">
+          <span class="text-gray-500 dark:text-gray-400">
+            {{ t('goe.tariff_label') }}
+            <span class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+              {{ conn.tariffCentsPerKwh > 0 ? formatCostPerKwh(Number(conn.tariffCentsPerKwh) / 100) : t('goe.tariff_unset') }}
+            </span>
           </span>
-        </span>
-        <button @click="startEditTariff"
-          class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
-          <PencilIcon class="h-3.5 w-3.5" />
-          {{ t('goe.tariff_edit') }}
-        </button>
-      </div>
-      <div v-else class="flex items-center gap-2">
-        <input
-          v-model="tariffInput"
-          type="number"
-          min="0"
-          max="9999"
-          step="0.0001"
-          :placeholder="t('goe.tariff_placeholder')"
-          class="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-2 py-1 text-sm"
-          @keyup.enter="saveTariff"
-          @keyup.escape="editingTariff = false"
-        />
-        <span class="text-xs text-gray-500 dark:text-gray-400 shrink-0">ct/kWh</span>
-        <button @click="saveTariff" :disabled="savingTariff"
-          class="p-1 text-green-600 hover:text-green-700 disabled:opacity-50">
-          <CheckIcon class="h-4 w-4" />
-        </button>
-        <button @click="editingTariff = false"
-          class="p-1 text-gray-400 hover:text-gray-600">
-          <XMarkIcon class="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-
-    <!-- Location -->
-    <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
-      <div v-if="!editingLocation" class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
-          <MapPinIcon class="h-3.5 w-3.5" />
-          {{ t('goe.location_status_label') }}
-          <span :class="conn.geohash ? 'font-medium text-gray-700 dark:text-gray-300' : 'text-amber-600 font-medium'">
-            {{ conn.geohash ? t('goe.location_status_set') : t('goe.location_status_missing') }}
-          </span>
-        </span>
-        <button @click="startEditLocation"
-          class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
-          <PencilIcon class="h-3.5 w-3.5" />
-          {{ conn.geohash ? t('goe.location_change') : t('goe.location_set_btn') }}
-        </button>
-      </div>
-      <div v-else class="space-y-2">
-        <div class="relative">
+          <button type="button" :class="EDIT_LINK" @click="startEditTariff">
+            <PencilIcon class="h-4 w-4" aria-hidden="true" />
+            {{ t('goe.tariff_edit') }}
+          </button>
+        </div>
+        <div v-else class="flex items-center gap-2 py-1">
           <input
-            v-model="locationQuery"
-            type="text"
-            :placeholder="t('goe.location_placeholder')"
-            class="w-full border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-3 py-1.5 text-sm pr-8"
-            @input="onLocationQueryChange"
-            @keyup.escape="editingLocation = false"
+            v-model="tariffInput"
+            type="number"
+            min="0"
+            max="9999"
+            step="0.0001"
+            :placeholder="t('goe.tariff_placeholder')"
+            :aria-label="t('goe.tariff_label')"
+            :class="[CI_INPUT, 'flex-1 tabular-nums']"
+            @keyup.enter="saveTariff"
+            @keyup.escape="editingTariff = false"
           />
-          <MapPinIcon class="absolute right-2.5 top-2 h-4 w-4 text-gray-400 pointer-events-none" />
-        </div>
-        <ul v-if="locationResults.length" class="border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 rounded-lg overflow-hidden text-xs">
-          <li v-for="r in locationResults" :key="r.display_name"
-            class="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-600 text-gray-900 dark:text-gray-100 cursor-pointer truncate border-b border-gray-100 dark:border-gray-600 last:border-0"
-            @click="selectLocation(r)">
-            {{ r.display_name }}
-          </li>
-        </ul>
-        <p v-if="selectedLocationName" class="text-xs text-green-700 flex items-center gap-1">
-          <CheckIcon class="h-3.5 w-3.5" />
-          {{ selectedLocationName }}
-        </p>
-        <div class="flex gap-2">
-          <button @click="saveLocation" :disabled="savingLocation || !selectedGeohash"
-            class="flex-1 bg-green-600 text-white py-1.5 rounded-lg text-xs font-medium hover:bg-green-700 disabled:opacity-40 transition">
-            {{ savingLocation ? t('goe.location_save_loading') : t('goe.location_save') }}
+          <span class="shrink-0 text-[13px] text-gray-500 dark:text-gray-400">ct/kWh</span>
+          <button type="button" :class="CI_ICON_BTN" :disabled="savingTariff" :aria-label="t('goe.location_save')" @click="saveTariff">
+            <CheckIcon class="h-5 w-5" aria-hidden="true" />
           </button>
-          <button @click="editingLocation = false"
-            class="px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
-            {{ t('goe.location_cancel') }}
+          <button type="button" :class="CI_ICON_BTN" :aria-label="t('goe.location_cancel')" @click="editingTariff = false">
+            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
           </button>
         </div>
       </div>
-    </div>
 
-    <!-- Merge Sessions -->
-    <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
-      <div class="flex items-center justify-between">
-        <div>
-          <p class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ t('goe.merge_sessions_title') }}</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500 mt-0.5">{{ t('goe.merge_sessions_desc') }}</p>
-        </div>
-        <button
-          @click="toggleMergeSessions"
-          :disabled="savingMergeSessions"
-          :class="['relative inline-flex h-5 w-9 items-center rounded-full transition-colors disabled:opacity-50',
-                   conn.mergeSessions ? 'bg-indigo-600' : 'bg-gray-200']">
-          <span :class="['inline-block h-3 w-3 transform rounded-full bg-white transition-transform',
-                         conn.mergeSessions ? 'translate-x-5' : 'translate-x-1']" />
-        </button>
-      </div>
-    </div>
-
-    <!-- Car assignment -->
-    <div class="px-5 py-3 border-t border-gray-100 dark:border-gray-700">
-      <div v-if="!editingCar" class="flex items-center justify-between">
-        <span class="text-xs text-gray-500 dark:text-gray-400">
-          {{ t('goe.car_status_label') }}
-          <span :class="currentCarLabel ? 'font-medium text-gray-700 dark:text-gray-300' : 'text-amber-600 font-medium'">
-            {{ currentCarLabel ?? t('goe.car_not_set') }}
+      <!-- Location -->
+      <div class="px-4 py-2">
+        <div v-if="!editingLocation" class="flex items-center justify-between gap-3">
+          <span class="flex items-center gap-1 text-gray-500 dark:text-gray-400">
+            <MapPinIcon class="h-4 w-4" aria-hidden="true" />
+            {{ t('goe.location_status_label') }}
+            <!-- Fehlt der Standort: Amber, die Handlung steht daneben -->
+            <span :class="conn.geohash ? 'font-semibold text-gray-900 dark:text-gray-100' : 'font-semibold text-amber-700 dark:text-amber-400'">
+              {{ conn.geohash ? t('goe.location_status_set') : t('goe.location_status_missing') }}
+            </span>
           </span>
-        </span>
-        <button @click="startEditCar"
-          class="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
-          <PencilIcon class="h-3.5 w-3.5" />
-          {{ t('goe.car_change') }}
-        </button>
+          <button type="button" :class="EDIT_LINK" @click="startEditLocation">
+            <PencilIcon class="h-4 w-4" aria-hidden="true" />
+            {{ conn.geohash ? t('goe.location_change') : t('goe.location_set_btn') }}
+          </button>
+        </div>
+        <div v-else class="grid gap-2 py-1">
+          <div class="relative">
+            <input
+              v-model="locationQuery"
+              type="text"
+              :placeholder="t('goe.location_placeholder')"
+              :aria-label="t('goe.location_status_label')"
+              :class="[CI_INPUT, 'pr-9']"
+              @input="onLocationQueryChange"
+              @keyup.escape="editingLocation = false"
+            />
+            <MapPinIcon class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
+          </div>
+          <ul v-if="locationResults.length" class="overflow-hidden rounded-xl border border-gray-200 bg-white text-sm dark:border-gray-600 dark:bg-gray-900">
+            <li v-for="r in locationResults" :key="r.display_name"
+              class="cursor-pointer truncate border-b border-gray-200 px-3 py-2.5 text-gray-900 last:border-0 hover:bg-gray-50 dark:border-white/10 dark:text-gray-100 dark:hover:bg-gray-800"
+              @click="selectLocation(r)">
+              {{ r.display_name }}
+            </li>
+          </ul>
+          <p v-if="selectedLocationName" class="flex items-center gap-1 text-[13px] font-semibold text-gray-900 dark:text-gray-100">
+            <CheckIcon class="h-4 w-4 text-green-700 dark:text-green-400" aria-hidden="true" />
+            {{ selectedLocationName }}
+          </p>
+          <div class="flex gap-2">
+            <button type="button" :class="[CI_BTN_PRIMARY, 'flex-1']" :disabled="savingLocation || !selectedGeohash" @click="saveLocation">
+              {{ savingLocation ? t('goe.location_save_loading') : t('goe.location_save') }}
+            </button>
+            <button type="button" :class="CI_BTN_SECONDARY" @click="editingLocation = false">
+              {{ t('goe.location_cancel') }}
+            </button>
+          </div>
+        </div>
       </div>
-      <div v-else class="flex items-center gap-2">
-        <select
-          v-model="selectedCarId"
-          class="flex-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-lg px-2 py-1 text-sm"
-          @keydown.escape="editingCar = false"
-        >
-          <option v-for="car in cars" :key="car.id" :value="car.id">{{ carLabel(car) }}</option>
-        </select>
-        <button @click="saveCar" :disabled="savingCar || !selectedCarId"
-          class="p-1 text-green-600 hover:text-green-700 disabled:opacity-50">
-          <CheckIcon class="h-4 w-4" />
-        </button>
-        <button @click="editingCar = false"
-          class="p-1 text-gray-400 hover:text-gray-600">
-          <XMarkIcon class="h-4 w-4" />
-        </button>
-      </div>
-    </div>
 
-    <!-- Footer -->
-    <div class="flex items-center justify-between px-5 py-2 border-t border-gray-100 dark:border-gray-700">
-      <span class="text-xs text-gray-400 dark:text-gray-500">Serial: {{ conn.serial }}</span>
-      <span class="text-xs text-gray-400 dark:text-gray-500">
-        {{ t('goe.updated_every', { n: isCharging ? 2 : 4 }) }}
-      </span>
+      <!-- Merge Sessions -->
+      <div class="flex items-center justify-between gap-3 px-4 py-3">
+        <div>
+          <p class="font-semibold text-gray-900 dark:text-gray-100">{{ t('goe.merge_sessions_title') }}</p>
+          <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('goe.merge_sessions_desc') }}</p>
+        </div>
+        <ToggleSwitch :model-value="conn.mergeSessions" :label="t('goe.merge_sessions_title')" :disabled="savingMergeSessions"
+          :class="savingMergeSessions ? 'opacity-50' : ''" @update:model-value="toggleMergeSessions" />
+      </div>
+
+      <!-- Car assignment -->
+      <div class="px-4 py-2">
+        <div v-if="!editingCar" class="flex items-center justify-between gap-3">
+          <span class="text-gray-500 dark:text-gray-400">
+            {{ t('goe.car_status_label') }}
+            <span :class="currentCarLabel ? 'font-semibold text-gray-900 dark:text-gray-100' : 'font-semibold text-amber-700 dark:text-amber-400'">
+              {{ currentCarLabel ?? t('goe.car_not_set') }}
+            </span>
+          </span>
+          <button type="button" :class="EDIT_LINK" @click="startEditCar">
+            <PencilIcon class="h-4 w-4" aria-hidden="true" />
+            {{ t('goe.car_change') }}
+          </button>
+        </div>
+        <div v-else class="flex items-center gap-2 py-1">
+          <select
+            v-model="selectedCarId"
+            :aria-label="t('goe.car_status_label')"
+            :class="[CI_INPUT, 'flex-1']"
+            @keydown.escape="editingCar = false"
+          >
+            <option v-for="car in cars" :key="car.id" :value="car.id">{{ carLabel(car) }}</option>
+          </select>
+          <button type="button" :class="CI_ICON_BTN" :disabled="savingCar || !selectedCarId" :aria-label="t('goe.location_save')" @click="saveCar">
+            <CheckIcon class="h-5 w-5" aria-hidden="true" />
+          </button>
+          <button type="button" :class="CI_ICON_BTN" :aria-label="t('goe.location_cancel')" @click="editingCar = false">
+            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex items-center justify-between gap-3 px-4 py-2 text-[12px] text-gray-500 dark:text-gray-400">
+        <span>Serial: {{ conn.serial }}</span>
+        <span>{{ t('goe.updated_every', { n: isCharging ? 2 : 4 }) }}</span>
+      </div>
     </div>
   </div>
 </template>

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ExclamationTriangleIcon, InformationCircleIcon, ChevronRightIcon, MapPinIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import { ExclamationTriangleIcon, InformationCircleIcon, ChevronDownIcon, MapPinIcon, CheckIcon } from '@heroicons/vue/24/outline'
+import Collapse from '../shared/Collapse.vue'
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_INPUT, CI_LABEL, CI_CARD, CI_NOTE } from '@/utils/ciClasses'
 import goeService from '@/api/goeService'
 import type { Car } from '@/api/carService'
 import { carLabel } from '@/composables/useCarLabel'
@@ -126,42 +128,38 @@ async function handleDisconnect(id: string) {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div v-if="error" class="border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3 rounded-r-sm flex items-start gap-2">
-      <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
-      <p class="text-sm text-red-900 dark:text-red-200 font-medium">{{ error }}</p>
-    </div>
+  <div class="grid gap-4">
+    <p v-if="error" role="alert" :class="[CI_NOTE, 'flex items-start gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']">
+      <ExclamationTriangleIcon class="h-5 w-5 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />{{ error }}
+    </p>
 
-    <!-- Info Box -->
-    <div class="border-2 border-gray-300 dark:border-gray-700 rounded-sm overflow-hidden bg-white dark:bg-gray-900">
-      <button
-        type="button"
-        @click="infoExpanded = !infoExpanded"
-        class="w-full flex items-center justify-between px-3 py-2.5 text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition text-left">
-        <span class="flex items-center gap-1.5">
-          <InformationCircleIcon class="w-4 h-4 text-yellow-500 flex-shrink-0" />
+    <!-- So funktioniert's -->
+    <div class="rounded-2xl bg-gray-100 dark:bg-gray-800/60">
+      <button type="button" :aria-expanded="infoExpanded" @click="infoExpanded = !infoExpanded"
+        class="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">
+        <span class="flex items-center gap-2">
+          <InformationCircleIcon class="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
           {{ t('goe.how_it_works') }}
         </span>
-        <ChevronRightIcon class="w-4 h-4 flex-shrink-0 transition-transform duration-200"
-          :class="infoExpanded ? 'rotate-90' : ''" />
+        <ChevronDownIcon class="h-4 w-4 shrink-0 text-gray-500 transition-transform duration-300 motion-reduce:transition-none"
+          :class="infoExpanded ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
       </button>
-      <div v-if="infoExpanded" class="px-4 pb-3 text-sm text-gray-600 dark:text-gray-300 space-y-2 border-t-2 border-gray-300 dark:border-gray-700 pt-3 font-medium leading-relaxed">
-        <p v-html="t('goe.info_auto')" />
-        <p v-html="t('goe.info_session')" />
-        <p v-html="t('goe.info_tariff')" />
-        <div class="flex items-start gap-2 border-l-2 border-yellow-500 bg-yellow-50 dark:bg-yellow-950/30 px-3 py-2.5 rounded-r-sm">
-          <ExclamationTriangleIcon class="h-4 w-4 text-yellow-600 dark:text-yellow-400 mt-0.5 shrink-0" />
-          <div class="space-y-1">
-            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-yellow-800 dark:text-yellow-300">{{ t('goe.info_one_car_title') }}</p>
+      <Collapse :open="infoExpanded">
+        <div class="grid gap-2 px-4 pb-4 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
+          <p v-html="t('goe.info_auto')" />
+          <p v-html="t('goe.info_session')" />
+          <p v-html="t('goe.info_tariff')" />
+          <div class="mt-1 grid gap-1 border-t border-gray-200 pt-3 dark:border-white/10">
+            <p :class="CI_LABEL">{{ t('goe.info_one_car_title') }}</p>
             <p v-html="t('goe.info_one_car')" />
           </div>
         </div>
-      </div>
+      </Collapse>
     </div>
 
     <!-- Connected devices -->
-    <div v-if="wallboxStore.hasConnections" class="space-y-3">
-      <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400">{{ t('goe.connected_devices') }}</p>
+    <div v-if="wallboxStore.hasConnections" class="grid gap-3">
+      <p :class="CI_LABEL">{{ t('goe.connected_devices') }}</p>
       <GoeStatusCard
         v-for="conn in wallboxStore.connections"
         :key="conn.id"
@@ -173,77 +171,75 @@ async function handleDisconnect(id: string) {
 
     <!-- Add form (hidden for demo users) -->
     <template v-if="!authStore.isDemoAccount">
-      <div v-if="showForm" class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 space-y-3">
-        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-700 dark:text-gray-300">{{ t('goe.form_title') }}</p>
-        <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.serial_label') }}</label>
-          <input v-model="form.serial" type="text" :placeholder="t('goe.serial_placeholder')" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors" />
+      <div v-if="showForm" :class="[CI_CARD, 'grid gap-3']">
+        <p class="text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ t('goe.form_title') }}</p>
+        <div class="grid gap-1.5">
+          <label for="goe-serial" :class="CI_LABEL">{{ t('goe.serial_label') }}</label>
+          <input id="goe-serial" v-model="form.serial" type="text" :placeholder="t('goe.serial_placeholder')" :class="CI_INPUT" />
         </div>
-        <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.apikey_label') }}</label>
-          <input v-model="form.apiKey" type="password" :placeholder="t('goe.apikey_placeholder')" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors" />
+        <div class="grid gap-1.5">
+          <label for="goe-apikey" :class="CI_LABEL">{{ t('goe.apikey_label') }}</label>
+          <input id="goe-apikey" v-model="form.apiKey" type="password" :placeholder="t('goe.apikey_placeholder')" :class="CI_INPUT" />
         </div>
-        <div v-if="cars.length > 0">
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.car_label') }}</label>
-          <select v-model="form.carId" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors">
+        <div v-if="cars.length > 0" class="grid gap-1.5">
+          <label for="goe-car" :class="CI_LABEL">{{ t('goe.car_label') }}</label>
+          <select id="goe-car" v-model="form.carId" :class="CI_INPUT">
             <option v-for="car in cars" :key="car.id" :value="car.id">
               {{ carLabel(car) }}
             </option>
           </select>
         </div>
-        <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.connect_tariff_label') }}</label>
+        <div class="grid gap-1.5">
+          <label for="goe-tariff" :class="CI_LABEL">{{ t('goe.connect_tariff_label') }}</label>
           <div class="relative">
-            <input v-model="tariffInput" type="number" inputmode="decimal" min="0" max="9999" step="0.01" :placeholder="t('goe.tariff_placeholder')" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 pr-10 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors" />
-            <span class="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400 pointer-events-none">ct</span>
+            <input id="goe-tariff" v-model="tariffInput" type="number" inputmode="decimal" min="0" max="9999" step="0.01" :placeholder="t('goe.tariff_placeholder')" :class="[CI_INPUT, 'pr-10 tabular-nums']" />
+            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">ct</span>
           </div>
-          <p class="mt-1.5 text-[11px] leading-snug text-gray-500 dark:text-gray-400">{{ t('goe.connect_tariff_hint') }}</p>
+          <p class="text-[13px] leading-snug text-gray-500 dark:text-gray-400">{{ t('goe.connect_tariff_hint') }}</p>
         </div>
-        <div>
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('goe.name_label') }}</label>
-          <input v-model="form.displayName" type="text" :placeholder="t('goe.name_placeholder')" class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors" />
+        <div class="grid gap-1.5">
+          <label for="goe-name" :class="CI_LABEL">{{ t('goe.name_label') }}</label>
+          <input id="goe-name" v-model="form.displayName" type="text" :placeholder="t('goe.name_placeholder')" :class="CI_INPUT" />
         </div>
 
         <!-- Location (optional) -->
-        <div class="space-y-1.5">
-          <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('goe.location_label') }}</label>
+        <div class="grid gap-1.5">
+          <label for="goe-location" :class="CI_LABEL">{{ t('goe.location_label') }}</label>
           <div class="relative">
             <input
+              id="goe-location"
               v-model="locationQuery"
               type="text"
               :placeholder="t('goe.location_placeholder')"
-              class="w-full border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 rounded-sm px-3 py-2.5 pr-8 text-sm font-medium focus:outline-none focus:border-yellow-500 transition-colors"
+              :class="[CI_INPUT, 'pr-9']"
               @input="onLocationQueryChange"
             />
-            <MapPinIcon class="absolute right-2.5 top-3 h-4 w-4 text-gray-400 pointer-events-none" />
+            <MapPinIcon class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" aria-hidden="true" />
           </div>
-          <ul v-if="locationResults.length" class="border-2 border-gray-300 dark:border-gray-700 rounded-sm overflow-hidden text-xs bg-white dark:bg-gray-900">
+          <ul v-if="locationResults.length" class="overflow-hidden rounded-xl border border-gray-200 bg-white text-sm dark:border-gray-600 dark:bg-gray-900">
             <li v-for="r in locationResults" :key="r.display_name"
-              class="px-3 py-2 hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer truncate border-b border-gray-200 dark:border-gray-700 last:border-0 font-medium"
+              class="cursor-pointer truncate border-b border-gray-200 px-3 py-2.5 last:border-0 hover:bg-gray-50 dark:border-white/10 dark:hover:bg-gray-800"
               @click="selectLocation(r)">
               {{ r.display_name }}
             </li>
           </ul>
-          <p v-if="selectedLocationName" class="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-            <CheckIcon class="h-3.5 w-3.5 flex-shrink-0" />
+          <p v-if="selectedLocationName" class="flex items-center gap-1 text-[13px] font-semibold text-gray-900 dark:text-gray-100">
+            <CheckIcon class="h-4 w-4 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
             {{ selectedLocationName }}
           </p>
         </div>
 
-        <div class="flex flex-col sm:flex-row gap-2">
-          <button @click="handleConnect" :disabled="loading"
-                  class="flex-1 inline-flex items-center justify-center bg-yellow-400 hover:bg-yellow-300 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-yellow-400 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
+        <div class="flex flex-col gap-2 sm:flex-row">
+          <button type="button" :class="[CI_BTN_PRIMARY, 'flex-1']" :disabled="loading" @click="handleConnect">
             {{ loading ? t('goe.connect_btn_loading') : t('goe.connect_btn') }}
           </button>
-          <button @click="showForm = false"
-                  class="inline-flex items-center justify-center bg-white dark:bg-gray-900 border-2 border-gray-300 dark:border-gray-700 text-gray-800 dark:text-gray-200 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
+          <button type="button" :class="CI_BTN_SECONDARY" @click="showForm = false">
             {{ t('goe.cancel_btn') }}
           </button>
         </div>
       </div>
 
-      <button v-if="!showForm" @click="showForm = true"
-              class="w-full sm:w-auto flex sm:inline-flex items-center justify-center gap-2 bg-yellow-400 hover:bg-yellow-300 text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-yellow-400 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75">
+      <button v-if="!showForm" type="button" :class="[CI_BTN_PRIMARY, 'w-full sm:w-auto sm:justify-self-start']" @click="showForm = true">
         {{ t('goe.add_btn') }}
       </button>
     </template>

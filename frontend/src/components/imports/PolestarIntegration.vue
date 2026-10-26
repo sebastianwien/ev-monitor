@@ -11,6 +11,7 @@ import {
   ClipboardDocumentIcon, CheckIcon, ArrowTopRightOnSquareIcon, ExclamationTriangleIcon,
   ClockIcon, CheckCircleIcon, InformationCircleIcon, BellAlertIcon,
 } from '@heroicons/vue/24/outline'
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_INPUT, CI_LABEL, CI_CARD, CI_NOTE } from '../../utils/ciClasses'
 import polestarService, { POLESTAR_SHARE_ACCOUNT, POLESTAR_PORTAL_URL, type PolestarConnection, type PolestarCapacity } from '@/api/polestarService'
 import type { Car } from '@/api/carService'
 import CarSelectDropdown from '@/components/car/CarSelectDropdown.vue'
@@ -121,17 +122,17 @@ const fmt = (iso: string | null) =>
 </script>
 
 <template>
-  <div class="space-y-5" data-testid="polestar-integration">
+  <div class="grid gap-5" data-testid="polestar-integration">
     <!-- Einleitung: was, warum, wozu -->
-    <div class="space-y-2 text-sm text-gray-700 dark:text-gray-300 leading-relaxed" data-testid="polestar-intro">
+    <div class="grid gap-2 text-[15px] leading-relaxed text-gray-700 dark:text-gray-300" data-testid="polestar-intro">
       <p>{{ t('polestar.intro_what') }}</p>
       <p>{{ t('polestar.intro_why') }}</p>
-      <p class="font-medium text-gray-900 dark:text-gray-100">{{ t('polestar.intro_ask') }}</p>
+      <p class="font-semibold text-gray-900 dark:text-gray-100">{{ t('polestar.intro_ask') }}</p>
     </div>
 
     <!-- Fahrzeugwahl nur bei mehreren Polestar -->
     <div v-if="cars.length > 1" data-testid="polestar-car">
-      <label class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">{{ t('polestar.car_label') }}</label>
+      <label :class="[CI_LABEL, 'mb-1.5 block']">{{ t('polestar.car_label') }}</label>
       <CarSelectDropdown v-model="selectedCarId" :cars="cars" />
     </div>
 
@@ -139,50 +140,50 @@ const fmt = (iso: string | null) =>
 
     <!-- Verbunden: Status-Karte -->
     <div v-else-if="activeConnection" data-testid="polestar-status"
-         class="rounded-sm border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/30 p-4 space-y-3">
+         :class="[CI_CARD, 'grid gap-3']">
       <div class="flex items-start gap-3">
-        <CheckCircleIcon class="h-6 w-6 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
+        <CheckCircleIcon class="h-6 w-6 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
         <div class="min-w-0 flex-1">
           <p class="font-bold text-gray-900 dark:text-gray-100">{{ t('polestar.status_connected') }}</p>
-          <p class="text-xs text-gray-600 dark:text-gray-300 mt-0.5">{{ selectedCar ? carLabel(selectedCar) : '' }} · VIN …{{ activeConnection.vin?.slice(-6) }}</p>
+          <p class="mt-0.5 text-[13px] text-gray-600 dark:text-gray-300">{{ selectedCar ? carLabel(selectedCar) : '' }} · VIN …{{ activeConnection.vin?.slice(-6) }}</p>
         </div>
       </div>
       <dl class="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-        <dt class="text-gray-600 dark:text-gray-400">{{ t('polestar.status_since') }}</dt>
-        <dd class="text-gray-900 dark:text-gray-100 font-medium text-right">{{ fmt(activeConnection.connectedAt) ?? '-' }}</dd>
-        <dt class="text-gray-600 dark:text-gray-400">{{ t('polestar.status_last_data') }}</dt>
-        <dd class="text-gray-900 dark:text-gray-100 font-medium text-right" data-testid="polestar-last-data">
+        <dt class="text-gray-500 dark:text-gray-400">{{ t('polestar.status_since') }}</dt>
+        <dd class="text-right font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ fmt(activeConnection.connectedAt) ?? '-' }}</dd>
+        <dt class="text-gray-500 dark:text-gray-400">{{ t('polestar.status_last_data') }}</dt>
+        <dd class="text-right font-semibold tabular-nums text-gray-900 dark:text-gray-100" data-testid="polestar-last-data">
           {{ fmt(activeConnection.lastEventAt) ?? t('polestar.status_waiting') }}
         </dd>
       </dl>
-      <p class="text-xs text-gray-700 dark:text-gray-300 leading-relaxed">{{ t('polestar.testmode_short') }}</p>
+      <p class="text-[13px] leading-relaxed text-gray-600 dark:text-gray-300">{{ t('polestar.testmode_short') }}</p>
       <button type="button" @click="disconnect" data-testid="polestar-disconnect"
-              class="text-xs font-bold uppercase tracking-wider text-red-700 dark:text-red-400 underline hover:no-underline">
+              :class="[CI_BTN_SECONDARY, 'justify-self-start']">
         {{ t('polestar.disconnect') }}
       </button>
     </div>
 
     <!-- Alle Plätze belegt: nur Warteliste, keine Anleitung -->
     <div v-else-if="slotsFull" data-testid="polestar-capped"
-         class="border-l-2 border-gray-400 bg-gray-50 dark:bg-gray-800 px-4 py-3 rounded-r-sm flex gap-3">
-      <ClockIcon class="h-5 w-5 text-gray-500 shrink-0" aria-hidden="true" />
-      <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-        <p class="font-bold">{{ t('polestar.waitlist_title') }}</p>
+         :class="[CI_NOTE, 'flex gap-3']">
+      <ClockIcon class="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+      <div class="text-sm leading-relaxed text-gray-800 dark:text-gray-200">
+        <p class="font-semibold text-gray-900 dark:text-gray-100">{{ t('polestar.waitlist_title') }}</p>
         <template v-if="waitlist.onWaitlist.value">
-          <p class="text-xs mt-0.5">{{ t('polestar.waitlist_joined') }}</p>
+          <p class="mt-0.5 text-[13px]">{{ t('polestar.waitlist_joined') }}</p>
           <button type="button" :disabled="waitlist.busy.value" data-testid="polestar-waitlist-leave"
-              class="mt-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline disabled:opacity-50"
+              class="mt-1 inline-flex min-h-11 items-center text-[13px] font-semibold text-gray-600 underline hover:text-gray-900 disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
               @click="waitlist.leave">{{ t('polestar.waitlist_leave') }}</button>
         </template>
         <template v-else>
-          <p class="text-xs mt-0.5">{{ t('polestar.capped_desc') }}</p>
+          <p class="mt-0.5 text-[13px]">{{ t('polestar.capped_desc') }}</p>
           <button type="button" :disabled="waitlist.busy.value" data-testid="polestar-waitlist-join"
-              class="mt-2 inline-flex items-center gap-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-sm disabled:opacity-50"
+              :class="[CI_BTN_SECONDARY, 'mt-2']"
               @click="waitlist.join">
-          <BellAlertIcon class="h-4 w-4" aria-hidden="true" />
+          <BellAlertIcon class="h-5 w-5" aria-hidden="true" />
           <span>{{ waitlist.busy.value ? t('polestar.waitlist_joining') : t('polestar.waitlist_cta') }}</span>
           </button>
-          <p v-if="waitlist.error.value" class="mt-2 text-xs text-red-700 dark:text-red-400" role="alert">{{ waitlist.error.value }}</p>
+          <p v-if="waitlist.error.value" class="mt-2 text-[13px] font-semibold text-gray-900 dark:text-gray-100" role="alert">{{ waitlist.error.value }}</p>
         </template>
       </div>
     </div>
@@ -191,24 +192,24 @@ const fmt = (iso: string | null) =>
     <template v-else>
       <!-- Schritt 1 -->
       <section data-testid="polestar-step1">
-        <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
-          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs font-extrabold mr-2">1</span>{{ t('polestar.step1_title') }}
+        <h3 class="mb-2 flex items-center text-[15px] font-bold text-gray-900 dark:text-gray-100">
+          <span class="mr-2 inline-grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gray-900 text-xs font-extrabold tabular-nums text-white dark:bg-gray-100 dark:text-gray-900" aria-hidden="true">1</span>{{ t('polestar.step1_title') }}
         </h3>
-        <ol class="list-decimal pl-5 space-y-1.5 text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+        <ol class="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-gray-700 dark:text-gray-300">
           <li>
             {{ t('polestar.step1_a') }}
-            <a :href="POLESTAR_PORTAL_URL" target="_blank" rel="noopener" class="inline-flex items-center gap-1 font-bold underline hover:no-underline">
+            <a :href="POLESTAR_PORTAL_URL" target="_blank" rel="noopener" class="inline-flex items-center gap-1 font-semibold text-gray-900 underline hover:no-underline dark:text-gray-100">
               data-portal.polestar.com <ArrowTopRightOnSquareIcon class="h-3.5 w-3.5" aria-hidden="true" />
             </a>
           </li>
           <li>{{ t('polestar.step1_b') }}</li>
           <li>
             {{ t('polestar.step1_c') }}
-            <span class="inline-flex items-center gap-1 mt-1 rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 pl-2 pr-1 py-0.5 font-mono text-xs text-gray-900 dark:text-gray-100 select-all">
+            <span class="mt-1 inline-flex select-all items-center gap-1 rounded-xl bg-gray-100 py-0.5 pl-3 pr-0.5 font-mono text-[13px] text-gray-900 dark:bg-gray-800 dark:text-gray-100">
               {{ POLESTAR_SHARE_ACCOUNT }}
               <button type="button" @click="copyAccount" :aria-label="t('polestar.copy')" data-testid="polestar-copy"
-                      class="p-1 rounded-sm hover:bg-gray-100 dark:hover:bg-gray-700">
-                <CheckIcon v-if="copied" class="h-4 w-4 text-emerald-600" aria-hidden="true" />
+                      class="grid h-11 w-11 place-items-center rounded-full hover:bg-black/10 dark:hover:bg-white/10">
+                <CheckIcon v-if="copied" class="h-4 w-4 text-green-700 dark:text-green-400" aria-hidden="true" />
                 <ClipboardDocumentIcon v-else class="h-4 w-4" aria-hidden="true" />
               </button>
             </span>
@@ -220,70 +221,69 @@ const fmt = (iso: string | null) =>
 
       <!-- Schritt 2 -->
       <section data-testid="polestar-step2">
-        <h3 class="text-sm font-bold text-gray-900 dark:text-gray-100 mb-2">
-          <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-xs font-extrabold mr-2">2</span>{{ t('polestar.step2_title') }}
+        <h3 class="mb-2 flex items-center text-[15px] font-bold text-gray-900 dark:text-gray-100">
+          <span class="mr-2 inline-grid h-6 w-6 shrink-0 place-items-center rounded-full bg-gray-900 text-xs font-extrabold tabular-nums text-white dark:bg-gray-100 dark:text-gray-900" aria-hidden="true">2</span>{{ t('polestar.step2_title') }}
         </h3>
-        <form class="space-y-3" @submit.prevent="connect">
+        <form class="grid gap-3" @submit.prevent="connect">
           <div>
-            <label for="polestar-vin" class="block text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-1">{{ t('polestar.vin_label') }}</label>
+            <label for="polestar-vin" :class="[CI_LABEL, 'mb-1.5 block']">{{ t('polestar.vin_label') }}</label>
             <input id="polestar-vin" v-model="vin" type="text" inputmode="text" autocomplete="off" autocapitalize="characters"
                    maxlength="17" spellcheck="false" :placeholder="t('polestar.vin_placeholder')" data-testid="polestar-vin"
                    :aria-invalid="vinTouched && !vinValid ? 'true' : undefined" @blur="vinTouched = true"
-                   class="w-full rounded-sm border-2 bg-white dark:bg-gray-800 px-3 py-2.5 font-mono text-sm uppercase tracking-wider text-gray-900 dark:text-gray-100"
-                   :class="vinTouched && !vinValid ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'" />
-            <p v-if="vinTouched && !vinValid" class="mt-1 text-xs text-red-700 dark:text-red-400" data-testid="polestar-vin-error">{{ t('polestar.vin_invalid_hint') }}</p>
-            <p v-else class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('polestar.vin_hint') }}</p>
+                   :class="[CI_INPUT, 'font-mono uppercase tracking-wider', vinTouched && !vinValid ? 'border-amber-500 dark:border-amber-400' : '']" />
+            <p v-if="vinTouched && !vinValid" class="mt-1 text-[13px] font-semibold text-amber-700 dark:text-amber-400" data-testid="polestar-vin-error">{{ t('polestar.vin_invalid_hint') }}</p>
+            <p v-else class="mt-1 text-[13px] text-gray-500 dark:text-gray-400">{{ t('polestar.vin_hint') }}</p>
           </div>
 
           <button type="submit" :disabled="submitting" data-testid="polestar-connect"
-                  class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-gray-950 font-bold uppercase tracking-wider text-xs md:text-sm px-5 py-3.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[4px] active:translate-y-[4px]">
+                  :class="[CI_BTN_PRIMARY, 'w-full sm:w-auto sm:justify-self-start']">
             {{ submitting ? t('polestar.checking') : t('polestar.check_connection') }}
           </button>
         </form>
 
         <!-- Ergebnis: noch nicht freigegeben -->
         <div v-if="outcome === 'NOT_SHARED'" data-testid="polestar-not-shared"
-             class="mt-3 border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/40 px-4 py-3 rounded-r-sm flex gap-3">
+             class="mt-3 flex gap-3 rounded-2xl bg-amber-50 p-4 dark:bg-amber-900/20">
           <ExclamationTriangleIcon class="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" aria-hidden="true" />
-          <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-            <p class="font-bold">{{ t('polestar.not_shared_title') }}</p>
-            <p class="text-xs mt-0.5">{{ t('polestar.not_shared_desc') }}</p>
+          <div class="text-sm leading-relaxed text-gray-800 dark:text-gray-200">
+            <p class="font-semibold text-gray-900 dark:text-gray-100">{{ t('polestar.not_shared_title') }}</p>
+            <p class="mt-0.5 text-[13px]">{{ t('polestar.not_shared_desc') }}</p>
           </div>
         </div>
 
         <!-- Ergebnis: Warteliste -->
         <div v-else-if="outcome === 'WAITLIST'" data-testid="polestar-waitlist"
-             class="mt-3 border-l-2 border-gray-400 bg-gray-50 dark:bg-gray-800 px-4 py-3 rounded-r-sm flex gap-3">
-          <ClockIcon class="h-5 w-5 text-gray-500 shrink-0" aria-hidden="true" />
-          <div class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">
-            <p class="font-bold">{{ t('polestar.waitlist_title') }}</p>
+             :class="[CI_NOTE, 'mt-3 flex gap-3']">
+          <ClockIcon class="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          <div class="text-sm leading-relaxed text-gray-800 dark:text-gray-200">
+            <p class="font-semibold text-gray-900 dark:text-gray-100">{{ t('polestar.waitlist_title') }}</p>
             <template v-if="waitlist.onWaitlist.value">
-              <p class="text-xs mt-0.5">{{ t('polestar.waitlist_joined') }}</p>
+              <p class="mt-0.5 text-[13px]">{{ t('polestar.waitlist_joined') }}</p>
               <button type="button" :disabled="waitlist.busy.value" data-testid="polestar-waitlist-leave"
-                        class="mt-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 underline disabled:opacity-50"
+                        class="mt-1 inline-flex min-h-11 items-center text-[13px] font-semibold text-gray-600 underline hover:text-gray-900 disabled:opacity-50 dark:text-gray-400 dark:hover:text-gray-100"
                         @click="waitlist.leave">{{ t('polestar.waitlist_leave') }}</button>
             </template>
             <template v-else>
-              <p class="text-xs mt-0.5">{{ t('polestar.waitlist_desc') }}</p>
+              <p class="mt-0.5 text-[13px]">{{ t('polestar.waitlist_desc') }}</p>
               <button type="button" :disabled="waitlist.busy.value" data-testid="polestar-waitlist-join"
-                        class="mt-2 inline-flex items-center gap-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 font-bold uppercase tracking-wider text-xs px-4 py-2 rounded-sm disabled:opacity-50"
+                        :class="[CI_BTN_SECONDARY, 'mt-2']"
                         @click="waitlist.join">
-                <BellAlertIcon class="h-4 w-4" aria-hidden="true" />
+                <BellAlertIcon class="h-5 w-5" aria-hidden="true" />
                 <span>{{ waitlist.busy.value ? t('polestar.waitlist_joining') : t('polestar.waitlist_cta') }}</span>
               </button>
-              <p v-if="waitlist.error.value" class="mt-2 text-xs text-red-700 dark:text-red-400" role="alert">{{ waitlist.error.value }}</p>
+              <p v-if="waitlist.error.value" class="mt-2 text-[13px] font-semibold text-gray-900 dark:text-gray-100" role="alert">{{ waitlist.error.value }}</p>
             </template>
           </div>
         </div>
 
-        <p v-if="error" class="mt-3 text-sm text-red-700 dark:text-red-400" role="alert" data-testid="polestar-error">{{ error }}</p>
+        <p v-if="error" class="mt-3 text-sm font-semibold text-gray-900 dark:text-gray-100" role="alert" data-testid="polestar-error">{{ error }}</p>
       </section>
     </template>
 
     <!-- Testmodus-Satz (DSGVO): immer sichtbar -->
-    <div class="border-l-2 border-blue-500 bg-blue-50 dark:bg-blue-950/30 px-4 py-3 rounded-r-sm flex gap-3" data-testid="polestar-testmode">
-      <InformationCircleIcon class="h-5 w-5 text-blue-600 dark:text-blue-400 shrink-0" aria-hidden="true" />
-      <p class="text-xs text-gray-700 dark:text-gray-200 leading-relaxed">{{ t('polestar.testmode') }}</p>
+    <div :class="[CI_NOTE, 'flex gap-3']" data-testid="polestar-testmode">
+      <InformationCircleIcon class="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+      <p class="text-[13px] leading-relaxed">{{ t('polestar.testmode') }}</p>
     </div>
   </div>
 </template>
