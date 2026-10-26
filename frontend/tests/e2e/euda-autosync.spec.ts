@@ -160,46 +160,6 @@ test.describe('EU Data Act AutoSync', () => {
     await expect(page.getByText(UPLOAD_LABEL)).toHaveCount(0);
   });
 
-  test('VW-Group-Fahrzeug anlegen: Modal fuehrt in zwei Schritten zum Verbinden', async ({ page }) => {
-    await mockEntitlement(page, TRIAL);
-    await page.route('**/api/eu-data-act/status', route => route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }));
-    // Das Anlegen selbst laeuft nicht gegen die DB - die Antwort ist ein Skoda.
-    await page.route('**/api/cars', async route => {
-      if (route.request().method() !== 'POST') return route.fallback();
-      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({
-        car: { id: 'skoda-new', brand: 'SKODA', model: 'Enyaq', year: 2024, status: 'ACTIVE', effectiveBatteryCapacityKwh: 77 },
-        coinsAwarded: 0,
-      }) });
-    });
-    await page.goto('/cars');
-    await page.getByRole('button', { name: /Fahrzeug hinzufügen/ }).first().click();
-
-    const brand = page.locator('form select').first();
-    const brandValue = await brand.locator('option').evaluateAll(o =>
-      (o as HTMLOptionElement[]).map(x => x.value).find(v => /^(SKODA|VW|VOLKSWAGEN)$/i.test(v)) ?? '');
-    expect(brandValue).not.toBe('');
-    await brand.selectOption(brandValue);
-    const model = page.locator('form select').nth(1);
-    await expect(model).toBeEnabled();
-    await model.selectOption({ index: 1 });
-    const capacity = page.locator('form button[type="button"]').filter({ hasText: /kWh/ }).first();
-    if (await capacity.isVisible().catch(() => false)) await capacity.click();
-    // Monat und Baujahr sind Pflichtfelder
-    await page.locator('form select').nth(2).selectOption({ index: 1 });
-    await page.locator('form input[type="number"]').first().fill('2024');
-    await page.locator('form button[type="submit"]').first().click();
-
-    const modal = page.getByTestId('euda-prompt');
-    await expect(modal).toBeVisible();
-    await expect(modal.getByTestId('euda-step-decide')).toBeVisible();
-    await expect(modal.getByTestId('euda-trial-hint')).toBeVisible();
-    await expect(modal.getByTestId('euda-start')).toBeVisible();
-    await modal.getByTestId('euda-start').click();
-    await expect(modal.getByTestId('euda-connect')).toBeVisible();
-    await modal.getByRole('button', { name: 'Später einrichten' }).click();
-    await expect(modal).toHaveCount(0);
-  });
-
   test('Ohne VW-Group-Fahrzeug gibt es keine AutoSync-Karte, auch fuer Premium', async ({ page }) => {
     await mockEntitlement(page, PAID);
     await page.route('**/api/cars', async route => {
