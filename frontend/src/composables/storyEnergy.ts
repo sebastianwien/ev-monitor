@@ -173,6 +173,10 @@ export interface RangeEstimate {
   /** Mai bis August bzw. November bis Februar, alle Jahre. Null, solange das Backend keinen Wert hat. */
   summer: RangeSeason | null
   winter: RangeSeason | null
+  /** Winter anderer Fahrer desselben Modells mit der eigenen Kapazitaet, nur solange der eigene Winter fehlt. */
+  peerWinter: RangeSeason | null
+  /** Reserve von 10 auf 0 % mit dem Verbrauch der letzten 4 Wochen. */
+  reserveKm: number
 }
 
 function kmFor(effectiveCapacityKwh: number, consumption: number, socMax: number, socMin: number): number {
@@ -190,17 +194,24 @@ function seasonRow(effectiveCapacityKwh: number, consumption: number | null): Ra
  * als eigene Zeilen fuer das Sheet. Kein Jahresmittel, keine Saisonzuordnung des Monats: ein
  * Monat mit zwei Ladungen hatte sonst 450 km ergeben. Null ohne Kapazitaet oder ohne Verbrauch.
  */
-export function buildRange(stats: StatisticsData, effectiveCapacityKwh: number | null): RangeEstimate | null {
+export function buildRange(
+  stats: StatisticsData,
+  effectiveCapacityKwh: number | null,
+  peerWinterConsumption: number | null = null,
+): RangeEstimate | null {
   if (effectiveCapacityKwh == null || effectiveCapacityKwh <= 0) return null
   const c = stats.avgConsumptionKwhPer100km
   if (c == null || c <= 0) return null
   const windows = RANGE_SOC_WINDOWS.map(w => ({ ...w, km: kmFor(effectiveCapacityKwh, c, w.socMax, w.socMin) }))
+  const winter = seasonRow(effectiveCapacityKwh, stats.winterConsumptionKwhPer100km)
   return {
     consumption: c,
     windows,
     km: windows.find(w => w.recommended)!.km,
     summer: seasonRow(effectiveCapacityKwh, stats.summerConsumptionKwhPer100km),
-    winter: seasonRow(effectiveCapacityKwh, stats.winterConsumptionKwhPer100km),
+    winter,
+    peerWinter: winter ? null : seasonRow(effectiveCapacityKwh, peerWinterConsumption),
+    reserveKm: kmFor(effectiveCapacityKwh, c, 10, 0),
   }
 }
 

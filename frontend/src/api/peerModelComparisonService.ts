@@ -24,6 +24,8 @@ export interface PeerModelComparisonResponse {
   modelComparisons: PeerModelComparisonItem[]
   /** Alle Autos aller Varianten des Modells, ohne die eigenen; null ohne Spec. */
   allVariants: PeerMetrics | null
+  /** Winterverbrauch derselben Autos, November bis Februar; null ohne genug Winterdaten anderer Fahrer. */
+  allVariantsWinterConsumptionKwhPer100km: number | null
 }
 
 export const peerModelComparisonService = {

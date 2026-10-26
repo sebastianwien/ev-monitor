@@ -96,7 +96,7 @@ describe('StoryTile Akku und Reichweite', () => {
 
   it('Reichweite nennt Basis und Ladefenster', () => {
     const text = mount({ id: 'range', value: 201, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [201], sparkVariant: 'bars',
-      range: { consumption: 21, km: 201, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 201 }], summer: null, winter: null } })
+      range: { consumption: 21, km: 201, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 201 }], summer: null, winter: null, peerWinter: null, reserveKm: 29 } })
     expect(text).toContain('Ø letzte 4 Wochen, 90 → 10 %')
   })
 })

@@ -447,7 +447,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
 
   const flow = computed(() => monthStats.value ? buildEnergyFlow(monthStats.value) : null)
   const range = computed(() => recentStats.value
-    ? buildRange(recentStats.value, ctx().effectiveBatteryCapacityKwh)
+    ? buildRange(recentStats.value, ctx().effectiveBatteryCapacityKwh,
+      peerModels.value?.allVariantsWinterConsumptionKwhPer100km ?? null)
     : null)
   const layers = computed(() => monthStats.value ? costLayers(monthStats.value) : null)
   /** Die Sechs-Monats-Statistik summiert Fixkosten und Einnahmen über alle sechs Balken. */

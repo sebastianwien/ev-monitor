@@ -79,6 +79,18 @@ describe('buildRange', () => {
     expect(buildRange(stats({ winterConsumptionKwhPer100km: null }), 60)!.winter).toBeNull()
   })
 
+  it('rechnet die Reserve unter 10 % mit dem Verbrauch der letzten 4 Wochen', () => {
+    // 60 kWh * 0.1 / 18 * 100 = 33,3 km
+    expect(buildRange(stats(), 60)!.reserveKm).toBe(33)
+  })
+
+  it('rechnet den Winterwert anderer Fahrer mit der eigenen Kapazitaet, nur ohne eigenen Winter', () => {
+    // 60 * 0.8 / 24 * 100 = 200
+    expect(buildRange(stats({ winterConsumptionKwhPer100km: null }), 60, 24)!.peerWinter).toEqual({ consumption: 24, km: 200 })
+    expect(buildRange(stats({ winterConsumptionKwhPer100km: 21 }), 60, 24)!.peerWinter).toBeNull()
+    expect(buildRange(stats({ winterConsumptionKwhPer100km: null }), 60)!.peerWinter).toBeNull()
+  })
+
   it('liefert null ohne Kapazitaet oder ohne Verbrauch der letzten 4 Wochen', () => {
     expect(buildRange(stats(), null)).toBeNull()
     expect(buildRange(stats({ avgConsumptionKwhPer100km: null }), 60)).toBeNull()
