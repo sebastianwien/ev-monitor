@@ -11,9 +11,10 @@ const { driving, direction, model, arrived } = useNavCar()
 const road = ref<HTMLElement | null>(null)
 const car = ref<SVGSVGElement | null>(null)
 
-// Gleiches Tempo auf jeder Breite, auf dem Handy aber nicht nur ein Wischer
-const PX_PER_S = 240
-const MIN_MS = 3500
+// Tempo je Modell (Knubbel-Wagen, Bus, Sportwagen): Bus langsam, Sportwagen schnell. Gleiches Tempo auf jeder Breite;
+// auf dem Handy rechnet die Fahrt mit einer Mindeststrecke, damit sie kein Wischer wird und die Tempi verschieden bleiben.
+const PX_PER_S = [240, 150, 420]
+const MIN_PX = 840
 
 // Start und Ziel liegen je eine Autobreite außerhalb der Straße, das Auto fährt also ganz herein und ganz hinaus.
 // Nach links fährt es gespiegelt, die Front zeigt immer in Fahrtrichtung.
@@ -25,7 +26,7 @@ watch(car, el => {
   const [from, to, flip] = direction.value === 'right' ? [outLeft, outRight, ''] : [outRight, outLeft, ' scaleX(-1)']
   const ride = el.animate(
     [{ transform: `translateX(${from}px)${flip}` }, { transform: `translateX(${to}px)${flip}` }],
-    { duration: Math.max(MIN_MS, (Math.abs(to - from) / PX_PER_S) * 1000), easing: 'linear', fill: 'backwards' },
+    { duration: (Math.max(MIN_PX, Math.abs(to - from)) / PX_PER_S[model.value]) * 1000, easing: 'linear', fill: 'backwards' },
   )
   ride.onfinish = arrived
   ride.oncancel = arrived
