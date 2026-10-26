@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
-  gapMinutes, canMerge, showStanding, ribbonSegments, routeThumb, dayAtNow, batteryBars, thumbLine,
+  gapMinutes, canMerge, showStanding, ribbonSegments, dayAtNow, batteryBars,
   type DayLog, type DayTrip, type DayEvent,
 } from './storyDay'
 
@@ -132,21 +132,6 @@ describe('ribbonSegments', () => {
   })
 })
 
-describe('routeThumb', () => {
-  it('passt die Strecke ins Feld, Norden oben, Seitenverhältnis bleibt', () => {
-    // [lat, lng]: 1 Grad nach Osten, dann 1 Grad nach Norden
-    const r = routeThumb([[0, 0], [0, 1], [1, 1]], 60, 44, 4)!
-    expect(r.d).toBe('M12,40L48,40L48,4')
-    expect(r.end).toEqual([48, 4])
-  })
-  it('ein Punkt: nur der Punkt in der Mitte', () => {
-    expect(routeThumb([[52.5, 13.4]], 60, 44)).toEqual({ d: '', end: [30, 22] })
-  })
-  it('keine Punkte: nichts', () => {
-    expect(routeThumb([], 60, 44)).toBeNull()
-  })
-})
-
 describe('dayAtNow', () => {
   it('Datum des Tages, Uhrzeit von jetzt', () => {
     const d = dayAtNow('2026-08-16', new Date(2026, 9, 25, 19, 42, 31))
@@ -174,27 +159,5 @@ describe('batteryBars', () => {
     expect(bars[16].kind).toBe('charge')
     expect(bars[20].kind).toBe('idle')
     expect(bars[24].kind).toBe('trip')
-  })
-})
-
-describe('thumbLine', () => {
-  it('Spur vor Luftlinie', () => {
-    const l = thumbLine(trip({ tracePolyline: '_p~iF~ps|U_ulLnnqC', locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33dc0' }))
-    expect(l).toMatchObject({ dashed: false })
-    expect(l!.points).toHaveLength(2)
-  })
-  it('ohne Spur: Luftlinie zwischen Start und Ziel, gestrichelt', () => {
-    const l = thumbLine(trip({ locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33dc0bc' }))
-    expect(l).toMatchObject({ dashed: true })
-    expect(l!.points).toHaveLength(2)
-  })
-  it('Start gleich Ziel: ein Punkt', () => {
-    const l = thumbLine(trip({ locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33df5ze' }))
-    expect(l).toMatchObject({ dashed: false })
-    expect(l!.points).toHaveLength(1)
-  })
-  it('kein Ort: nichts', () => {
-    expect(thumbLine(trip())).toBeNull()
-    expect(thumbLine(trip({ locationStartGeohash: 'u33df5ze' }))).toBeNull()
   })
 })

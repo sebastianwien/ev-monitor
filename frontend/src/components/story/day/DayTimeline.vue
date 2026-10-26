@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, MapIcon, ChevronRightIcon, LinkIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import {
-  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, routeThumb, thumbLine, type DayEvent,
+  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, type DayEvent,
 } from '../../../composables/storyDay'
+import { hasTripMap, isRoutedLine, mapCredit, tripLine } from '../../../utils/tripMap'
+
+const ActivityLocationMap = defineAsyncComponent(() => import('../../dashboard/ActivityLocationMap.vue'))
 
 /**
  * Ablauf eines Tages: chronologische Liste mit senkrechter Leiste. Zeilen mindestens 56 px, hier wird
@@ -34,11 +37,11 @@ function chargeSub(e: DayEvent & { kind: 'charge' }) {
   return [type, dur(e.to - e.from), k != null ? `${formatDecimal(k, 1)} kWh` : null].filter(Boolean).join(' · ')
 }
 const tripSub = (e: DayEvent) => dur(e.to - e.from)
-function thumb(e: DayEvent & { kind: 'trip' }) {
-  const line = thumbLine(e.trip)
-  const r = line ? routeThumb(line.points, 60, 44, 8) : null
-  return r && line ? { ...r, dashed: line.dashed } : null
-}
+/** Die Minikarten tragen keine eigene Attribution - sie steht einmal unter der Liste. */
+const credit = computed(() => {
+  const mapped = props.events.flatMap(e => e.kind === 'trip' && hasTripMap(e.trip) ? [e.trip] : [])
+  return mapped.length ? mapCredit(mapped.some(tr => isRoutedLine(tripLine(tr.tracePolyline, tr.routePolyline, tr.routeKind)))) : null
+})
 /** Änderung des Akkus als "+72 %" oder "−2 %" */
 const delta = (from: number, to: number) => { const d = Math.round(to - from); return d > 0 ? `+${d} %` : `−${-d} %` }
 
@@ -47,6 +50,7 @@ const confirming = ref<string | null>(null)
 </script>
 
 <template>
+  <div>
   <ul class="relative -mx-2" data-testid="day-timeline">
     <span class="pointer-events-none absolute bottom-6 left-[77px] top-6 w-0.5 bg-gray-200 dark:bg-gray-800" aria-hidden="true" />
     <template v-for="(e, i) in events" :key="e.id">
@@ -95,11 +99,11 @@ const confirming = ref<string | null>(null)
               </span>
               <span v-else-if="e.socTo != null" class="mt-1 block text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ soc(e) }}</span>
             </span>
-            <svg v-if="thumb(e)" viewBox="0 0 60 44" class="h-11 w-[60px] shrink-0 rounded-lg bg-gray-100 dark:bg-white/5" aria-hidden="true">
-              <path v-if="thumb(e)!.d" :d="thumb(e)!.d" class="fill-none stroke-gray-900 dark:stroke-gray-100" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"
-                :stroke-dasharray="thumb(e)!.dashed ? '3 3' : undefined" />
-              <circle :cx="thumb(e)!.end[0]" :cy="thumb(e)!.end[1]" r="2.6" class="fill-green-600 dark:fill-green-400" />
-            </svg>
+            <!-- isolate: Leaflets Ebenen dürfen nicht über die Kopfzeile des Sheets ragen -->
+            <span v-if="hasTripMap(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-11 w-[60px] shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-white/5">
+              <ActivityLocationMap variant="thumb" :start-geohash="e.trip.locationStartGeohash" :end-geohash="e.trip.locationEndGeohash"
+                :route-polyline="e.trip.routePolyline" :route-kind="e.trip.routeKind" :trace-polyline="e.trip.tracePolyline" />
+            </span>
           </template>
           <template v-else>
             <span class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
@@ -126,4 +130,6 @@ const confirming = ref<string | null>(null)
       </li>
     </template>
   </ul>
+  <p v-if="credit" data-testid="day-map-credit" class="mt-1 text-right text-[10px] text-gray-400 dark:text-gray-500">{{ credit }}</p>
+  </div>
 </template>
