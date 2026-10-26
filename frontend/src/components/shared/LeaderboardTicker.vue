@@ -22,8 +22,9 @@ const { tickerHasItems, tickerCollapsed: collapsed, toggle } = useTickerState()
 
 const look = computed(() => props.docked
   // In der grünen Kopfzeile: eine Stufe kräftigeres Grün als die Nav, dunkler Text, Kante unten wie die Nav.
+  // Dunkel deckend (green-900 zu 40 % auf gray-950 gemischt): der Inhalt scrollt unter dem Band durch.
   ? {
-    band: 'bg-green-100 border-b-2 border-gray-900 dark:bg-green-900/40 dark:border-gray-800',
+    band: 'bg-green-100 border-b-2 border-gray-900 dark:bg-[#0a251d] dark:border-gray-800',
     muted: 'text-green-800/70 hover:text-gray-900 dark:text-green-200/70 dark:hover:text-white',
     tab: 'bg-green-100 border-gray-900 border-2 text-green-800/80 hover:text-gray-900 dark:bg-green-950 dark:border-gray-800 dark:text-green-200/80 dark:hover:text-white',
     focus: 'focus-visible:outline-gray-900/60 dark:focus-visible:outline-white/70',
