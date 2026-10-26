@@ -158,9 +158,11 @@ export function ribbonSegments(ev: DayEvent[]) {
 /**
  * Mini-Strecke einer Fahrt als SVG-Pfad im Feld w×h, Norden oben, Seitenverhältnis wie auf der Karte
  * (für die kurze Distanz einer Fahrt reicht das ohne Projektion). Punkte als [lat, lng].
+ * Ein einzelner Punkt (Start gleich Ziel) steht ohne Linie in der Mitte.
  */
 export function routeThumb(points: [number, number][], w: number, h: number, pad = 4): { d: string; end: [number, number] } | null {
-  if (points.length < 2) return null
+  if (!points.length) return null
+  if (points.length === 1) return { d: '', end: [w / 2, h / 2] }
   const lats = points.map(p => p[0]), lngs = points.map(p => p[1])
   const minLat = Math.min(...lats), maxLat = Math.max(...lats), minLng = Math.min(...lngs), maxLng = Math.max(...lngs)
   const spanX = Math.max(maxLng - minLng, 1e-9), spanY = Math.max(maxLat - minLat, 1e-9)
@@ -206,11 +208,16 @@ export function batteryBars(ev: DayEvent[], slot = 30): BatteryBar[] {
   })
 }
 
-/** Linie der Mini-Strecke: aufgezeichnete oder berechnete Spur, sonst die Luftlinie zwischen Start und Ziel (gestrichelt). */
+/**
+ * Linie der Mini-Strecke: aufgezeichnete oder berechnete Spur, sonst die Luftlinie zwischen Start und Ziel
+ * (gestrichelt). Start gleich Ziel ohne Spur: nur der Ort als ein Punkt.
+ */
 export function thumbLine(t: DayTrip): { points: [number, number][]; dashed: boolean } | null {
   const line = tripLine(t.tracePolyline, t.routePolyline, t.routeKind)
   if (line) return { points: line.points, dashed: false }
-  if (!t.locationStartGeohash || !t.locationEndGeohash || t.locationStartGeohash === t.locationEndGeohash) return null
-  const a = geohash.decode(t.locationStartGeohash), b = geohash.decode(t.locationEndGeohash)
+  if (!t.locationStartGeohash || !t.locationEndGeohash) return null
+  const a = geohash.decode(t.locationStartGeohash)
+  if (t.locationStartGeohash === t.locationEndGeohash) return { points: [[a.latitude, a.longitude]], dashed: false }
+  const b = geohash.decode(t.locationEndGeohash)
   return { points: [[a.latitude, a.longitude], [b.latitude, b.longitude]], dashed: true }
 }

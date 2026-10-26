@@ -96,7 +96,7 @@ const confirming = ref<string | null>(null)
               <span v-else-if="e.socTo != null" class="mt-1 block text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ soc(e) }}</span>
             </span>
             <svg v-if="thumb(e)" viewBox="0 0 60 44" class="h-11 w-[60px] shrink-0 rounded-lg bg-gray-100 dark:bg-white/5" aria-hidden="true">
-              <path :d="thumb(e)!.d" class="fill-none stroke-gray-900 dark:stroke-gray-100" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"
+              <path v-if="thumb(e)!.d" :d="thumb(e)!.d" class="fill-none stroke-gray-900 dark:stroke-gray-100" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"
                 :stroke-dasharray="thumb(e)!.dashed ? '3 3' : undefined" />
               <circle :cx="thumb(e)!.end[0]" :cy="thumb(e)!.end[1]" r="2.6" class="fill-green-600 dark:fill-green-400" />
             </svg>

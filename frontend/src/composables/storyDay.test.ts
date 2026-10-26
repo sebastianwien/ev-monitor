@@ -139,8 +139,11 @@ describe('routeThumb', () => {
     expect(r.d).toBe('M12,40L48,40L48,4')
     expect(r.end).toEqual([48, 4])
   })
-  it('weniger als zwei Punkte: nichts', () => {
-    expect(routeThumb([[0, 0]], 60, 44)).toBeNull()
+  it('ein Punkt: nur der Punkt in der Mitte', () => {
+    expect(routeThumb([[52.5, 13.4]], 60, 44)).toEqual({ d: '', end: [30, 22] })
+  })
+  it('keine Punkte: nichts', () => {
+    expect(routeThumb([], 60, 44)).toBeNull()
   })
 })
 
@@ -185,8 +188,13 @@ describe('thumbLine', () => {
     expect(l).toMatchObject({ dashed: true })
     expect(l!.points).toHaveLength(2)
   })
-  it('gleicher Ort oder kein Ort: nichts', () => {
-    expect(thumbLine(trip({ locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33df5ze' }))).toBeNull()
+  it('Start gleich Ziel: ein Punkt', () => {
+    const l = thumbLine(trip({ locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33df5ze' }))
+    expect(l).toMatchObject({ dashed: false })
+    expect(l!.points).toHaveLength(1)
+  })
+  it('kein Ort: nichts', () => {
     expect(thumbLine(trip())).toBeNull()
+    expect(thumbLine(trip({ locationStartGeohash: 'u33df5ze' }))).toBeNull()
   })
 })
