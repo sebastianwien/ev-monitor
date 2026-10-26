@@ -4356,6 +4356,7 @@ story:
   days_legend_drove: "driven"
   days_legend_gap: "nothing logged"
   days_tap_hint: "Tap a day for details"
+  days_click_hint: "Click a day for details"
   day_tip_charges: "{n} charge, {kwh} | {n} charges, {kwh}"
   day_tip_empty: "nothing logged"
   day_tip_future: "still to come"

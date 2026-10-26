@@ -136,7 +136,7 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.leng
         <span class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-green-700 dark:bg-green-400" />{{ t('story.days_legend_charged') }}</span>
         <span v-if="hasTrips" class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-sky-500 dark:bg-sky-400" />{{ t('story.days_legend_drove') }}</span>
         <span v-if="gap" class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-amber-400" />{{ t('story.days_legend_gap') }}</span>
-        <small data-testid="story-days-hint" class="ml-auto text-[11px] text-gray-500 md:hidden dark:text-gray-400">{{ t('story.days_tap_hint') }}</small>
+        <small data-testid="story-days-hint" class="ml-auto text-[11px] text-gray-500 dark:text-gray-400"><span class="md:hidden">{{ t('story.days_tap_hint') }}</span><span class="hidden md:inline">{{ t('story.days_click_hint') }}</span></small>
       </div>
     </div>
     <p class="text-[12.5px] text-gray-500 tabular-nums dark:text-gray-400">{{ caption }}<template v-if="quality && quality.total > 0"><template v-if="quality.priceless > 0">, <span class="text-amber-700 dark:text-amber-400">{{ t('story.quality_priceless', { n: quality.priceless }) }}<template v-if="quality.pricelessOpen > 0">{{ ' ' }}<router-link to="/logs" class="font-semibold underline underline-offset-2">{{ t('story.quality_fix') }}</router-link></template></span></template>.</template><span v-if="gap" class="text-amber-700 dark:text-amber-400">{{ ' ' + t('story.days_gap', gap) }}</span></p>
