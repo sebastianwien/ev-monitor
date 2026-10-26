@@ -122,17 +122,14 @@ class UserSubscriptionTierTest {
     }
 
     @Test
-    void canViewLiveCharging_nonTeslaCar_onlyForLiveTierOrAdmin_betaTesterExcluded() {
-        // For non-Tesla brands the card stays a paid feature: AUTOSYNC_LIVE or ADMIN only.
-        // BETA_TESTER is intentionally excluded so the card remains a paid-feature preview.
-        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging(CarBrand.VW));
-        assertTrue(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
-        assertTrue(buildUser("TESLA_FOUNDER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging(CarBrand.VW));
-        assertFalse(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
+    void canViewLiveCharging_nonTeslaCar_neverVisible_noLiveSource() {
+        // Only Tesla Fleet Telemetry delivers live charging data. For other brands the card
+        // would stay empty, so no tier or role unlocks it.
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging(CarBrand.VW));
+        assertFalse(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
         assertFalse(buildUser("BETA_TESTER", SubscriptionTier.AUTOSYNC).canViewLiveCharging(CarBrand.VW));
-        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveCharging(CarBrand.VW));
         assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
-        assertFalse(buildUser("TESLA_FOUNDER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
+        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging(null));
     }
 
     @Test

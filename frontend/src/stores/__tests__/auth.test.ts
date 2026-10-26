@@ -4,7 +4,7 @@ import { useAuthStore, type JwtClaims } from '../auth'
 
 /**
  * Marken-aware entitlement gates - frontend mirror of the backend User gates.
- *   - canViewLiveCharging(brand): free for Tesla, else AUTOSYNC_LIVE/ADMIN
+ *   - canViewLiveCharging(brand): Tesla only (only Fleet Telemetry delivers live data)
  *   - canViewLiveAnalytics: paid analytics layer (power curves, phantom drain im
  *     Logfeed, Share), no Tesla-free path, kein Probemonat
  *   - canViewEnergySplit: die Energie-Split-Kachel = bezahlt ODER launch-verankerter
@@ -35,18 +35,11 @@ describe('auth store entitlement gates', () => {
             expect(store.canViewLiveCharging('TESLA')).toBe(true)
         })
 
-        it('requires AUTOSYNC_LIVE or ADMIN for non-Tesla brands', () => {
-            expect(setUser('USER', 'AUTOSYNC_LIVE', true).canViewLiveCharging('vw')).toBe(true)
-            expect(setUser('ADMIN', 'NONE', false).canViewLiveCharging('vw')).toBe(true)
-            expect(setUser('USER', 'AUTOSYNC', true).canViewLiveCharging('vw')).toBe(false)
+        it('is closed for non-Tesla brands regardless of tier/role (no live source)', () => {
+            expect(setUser('USER', 'AUTOSYNC_LIVE', true).canViewLiveCharging('vw')).toBe(false)
+            expect(setUser('ADMIN', 'NONE', false).canViewLiveCharging('vw')).toBe(false)
             expect(setUser('USER', 'NONE', false).canViewLiveCharging('vw')).toBe(false)
-            // BETA_TESTER excluded for non-Tesla so the card stays a paid preview
-            expect(setUser('BETA_TESTER', 'NONE', false).canViewLiveCharging('vw')).toBe(false)
-        })
-
-        it('treats null/empty brand as non-Tesla (paid gate)', () => {
-            expect(setUser('USER', 'NONE', false).canViewLiveCharging(null)).toBe(false)
-            expect(setUser('USER', 'AUTOSYNC_LIVE', true).canViewLiveCharging(null)).toBe(true)
+            expect(setUser('USER', 'AUTOSYNC_LIVE', true).canViewLiveCharging(null)).toBe(false)
         })
     })
 

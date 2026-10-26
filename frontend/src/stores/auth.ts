@@ -214,10 +214,9 @@ export const useAuthStore = defineStore('auth', () => {
         user.value?.subscriptionTier === 'AUTOSYNC' || canViewLiveAnalytics.value);
 
     // Mirrors backend User.canViewLiveCharging(CarBrand): the dashboard Live-Charging card
-    // is free for Tesla, otherwise AUTOSYNC_LIVE or ADMIN (BETA_TESTER excluded for other
-    // brands so the card stays a paid-feature preview). Server-side gate in LiveController.
-    const canViewLiveCharging = (brand?: string | null) =>
-        isTeslaBrand(brand) || isAutoSyncLive.value || isAdmin.value;
+    // is open to every Tesla driver - only Tesla Fleet Telemetry delivers live data, so no
+    // tier or role opens it for other brands. Server-side gate in LiveController.
+    const canViewLiveCharging = (brand?: string | null) => isTeslaBrand(brand);
 
     return {
         token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
