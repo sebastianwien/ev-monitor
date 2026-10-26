@@ -3,11 +3,12 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import BottomSheet from '../shared/BottomSheet.vue'
-import TripForm from './TripForm.vue'
+import DayTripForm from '../story/day/DayTripForm.vue'
 
 /**
- * Sheet um das TripForm. Im Log-Feed wird dieselbe Fahrt inline in ihrer Zeile
- * bearbeitet - auf dem Dashboard fehlt diese Zeile, also bekommt das Formular hier ein
+ * Sheet um das Fahrt-Formular der App-CI (DayTripForm, wie Tagesblatt und Log-Feed). Im Log-Feed
+ * wird dieselbe Fahrt inline in ihrer Zeile bearbeitet - auf dem Dashboard fehlt diese Zeile, also
+ * bekommt das Formular hier ein
  * eigenes Overlay. Formular-Model, Speichern und Fehlerbehandlung liegen unveraendert
  * beim Aufrufer (useLogList), diese Komponente ist nur die Huelle.
  *
@@ -40,9 +41,10 @@ defineExpose({ requestClose: () => sheet.value?.requestClose() })
     @close="emit('close')">
     <template #default="{ close }">
       <div class="flex-1 overflow-y-auto p-4">
-        <TripForm
+        <DayTripForm
           v-model="form"
           mode="edit"
+          :title="t('dashboard.trip_edit')"
           :error="error"
           :saving="saving"
           :distance-unit="distanceUnitLabel()"
