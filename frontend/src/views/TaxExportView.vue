@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { carDisplayName } from '@/utils/enumLabel'
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { carService, type Car } from '../api/carService'
@@ -158,7 +159,7 @@ const downloadFile = async (type: 'csv' | 'pdf') => {
                   : 'border-gray-200 dark:border-gray-600 hover:border-blue-300'
               ]">
               <p class="font-medium text-sm text-gray-900 dark:text-gray-100">
-                {{ car.brand }} {{ car.model.replace(/_/g, ' ') }}
+                {{ carDisplayName(car) }}
               </p>
               <p v-if="car.licensePlate" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                 {{ car.licensePlate }}

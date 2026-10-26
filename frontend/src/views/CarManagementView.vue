@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { carDisplayName } from '../utils/enumLabel'
 import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -52,7 +53,6 @@ const {
   capacityWasCorrected,
   fetchCars, refreshCars, fetchBrands, resetForm,
   openAddForm, openEditForm, submitForm, deleteCar, setActiveCar, getModelLabel, toastUndo,
-  brands,
 } = useCarForm()
 
 // Formularzustand fuer CarFormFields: reactive() packt die Refs aus, v-model dort schreibt
@@ -138,14 +138,7 @@ const teslaCallbackError = ref<string | null>(null)
 // Frisch angelegte Smartcar-Marke ohne Abo: AutoSync direkt anbieten (dieselbe Regel wie der
 // Teaser in der Card). Der EU-Data-Act-Weg bleibt unter /imports, wird hier aber nicht mehr beworben.
 const autoSyncPromptCar = ref<Car | null>(null)
-// Anzeigename aus den Backend-Labels (Marke aus der Markenliste, Modell wie im Kartenkopf),
-// nie aus den Enum-Namen: daraus wuerde "Vw Id 5".
-const autoSyncPromptCarName = computed(() => {
-  const car = autoSyncPromptCar.value
-  if (!car) return ''
-  const brand = brands.value.find(b => b.value === car.brand)?.label ?? car.brand
-  return `${brand} ${getModelLabel(car.model)}`.trim()
-})
+const autoSyncPromptCarName = computed(() => carDisplayName(autoSyncPromptCar.value))
 const doSubmitForm = async () => {
   submitting.value = true
   try {
@@ -355,7 +348,7 @@ const copyCarId = async (id: string) => {
         <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] md:overflow-hidden pb-6">
         <CarHero
           :car="selectedCar"
-          :model-label="getModelLabel(selectedCar.model)"
+          :model-label="carDisplayName(selectedCar)"
           :image-url="imageBlobUrls[selectedCar.id] ?? null"
           :uploading="!!imageUploading[selectedCar.id]"
           :tesla-status="teslaStatus"
@@ -386,7 +379,7 @@ const copyCarId = async (id: string) => {
             </div>
             <div class="space-y-4">
               <CarRatingsCard v-if="ratingFor(selectedCar.id)" :key="`rating-${selectedCar.id}`" :car-id="selectedCar.id" :eligibility="ratingFor(selectedCar.id)!" />
-              <CarShareBox :key="`${selectedCar.id}-${shareBoxRev}`" :car-id="selectedCar.id" :title="getModelLabel(selectedCar.model)" compact @changed="onShareChanged" />
+              <CarShareBox :key="`${selectedCar.id}-${shareBoxRev}`" :car-id="selectedCar.id" :title="carDisplayName(selectedCar)" compact @changed="onShareChanged" />
             </div>
           </div>
 
@@ -400,7 +393,7 @@ const copyCarId = async (id: string) => {
         <CarManageSheet
           v-if="menuOpen"
           :car="selectedCar"
-          :model-label="getModelLabel(selectedCar.model)"
+          :model-label="carDisplayName(selectedCar)"
           :image-url="imageBlobUrls[selectedCar.id] ?? null"
           :image-public="imagePublicForUpload[selectedCar.id] ?? false"
           :uploading="!!imageUploading[selectedCar.id]"
@@ -506,7 +499,7 @@ const copyCarId = async (id: string) => {
     <CarShareSheet
       v-if="shareSheetOpen && selectedCar"
       :car-id="selectedCar.id"
-      :title="getModelLabel(selectedCar.model)"
+      :title="carDisplayName(selectedCar)"
       source="car_management"
       @close="closeShareSheet"
     />

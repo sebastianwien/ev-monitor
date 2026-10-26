@@ -15,7 +15,7 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { purchasesAvailable } from '../../utils/iapPolicy'
 
 const props = defineProps<{
-  car: { brand: string; model: string; [key: string]: unknown }
+  car: { brand: string; model: string; displayName?: string; [key: string]: unknown }
 }>()
 
 const { t } = useI18n()
@@ -60,8 +60,7 @@ const deltaBadgeClass = computed(() => {
 
 const modelLabel = computed(() =>
   communityStats.value?.modelDisplayName
-  ?? props.car.model.replace(/_/g, ' ').toLowerCase()
-      .split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  ?? props.car.displayName ?? ''
 )
 
 const importSources = ['Sprit-Monitor', 'CSV', 'Tronity', 'go-e Charger']

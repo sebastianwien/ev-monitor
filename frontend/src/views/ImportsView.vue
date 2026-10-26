@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { carDisplayName } from '@/utils/enumLabel'
 import { ref, computed, onMounted, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth'
@@ -189,9 +190,6 @@ const copyApiKey = async () => {
     setTimeout(() => { keyCopied.value = false }, 2000)
   } catch { /* ignore */ }
 }
-
-const toModelLabel = (model: string) =>
-  model.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
 
 const copiedCarId = ref<string | null>(null)
 const copyCarId = async (id: string) => {
@@ -403,7 +401,7 @@ const teslaConnectedLabel = ref<string | null>(null)
                 <div v-for="car in activeCars" :key="car.id"
                   class="flex items-center gap-2 border-2 border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-sm p-3">
                   <div class="flex-1 min-w-0">
-                    <p class="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{{ car.year }} {{ toModelLabel(car.model) }}<span v-if="car.licensePlate" class="text-gray-500 dark:text-gray-400 font-normal"> · {{ car.licensePlate }}</span></p>
+                    <p class="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{{ car.year }} {{ carDisplayName(car) }}<span v-if="car.licensePlate" class="text-gray-500 dark:text-gray-400 font-normal"> · {{ car.licensePlate }}</span></p>
                     <p class="text-[11px] font-mono text-gray-500 dark:text-gray-400 mt-0.5 select-all">{{ car.id }}</p>
                   </div>
                   <button @click="copyCarId(car.id)" :title="t('cars.api_id_copy')"
