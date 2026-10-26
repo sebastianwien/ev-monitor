@@ -9,7 +9,8 @@ defineProps<{ order: readonly string[] }>()
 </script>
 
 <template>
-  <div class="-mx-4 md:mx-0 border-y-2 md:border-2 border-gray-300 dark:border-gray-700 md:rounded-sm divide-y-2 divide-gray-300 dark:divide-gray-700 overflow-hidden md:shadow-[2px_2px_0_0_#d1d5db] dark:md:shadow-[2px_2px_0_0_#374151]">
+  <!-- Liegt in der Box der Seite: nur Haarlinien zwischen den Sektionen, keine eigene Kante -->
+  <div class="divide-y divide-gray-200 border-t border-gray-200 dark:divide-white/10 dark:border-white/10">
     <template v-for="section in order" :key="section">
       <slot :name="section" />
     </template>
