@@ -11,10 +11,14 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
 const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 
-function mount(latest: StoryLatest, now: number, extra: Record<string, unknown> = {}) {
+function mount(latest: StoryLatest, now: number, extra: Record<string, unknown> = {}, events: unknown[][] = []) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(StoryLatestCards, { latest, carId: 'c1', now, ...extra })
+  app = createApp(StoryLatestCards, {
+    latest, now, ...extra,
+    onOpenCharge: (...a: unknown[]) => events.push(['charge', ...a]),
+    onOpenTrip: (...a: unknown[]) => events.push(['trip', ...a]),
+  })
   app.use(createPinia()).use(i18n)
   app.component('router-link', RouterLink)
   app.mount(host)
@@ -26,20 +30,22 @@ const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim(
 describe('StoryLatestCards', () => {
   const now = Date.parse('2026-10-02T12:00:00Z')
 
-  it('zwei tippbare Karten: Ladung mit kWh und Preis, Fahrt mit km, beide ins Logbuch', () => {
+  it('zwei tippbare Karten: Ladung mit kWh und Preis, Fahrt mit km, beide öffnen ihren Editor', () => {
+    const events: unknown[][] = []
     const host = mount({
       charge: { id: 'l', at: '2026-10-01T18:00:00Z', kwh: 31.9, costEur: 12.4 },
       trip: { id: 't', at: '2026-10-02T09:00:00Z', km: 23.4 },
-    }, now)
-    const charge = host.querySelector('[data-testid="story-latest-charge"]')
+    }, now, {}, events)
+    const charge = host.querySelector<HTMLElement>('[data-testid="story-latest-charge"]')
     expect(text(charge)).toContain('Zuletzt geladen: 31,9 kWh')
     expect(text(charge)).toContain('vor 18 Stunden')
     expect(text(charge)).toContain('12,40 €')
-    expect(charge?.getAttribute('href')).toBe('/logs')
-    const trip = host.querySelector('[data-testid="story-latest-trip"]')
+    const trip = host.querySelector<HTMLElement>('[data-testid="story-latest-trip"]')
     expect(text(trip)).toContain('Letzte Fahrt: 23 km')
     expect(text(trip)).toContain('vor 3 Stunden')
-    expect(trip?.getAttribute('href')).toBe('/logs')
+    charge?.click()
+    trip?.click()
+    expect(events).toEqual([['charge', 'l', false], ['trip', 't']])
   })
 
   it('Unterzeile mit Ladeort, Ladeart und Streckentyp, wenn bekannt', () => {
@@ -52,11 +58,13 @@ describe('StoryLatestCards', () => {
   })
 
   it('ohne Preis führt die Ladung direkt zum Nachtragen', () => {
-    const host = mount({ charge: { id: 'l', at: '2026-10-02T11:59:30Z', kwh: 10, costEur: null }, trip: null }, now)
-    const charge = host.querySelector('[data-testid="story-latest-charge"]')
+    const events: unknown[][] = []
+    const host = mount({ charge: { id: 'l', at: '2026-10-02T11:59:30Z', kwh: 10, costEur: null }, trip: null }, now, {}, events)
+    const charge = host.querySelector<HTMLElement>('[data-testid="story-latest-charge"]')
     expect(text(charge)).toContain('gerade eben')
     expect(text(charge)).toContain('Preis nachtragen')
-    expect(charge?.getAttribute('href')).toBe('/logs?car=c1&nachtragen=preis')
+    charge?.click()
+    expect(events).toEqual([['charge', 'l', true]])
     expect(host.querySelector('[data-testid="story-latest-trip"]')).toBeNull()
   })
 

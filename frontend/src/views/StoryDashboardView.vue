@@ -34,12 +34,14 @@ import CarSwitch from '../components/car/CarSwitch.vue'
 import api from '../api/axios'
 import { teaserParts, type PlacePeriod } from '../composables/storyPlaces'
 import type { EvLogResponse } from '../components/dashboard/EditLogModal.vue'
+import type { SummarySection } from '../components/log-wizard/LogSummary.vue'
 import { dayKeyOf } from '../composables/storyDay'
 import { useLogsRefreshStore } from '../stores/logsRefresh'
 
 const StorySheet = defineAsyncComponent(() => import('../components/story/StorySheet.vue'))
 const StoryPriceSheet = defineAsyncComponent(() => import('../components/story/StoryPriceSheet.vue'))
 const PlacesSheet = defineAsyncComponent(() => import('../components/story/places/PlacesSheet.vue'))
+const EditTripModal = defineAsyncComponent(() => import('../components/dashboard/EditTripModal.vue'))
 const EditLogModal = defineAsyncComponent(() => import('../components/dashboard/EditLogModal.vue'))
 const StoryDaySheet = defineAsyncComponent(() => import('../components/story/day/StoryDaySheet.vue'))
 const LogFormModal = defineAsyncComponent(() => import('../components/log-form/LogFormModal.vue'))
@@ -209,13 +211,44 @@ const openPrices = ref(false)
 /** Zeitraum der Ladekarte, bleibt beim Schließen und Wiederöffnen erhalten. */
 const placesPeriod = ref<PlacePeriod>('12m')
 const operatorLog = ref<EvLogResponse | null>(null)
+/** Abschnitt, in dem der Editor öffnet: Ort aus der Ladekarte, Kosten bei fehlendem Preis. */
+const operatorSection = ref<SummarySection | undefined>('place')
 const placesSheet = ref<{ reload: () => void } | null>(null)
 /** "Betreiber eintragen": die Ladung öffnet im Ort, über der Karte und leichter abgedunkelt. */
-async function openOperator(logId: string) {
+async function openOperator(logId: string, section: SummarySection | undefined = 'place') {
+  operatorSection.value = section
   try {
     operatorLog.value = (await api.get<EvLogResponse>(`/logs/${logId}`)).data
   } catch { /* Ladung weg oder offline: die Karte bleibt einfach stehen */ }
 }
+/** Karte "Zuletzt geladen": Ladung ansehen und bearbeiten, ohne Preis direkt bei den Kosten. */
+function openLatestCharge(logId: string, missingPrice: boolean) {
+  openOperator(logId, missingPrice ? 'cost' : undefined)
+}
+
+// Karte "Letzte Fahrt": dasselbe Fahrt-Sheet wie das alte Dashboard, Formular-State im CarContext.
+const tripModalId = ref<string | null>(null)
+const tripSheet = ref<{ requestClose: () => void } | null>(null)
+function openLatestTrip(tripId: string) {
+  const trip = ctx.latestTrip.value
+  if (trip?.id !== tripId) return
+  ctx.startEditTrip(trip)
+  tripModalId.value = tripId
+}
+async function submitTripEdit() {
+  const id = tripModalId.value
+  if (!id) return
+  await ctx.saveTripEdit(id)
+  if (ctx.tripError.value) return
+  tripSheet.value?.requestClose()
+  ctx.refreshLogsAndGroups()
+  story.reload()
+}
+function onTripSheetClosed() {
+  ctx.cancelTripEdit()
+  tripModalId.value = null
+}
+
 function closeOperator(changed: boolean) {
   operatorLog.value = null
   if (!changed) return
@@ -369,7 +402,7 @@ onUnmounted(() => unregisterReload?.())
               {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
             </p>
             <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :days="days" :quality="quality" @open-day="onOpenDay" />
-            <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" :car-id="selectedCarId" :price-in-hero="priceInHero" />
+            <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" :price-in-hero="priceInHero" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
             <StoryFeed
               v-if="narrow && showFeed"
               :feed="feed" :upsell-to="upsellTo" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
@@ -411,11 +444,19 @@ onUnmounted(() => unregisterReload?.())
     <EditLogModal
       v-if="operatorLog"
       :log="operatorLog"
-      start-section="place"
+      :start-section="operatorSection"
       stacked
       @close="closeOperator(false)"
       @saved="closeOperator(true)"
       @deleted="closeOperator(true)" />
+    <EditTripModal
+      v-if="tripModalId"
+      ref="tripSheet"
+      v-model="ctx.tripForm.value"
+      :error="ctx.tripError.value"
+      :saving="ctx.tripSaving.value"
+      @save="submitTripEdit"
+      @close="onTripSheetClosed" />
     <StoryDaySheet
       v-if="openDay && selectedCarId"
       v-model:day="openDay"
