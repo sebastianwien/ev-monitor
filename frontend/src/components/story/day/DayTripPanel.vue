@@ -22,7 +22,7 @@ const { t } = useI18n()
 const { distanceUnitLabel } = useLocaleFormat()
 const { deleteTripWithUndo } = useLogUndo()
 
-// Record wie in useLogList: TripForm schreibt leere Felder als ''
+// Record wie in useLogList: DayTripForm schreibt leere Felder als ''
 const form = ref<Record<string, any>>(props.trip ? tripFormFrom(props.trip) : newTripFormAt(props.newEnd))
 const saving = ref(false)
 const error = ref<string | null>(null)

@@ -3,8 +3,8 @@ import { useI18n } from 'vue-i18n'
 import ChoiceChip from '../../shared/ChoiceChip.vue'
 
 /**
- * Fahrt-Formular in der App-CI (Tagesblatt und Log-Feed). Gleiches Modell wie TripForm, das im
- * alten Dashboard weiterläuft: Zeiten als datetime-local, leere Felder als ''.
+ * Fahrt-Formular in der App-CI (Tagesblatt, Log-Feed, Fahrt-Sheet). Modell aus useLogList:
+ * Zeiten als datetime-local, leere Felder als ''.
  * `title` setzt eine Überschrift, wenn das Formular nicht in einem Sheet mit eigenem Titel steht;
  * der Slot `extra` nimmt Zusätze vor den Knöpfen auf (Bewerten, Zusammenführen im Feed).
  */
