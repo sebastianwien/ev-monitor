@@ -33,6 +33,9 @@ nav:
   pricing: "Preise"
   dashboard: "Dashboard"
   models_compare: "Autos vergleichen"
+  cards: "Ladekarten"
+  vehicles: "Fahrzeuge"
+  account: "Konto"
   bottom:
     aria: "Hauptnavigation"
     start: "Start"

@@ -33,6 +33,9 @@ nav:
   pricing: "Pricing"
   dashboard: "Dashboard"
   models_compare: "Compare cars"
+  cards: "Charging cards"
+  vehicles: "Vehicles"
+  account: "Account"
   bottom:
     aria: "Main navigation"
     start: "Home"

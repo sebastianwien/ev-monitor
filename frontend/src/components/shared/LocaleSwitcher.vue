@@ -9,10 +9,12 @@
         :href="getHref(opt.value)"
         @click.prevent="switchLocale(opt.value)"
         :class="[
-          'px-1.5 py-0.5 rounded transition-colors cursor-pointer',
+          'transition-colors cursor-pointer',
           variant === 'nav'
-            ? currentLocale === opt.value ? 'text-white font-semibold' : 'text-indigo-300 hover:text-white'
-            : currentLocale === opt.value ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            ? ['px-1.5 py-0.5 rounded', currentLocale === opt.value ? 'text-white font-semibold' : 'text-indigo-300 hover:text-white']
+            // Wie die übrigen Knöpfe der Navbar: runde, leichte Fläche beim Hover, 40 px hoch
+            : ['inline-flex h-10 items-center rounded-full px-2 hover:bg-black/10 dark:hover:bg-white/10',
+               currentLocale === opt.value ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300']
         ]"
       >{{ opt.label }}</a>
     </template>

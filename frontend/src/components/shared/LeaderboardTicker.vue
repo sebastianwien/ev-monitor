@@ -149,7 +149,8 @@ onUnmounted(() => {
     @focusin="focused = true" @focusout="focused = false">
 
     <div class="overflow-hidden transition-[height] duration-300" :class="[look.band, isCollapsed ? 'h-1' : 'h-8']">
-      <div v-show="!isCollapsed" class="flex items-center h-full max-w-5xl mx-auto pl-2 sm:pl-4">
+      <!-- docked (WorkspaceFrame): ab md schmal und mittig unter der Navbar, mobil volle Breite -->
+      <div v-show="!isCollapsed" class="flex items-center h-full mx-auto" :class="docked ? 'pl-4 md:max-w-2xl md:px-3' : 'max-w-5xl pl-2 sm:pl-4'">
 
         <!-- Typ-Chip: Farbe und Icon tragen die Kategorie, damit der Text kurz bleiben kann -->
         <Transition name="ticker-chip" mode="out-in">

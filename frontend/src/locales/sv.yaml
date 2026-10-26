@@ -32,6 +32,9 @@ nav:
   pricing: Priser
   dashboard: Dashboard
   models_compare: Jämför bilar
+  cards: Laddningskort
+  vehicles: Fordon
+  account: Konto
   bottom:
     aria: Huvudnavigering
     start: Hem

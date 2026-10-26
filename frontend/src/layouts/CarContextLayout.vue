@@ -16,7 +16,6 @@ import { useCoinStore } from '../stores/coins'
 import { contextTabPaths } from '../config/tabs'
 import { useStoryOptIn } from '../composables/useStoryOptIn'
 import DashboardView from '../views/DashboardView.vue'
-import WorkspaceFrame from './WorkspaceFrame.vue'
 
 const LogsView = defineAsyncComponent(() => import('../views/LogsView.vue'))
 const StoryDashboardView = defineAsyncComponent(() => import('../views/StoryDashboardView.vue'))
@@ -27,9 +26,8 @@ const StoryDashboardView = defineAsyncComponent(() => import('../views/StoryDash
  * State lebt hier einmal (provideCarContext).
  * Den horizontalen Wechsel zwischen beiden Bodies macht der SwipeTabPager.
  *
- * Neues Design (Story-Opt-in, einzige Weiche): Gerüst WorkspaceFrame (gruener Kopf, Chips),
- * links die Uebersicht. Altes Design: Chrome aus App.vue, links das Dashboard. Faellt das alte
- * Design weg, wandert der Frame in eine Eltern-Route und die Weiche hier entfaellt.
+ * Neues Design (Story-Opt-in, einzige Weiche): links die Uebersicht, Kopf und Bereiche bringt das
+ * Geruest WorkspaceFrame aus App.vue. Altes Design: Chrome aus App.vue, links das Dashboard.
  *
  * Mobile hat hier bewusst keine eigene Tab-Leiste: die Bottom-Nav (Start/Logs) fuehrt
  * schon zwischen genau diesen beiden Zielen, ein zweiter Umschalter im Header waere
@@ -56,7 +54,7 @@ function shareFromHeader(car: Car) {
 </script>
 
 <template>
-  <component :is="storyDesign ? WorkspaceFrame : 'div'">
+  <div>
     <!-- Mobile Auto-Card nur ueber dem alten Dashboard. Uebersicht und Logs nennen das Auto in
          ihrer Kopfzeile (CarSwitch), dort sitzt auch der Wechsel. -->
     <div class="md:hidden px-3">
@@ -109,5 +107,5 @@ function shareFromHeader(car: Car) {
       @saved="(_log, coins, batch) => { priceAmendingLog = null; refreshLogsAndGroups(); fetchPricelessCount(); wattToast?.show(coins, batch > 0 ? t('priceamend.batch_done', batch) : ''); if (coins) coinStore.refresh() }"
     />
     <WattToast ref="wattToast" />
-  </component>
+  </div>
 </template>

@@ -16,9 +16,10 @@ export function contextTabPaths(storyDesign: boolean): readonly string[] {
   return storyDesign ? ['/story', CONTEXT_TABS[1].to] : CONTEXT_TABS.map(tab => tab.to)
 }
 
+/** barLabelKey: kurze Beschriftung in der Navbar (wenn sie dort passt), der Seitentitel bleibt "Meine ...". */
 export const CAR_TABS = [
-  { to: '/cars', labelKey: 'cars.title' },
-  { to: '/charging-providers', labelKey: 'settings.tariff_title' },
+  { to: '/cars', labelKey: 'cars.title', barLabelKey: 'nav.vehicles' },
+  { to: '/charging-providers', labelKey: 'settings.tariff_title', barLabelKey: 'nav.cards' },
 ] as const
 
 /**
@@ -34,8 +35,8 @@ export const WORKSPACE_TABS = [
 ] as const
 
 /**
- * Weitere Ziele der Übersicht (Story) auf dem Desktop: nach den vier Bereichen, aber nicht Teil
- * der Wisch-Tabs und ihrer Übergänge. Mobile erreicht sie über das Mehr-Menü.
+ * Weitere Ziele des eingeloggten Bereichs, nicht Teil der Wisch-Tabs: im neuen Design im Kontomenü
+ * der Navbar (ab md), mobil im Mehr-Menü.
  */
 export const WORKSPACE_LINKS = [
   { to: '/imports', labelKey: 'nav.bottom.import' },

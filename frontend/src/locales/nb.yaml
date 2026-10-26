@@ -32,6 +32,9 @@ nav:
   pricing: Priser
   dashboard: Dashbord
   models_compare: Sammenlign biler
+  cards: Ladekort
+  vehicles: Kjøretøy
+  account: Konto
   bottom:
     aria: Hovednavigasjon
     start: Hjem

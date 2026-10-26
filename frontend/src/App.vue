@@ -27,6 +27,7 @@ import FeedbackToast from './components/shared/FeedbackToast.vue'
 import LogUndoToast from './components/shared/LogUndoToast.vue'
 import BoltLogo from './components/shared/BoltLogo.vue'
 import WorkspaceNav from './components/shared/WorkspaceNav.vue'
+import WorkspaceFrame from './layouts/WorkspaceFrame.vue'
 import { WORKSPACE_TABS } from './config/tabs'
 import { HomeIcon, ArrowDownTrayIcon, UserIcon, BoltIcon, ChatBubbleLeftEllipsisIcon, ArrowsRightLeftIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 // Note: showImportOverlay kept for backward compat but SpritMonitor moved to /imports
@@ -258,6 +259,9 @@ onUnmounted(() => navResizeObserver?.disconnect())
 const WORKSPACE_PATHS: readonly string[] = WORKSPACE_TABS.map(tab => tab.to)
 /** Chip-Reihe des alten Chromes; im neuen Design (publicNav) bringt WorkspaceFrame sie mit */
 const isWorkspaceRoute = computed(() => memberChrome.value && WORKSPACE_PATHS.includes(route.path))
+/** Neues Design: ein Gerüst über allen vier Bereichen und der Übersicht, damit der Kopf beim Wechsel stehen bleibt */
+const workspaceFrame = computed(() => authStore.isAuthenticated() && publicNavRoute.value
+  && (route.path === '/story' || WORKSPACE_PATHS.includes(route.path)))
 
 // Impersonation
 const impersonatingAs = computed(() => sessionStorage.getItem('impersonating'))
@@ -569,7 +573,7 @@ const handleBottomLogout = () => {
       <div v-if="isWorkspaceRoute" class="hidden md:block md:max-w-6xl md:mx-auto md:px-6 md:pt-6">
         <WorkspaceNav class="mb-4" />
       </div>
-      <div class="relative">
+      <WorkspaceFrame :active="workspaceFrame" class="relative">
         <router-view v-slot="{ Component, route: r }">
           <!-- Modellseiten: eigene Instanz je Pfad (Modell -> Modell lädt neu), Wechsel ohne CSS als
                View Transition (router/pageTransitions.ts) -->
@@ -579,7 +583,7 @@ const handleBottomLogout = () => {
             </KeepAlive>
           </Transition>
         </router-view>
-      </div>
+      </WorkspaceFrame>
     </main>
 
     <!-- Footer nur fuer eingeloggte Nutzer auf Desktop. Mobile (und nativ) liegen die
