@@ -7,7 +7,7 @@ import { fuelPriceService, type FuelPrices } from '../api/fuelPriceService'
 import { chargingBenchmarkService, type ChargingBenchmark } from '../api/chargingBenchmarkService'
 import type { StatisticsData } from './useDashboardStats'
 import {
-  buildStoryTiles, buildStoryFeed, buildDayCoverage, monthWindow, PETROL_EUR_PER_L_DE,
+  buildStoryTiles, buildStoryFeed, buildDayCoverage, monthWindow, PETROL_EUR_PER_L_DE, petrolLitersPer100km,
   type StoryTile, type StoryFeedItem, type DayCoverage,
 } from './storyModel'
 import { buildEnergyFlow, buildRange, costLayers, monthCosts, type MonthCosts } from './storyEnergy'
@@ -45,6 +45,8 @@ export interface StoryCarContext {
   wltpConsumption: number | null
   sohPercent: number | null
   odometerKm: number | null
+  /** Fahrzeugklasse (VehicleCategory) für den Benziner im Vergleich */
+  vehicleCategory: string | null
   effectiveBatteryCapacityKwh: number | null
   energySplitLocked: boolean
   canViewLiveAnalytics: boolean
@@ -507,6 +509,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     temperature: temperature.value,
     temperatureLocked: !ctx().canViewLiveAnalytics && temperature.value == null,
     pricelessPrevious: pricelessInPreviousMonth.value,
+    vehicleCategory: ctx().vehicleCategory,
+    lifetimeSeries: lifetimeSeries.value,
     runningMonth: month.value.offset === 0,
     tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewLiveAnalytics,
       { charges: charges.value, avgCostPerKwh: monthStats.value?.avgCostPerKwh ?? null }),
@@ -539,12 +543,13 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
           priceless: pricelessInPreviousMonth.value,
         } : null,
         petrolEurPerLitre: petrol.value.eurPerLitre,
+        petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory),
       }),
       detectBattery({ history: sohHistory.value, now }),
       detectRank({ rank: bestRank(ranks.value), now }),
       detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
       // Die gerade geladene fragt schon selbst nach ihrem Preis.
-      detectMilestone({ series: lifetimeSeries.value, now }),
+      detectMilestone({ series: lifetimeSeries.value, now, petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory) }),
       detectGap({ logs: pricelessLogs.value, now, skipLogId: justCharged?.kind === 'just_charged' ? justCharged.logId : null }),
     ].filter((m): m is Moment => m != null)
     return pickMoment(candidates, now, seen.value)

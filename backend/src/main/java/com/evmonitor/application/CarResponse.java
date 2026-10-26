@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarStatus;
+import com.evmonitor.domain.VehicleCategory;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -18,6 +19,8 @@ public record CarResponse(
         String displayName,
         /** Nur das Modell, z. B. "ID.5", für Stellen, die die Marke schon zeigen. */
         String modelDisplayName,
+        /** Fahrzeugklasse des Modells; bestimmt den Benziner im Kosten- und CO2-Vergleich. */
+        VehicleCategory category,
         Integer year,
         String licensePlate,
         String trim,
@@ -46,6 +49,7 @@ public record CarResponse(
                 car.getModel(),
                 car.getModel().getFullDisplayName(),
                 car.getModel().getDisplayName(),
+                car.getModel().getCategory(),
                 car.getYear(),
                 car.getLicensePlate(),
                 car.getTrim(),

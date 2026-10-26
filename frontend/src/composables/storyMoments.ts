@@ -1,5 +1,5 @@
 import { tripTimestamp } from '../utils/recentActivity'
-import { co2Comparison, heroLine, petrolCostEur, type StoryFeedItem } from './storyModel'
+import { co2SavedKg, heroLine, petrolCostEur, type StoryFeedItem } from './storyModel'
 import { COLD_MAX_C, type RankResult } from './storyInsights'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
@@ -241,12 +241,14 @@ export function detectMonthChange(input: {
   now: number
   previous: { year: number; month: number; distanceKm: number | null; energyCostEur: number | null; charges: number; priceless: number } | null
   petrolEurPerLitre: number
+  /** Benziner der Fahrzeugklasse, l/100 km */
+  petrolLitersPer100km: number
 }): Moment | null {
   const p = input.previous
   const d = new Date(input.now)
   if (!p || p.charges <= 0 || d.getDate() > MONTH_CHANGE_DAYS) return null
   const line = heroLine(p)
-  const petrol = petrolCostEur(line.km, input.petrolEurPerLitre)
+  const petrol = petrolCostEur(line.km, input.petrolEurPerLitre, input.petrolLitersPer100km)
   // Benzinvergleich nur mit vollstaendigen Preisen und nur, wenn er etwas zeigt (wie im Monats-Hero).
   const petrolEur = line.kind === 'km_cost' && p.priceless === 0 && petrol != null && petrol > line.eur! ? petrol : null
   return {
@@ -339,7 +341,7 @@ function crossedStep(before: number, after: number, step: number): number | null
  * (wie die CO₂-Kachel aus Strecke und Verbrauch), Jahrestag der ersten Ladung. Zaehlt der Tag,
  * an dem die Schwelle fiel; mehrere in 3 Tagen: der juengste.
  */
-export function detectMilestone(input: { series: MomentPoint[]; now: number }): Moment | null {
+export function detectMilestone(input: { series: MomentPoint[]; now: number; petrolLitersPer100km: number }): Moment | null {
   const { now } = input
   const points = input.series
     .map(p => ({ p, t: ms(p.timestamp) }))
@@ -354,10 +356,7 @@ export function detectMilestone(input: { series: MomentPoint[]; now: number }): 
     const km = p.distanceKm ?? 0
     total.charges += p.charges ?? 0
     total.km += km
-    if (km > 0 && p.consumptionKwhPer100km != null) {
-      const c = co2Comparison(km, p.consumptionKwhPer100km)
-      total.co2 += Math.max(0, c.petrolKg - c.gridKg)
-    }
+    total.co2 += co2SavedKg(p, input.petrolLitersPer100km)
     if (now - t > MILESTONE_MS) continue
     for (const metric of ['charges', 'km', 'co2'] as const) {
       const value = crossedStep(before[metric], total[metric], MILESTONE_STEP[metric])

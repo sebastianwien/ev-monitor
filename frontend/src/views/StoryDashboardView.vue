@@ -14,7 +14,7 @@ import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useHaptic } from '../composables/useHaptic'
 import { useIsMobile } from '../composables/useIsMobile'
 import { analytics } from '../services/analytics'
-import { petrolCostEur, type TileId } from '../composables/storyModel'
+import { petrolCostEur, petrolLitersPer100km, type TileId } from '../composables/storyModel'
 import { DAY } from '../composables/storyMoments'
 import { useMomentSeen } from '../composables/useMomentSeen'
 import { useMomentView } from '../composables/useMomentView'
@@ -81,6 +81,7 @@ const storyCtx = (): StoryCarContext => ({
   wltpConsumption: wltp.value?.officialConsumptionKwhPer100km ?? null,
   sohPercent: sohPercent.value,
   odometerKm: currentOdometerKm.value,
+  vehicleCategory: selectedCar.value?.category ?? null,
   effectiveBatteryCapacityKwh: effectiveCapacity.value,
   energySplitLocked: !authStore.canViewEnergySplit,
   canViewLiveAnalytics: authStore.canViewLiveAnalytics,
@@ -159,7 +160,7 @@ function onMomentDismiss() {
   dismiss(moment.value.key, Date.now(), 30 * DAY)
 }
 
-const petrolEur = computed(() => petrolCostEur(monthStats.value?.totalDistanceKm ?? null, story.petrol.value.eurPerLitre))
+const petrolEur = computed(() => petrolCostEur(monthStats.value?.totalDistanceKm ?? null, story.petrol.value.eurPerLitre, petrolLitersPer100km(selectedCar.value?.category)))
 
 // Unter lg steht der Feed zwischen "Zuletzt" und den Kacheln, ab lg rechts neben dem Hero. Einmal gerendert, nicht zweimal.
 const narrow = useIsMobile('(max-width: 1023px)')

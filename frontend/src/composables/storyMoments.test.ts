@@ -94,19 +94,19 @@ describe('detectMonthChange', () => {
 
   it('lebt vom 1. bis 5. mit Vormonat und Benzinvergleich', () => {
     const now = new Date(2026, 9, 3, 9).getTime()
-    const m = detectMonthChange({ now, previous, petrolEurPerLitre: 2 })
+    const m = detectMonthChange({ now, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })
     expect(m).toMatchObject({ kind: 'month_change', key: 'month_change:2026-9', km: 279, eur: 33, petrolEur: 279 / 100 * 7.5 * 2 })
     expect(m?.at).toBe(new Date(2026, 9, 1).getTime())
   })
 
   it('vergleicht nicht mit Benzin, wenn dem Vormonat Preise fehlen', () => {
     const now = new Date(2026, 9, 3, 9).getTime()
-    expect(detectMonthChange({ now, previous: { ...previous, priceless: 2 }, petrolEurPerLitre: 2 })).toMatchObject({ petrolEur: null })
+    expect(detectMonthChange({ now, previous: { ...previous, priceless: 2 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ petrolEur: null })
   })
 
   it('schweigt ab dem 6. und ohne Ladungen im Vormonat', () => {
-    expect(detectMonthChange({ now: NOW, previous, petrolEurPerLitre: 2 })).toBeNull()
-    expect(detectMonthChange({ now: new Date(2026, 9, 2).getTime(), previous: { ...previous, charges: 0 }, petrolEurPerLitre: 2 })).toBeNull()
+    expect(detectMonthChange({ now: NOW, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toBeNull()
+    expect(detectMonthChange({ now: new Date(2026, 9, 2).getTime(), previous: { ...previous, charges: 0 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toBeNull()
   })
 })
 
@@ -226,35 +226,41 @@ describe('detectMilestone', () => {
     ({ timestamp: iso(NOW - daysAgo * DAY), charges, distanceKm, consumptionKwhPer100km: consumption })
 
   it('feiert die 100. Ladung am Tag, an dem sie dazukam', () => {
-    const m = detectMilestone({ series: [pt(40, 99), pt(1, 1)], now: NOW })
+    const m = detectMilestone({ series: [pt(40, 99), pt(1, 1)], now: NOW, petrolLitersPer100km: 7.5 })
     expect(m).toMatchObject({ kind: 'milestone', key: 'milestone:charges:100', metric: 'charges', value: 100, at: NOW - DAY, charges: 100 })
   })
 
   it('vergisst Meilensteine nach 3 Tagen und zählt keinen unter der ersten Schwelle', () => {
-    expect(detectMilestone({ series: [pt(40, 99), pt(4, 1)], now: NOW })).toBeNull()
-    expect(detectMilestone({ series: [pt(1, 99)], now: NOW })).toBeNull()
+    expect(detectMilestone({ series: [pt(40, 99), pt(4, 1)], now: NOW, petrolLitersPer100km: 7.5 })).toBeNull()
+    expect(detectMilestone({ series: [pt(1, 99)], now: NOW, petrolLitersPer100km: 7.5 })).toBeNull()
   })
 
   it('10.000 km, mit CO₂ aus Strecke und Verbrauch', () => {
-    const m = detectMilestone({ series: [pt(30, 1, 9_900, 18), pt(1, 1, 300, 18)], now: NOW })
-    // 178 g/km Benzin gegen 18 kWh/100 km x 380 g/kWh = 109,6 g/km weniger
+    const m = detectMilestone({ series: [pt(30, 1, 9_900, 18), pt(1, 1, 300, 18)], now: NOW, petrolLitersPer100km: 7.5 })
+    // 7,5 l x 2,37 kg = 177,75 g/km Benzin gegen 18 kWh/100 km x 380 g/kWh = 109,35 g/km weniger
     expect(m).toMatchObject({ metric: 'km', value: 10_000, km: 10_200 })
-    expect(m!.kind === 'milestone' && m!.co2Kg).toBeCloseTo(1117.9, 1)
+    expect(m!.kind === 'milestone' && m!.co2Kg).toBeCloseTo(1115.4, 1)
+  })
+
+  it('CO₂ mit dem Benziner der eigenen Fahrzeugklasse', () => {
+    const m = detectMilestone({ series: [pt(30, 1, 9_900, 18), pt(1, 1, 300, 18)], now: NOW, petrolLitersPer100km: 10.5 })
+    // 10,5 l x 2,37 kg = 248,85 g/km gegen 68,4 g/km
+    expect(m!.kind === 'milestone' && m!.co2Kg).toBeCloseTo(1840.6, 1)
   })
 
   it('eine Tonne CO₂ weniger', () => {
-    expect(detectMilestone({ series: [pt(10, 1, 9_000, 18), pt(1, 1, 200, 18)], now: NOW }))
+    expect(detectMilestone({ series: [pt(10, 1, 9_000, 18), pt(1, 1, 200, 18)], now: NOW, petrolLitersPer100km: 7.5 }))
       .toMatchObject({ metric: 'co2', value: 1000 })
   })
 
   it('Jahrestag der ersten Ladung', () => {
     const first = { timestamp: new Date(2025, 9, 23, 8).toISOString(), charges: 1, distanceKm: 0, consumptionKwhPer100km: null }
-    expect(detectMilestone({ series: [first, pt(5, 3)], now: NOW }))
+    expect(detectMilestone({ series: [first, pt(5, 3)], now: NOW, petrolLitersPer100km: 7.5 }))
       .toMatchObject({ metric: 'years', value: 1, at: new Date(2026, 9, 23, 8).getTime(), charges: 4 })
   })
 
   it('mehrere zugleich: der jüngste gewinnt', () => {
-    const m = detectMilestone({ series: [pt(30, 98, 9_900), pt(2, 2), pt(1, 1, 200)], now: NOW })
+    const m = detectMilestone({ series: [pt(30, 98, 9_900), pt(2, 2), pt(1, 1, 200)], now: NOW, petrolLitersPer100km: 7.5 })
     expect(m).toMatchObject({ metric: 'km', value: 10_000 })
   })
 })

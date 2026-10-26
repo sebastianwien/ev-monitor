@@ -19,7 +19,7 @@ const stats = (totalCostEur: number) => ({
   chargingTypeSplit: null, locationSplit: null, peerBenchmark: null, chargingEfficiencySplit: null,
 })
 
-const ctx = () => ({ wltpConsumption: null, sohPercent: null, odometerKm: null, effectiveBatteryCapacityKwh: null, energySplitLocked: false, canViewLiveAnalytics: false, liveActive: false, autoSync: false, alwaysMonth: false })
+const ctx = () => ({ wltpConsumption: null, sohPercent: null, odometerKm: null, vehicleCategory: null, effectiveBatteryCapacityKwh: null, energySplitLocked: false, canViewLiveAnalytics: false, liveActive: false, autoSync: false, alwaysMonth: false })
 
 const flush = async () => { for (let i = 0; i < 6; i++) await nextTick(); await new Promise(r => setTimeout(r, 0)) }
 

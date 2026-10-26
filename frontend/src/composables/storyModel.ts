@@ -5,7 +5,8 @@
  * Vorzeichen und Reihenfolge. Saetze und Einheiten baut die Komponente aus i18n-Keys.
  */
 import type { StatisticsData, ChargeDataPoint, ChargingTypeSplit } from './useDashboardStats'
-import { VERBRENNER_G_PER_KM, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
+import { PETROL_KG_CO2_PER_L, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
+import { combustionLiters } from '../utils/costMix'
 import { energyUse, type EnergyFlow, type EnergyUse, type RangeEstimate } from './storyEnergy'
 import type { ModelPeers, RankResult, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
 import type { Moment } from './storyMoments'
@@ -48,7 +49,16 @@ export interface StoryTile {
   /** Nur 'trips' und 'flow' (Standzeiten fürs Sheet): Fahrten des Monats. */
   tripMonth?: TripMonth
   /** Nur 'co2': Ausstoß je km im Vergleich, Wert der Kachel sind die gesparten kg. */
-  co2?: { petrolGPerKm: number; gridGPerKm: number; greenGPerKm: number }
+  co2?: {
+    petrolGPerKm: number; gridGPerKm: number; greenGPerKm: number
+    /** Liter, die ein Benziner der Fahrzeugklasse auf der Monatsstrecke getankt hätte. */
+    petrolLiters: number
+    petrolLitersPer100km: number
+    /** Fahrzeugklasse (VehicleCategory), null bei unbekannter Klasse. */
+    category: string | null
+    /** CO₂ weniger seit der ersten Ladung; null, wenn das nicht mehr als der Monat ist. */
+    lifetime: { kg: number; since: number } | null
+  }
   /** Nur 'charging': kWh und Preis je kWh nach Ladeart, Wert der Kachel ist der Anteil Schnellladen. */
   charging?: ChargingTypeSplit
 }
@@ -98,6 +108,10 @@ export interface StoryInput {
   temperatureLocked: boolean
   /** Ladungen ohne Preis im Vormonat (die des Monats stehen in quality). */
   pricelessPrevious: number
+  /** Fahrzeugklasse des Autos (VehicleCategory), bestimmt den Benziner im Vergleich. */
+  vehicleCategory: string | null
+  /** Strecke und Verbrauch je Tag seit der ersten Ladung, für CO₂ gesamt. */
+  lifetimeSeries: Co2Point[]
   /** Der gewählte Monat läuft noch: mit dem Vormonat erst ab dessen Strommenge vergleichen. */
   runningMonth?: boolean
   /** Fahrten des Monats; null ohne Fahrten oder ohne Berechtigung. */
@@ -124,8 +138,10 @@ export interface DayTrip {
   distanceKm?: number | null
 }
 
-/** Angenommener Benziner: 7,5 l/100 km, passend zu VERBRENNER_G_PER_KM. */
-export const PETROL_L_PER_100KM = 7.5
+/** Benziner der Fahrzeugklasse (wie Modellliste und Monatsrückblick), ohne Klasse 7,5 l/100 km. */
+export function petrolLitersPer100km(category: string | null | undefined): number {
+  return combustionLiters({ litersPer100km: null, fuel: 'petrol' }, category)
+}
 /** Rueckfall-Literpreis Super (E5/E10-Mittel, Tankerkoenig-Bundesschnitt 02.10.2026), wenn die Preis-API nicht antwortet. */
 export const PETROL_EUR_PER_L_DE = 2.13
 
@@ -150,9 +166,9 @@ const DRIVE_VS_CHARGE_RATIO = 1.2
 /** Vergleiche gegen andere Fahrer erst ab so vielen Fahrern, darunter entfallen Satz und Kachel. */
 export const MIN_PEERS = 5
 
-export function petrolCostEur(distanceKm: number | null, eurPerLitre: number): number | null {
+export function petrolCostEur(distanceKm: number | null, eurPerLitre: number, litersPer100km: number): number | null {
   if (distanceKm == null || distanceKm <= 0) return null
-  return (distanceKm / 100) * PETROL_L_PER_100KM * eurPerLitre
+  return (distanceKm / 100) * litersPer100km * eurPerLitre
 }
 
 /** Der Hero-Satz des Monats: km für Euro, sonst Euro für Ladungen, sonst was da ist. Kosten 0 heißt ohne Preise. */
@@ -170,13 +186,36 @@ export function heroLine(input: { distanceKm: number | null; energyCostEur: numb
   return { kind, km, eur, charges: input.charges }
 }
 
-export function co2Comparison(distanceKm: number, consumptionKwhPer100km: number) {
+export function co2Comparison(distanceKm: number, consumptionKwhPer100km: number, petrolLitersPer100km: number) {
   const kwh = (distanceKm / 100) * consumptionKwhPer100km
   return {
-    petrolKg: (distanceKm * VERBRENNER_G_PER_KM) / 1000,
+    petrolKg: (distanceKm / 100) * petrolLitersPer100km * PETROL_KG_CO2_PER_L,
     gridKg: (kwh * STROMMIX_G_PER_KWH) / 1000,
     greenKg: (kwh * OEKO_G_PER_KWH) / 1000,
   }
+}
+
+/** Ein Tag der Lifetime-Reihe, soweit CO₂ ihn braucht. */
+export interface Co2Point {
+  timestamp: string
+  distanceKm: number | null
+  consumptionKwhPer100km: number | null
+}
+
+/** CO₂ weniger an einem Tag mit Strommix; Tage ohne Verbrauch zählen nicht, mehr als ein Benziner nie negativ. */
+export function co2SavedKg(p: Co2Point, petrolLitersPer100km: number): number {
+  const km = p.distanceKm ?? 0
+  if (km <= 0 || p.consumptionKwhPer100km == null) return 0
+  const c = co2Comparison(km, p.consumptionKwhPer100km, petrolLitersPer100km)
+  return Math.max(0, c.petrolKg - c.gridKg)
+}
+
+/** CO₂ weniger seit der ersten Ladung, Tag für Tag summiert wie beim Meilenstein. */
+export function lifetimeCo2(series: Co2Point[], petrolLitersPer100km: number): { kg: number; since: number } | null {
+  const times = series.map(p => Date.parse(p.timestamp)).filter(t => !Number.isNaN(t))
+  if (times.length === 0) return null
+  const kg = series.reduce((sum, p) => sum + co2SavedKg(p, petrolLitersPer100km), 0)
+  return { kg, since: Math.min(...times) }
 }
 
 function pct(user: number, ref: number): number {
@@ -349,7 +388,9 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
 
   // CO₂ gegen einen Benziner auf derselben Strecke, mit deutschem Strommix gerechnet
   if (hasDistance) {
-    const c = co2Comparison(m.totalDistanceKm!, m.avgConsumptionKwhPer100km!)
+    const liters = petrolLitersPer100km(input.vehicleCategory)
+    const c = co2Comparison(m.totalDistanceKm!, m.avgConsumptionKwhPer100km!, liters)
+    const lifetime = lifetimeCo2(input.lifetimeSeries, liters)
     tiles.push({
       id: 'co2',
       value: c.petrolKg - c.gridKg,
@@ -359,9 +400,14 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
       spark: [],
       sparkVariant: 'bars',
       co2: {
-        petrolGPerKm: VERBRENNER_G_PER_KM,
+        petrolGPerKm: liters * PETROL_KG_CO2_PER_L * 10,
         gridGPerKm: (m.avgConsumptionKwhPer100km! / 100) * STROMMIX_G_PER_KWH,
         greenGPerKm: (m.avgConsumptionKwhPer100km! / 100) * OEKO_G_PER_KWH,
+        petrolLiters: (m.totalDistanceKm! / 100) * liters,
+        petrolLitersPer100km: liters,
+        category: input.vehicleCategory,
+        // Gesamt gleich Monat sagt nichts Neues (erster Monat)
+        lifetime: lifetime && lifetime.kg > c.petrolKg - c.gridKg + 1 ? lifetime : null,
       },
     })
   }

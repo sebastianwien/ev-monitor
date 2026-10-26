@@ -32,10 +32,23 @@ describe('Sheets der neuen Kacheln', () => {
     expect(text).toContain('10 Stunden')
     expect(text).toContain('2,5 kWh')
   })
+  const co2Tile = (over: Record<string, unknown> = {}) => ({ id: 'co2', value: 322.4, delta: null, deltaPercent: null, sentiment: 'good', spark: [], sparkVariant: 'bars',
+    co2: { petrolGPerKm: 137.46, gridGPerKm: 68, greenGPerKm: 5.4, petrolLiters: 170, petrolLitersPer100km: 5.8, category: 'CITY_CAR', lifetime: { kg: 868.3, since: new Date(2025, 2, 4).getTime() }, ...over } })
   it('CO₂: drei Zeilen in g/km', () => {
-    const text = mount(SheetCo2, { tile: { id: 'co2', value: 322.4, delta: null, deltaPercent: null, sentiment: 'good', spark: [], sparkVariant: 'bars', co2: { petrolGPerKm: 178, gridGPerKm: 68, greenGPerKm: 5.4 } } })
+    const text = mount(SheetCo2, { tile: co2Tile() })
     expect(text).toContain('322 kg CO₂ weniger')
     expect(text).toContain('Ökostrom')
     expect(text).toContain('5 g/km')
+  })
+  it('CO₂: Liter des Monats, Summe seit der ersten Ladung, Benziner der Fahrzeugklasse', () => {
+    const text = mount(SheetCo2, { tile: co2Tile() })
+    expect(text).toMatch(/Benzin nicht getankt\s*170 l/)
+    expect(text).toMatch(/CO₂ weniger seit März 2025\s*868 kg/)
+    expect(text).toContain('Benziner der Klasse Kleinwagen mit 5,8 l je 100 km')
+  })
+  it('CO₂: ohne Summe und ohne Klasse', () => {
+    const text = mount(SheetCo2, { tile: co2Tile({ lifetime: null, category: null, petrolLitersPer100km: 7.5 }) })
+    expect(text).not.toContain('seit')
+    expect(text).toContain('Benziner mit 7,5 l je 100 km')
   })
 })

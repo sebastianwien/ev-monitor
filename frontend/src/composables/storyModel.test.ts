@@ -5,6 +5,7 @@ import {
   buildStoryFeed,
   buildDayCoverage,
   petrolCostEur,
+  petrolLitersPer100km,
   heroLine,
   co2Comparison,
   monthWindow,
@@ -67,6 +68,8 @@ function input(over: Partial<StoryInput> = {}): StoryInput {
     temperature: null,
     temperatureLocked: false,
     pricelessPrevious: 0,
+    vehicleCategory: null,
+    lifetimeSeries: [],
     ...over,
   }
 }
@@ -78,13 +81,35 @@ describe('buildStoryTiles', () => {
   })
 
   it('CO₂-Kachel: gesparte kg gegen Benziner, dazu g/km für Benziner, Strommix und Ökostrom', () => {
-    // 2.931 km, 17,9 kWh/100 km: Benzin 521,7 kg, Strommix 524,6 kWh x 380 g = 199,4 kg
+    // 2.931 km, 17,9 kWh/100 km: Benzin 7,5 l x 2,37 kg = 521,0 kg, Strommix 524,6 kWh x 380 g = 199,4 kg
     const co2 = buildStoryTiles(input()).find(t => t.id === 'co2')!
-    expect(co2.value).toBeCloseTo(322.4, 0)
+    expect(co2.value).toBeCloseTo(321.6, 0)
     expect(co2.sentiment).toBe('good')
-    expect(co2.co2!.petrolGPerKm).toBe(178)
+    expect(co2.co2!.petrolGPerKm).toBeCloseTo(177.75, 2)
     expect(co2.co2!.gridGPerKm).toBeCloseTo(68.0, 1)
     expect(co2.co2!.greenGPerKm).toBeCloseTo(5.4, 1)
+  })
+
+  it('CO₂-Kachel: Benziner der eigenen Fahrzeugklasse, Liter des Monats', () => {
+    // Kleinwagen 5,8 l/100 km: 2.931 km x 5,8 l = 170 l, 5,8 x 2,37 kg = 137,5 g/km
+    const co2 = buildStoryTiles(input({ vehicleCategory: 'CITY_CAR' })).find(t => t.id === 'co2')!
+    expect(co2.co2!.petrolLitersPer100km).toBe(5.8)
+    expect(co2.co2!.petrolLiters).toBeCloseTo(170.0, 1)
+    expect(co2.co2!.petrolGPerKm).toBeCloseTo(137.46, 2)
+    expect(co2.co2!.category).toBe('CITY_CAR')
+  })
+
+  it('CO₂-Kachel: CO₂ weniger seit der ersten Ladung, nur wenn es mehr als der Monat ist', () => {
+    const series = [
+      { timestamp: '2025-03-04T10:00:00Z', distanceKm: 5000, consumptionKwhPer100km: 18 },
+      { timestamp: '2026-10-02T10:00:00Z', distanceKm: 2931, consumptionKwhPer100km: 17.9 },
+    ]
+    const co2 = buildStoryTiles(input({ lifetimeSeries: series })).find(t => t.id === 'co2')!
+    // 5.000 km x (177,75 - 68,4) g + 2.931 km x (177,75 - 68,02) g
+    expect(co2.co2!.lifetime!.kg).toBeCloseTo(868.3, 0)
+    expect(co2.co2!.lifetime!.since).toBe(Date.parse('2025-03-04T10:00:00Z'))
+    const onlyMonth = buildStoryTiles(input({ lifetimeSeries: series.slice(1) })).find(t => t.id === 'co2')!
+    expect(onlyMonth.co2!.lifetime).toBeNull()
   })
 
   it('Lade-Kachel: Anteil Schnellladen an den kWh, Preis je kWh je Art', () => {
@@ -362,11 +387,20 @@ describe('buildDayCoverage', () => {
 })
 
 describe('petrolCostEur', () => {
-  it('rechnet mit 7,5 l und Literpreis', () => {
-    expect(petrolCostEur(1000, 1.75)).toBeCloseTo(131.25)
+  it('rechnet mit Litern je 100 km und Literpreis', () => {
+    expect(petrolCostEur(1000, 1.75, 7.5)).toBeCloseTo(131.25)
+    expect(petrolCostEur(1000, 1.75, 5.8)).toBeCloseTo(101.5)
   })
   it('null ohne Strecke', () => {
-    expect(petrolCostEur(null, 1.75)).toBeNull()
+    expect(petrolCostEur(null, 1.75, 7.5)).toBeNull()
+  })
+})
+
+describe('petrolLitersPer100km', () => {
+  it('Benziner der Fahrzeugklasse, ohne Klasse Mittelwert 7,5 l', () => {
+    expect(petrolLitersPer100km('CITY_CAR')).toBe(5.8)
+    expect(petrolLitersPer100km('LARGE_SUV')).toBe(10.5)
+    expect(petrolLitersPer100km(null)).toBe(7.5)
   })
 })
 
@@ -386,8 +420,8 @@ describe('heroLine', () => {
 
 describe('co2Comparison', () => {
   it('liefert Benziner, Strommix, Ökostrom in kg', () => {
-    const c = co2Comparison(2931, 17.9)
-    expect(c.petrolKg).toBeCloseTo(521.7, 0)
+    const c = co2Comparison(2931, 17.9, 7.5)
+    expect(c.petrolKg).toBeCloseTo(521.0, 0)
     expect(c.gridKg).toBeCloseTo(199.4, 0)
     expect(c.greenKg).toBeCloseTo(15.7, 0)
   })
