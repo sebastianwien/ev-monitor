@@ -2861,8 +2861,8 @@ upgrade:
   pro_manage_btn: Administrer abonnement
   pro_manage_loading: Laster...
   success_title: AutoSync er nå tilgjengelig!
-  success_desc: Velkommen til Pro-abonnementet. Koble til bilen din nå, så registreres alle ladinger automatisk.
-  success_cta: Gå til EV Monitor AutoSync
+  success_desc: "Koble til bilen din nå. Deretter havner hver lading automatisk i loggboken din."
+  success_cta: "Koble til bilen"
   success_activating: Aktiverer abonnement...
   success_slow: Aktiveringen kan noen ganger ta litt lengre tid. Oppdater siden om et øyeblikk.
   cancel_title: Ingen problem.

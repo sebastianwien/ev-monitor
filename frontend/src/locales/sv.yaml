@@ -2861,8 +2861,8 @@ upgrade:
   pro_manage_btn: Hantera prenumerationen
   pro_manage_loading: Laddar...
   success_title: AutoSync är nu tillgängligt!
-  success_desc: Välkommen till Pro-abonnemanget. Anslut din bil nu så registreras alla laddningar automatiskt.
-  success_cta: Gå till EV Monitor AutoSync
+  success_desc: "Anslut din bil nu. Därefter hamnar varje laddning automatiskt i din loggbok."
+  success_cta: "Anslut bilen"
   success_activating: Aktiverar prenumerationen...
   success_slow: Aktiveringen kan ibland ta lite längre tid. Uppdatera sidan om en minut.
   cancel_title: Inga problem.
