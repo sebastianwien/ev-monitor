@@ -79,9 +79,9 @@ describe('buildRange', () => {
     expect(buildRange(stats({ winterConsumptionKwhPer100km: null }), 60)!.winter).toBeNull()
   })
 
-  it('rechnet die Reserve unter 10 % mit dem Verbrauch der letzten 4 Wochen', () => {
-    // 60 kWh * 0.1 / 18 * 100 = 33,3 km
-    expect(buildRange(stats(), 60)!.reserveKm).toBe(33)
+  it('rechnet von 90 % bis ganz leer mit dem Verbrauch der letzten 4 Wochen', () => {
+    // 60 kWh * 0.9 / 18 * 100 = 300 km
+    expect(buildRange(stats(), 60)!.emptyKm).toBe(300)
   })
 
   it('rechnet den Winterwert anderer Fahrer mit der eigenen Kapazitaet, nur ohne eigenen Winter', () => {

@@ -438,7 +438,7 @@ describe('monthWindow', () => {
 })
 
 const flow = { gridKwh: 524, vehicleKwh: 472, lossKwh: 52, lossPercent: 10, acKwh: 430, dcKwh: 94, privateKwh: 430, publicKwh: 94, distanceKm: 2931, coveredLogCount: 12, totalLogCount: 14, partial: true }
-const range = { consumption: 21, km: 229, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 229 }], summer: null, winter: { consumption: 21, km: 229 }, peerWinter: null, reserveKm: 29 }
+const range = { consumption: 21, km: 229, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 229 }], summer: null, winter: { consumption: 21, km: 229 }, peerWinter: null, emptyKm: 206 }
 
 describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
   it('ordnet sechs Kacheln fest wie der Dummy: Kosten, Hersteller, Strom, Reichweite, andere, Akku', () => {

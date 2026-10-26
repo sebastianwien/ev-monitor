@@ -175,8 +175,8 @@ export interface RangeEstimate {
   winter: RangeSeason | null
   /** Winter anderer Fahrer desselben Modells mit der eigenen Kapazitaet, nur solange der eigene Winter fehlt. */
   peerWinter: RangeSeason | null
-  /** Reserve von 10 auf 0 % mit dem Verbrauch der letzten 4 Wochen. */
-  reserveKm: number
+  /** Vom oberen Ende des empfohlenen Fensters bis ganz leer, Verbrauch der letzten 4 Wochen. */
+  emptyKm: number
 }
 
 function kmFor(effectiveCapacityKwh: number, consumption: number, socMax: number, socMin: number): number {
@@ -211,7 +211,7 @@ export function buildRange(
     summer: seasonRow(effectiveCapacityKwh, stats.summerConsumptionKwhPer100km),
     winter,
     peerWinter: winter ? null : seasonRow(effectiveCapacityKwh, peerWinterConsumption),
-    reserveKm: kmFor(effectiveCapacityKwh, c, 10, 0),
+    emptyKm: kmFor(effectiveCapacityKwh, c, RANGE_SOC_WINDOWS.find(w => w.recommended)!.socMax, 0),
   }
 }
 

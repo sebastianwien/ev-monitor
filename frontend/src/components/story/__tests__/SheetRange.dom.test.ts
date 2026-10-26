@@ -10,7 +10,7 @@ let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
 const range = (over: Partial<RangeEstimate> = {}): RangeEstimate => ({
-  consumption: 26.9, km: 201, reserveKm: 25,
+  consumption: 26.9, km: 201, emptyKm: 226,
   windows: [{ socMax: 90, socMin: 10, recommended: true, km: 201 }],
   summer: { consumption: 17.4, km: 311 }, winter: null, peerWinter: null, ...over,
 })
@@ -25,10 +25,11 @@ function mount(r: RangeEstimate) {
 }
 
 describe('SheetRange', () => {
-  it('ohne Winterwert: Spanne jetzt bis Sommer, kein Platzhalter', () => {
+  it('ohne Winterwert: Sommerzeile, kein Platzhalter, Details offen', () => {
     const text = mount(range())
-    expect(text).toMatch(/Jetzt\s?201\s?km/)
     expect(text).toMatch(/Sommer\s?311\s?km/)
+    expect(text).toMatch(/Notfalls bis ganz leer: etwa 226\s?km/)
+    expect(text).toContain('90 → 10 %')
     expect(text).not.toContain('noch kein Wert')
     expect(text).not.toContain('Winter')
   })
