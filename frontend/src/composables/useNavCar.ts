@@ -2,7 +2,7 @@ import { onUnmounted, ref } from 'vue'
 import { prefersReducedEffects } from './prefersReducedEffects'
 
 /** Pause bis zur ersten Fahrt nach dem Laden, danach zwischen zwei Fahrten [min, max] in ms. */
-export const NAV_CAR_FIRST_MS: [number, number] = [20_000, 60_000]
+export const NAV_CAR_FIRST_MS: [number, number] = [5_000, 5_000]
 export const NAV_CAR_GAP_MS: [number, number] = [120_000, 300_000]
 
 /**
