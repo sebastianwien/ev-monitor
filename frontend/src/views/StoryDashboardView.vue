@@ -30,7 +30,7 @@ import StoryTileRow from '../components/story/StoryTileRow.vue'
 import StoryFeed from '../components/story/StoryFeed.vue'
 import DataQualityLine from '../components/story/DataQualityLine.vue'
 import StoryMonthSwitch from '../components/story/StoryMonthSwitch.vue'
-import LicensePlate from '../components/car/LicensePlate.vue'
+import CarSwitch from '../components/car/CarSwitch.vue'
 import api from '../api/axios'
 import { periodWindow, teaserParts, type PlacePeriod } from '../composables/storyPlaces'
 import { useChargingPlaces } from '../composables/useChargingPlaces'
@@ -58,7 +58,7 @@ const { set: setOptIn, alwaysMonth } = useStoryOptIn()
 // die Uebersicht mit /logs. Mobil liegt sie auch auf /logs gemountet im Pager daneben.
 // Boxen mobil randlos, ab md mit Kante auf dem Wallpaper.
 const ctx = useCarContext()
-const { selectedCarId, cars, wltp, currentOdometerKm, smartcarStatus } = ctx
+const { selectedCarId, cars, carImageUrls, wltp, currentOdometerKm, smartcarStatus } = ctx
 
 const selectedCar = computed(() => cars.value.find((c: any) => c.id === selectedCarId.value) ?? cars.value[0] ?? null)
 const sohPercent = computed(() => selectedCar.value?.batteryDegradationPercent != null ? 100 - selectedCar.value.batteryDegradationPercent : null)
@@ -299,12 +299,8 @@ onUnmounted(() => unregisterReload?.())
       <section class="grid grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box">
         <div class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7">
           <header class="flex items-center justify-between gap-2">
-            <div class="flex min-w-0 items-center gap-2">
-              <p class="truncate text-[15px] font-bold text-gray-900 dark:text-gray-50">
-                {{ selectedCar ? carDisplayName(selectedCar) : t('story.title') }}
-              </p>
-              <span v-if="selectedCar?.licensePlate" class="hidden sm:inline-flex"><LicensePlate :plate="selectedCar.licensePlate" size="sm" /></span>
-            </div>
+            <CarSwitch v-if="selectedCar" v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
+            <p v-else class="truncate text-[15px] font-bold text-gray-900 dark:text-gray-50">{{ t('story.title') }}</p>
             <StoryMonthSwitch :months="months" :offset="offset" :label-of="monthLabelShort" @select="selectMonth" />
           </header>
 

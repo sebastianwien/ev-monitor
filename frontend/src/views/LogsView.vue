@@ -73,7 +73,7 @@ import ConsumptionInfoBox from '../components/dashboard/ConsumptionInfoBox.vue'
 import DayTripForm from '../components/story/day/DayTripForm.vue'
 import TripClimateMarkers from '../components/TripClimateMarkers.vue'
 import TripMapPanel from '../components/dashboard/TripMapPanel.vue'
-import LicensePlate from '../components/car/LicensePlate.vue'
+import CarSwitch from '../components/car/CarSwitch.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
 import { useAuthStore } from '../stores/auth'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
@@ -81,7 +81,6 @@ import DeletedLogsSheet from '../components/dashboard/DeletedLogsSheet.vue'
 import { useDeletedLogs } from '../composables/useDeletedLogs'
 import PricelessLogsModal from '../components/dashboard/PricelessLogsModal.vue'
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
-import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
 import { FEED_RESOLUTIONS, formatOlderWindow } from '../composables/useFeedWindow'
 import { useRoute, useRouter } from 'vue-router'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
@@ -118,11 +117,11 @@ const router = useRouter()
 // -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
 const {
   selectedCarId, stats, loading, isInitialLoad,
-  cars, carImageUrls, wltp,
+  cars, carImageUrls,
   implausibleBannerDismissed, teslaStatus, smartcarStatus, implausibleCount,
   dismissImplausibleBanner, fetchImplausibleCount, fetchStatistics,
   pricelessCount, pricelessBannerDismissed, dismissPricelessBanner, fetchPricelessCount,
-  setLogsSection, currentOdometerKm,
+  setLogsSection,
   logs, logsLoading, editingLog, priceAmendingLog,
   feedResolution, feedNextOlder, loadOlderFeed,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer,
@@ -732,8 +731,16 @@ function chargeCardName(entry: any): string | null {
   return chargingProviderNames.value.get(entry.chargingProviderId) ?? null
 }
 
-const { isSmartcarCharging, isWallboxCharging } =
-  useVehicleCharging(cars, smartcarStatus)
+// "Laedt gerade" in der Kopfzeile: AutoSync oder Wallbox, bei Tesla der Fahrzeugstatus der Verbindung.
+const { isVehicleCharging } = useVehicleCharging(cars, smartcarStatus)
+const selectedCarCharging = computed(() => {
+  const car = cars.value.find((c: any) => c.id === selectedCarId.value)
+  if (!car) return false
+  const tesla = teslaStatus.value
+  const teslaCharging = car.brand?.toLowerCase() === 'tesla' && !!tesla?.connected
+    && (tesla.carId === car.id || tesla.carId === null) && tesla.vehicleState === 'charging'
+  return teslaCharging || isVehicleCharging(car)
+})
 
 // Daten-Reload bei Auto-Wechsel liegt zentral im CarContextLayout.
 const authStore = useAuthStore()
@@ -938,34 +945,10 @@ function dayLabel(dateKey: string): string {
   return tripDayLabel(dateKey, locale.value, new Date())
 }
 
-/**
- * Das Datumsband klebt unter allem, was oben bereits fest steht: der Desktop-Nav
- * (--top-nav-h, auf Mobile 0) und - nur bei mehreren Autos - dem ebenfalls stickyen
- * Auto-Selektor. Ohne diesen Offset verschwindet das Band beim Scrollen dahinter.
- */
-const carSelectorRef = ref<HTMLElement | null>(null)
-const stickyCarSelectorHeight = ref(0)
-let carSelectorObserver: ResizeObserver | null = null
-
-function measureCarSelector() {
-  // Nur der sticky Zustand (mehrere Autos) belegt dauerhaft Platz; sonst scrollt er weg.
-  stickyCarSelectorHeight.value =
-    cars.value.length > 1 ? (carSelectorRef.value?.offsetHeight ?? 0) : 0
-}
-
-watch(carSelectorRef, (el) => {
-  carSelectorObserver?.disconnect()
-  carSelectorObserver = el ? new ResizeObserver(measureCarSelector) : null
-  if (el && carSelectorObserver) carSelectorObserver.observe(el)
-  measureCarSelector()
-})
-watch(() => cars.value.length, measureCarSelector)
-onUnmounted(() => carSelectorObserver?.disconnect())
-
-// --content-top kommt aus App.vue und kennt Nav, Notch, Demo-Banner und den
-// Ticker in beiden Zustaenden. Der Auto-Selektor ist LogsView-eigen.
+// Das Datumsband klebt unter allem, was oben fest steht. --content-top setzt App.vue (Nav, Notch,
+// Demo-Banner, Ticker) bzw. im neuen Design der WorkspaceFrame (gruener Kopf mit Ticker).
 const stickyHeaderStyle = computed(() => ({
-  top: `calc(var(--content-top, var(--top-nav-h)) + ${stickyCarSelectorHeight.value}px)`,
+  top: 'var(--content-top, var(--top-nav-h))',
   transition: 'top 0.3s ease',
 }))
 
@@ -1057,7 +1040,7 @@ onUnmounted(() => {
 
 function dayBandStyle(groupId: string) {
   return {
-    top: `calc(var(--content-top, var(--top-nav-h)) + ${stickyCarSelectorHeight.value + (periodHeaderHeights[groupId] ?? 0)}px)`,
+    top: `calc(var(--content-top, var(--top-nav-h)) + ${periodHeaderHeights[groupId] ?? 0}px)`,
     transition: 'top 0.3s ease',
   }
 }
@@ -1378,97 +1361,43 @@ function toggleAllFeed() {
       </div>
       <div v-else key="content-view">
         <div class="bg-white dark:bg-gray-900 md:rounded-3xl md:edge-box px-3 pt-1 pb-6 md:p-6">
-          <!-- Mobile Auto-Card + Tab-Switch liegen im CarContextLayout (geteilter Header).
-               Auf Desktop benennt der aktive Tab die Seite - eine sichtbare Ueberschrift
-               wuerde ihn nur wiederholen. Fuer Screenreader bleibt sie. -->
+          <!-- Kopfzeile wie in der Uebersicht: welches Auto (bei mehreren der Wechsel), rechts die
+               Erklaerung der Zahlen. Die Daten des Autos stehen auf /cars. Die Seite benennt der
+               aktive Bereichs-Chip, die Ueberschrift bleibt fuer Screenreader. -->
           <h1 class="sr-only">{{ t('logs.title') }}</h1>
-          <!-- Desktop-Auto-Selektor (>=768px) -->
-          <div
-            ref="carSelectorRef"
-            v-if="cars.length > 0"
-            class="hidden md:block"
-            :class="cars.length > 1
-              ? 'sticky top-16 z-10 bg-white dark:bg-gray-900 md:-mx-6 md:px-6 md:py-3 mb-3 border-b border-gray-200 dark:border-gray-800'
-              : 'mb-6 md:w-fit md:mx-auto'"
-          >
-            <!-- Car cards -->
-            <div class="flex gap-3 overflow-x-auto car-scroll-hide flex-1 pb-1 lg:flex-wrap lg:overflow-x-visible">
-              <button
-                v-for="car in cars"
-                :key="car.id"
-                @click="selectedCarId = car.id"
-                :class="[
-                  cars.length === 1
-                    ? 'flex items-start md:items-stretch rounded-2xl text-left transition w-full md:w-auto overflow-hidden'
-                    : 'flex items-center md:items-stretch rounded-2xl text-left transition flex-shrink-0 min-w-[180px] max-w-[240px] lg:flex-shrink lg:min-w-0 lg:max-w-none overflow-hidden',
-                  // App-CI: das gewaehlte Auto traegt die Kante; ob es laedt, sagt das gruene Abzeichen.
-                  selectedCarId === car.id
-                    ? 'edge-card bg-white dark:bg-gray-800'
-                    : 'border-2 border-gray-200 bg-white hover:border-gray-400 dark:border-gray-700 dark:bg-gray-800/60 dark:hover:border-gray-500',
-                ]" style="transition: transform 0.075s ease, box-shadow 0.075s ease;">
-                <div
-                  :class="[
-                    'flex-shrink-0 bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden',
-                    cars.length === 1
-                      ? 'w-24 self-stretch'
-                      : 'md:w-24 md:h-auto md:self-stretch'
-                  ]">
-                  <img
-                    v-if="carImageUrls[car.id]"
-                    :src="carImageUrls[car.id]"
-                    :alt="car.model"
-                    class="w-full h-full object-cover" />
-                  <TruckIcon v-else class="w-6 h-6 md:w-8 md:h-8 text-gray-400" />
+          <!-- Eine Zeile, wenn die Box breit genug ist (Container-Query, gemessen rund 860 px): links das
+               Auto, mittig die Ansicht, rechts die Erklaerung. Schmaler rutschen die Chips in eine
+               zweite Zeile, mittig wie die Bereichs-Chips. -->
+          <div class="@container pt-3 md:pt-0">
+            <header v-if="cars.length > 0 || hasAnyLogs"
+              class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-3 @min-[54rem]:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+              <CarSwitch v-if="cars.length > 0" class="col-start-1 row-start-1" v-model="selectedCarId" :cars="cars"
+                :car-image-urls="carImageUrls" :charging="selectedCarCharging" />
+              <FeedLegend v-if="hasAnyLogs" mode="trigger" class="col-start-2 row-start-1 justify-self-end @min-[54rem]:col-start-3"
+                          :has-trips="totalTripCount > 0" :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom"
+                          :open="feedLegendOpen" @toggle="toggleFeedLegend" />
+              <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum, jede mit festem
+                   Fenster. Voll ausgeschriebene Segmente statt eines Menues - eine Auswahl, die man sieht,
+                   muss man nicht suchen. -->
+              <div v-if="hasAnyLogs"
+                class="col-span-2 row-start-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-2.5 @min-[54rem]:col-span-1 @min-[54rem]:col-start-2 @min-[54rem]:row-start-1">
+                <div role="group" :aria-label="t('logs.resolution.label')" class="flex flex-wrap justify-center gap-1.5">
+                  <ChoiceChip v-for="option in RESOLUTIONS" :key="option" :active="feedResolution === option"
+                    @click="feedResolution = option">
+                    {{ t('logs.resolution.' + option) }}
+                  </ChoiceChip>
                 </div>
-                <div class="min-w-0 flex-1 px-3 py-1.5 md:px-4 md:py-3 flex flex-col justify-center">
-                  <!-- Desktop: zweizeiliges Layout. Ab md sichtbar - die Kachel passt mit
-                       vollem Inhalt auch in den schmalsten Desktop-Viewport; vorher fiel sie
-                       unterhalb von lg auf das blosse Bild zusammen. -->
-                  <div class="hidden md:block">
-                    <div class="flex items-center gap-2 flex-wrap">
-                      <span class="font-semibold text-gray-800 dark:text-gray-200">{{ carDisplayName(car) }}</span>
-                      <span v-if="car.trim" class="text-sm text-gray-500 dark:text-gray-400">{{ car.trim }}</span>
-                      <span v-if="car.isPrimary && cars.length > 1"
-                        class="px-1.5 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs rounded-full font-medium">
-                        {{ t('dashboard.active') }}
-                      </span>
-                      <template v-if="car.brand?.toLowerCase() === 'tesla' && teslaStatus?.connected && (teslaStatus.carId === car.id || teslaStatus.carId === null)">
-                        <span v-if="teslaStatus.vehicleState === 'charging'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-50 dark:bg-green-400/10 text-green-800 dark:text-green-300 text-xs rounded-full font-medium">
-                          <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.tesla_charging') }}
-                        </span>
-                        <span v-else-if="teslaStatus.vehicleState === 'online'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-300 text-xs rounded-full font-medium">
-                          <span class="w-1.5 h-1.5 rounded-full bg-gray-900 dark:bg-gray-100"></span>{{ t('dashboard.tesla_online') }}
-                        </span>
-                        <span v-else-if="teslaStatus.vehicleState === 'asleep'"
-                          class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-gray-400 text-xs rounded-full font-medium">
-                          <span class="w-1.5 h-1.5 rounded-full bg-gray-400 dark:bg-gray-500"></span>{{ t('dashboard.tesla_sleeping') }}
-                        </span>
-                      </template>
-                      <span v-if="isSmartcarCharging(car)"
-                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-50 dark:bg-green-400/10 text-green-800 dark:text-green-300 text-xs rounded-full font-medium">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.smartcar_charging') }}
-                      </span>
-                      <span v-if="isWallboxCharging()"
-                        class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-50 dark:bg-green-400/10 text-green-800 dark:text-green-300 text-xs rounded-full font-medium">
-                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 dark:bg-green-400 animate-pulse"></span>{{ t('dashboard.wallbox_charging') }}
-                      </span>
-                    </div>
-                    <div class="mt-1.5 flex justify-center">
-                      <LicensePlate v-if="car.licensePlate" :plate="car.licensePlate" />
-                    </div>
-                  </div>
-                </div>
-                <!-- Desktop horizontal extension (single-car only, ab md) -->
-                <div
-                  v-if="cars.length === 1 && car.id === selectedCarId"
-                  class="hidden md:flex flex-shrink-0 self-stretch items-center border-l border-gray-200 dark:border-gray-700 pl-3 pr-3 py-2"
-                >
-                  <CarCardDetails :car="car" :wltp="wltp" :current-odometer-km="currentOdometerKm" orientation="horizontal" />
-                </div>
-              </button>
+                <!-- Alles auf- oder zuklappen; die Doppel-Chevrons wiederholen die Chevrons der Koepfe. -->
+                <button v-if="totalTripCount > 0 || chargeCount > 0" type="button" data-testid="logfeed-toggle-all"
+                        @click="toggleAllFeed"
+                        :aria-label="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
+                        :title="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
+                        class="btn-3d cta-shadow-sm grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15">
+                  <ChevronDoubleUpIcon v-if="allFeedExpanded" class="h-4 w-4" aria-hidden="true" />
+                  <ChevronDoubleDownIcon v-else class="h-4 w-4" aria-hidden="true" />
+                </button>
               </div>
+            </header>
           </div>
 
         <!-- Log List -->
@@ -1526,30 +1455,6 @@ function toggleAllFeed() {
           <div v-if="deleteError" role="alert" class="mb-3 flex items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2.5 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
             {{ deleteError }}
             <button type="button" :aria-label="t('common.close')" @click="deleteError = null" class="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-amber-100 dark:hover:bg-amber-400/20"><XMarkIcon class="h-4 w-4" aria-hidden="true" /></button>
-          </div>
-
-          <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum, jede mit
-               festem Fenster. Voll ausgeschriebene Segmente statt eines Menues, zentriert wie die
-               Bereichs-Chips - eine Auswahl, die man sieht, muss man nicht suchen. -->
-          <div v-if="hasAnyLogs" class="mb-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-2.5">
-            <div role="group" :aria-label="t('logs.resolution.label')" class="flex flex-wrap justify-center gap-1.5">
-              <ChoiceChip v-for="option in RESOLUTIONS" :key="option" :active="feedResolution === option"
-                @click="feedResolution = option">
-                {{ t('logs.resolution.' + option) }}
-              </ChoiceChip>
-            </div>
-            <!-- Alles auf- oder zuklappen; die Doppel-Chevrons wiederholen die Chevrons der Koepfe. -->
-            <button v-if="totalTripCount > 0 || chargeCount > 0" type="button" data-testid="logfeed-toggle-all"
-                    @click="toggleAllFeed"
-                    :aria-label="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
-                    :title="allFeedExpanded ? t('logs.collapse_all') : t('logs.expand_all')"
-                    class="btn-3d cta-shadow-sm grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15">
-              <ChevronDoubleUpIcon v-if="allFeedExpanded" class="h-4 w-4" aria-hidden="true" />
-              <ChevronDoubleDownIcon v-else class="h-4 w-4" aria-hidden="true" />
-            </button>
-            <FeedLegend mode="trigger" :has-trips="totalTripCount > 0"
-                        :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom"
-                        :open="feedLegendOpen" @toggle="toggleFeedLegend" />
           </div>
 
           <div :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">

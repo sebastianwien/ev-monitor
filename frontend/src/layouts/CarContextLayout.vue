@@ -57,11 +57,11 @@ function shareFromHeader(car: Car) {
 
 <template>
   <component :is="storyDesign ? WorkspaceFrame : 'div'">
-    <!-- Geteilter Mobile-Header: Auto-Card. Im neuen Design nur ueber den Logs (die Uebersicht
-         nennt das Auto im eigenen Kopf) und mit eigenem Abstand, weil keine Ticker-Lasche ihn haelt. -->
-    <div class="md:hidden px-3" :class="{ 'pt-3': storyDesign }">
+    <!-- Mobile Auto-Card nur ueber dem alten Dashboard. Uebersicht und Logs nennen das Auto in
+         ihrer Kopfzeile (CarSwitch), dort sitzt auch der Wechsel. -->
+    <div class="md:hidden px-3">
       <MobileCarSelector
-        v-if="cars.length > 0 && (!storyDesign || activeIndex === 1)"
+        v-if="cars.length > 0 && !storyDesign && activeIndex === 0"
         v-model="selectedCarId"
         :cars="cars"
         :car-image-urls="carImageUrls"
