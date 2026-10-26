@@ -260,18 +260,15 @@ public class User {
 
     /**
      * Gate for the dashboard Live-Charging card (current power, SoC, ETA, history).
-     * Marken-aware: free for Tesla drivers (data collection and the live card are part
-     * of the free Tesla tier), otherwise reserved for paying AUTOSYNC_LIVE subscribers
-     * and ADMINs. BETA_TESTERs without Live tier are excluded for non-Tesla cars so the
-     * card stays a paid-feature preview there.
+     * Technical gate, not a paywall: open to every Tesla driver, because only Tesla Fleet
+     * Telemetry delivers live charging data. No tier or role opens it for other brands -
+     * the card would stay empty there.
      *
      * <p>Ownership ({@code car.userId == user.id}) is a separate concern enforced at the
      * call site BEFORE this entitlement check.
      */
     public boolean canViewLiveCharging(CarBrand brand) {
-        return brand == CarBrand.TESLA
-                || subscriptionTier == SubscriptionTier.AUTOSYNC_LIVE
-                || "ADMIN".equals(role);
+        return brand == CarBrand.TESLA;
     }
 
     /**

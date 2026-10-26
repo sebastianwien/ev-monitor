@@ -142,7 +142,7 @@ class LiveControllerTest extends AbstractIntegrationTest {
         assertEquals(false, res.getBody().get("isActive"));
     }
 
-    // --- 403: AUTOSYNC (Tier 1) user, NON-Tesla car (paywall stays for other brands) ---
+    // --- 403: AUTOSYNC (Tier 1) user, NON-Tesla car ---
 
     @Test
     void getLiveCharging_tier1AutoSyncUser_nonTeslaCar_returns403() {
@@ -152,6 +152,21 @@ class LiveControllerTest extends AbstractIntegrationTest {
                 "/api/cars/" + tier1Car.getId() + "/live/charging",
                 HttpMethod.GET,
                 new HttpEntity<>(createAuthHeaders(tier1User.getId(), tier1User.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+    }
+
+    // --- 403: AUTOSYNC_LIVE user, NON-Tesla car (no live source outside Tesla) ---
+
+    @Test
+    void getLiveCharging_autoSyncLiveUser_nonTeslaCar_returns403() {
+        Car vwCar = createAndSaveCar(liveUser.getId(), CarBrand.CarModel.ID_3);
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/cars/" + vwCar.getId() + "/live/charging",
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
                 String.class);
 
         assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());

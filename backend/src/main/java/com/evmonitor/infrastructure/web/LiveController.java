@@ -28,8 +28,8 @@ import java.util.UUID;
  *   <li>Caller must be authenticated (covered by SecurityConfig for all /api/**).</li>
  *   <li>Caller must own the car ({@code car.userId == user.id}).</li>
  *   <li>Caller must have the live-charging entitlement
- *       ({@link User#canViewLiveCharging(com.evmonitor.domain.CarBrand)}) - free for
- *       Tesla cars, otherwise AUTOSYNC_LIVE subscription or ADMIN role.</li>
+ *       ({@link User#canViewLiveCharging(com.evmonitor.domain.CarBrand)}) - every
+ *       Tesla car, no other brand (only Tesla Fleet Telemetry delivers live data).</li>
  * </ol>
  *
  * <p>Ownership is checked BEFORE the tier gate to avoid leaking car existence
