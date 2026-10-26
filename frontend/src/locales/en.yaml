@@ -1350,10 +1350,10 @@ ticker:
   open: "View"
   units:
     kwh: "kWh"
-    charges: "charges"
+    charges: "charge | charges"
     km: "km"
     ct_kwh: "ct/kWh"
-    night_charges: "night charges"
+    night_charges: "night charge | night charges"
     celsius: "°C"
     kw: "kW"
     tonnes: "tonnes"

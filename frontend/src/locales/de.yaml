@@ -1353,10 +1353,10 @@ ticker:
   open: "Ansehen"
   units:
     kwh: "kWh"
-    charges: "Ladevorgänge"
+    charges: "Ladevorgang | Ladevorgängen"
     km: "km"
     ct_kwh: "ct/kWh"
-    night_charges: "Nacht-Ladungen"
+    night_charges: "Nacht-Ladung | Nacht-Ladungen"
     celsius: "°C"
     kw: "kW"
     tonnes: "Tonnen"

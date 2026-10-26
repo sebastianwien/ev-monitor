@@ -1309,10 +1309,10 @@ ticker:
   open: "Vis"
   units:
     kwh: "kWh"
-    charges: "ladinger"
+    charges: "lading | ladinger"
     km: "km"
     ct_kwh: "øre/kWh"
-    night_charges: "nattladinger"
+    night_charges: "nattlading | nattladinger"
     celsius: "°C"
     kw: "kW"
     tonnes: "tonn"

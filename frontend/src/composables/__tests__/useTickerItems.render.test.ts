@@ -91,3 +91,34 @@ describe('useTickerItems - Rang-Satz je Kategorie', () => {
     for (const text of texts) expect(text).not.toMatch(/[{}]|undefined|NaN|ticker\./)
   })
 })
+
+describe('useTickerItems - Platz-1-Satz', () => {
+  beforeEach(() => get.mockReset())
+
+  async function leaderTexts(locale: 'de' | 'en', items: RawTickerItem[]): Promise<string[]> {
+    get.mockImplementation((url: string) => Promise.resolve({ data: url === '/public/leaderboard/ticker' ? items : [] }))
+    const i18n = createI18n({ legacy: false, locale, messages: { de, en, nb, sv }, missingWarn: false, fallbackWarn: false })
+    let api!: ReturnType<typeof useTickerItems>
+    createApp(defineComponent({ setup() { api = useTickerItems(); return () => null } }))
+      .use(createPinia()).use(i18n).mount(document.createElement('div'))
+    await api.fetchTicker({ withUserItems: false })
+    return api.items.value.map(i => i.text)
+  }
+  const leader = (category: string, value: string): RawTickerItem =>
+    ({ type: 'LEADER', messageKey: 'leader', params: { category, name: 'max', value }, variant: 'leader' })
+
+  it('dekliniert die Anzahl nach "mit" und kennt die Einzahl', async () => {
+    const texts = await leaderTexts('de', [
+      leader('MONTHLY_CHARGES', '5'), leader('MONTHLY_CHARGES', '1'),
+      leader('MONTHLY_NIGHT_OWL', '1'), leader('MONTHLY_NIGHT_OWL', '4'),
+    ])
+    expect(texts.map(x => x.replace(/^#1 [^:]+: /, ''))).toEqual([
+      'max mit 5 Ladevorgängen', 'max mit 1 Ladevorgang', 'max mit 1 Nacht-Ladung', 'max mit 4 Nacht-Ladungen',
+    ])
+  })
+
+  it('nimmt auf Englisch die Einzahl bei 1', async () => {
+    const texts = await leaderTexts('en', [leader('MONTHLY_CHARGES', '1'), leader('MONTHLY_CHARGES', '3')])
+    expect(texts.map(x => x.replace(/^#1 [^:]+: /, ''))).toEqual(['max with 1 charge', 'max with 3 charges'])
+  })
+})

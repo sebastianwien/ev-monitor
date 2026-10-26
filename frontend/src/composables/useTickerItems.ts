@@ -114,7 +114,8 @@ export function useTickerItems() {
     function render(item: RawTickerItem): string {
         const p = item.params ?? {}
         const month = p.month ? monthName(Number(p.month)) : ''
-        const unit = (u?: string) => (u ? t(`ticker.units.${u}`) : '')
+        // Mit Anzahl: Einzahl bei 1, die Mehrzahl steht im Dativ ("mit 5 Ladevorgängen")
+        const unit = (u?: string, count?: number) => (u ? (count == null ? t(`ticker.units.${u}`) : t(`ticker.units.${u}`, count)) : '')
 
         switch (item.messageKey) {
             case 'leader':
@@ -122,7 +123,7 @@ export function useTickerItems() {
                     category: t(`leaderboard.cat_${CAT_LABEL[p.category]}`),
                     name: p.name,
                     value: num(p.value),
-                    unit: unit(CAT_UNIT[p.category]),
+                    unit: unit(CAT_UNIT[p.category], Number(p.value)),
                 })
             case 'stat_base':
                 return t('ticker.stat_base', { month, kwh: num(p.kwh), charges: num(p.charges) })

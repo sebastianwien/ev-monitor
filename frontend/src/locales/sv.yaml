@@ -1309,10 +1309,10 @@ ticker:
   open: "Visa"
   units:
     kwh: "kWh"
-    charges: "laddningar"
+    charges: "laddning | laddningar"
     km: "km"
     ct_kwh: "öre/kWh"
-    night_charges: "nattladdningar"
+    night_charges: "nattladdning | nattladdningar"
     celsius: "°C"
     kw: "kW"
     tonnes: "ton"
