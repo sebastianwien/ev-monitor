@@ -2854,13 +2854,12 @@ upgrade:
   error: Det oppstod en feil ved oppstart av kassen. Prøv på nytt.
   support_hint: Har du spørsmål om abonnementet?
   trust: Ingen betaling i prøveperioden. Sikker betaling via Stripe.
-  pro_section_title: EV Monitor Pro
-  pro_active: Proaktiv
-  pro_active_until: Nåværende periode slutter {date}
+  subscription_title: "Abonnement"
+  autosync_offer_benefit: "Hver lading havner automatisk i loggboken din."
+  autosync_offer_price: "7 dager gratis, deretter {priceMonthly}/måned. Kan sies opp når som helst."
+  autosync_offer_cta: "Prøv gratis"
   pro_manage_btn: Administrer abonnement
   pro_manage_loading: Laster...
-  pro_upgrade_hint: 7 dager gratis – deretter {priceMonthly}/måned
-  pro_upgrade_btn: Aktiver AutoSync
   success_title: AutoSync er nå tilgjengelig!
   success_desc: Velkommen til Pro-abonnementet. Koble til bilen din nå, så registreres alle ladinger automatisk.
   success_cta: Gå til EV Monitor AutoSync

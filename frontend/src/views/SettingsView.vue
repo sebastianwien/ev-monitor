@@ -249,10 +249,7 @@ onMounted(async () => {
 
   <!-- Abo -->
   <ModelBox v-if="authStore.isPremium || authStore.isSupporter || (purchasesAvailable() && !onlyUnsupportedBrands)">
-    <h2 :class="H2" class="flex items-center gap-2">
-      {{ t('upgrade.pro_section_title') }}
-      <span class="rounded-full bg-gray-900 px-2 py-0.5 text-[11.5px] font-bold tracking-wide text-white dark:bg-gray-100 dark:text-gray-900">PRO</span>
-    </h2>
+    <h2 :class="H2">{{ t('upgrade.subscription_title') }}</h2>
     <div v-if="authStore.isPremium || authStore.isSupporter" class="grid gap-3">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="flex min-w-0 items-center gap-3">
@@ -294,9 +291,13 @@ onMounted(async () => {
       </div>
       <p v-if="tierActionError" class="text-center text-[13px] font-semibold text-gray-900 dark:text-gray-100" role="alert">{{ tierActionError }}</p>
     </div>
-    <div v-else class="flex flex-wrap items-center justify-between gap-3">
-      <p class="min-w-0 flex-1 text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
-      <router-link to="/upgrade" :class="BTN_SECONDARY">{{ t('upgrade.pro_upgrade_btn') }}</router-link>
+    <div v-else class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div class="min-w-0 sm:flex-1">
+        <p class="font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.tier_autosync') }}</p>
+        <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.autosync_offer_benefit') }}</p>
+        <p class="text-[13px] text-gray-500 tabular-nums dark:text-gray-400">{{ t('upgrade.autosync_offer_price', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
+      </div>
+      <router-link to="/upgrade" :class="BTN_SECONDARY">{{ t('upgrade.autosync_offer_cta') }}</router-link>
     </div>
   </ModelBox>
 
