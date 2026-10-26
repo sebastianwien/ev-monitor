@@ -2130,6 +2130,7 @@ imports:
   smartcar_state_full: "Voll geladen"
   smartcar_state_unknown: "Unbekannt"
   smartcar_session_active: "Session aktiv"
+  smartcar_connected_label: "Verbunden"
   smartcar_last_update: "Letztes Update"
   smartcar_energy_added: "Geladen bisher"
   smartcar_session_since: "Session seit"

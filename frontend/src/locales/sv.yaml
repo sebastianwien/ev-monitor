@@ -2071,6 +2071,7 @@ imports:
   smartcar_state_full: Fulladdad
   smartcar_state_unknown: Okänt
   smartcar_session_active: Sessionen är aktiv
+  smartcar_connected_label: "Ansluten"
   smartcar_last_update: Senaste uppdatering
   smartcar_energy_added: Hittills debiterat
   smartcar_session_since: Sedan

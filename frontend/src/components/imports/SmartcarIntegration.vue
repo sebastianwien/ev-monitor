@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, XCircleIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, XCircleIcon, CheckIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_LABEL, CI_CARD, CI_NOTE } from '../../utils/ciClasses'
 import { useCarStore } from '../../stores/car'
 import { purchasesAvailable } from '../../utils/iapPolicy'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
@@ -127,183 +128,146 @@ const stateLabel = (state: string | null) => {
 <template>
   <!-- TEASER: Premium-Kauf möglich, aber User noch kein Abonnent.
        In embedded (tile) mode the picker handles the teaser at parent level. -->
-  <div v-if="props.premiumEnabled && !props.isPremium && !props.embedded" class="space-y-5">
-    <!-- Header -->
+  <div v-if="props.premiumEnabled && !props.isPremium && !props.embedded" class="grid gap-5">
     <div>
-      <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-2">
-        <span class="inline-flex w-5 h-5 bg-amber-500 text-gray-950 rounded-sm items-center justify-center text-[11px] font-extrabold">⚡</span>
-        EV Monitor AutoSync
+      <p :class="[CI_LABEL, 'mb-2 flex items-center gap-2']">
+        <BoltIcon class="h-4 w-4" aria-hidden="true" />EV Monitor AutoSync
       </p>
-      <h2 class="text-xl md:text-2xl font-bold text-gray-900 dark:text-white tracking-tight mb-1.5">
+      <h2 class="mb-1.5 text-[22px] font-bold tracking-tight text-gray-900 md:text-2xl dark:text-gray-100">
         {{ t('imports.smartcar_teaser_title') }}
       </h2>
-      <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{{ t('imports.smartcar_teaser_desc') }}</p>
+      <p class="text-[15px] leading-relaxed text-gray-600 dark:text-gray-400">{{ t('imports.smartcar_teaser_desc') }}</p>
     </div>
 
-    <!-- Feature-Liste mit Pfeil-Bullets -->
-    <ul class="space-y-2.5">
-      <li class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-        <span class="shrink-0 w-5 h-5 bg-amber-500 text-gray-950 rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">→</span>
-        <span class="font-medium">{{ t('imports.smartcar_feat2') }}</span>
-      </li>
-      <li class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-        <span class="shrink-0 w-5 h-5 bg-amber-500 text-gray-950 rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">→</span>
-        <span class="font-medium">{{ t('imports.smartcar_feat3') }}</span>
-      </li>
-      <li class="flex items-start gap-2.5 text-sm text-gray-700 dark:text-gray-300">
-        <span class="shrink-0 w-5 h-5 bg-amber-500 text-gray-950 rounded-sm flex items-center justify-center text-[10px] font-extrabold mt-0.5">→</span>
-        <span class="font-medium">{{ t('imports.smartcar_feat4') }}</span>
+    <ul class="grid gap-2.5">
+      <li v-for="k in ['smartcar_feat2', 'smartcar_feat3', 'smartcar_feat4']" :key="k" class="flex items-start gap-2.5 text-[15px] text-gray-700 dark:text-gray-300">
+        <CheckIcon class="mt-0.5 h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />{{ t(`imports.${k}`) }}
       </li>
     </ul>
 
-    <!-- Brand-List Block -->
-    <div class="border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5">
-      <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-gray-500 dark:text-gray-400 mb-3">{{ t('imports.smartcar_brands_title') }}</p>
+    <div :class="CI_CARD">
+      <p :class="[CI_LABEL, 'mb-3']">{{ t('imports.smartcar_brands_title') }}</p>
       <div class="flex flex-wrap gap-1.5">
-        <span
-          v-for="brand in brands" :key="brand"
-          class="text-xs font-bold uppercase tracking-wider bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 px-2 py-1 rounded-sm"
-        >{{ brand }}</span>
+        <span v-for="brand in brands" :key="brand"
+          class="rounded-full bg-gray-100 px-2.5 py-1 text-[12px] font-semibold text-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ brand }}</span>
       </div>
     </div>
 
-    <!-- FAQ Accordion -->
     <SmartcarFaq />
 
     <!-- Upgrade CTA (in der nativen App ausgeblendet, Guideline 3.1.1) -->
-    <div v-if="purchasesAvailable()">
-      <router-link
-        to="/upgrade"
-        class="w-full block text-center bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-xs md:text-sm px-5 py-3.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none transition-[transform,box-shadow] duration-75"
-      >
+    <div v-if="purchasesAvailable()" class="grid gap-2 text-center">
+      <router-link to="/upgrade" :class="[CI_BTN_PRIMARY, 'w-full']">
         {{ t('imports.smartcar_upgrade_cta', { priceMonthly: t('upgrade.price_monthly') }) }}
       </router-link>
-      <p class="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 text-center mt-3">{{ t('imports.smartcar_upgrade_price') }}</p>
-      <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+      <p class="text-[13px] font-semibold tabular-nums text-gray-500 dark:text-gray-400">{{ t('imports.smartcar_upgrade_price') }}</p>
+      <p class="text-[13px] text-gray-500 dark:text-gray-400">
         {{ t('imports.smartcar_support_hint') }}
-        <a href="mailto:support@ev-monitor.net" class="underline hover:no-underline font-medium">support@ev-monitor.net</a>
+        <a href="mailto:support@ev-monitor.net" class="font-semibold underline hover:no-underline">support@ev-monitor.net</a>
       </p>
     </div>
   </div>
 
   <!-- ADMIN: full setup UI -->
-  <div v-else :class="props.embedded ? 'space-y-4' : 'space-y-5'">
+  <div v-else class="grid" :class="props.embedded ? 'gap-4' : 'gap-5'">
 
-    <div v-if="loading" class="text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('imports.smartcar_loading') }}</div>
+    <p v-if="loading" role="status" :class="CI_LABEL">{{ t('imports.smartcar_loading') }}</p>
 
     <template v-else>
       <!-- How it works FAQ. Hidden in embedded (tile) mode - picker shows it at
            the parent level so each tile stays focused on the per-car action. -->
       <SmartcarFaq v-if="!props.embedded" />
 
-      <!-- Error - neo style border-l accent -->
-      <div v-if="error" class="border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3 rounded-r-sm space-y-1">
-        <p class="text-[11px] font-bold uppercase tracking-wider text-red-700 dark:text-red-400">{{ t('imports.smartcar_error_unknown_body').substring(0, 0) || 'Fehler' }}</p>
-        <p class="text-sm text-red-900 dark:text-red-200 font-medium">{{ error }}</p>
-        <p class="text-xs text-red-700/80 dark:text-red-300/70">
-          {{ t('imports.smartcar_support_hint') }}
-          <a href="mailto:support@ev-monitor.net" class="font-bold underline hover:no-underline">support@ev-monitor.net</a>
-        </p>
+      <div v-if="error" role="alert" :class="[CI_NOTE, 'flex items-start gap-2 py-3']">
+        <ExclamationCircleIcon class="h-5 w-5 shrink-0 text-gray-700 dark:text-gray-300" aria-hidden="true" />
+        <div class="grid gap-1">
+          <p class="font-semibold text-gray-900 dark:text-gray-100">{{ error }}</p>
+          <p class="text-[13px] text-gray-600 dark:text-gray-400">
+            {{ t('imports.smartcar_support_hint') }}
+            <a href="mailto:support@ev-monitor.net" class="font-semibold underline hover:no-underline">support@ev-monitor.net</a>
+          </p>
+        </div>
       </div>
 
       <!-- Connected -->
-      <div v-if="status?.connected" class="space-y-4">
-        <!-- Embedded (tile) mode: compact display -->
+      <div v-if="status?.connected" class="grid gap-4">
+        <!-- Zustand des Autos: Grün nur, solange es lädt (Ergebnis), sonst grau -->
         <template v-if="props.embedded">
-          <div class="space-y-2">
-            <div class="flex flex-wrap items-center gap-2">
-              <span
-                v-if="status.vehicleState"
-                class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm"
-                :class="status.vehicleState === 'CHARGING'
-                  ? 'bg-emerald-500 text-white'
-                  : status.vehicleState === 'FULLY_CHARGED'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-              >{{ stateLabel(status.vehicleState) }}</span>
-              <span v-if="status.sessionActive" class="text-[10px] font-bold uppercase tracking-wider bg-emerald-500 text-white px-2 py-1 rounded-sm flex items-center gap-1.5">
-                <span class="inline-block w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+          <div class="grid gap-2">
+            <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <span v-if="status.vehicleState" class="inline-flex items-center gap-1.5 text-[13px] font-semibold"
+                :class="status.vehicleState === 'CHARGING' ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'">
+                <span class="h-2 w-2 rounded-full" :class="status.vehicleState === 'CHARGING' ? 'bg-green-600 dark:bg-green-400' : 'bg-gray-400'" aria-hidden="true" />
+                {{ stateLabel(status.vehicleState) }}
+              </span>
+              <span v-if="status.sessionActive" class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-green-700 dark:text-green-400">
+                <span class="h-2 w-2 animate-pulse rounded-full bg-green-600 dark:bg-green-400" aria-hidden="true" />
                 {{ t('imports.smartcar_session_active') }}
               </span>
             </div>
-            <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono text-gray-600 dark:text-gray-400">
-              <span v-if="status.vin"><span class="text-gray-400 dark:text-gray-500">VIN:</span> <span class="text-gray-900 dark:text-white font-semibold">{{ status.vin }}</span></span>
-              <span v-if="status.lastSoc != null"><span class="text-gray-400 dark:text-gray-500">SoC:</span> <span class="text-gray-900 dark:text-white font-semibold">{{ status.lastSoc }}%</span></span>
-              <span v-if="status.lastCheckedAt"><span class="text-gray-400 dark:text-gray-500">{{ t('imports.smartcar_last_update') }}:</span> <span class="text-gray-900 dark:text-white font-semibold">{{ new Date(status.lastCheckedAt).toLocaleString() }}</span></span>
-            </div>
+            <dl class="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-gray-500 dark:text-gray-400">
+              <div v-if="status.vin" class="flex gap-1"><dt>VIN:</dt><dd class="font-mono font-semibold text-gray-900 dark:text-gray-100">{{ status.vin }}</dd></div>
+              <div v-if="status.lastSoc != null" class="flex gap-1"><dt>SoC:</dt><dd class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ status.lastSoc }} %</dd></div>
+              <div v-if="status.lastCheckedAt" class="flex gap-1"><dt>{{ t('imports.smartcar_last_update') }}:</dt><dd class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ new Date(status.lastCheckedAt).toLocaleString() }}</dd></div>
+            </dl>
           </div>
         </template>
 
         <!-- Standalone mode: full card -->
-        <template v-else>
-          <div class="border-2 border-emerald-500 dark:border-emerald-400 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#10b981] p-4 md:p-5">
-            <div class="flex items-start gap-3 mb-3">
-              <span class="inline-flex w-7 h-7 bg-emerald-500 text-white rounded-sm items-center justify-center text-sm font-extrabold shrink-0 mt-0.5">✓</span>
-              <div class="flex-1 min-w-0">
-                <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-emerald-700 dark:text-emerald-400 mb-0.5">{{ t('imports.smartcar_connected_label') || 'Verbunden' }}</p>
-                <p class="text-base font-bold text-gray-900 dark:text-white">{{ status.vehicleName }}</p>
-                <p v-if="status.vin" class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5">{{ status.vin }}</p>
-              </div>
-            </div>
-            <div class="flex flex-wrap items-center gap-2 mb-3">
-              <span
-                v-if="status.vehicleState"
-                class="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-sm"
-                :class="status.vehicleState === 'CHARGING'
-                  ? 'bg-emerald-500 text-white'
-                  : status.vehicleState === 'FULLY_CHARGED'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'"
-              >{{ stateLabel(status.vehicleState) }}</span>
-              <span v-else class="text-[10px] font-bold uppercase tracking-wider bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 px-2 py-1 rounded-sm">{{ t('imports.smartcar_waiting_data') }}</span>
-              <span v-if="status.sessionActive" class="text-[10px] font-bold uppercase tracking-wider bg-emerald-500 text-white px-2 py-1 rounded-sm flex items-center gap-1.5">
-                <span class="inline-block w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                {{ t('imports.smartcar_session_active') }}
-              </span>
-            </div>
-            <div v-if="status.lastCheckedAt" class="pt-3 border-t-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-wrap gap-x-4 gap-y-1 text-xs font-mono">
-              <span><span class="text-gray-400 dark:text-gray-500">{{ t('imports.smartcar_last_update') }}:</span> <span class="text-gray-900 dark:text-white font-semibold">{{ new Date(status.lastCheckedAt).toLocaleString() }}</span></span>
-              <span v-if="status.lastSoc != null"><span class="text-gray-400 dark:text-gray-500">SoC:</span> <span class="text-gray-900 dark:text-white font-semibold">{{ status.lastSoc }}%</span></span>
-              <span v-if="status.sessionActive && status.sessionEnergyAdded != null"><span class="text-gray-400 dark:text-gray-500">{{ t('imports.smartcar_energy_added') }}:</span> <span class="text-gray-900 dark:text-white font-semibold">{{ status.sessionEnergyAdded }} kWh</span></span>
-              <span v-if="status.sessionActive && status.sessionStartedAt"><span class="text-gray-400 dark:text-gray-500">{{ t('imports.smartcar_session_since') }}:</span> <span class="text-gray-900 dark:text-white font-semibold">{{ new Date(status.sessionStartedAt).toLocaleTimeString() }}</span></span>
+        <div v-else :class="[CI_CARD, 'grid gap-3']">
+          <div class="flex items-start gap-3">
+            <CheckCircleIcon class="mt-0.5 h-6 w-6 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+            <div class="min-w-0 flex-1">
+              <p :class="CI_LABEL">{{ t('imports.smartcar_connected_label') }}</p>
+              <p class="text-base font-bold text-gray-900 dark:text-gray-100">{{ status.vehicleName }}</p>
+              <p v-if="status.vin" class="mt-0.5 font-mono text-[12px] text-gray-500 dark:text-gray-400">{{ status.vin }}</p>
             </div>
           </div>
-        </template>
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+            <span v-if="status.vehicleState" class="inline-flex items-center gap-1.5 text-[13px] font-semibold"
+              :class="status.vehicleState === 'CHARGING' ? 'text-green-700 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'">
+              <span class="h-2 w-2 rounded-full" :class="status.vehicleState === 'CHARGING' ? 'bg-green-600 dark:bg-green-400' : 'bg-gray-400'" aria-hidden="true" />
+              {{ stateLabel(status.vehicleState) }}
+            </span>
+            <span v-else class="text-[13px] text-gray-500 dark:text-gray-400">{{ t('imports.smartcar_waiting_data') }}</span>
+            <span v-if="status.sessionActive" class="inline-flex items-center gap-1.5 text-[13px] font-semibold text-green-700 dark:text-green-400">
+              <span class="h-2 w-2 animate-pulse rounded-full bg-green-600 dark:bg-green-400" aria-hidden="true" />
+              {{ t('imports.smartcar_session_active') }}
+            </span>
+          </div>
+          <dl v-if="status.lastCheckedAt" class="flex flex-wrap gap-x-4 gap-y-1 border-t border-gray-200 pt-3 text-[13px] text-gray-500 dark:border-white/10 dark:text-gray-400">
+            <div class="flex gap-1"><dt>{{ t('imports.smartcar_last_update') }}:</dt><dd class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ new Date(status.lastCheckedAt).toLocaleString() }}</dd></div>
+            <div v-if="status.lastSoc != null" class="flex gap-1"><dt>SoC:</dt><dd class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ status.lastSoc }} %</dd></div>
+            <div v-if="status.sessionActive && status.sessionEnergyAdded != null" class="flex gap-1"><dt>{{ t('imports.smartcar_energy_added') }}:</dt><dd class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ status.sessionEnergyAdded }} kWh</dd></div>
+            <div v-if="status.sessionActive && status.sessionStartedAt" class="flex gap-1"><dt>{{ t('imports.smartcar_session_since') }}:</dt><dd class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ new Date(status.sessionStartedAt).toLocaleTimeString() }}</dd></div>
+          </dl>
+        </div>
 
-        <button
-          @click="disconnect"
-          :disabled="disconnecting"
-          class="inline-flex items-center gap-2 bg-gray-950 dark:bg-white text-white dark:text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-gray-950 dark:border-white shadow-[2px_2px_0_0_#dc2626] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <XCircleIcon class="h-4 w-4" />
+        <button type="button" :class="[CI_BTN_SECONDARY, 'justify-self-start']" :disabled="disconnecting" @click="disconnect">
+          <XCircleIcon class="h-5 w-5" aria-hidden="true" />
           {{ disconnecting ? t('imports.smartcar_disconnecting') : t('imports.smartcar_disconnect_btn') }}
         </button>
       </div>
 
       <!-- Not connected -->
-      <div v-else class="space-y-4">
-        <div v-if="cars.length === 0" class="border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 rounded-r-sm">
-          <p class="text-sm text-gray-700 dark:text-gray-200 font-medium">
-            {{ t('imports.smartcar_no_cars') }}
-            <router-link to="/cars" class="font-bold underline hover:no-underline ml-1">{{ t('imports.smartcar_add_car') }}</router-link>
-          </p>
-        </div>
+      <div v-else class="grid gap-4">
+        <!-- Ohne Auto fehlt etwas: Amber mit Handlung -->
+        <p v-if="cars.length === 0" class="rounded-2xl bg-amber-50 p-4 text-sm text-gray-800 dark:bg-amber-900/20 dark:text-gray-100">
+          {{ t('imports.smartcar_no_cars') }}
+          <router-link to="/cars" class="ml-1 font-semibold underline underline-offset-2 hover:no-underline">{{ t('imports.smartcar_add_car') }}</router-link>
+        </p>
         <template v-else>
-          <div v-if="cars.length > 1 && !props.forcedCarId" class="space-y-1.5">
-            <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('imports.smartcar_select_car') }}</label>
+          <div v-if="cars.length > 1 && !props.forcedCarId" class="grid gap-1.5">
+            <label :class="CI_LABEL">{{ t('imports.smartcar_select_car') }}</label>
             <CarSelectDropdown :cars="cars" v-model="selectedCarId" />
           </div>
-          <button
-            @click="connect"
-            :disabled="connecting || !selectedCarId"
-            class="w-full inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-amber-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
-          >
-            <BoltIcon class="h-4 w-4" />
+          <button type="button" :class="[CI_BTN_PRIMARY, 'w-full']" :disabled="connecting || !selectedCarId" @click="connect">
+            <BoltIcon class="h-5 w-5" aria-hidden="true" />
             {{ connecting ? t('imports.smartcar_connecting') : t('imports.smartcar_connect_btn') }}
           </button>
-          <p class="text-xs text-gray-500 dark:text-gray-400">
+          <p class="text-[13px] text-gray-500 dark:text-gray-400">
             {{ t('imports.smartcar_support_hint') }}
-            <a href="mailto:support@ev-monitor.net" class="font-bold underline hover:no-underline">support@ev-monitor.net</a>
+            <a href="mailto:support@ev-monitor.net" class="font-semibold underline hover:no-underline">support@ev-monitor.net</a>
           </p>
         </template>
       </div>

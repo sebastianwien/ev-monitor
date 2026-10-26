@@ -2,7 +2,12 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { ArrowTopRightOnSquareIcon, ArrowPathIcon, ExclamationTriangleIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import {
+  ArrowTopRightOnSquareIcon, ArrowPathIcon, ArrowUturnLeftIcon, ExclamationTriangleIcon, ExclamationCircleIcon, CheckCircleIcon, ChevronDownIcon,
+} from '@heroicons/vue/24/outline'
+import BottomSheet from '../shared/BottomSheet.vue'
+import Collapse from '../shared/Collapse.vue'
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_BTN_DANGER, CI_ICON_BTN, CI_LABEL, CI_CARD, CI_NOTE } from '@/utils/ciClasses'
 import teslaFleetService, { type TeslaConnectionStatus, type TeslaFleetSyncResult, type TeslaLatestImport } from '@/api/teslaFleetService'
 import type { Car } from '@/api/carService'
 import { useCarStore } from '@/stores/car'
@@ -27,6 +32,7 @@ const syncResult = ref<TeslaFleetSyncResult | null>(null)
 const error = ref<string | null>(null)
 const success = ref<string | null>(null)
 const confirmDisconnect = ref(false)
+const syncInfoOpen = ref(false)
 const lastImportedIds = ref<string[]>([])
 const showDeleteAllConfirm = ref(false)
 const deleteAllLoading = ref(false)
@@ -212,31 +218,29 @@ async function retryConnect() {
 </script>
 
 <template>
-  <div class="space-y-4">
+  <div class="grid gap-4">
 
-    <div v-if="success" class="border-l-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3 rounded-r-sm">
-      <p class="text-sm text-emerald-900 dark:text-emerald-200 font-medium">{{ success }}</p>
-    </div>
-    <div v-if="error" class="border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3 rounded-r-sm">
-      <p class="text-sm text-red-900 dark:text-red-200 font-medium">{{ error }}</p>
-    </div>
+    <p v-if="success" role="status" :class="[CI_NOTE, 'flex items-start gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']">
+      <CheckCircleIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />{{ success }}
+    </p>
+    <p v-if="error" role="alert" :class="[CI_NOTE, 'flex items-start gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']">
+      <ExclamationCircleIcon class="h-5 w-5 shrink-0 text-gray-700 dark:text-gray-300" aria-hidden="true" />{{ error }}
+    </p>
 
     <template v-if="!status.connected">
       <TeslaTelemetryExplainer />
-      <p class="text-sm text-gray-700 dark:text-gray-300 font-medium leading-relaxed">{{ t('tesla.connect_desc') }}</p>
-      <div v-if="cars.length > 1">
-        <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">{{ t('tesla.select_car_label') }}</label>
+      <p class="text-[15px] leading-relaxed text-gray-700 dark:text-gray-300">{{ t('tesla.connect_desc') }}</p>
+      <div v-if="cars.length > 1" class="grid gap-1.5">
+        <label :class="CI_LABEL">{{ t('tesla.select_car_label') }}</label>
         <CarSelectDropdown :cars="cars" v-model="selectedCarId" />
       </div>
-      <p v-if="carsLoaded && cars.length === 0" class="text-sm font-medium border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 text-gray-700 dark:text-gray-200 px-4 py-3 rounded-r-sm">
+      <!-- Ohne Auto fehlt etwas: Amber -->
+      <p v-if="carsLoaded && cars.length === 0" class="rounded-2xl bg-amber-50 p-4 text-sm text-gray-800 dark:bg-amber-900/20 dark:text-gray-100">
         {{ t('tesla.no_car_hint') }}
       </p>
-      <button
-        @click="handleConnect"
-        :disabled="isLoading || !fleetApiConfigured || cars.length === 0"
-        class="w-full inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-green-600 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_rgba(0,0,0,0.3)] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
-      >
-        <ArrowTopRightOnSquareIcon class="h-4 w-4" />
+      <button type="button" :class="[CI_BTN_PRIMARY, 'w-full sm:w-auto sm:justify-self-start']"
+        :disabled="isLoading || !fleetApiConfigured || cars.length === 0" @click="handleConnect">
+        <ArrowTopRightOnSquareIcon class="h-5 w-5" aria-hidden="true" />
         {{ isLoading ? t('tesla.connect_btn_loading') : t('tesla.connect_btn') }}
       </button>
     </template>
@@ -244,76 +248,56 @@ async function retryConnect() {
     <template v-else>
       <!-- Loading-Skeleton solange pairingStatus noch nicht da ist - verhindert Flicker zwischen
            Polling-Banner und Telemetry-Card auf langsamen Verbindungen. -->
-      <div v-if="!pairingStatusLoaded" class="bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800 rounded-xl p-4 pl-5 animate-pulse">
-        <div class="h-4 bg-gray-200 dark:bg-slate-800 rounded w-2/3"></div>
-        <div class="h-3 bg-gray-200 dark:bg-slate-800 rounded w-1/3 mt-2"></div>
-        <div class="h-3 bg-gray-200 dark:bg-slate-800 rounded w-full mt-3"></div>
+      <div v-if="!pairingStatusLoaded" :class="[CI_CARD, 'animate-pulse']">
+        <div class="h-4 w-2/3 rounded bg-gray-200 dark:bg-gray-600"></div>
+        <div class="mt-2 h-3 w-1/3 rounded bg-gray-200 dark:bg-gray-600"></div>
+        <div class="mt-3 h-3 w-full rounded bg-gray-200 dark:bg-gray-600"></div>
       </div>
-
 
       <!-- ── TELEMETRY ACTIVE MODE ──────────────────────────────────────── -->
       <template v-if="pairingStatusLoaded && isTelemetryActive">
-        <div class="border-2 border-emerald-500 dark:border-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 rounded-sm shadow-[2px_2px_0_0_#10b981] p-4">
-          <p class="text-emerald-700 dark:text-emerald-400 text-[11px] font-bold uppercase tracking-[0.14em] mb-2 flex items-center gap-2">
-            <span class="inline-flex w-5 h-5 bg-emerald-500 text-white rounded-sm items-center justify-center text-[10px] font-extrabold">●</span>
+        <div :class="[CI_CARD, 'grid gap-2']">
+          <p :class="[CI_LABEL, 'flex items-center gap-2']">
+            <span class="h-2.5 w-2.5 rounded-full bg-green-600 dark:bg-green-400" aria-hidden="true"></span>
             Telemetry aktiv
           </p>
-          <p v-if="pairingStatus?.vin" class="text-xs text-gray-500 dark:text-gray-400 font-mono truncate mb-2">{{ pairingStatus.vin }}</p>
-          <p class="text-sm text-gray-700 dark:text-gray-200 font-medium leading-relaxed">
+          <p v-if="pairingStatus?.vin" class="truncate font-mono text-[12px] text-gray-500 dark:text-gray-400">{{ pairingStatus.vin }}</p>
+          <p class="text-[15px] leading-relaxed text-gray-700 dark:text-gray-200">
             {{ isFullProfile ? t('tesla.telemetry_live_desc_full') : t('tesla.telemetry_live_desc_charging_only') }}
           </p>
 
-          <dl v-if="latestImport" class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-xs">
+          <dl v-if="latestImport" class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[13px]">
             <dt class="text-gray-500 dark:text-gray-400">{{ t('tesla.latest_import_charge') }}</dt>
-            <dd class="text-gray-700 dark:text-gray-200 font-mono tabular-nums">{{ formatImportTime(latestImport.lastChargeAt) }}</dd>
+            <dd class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ formatImportTime(latestImport.lastChargeAt) }}</dd>
             <template v-if="isFullProfile">
               <dt class="text-gray-500 dark:text-gray-400">{{ t('tesla.latest_import_trip') }}</dt>
-              <dd class="text-gray-700 dark:text-gray-200 font-mono tabular-nums">{{ formatImportTime(latestImport.lastTripAt) }}</dd>
+              <dd class="font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ formatImportTime(latestImport.lastTripAt) }}</dd>
             </template>
           </dl>
 
-          <div class="mt-4 pt-3 border-t-2 border-dashed border-emerald-300 dark:border-emerald-800 flex flex-wrap items-center justify-end gap-2 sm:gap-3">
-            <button
-              @click="refreshTelemetryCard"
-              :disabled="pairingLoading"
-              :title="t('tesla.pairing_refresh')"
-              :aria-label="t('tesla.pairing_refresh')"
-              class="p-2 border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition disabled:opacity-50 shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-            >
-              <ArrowPathIcon class="h-4 w-4" :class="{ 'animate-spin': pairingLoading }" />
+          <div class="mt-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-200 pt-3 dark:border-white/10">
+            <button type="button" :class="CI_ICON_BTN" :disabled="pairingLoading"
+              :title="t('tesla.pairing_refresh')" :aria-label="t('tesla.pairing_refresh')" @click="refreshTelemetryCard">
+              <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': pairingLoading }" aria-hidden="true" />
             </button>
-            <button
-              @click="disableTelemetry"
-              :disabled="pairingLoading"
-              class="text-[11px] font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 px-3 py-2 rounded-sm shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563] active:translate-x-[2px] active:translate-y-[2px] active:shadow-none transition-[transform,box-shadow] duration-75 disabled:opacity-50"
-            >
+            <button type="button" :class="CI_BTN_SECONDARY" :disabled="pairingLoading" @click="disableTelemetry">
               {{ pairingLoading ? t('tesla.pairing_disable_btn_loading') : t('tesla.pairing_disable_btn') }}
             </button>
-            <button
-              @click="handleDisconnect"
-              class="text-[11px] font-bold uppercase tracking-wider px-3 py-2 rounded-sm border-2 transition-[transform,box-shadow] duration-75 active:translate-x-[2px] active:translate-y-[2px] active:shadow-none"
-              :class="confirmDisconnect
-                ? 'bg-red-600 text-white border-red-600 shadow-[2px_2px_0_0_#030712]'
-                : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 hover:text-gray-900 dark:hover:text-white shadow-[2px_2px_0_0_#9ca3af] dark:shadow-[2px_2px_0_0_#4b5563]'"
-            >
+            <!-- Zweiter Klick bestätigt: erst dann rot -->
+            <button type="button" :class="confirmDisconnect ? CI_BTN_DANGER : CI_BTN_SECONDARY" @click="handleDisconnect">
               {{ confirmDisconnect ? t('tesla.confirm_disconnect') : t('tesla.disconnect_btn') }}
             </button>
           </div>
 
-          <div v-if="pairingError" class="mt-3 border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-3 py-2 rounded-r-sm flex items-start gap-2">
-            <ExclamationTriangleIcon class="h-4 w-4 text-red-500 dark:text-red-400 mt-0.5 shrink-0" />
-            <p class="text-xs text-red-900 dark:text-red-200 font-medium">{{ pairingError }}</p>
-          </div>
+          <p v-if="pairingError" role="alert" class="flex items-start gap-2 text-[13px] font-semibold text-gray-900 dark:text-gray-100">
+            <ExclamationTriangleIcon class="h-5 w-5 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />{{ pairingError }}
+          </p>
         </div>
 
-        <div class="mt-3 flex justify-end">
-          <button
-            @click="showDeleteAllConfirm = true"
-            class="text-[11px] font-bold uppercase tracking-wider text-red-600 dark:text-red-400 hover:underline underline-offset-2"
-          >
-            {{ t('tesla.delete_all_link') }}
-          </button>
-        </div>
+        <button type="button" class="inline-flex min-h-11 items-center justify-self-end text-sm font-semibold text-gray-600 underline underline-offset-2 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
+          @click="showDeleteAllConfirm = true">
+          {{ t('tesla.delete_all_link') }}
+        </button>
       </template>
 
       <!-- ── POLLING MODE ────────────────────────────────────────────────── -->
@@ -328,68 +312,55 @@ async function retryConnect() {
           @reconnect="handleConnect"
         />
 
-        <!-- History-Sync controls: Info-Box, "Ladehistorie importieren", Undo, Delete-All. -->
-        <!-- Collapsible info box -->
-        <details class="group border border-gray-200 dark:border-slate-700/60 rounded-xl overflow-hidden bg-white dark:bg-slate-800/50">
-          <summary class="flex items-center justify-between px-4 py-3 cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-slate-700/40 list-none select-none">
+        <!-- History-Sync controls: Info, "Ladehistorie importieren", Undo, Delete-All. -->
+        <div class="rounded-2xl bg-gray-100 dark:bg-gray-800/60">
+          <button type="button" :aria-expanded="syncInfoOpen"
+            class="flex min-h-11 w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100"
+            @click="syncInfoOpen = !syncInfoOpen">
             {{ t('tesla.sync_info_title') }}
-            <ChevronDownIcon class="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 shrink-0" />
-          </summary>
-          <div class="px-4 pb-3 pt-1 border-t border-gray-100 dark:border-slate-700/40">
-            <ul class="list-disc list-inside space-y-0.5 text-sm text-gray-600 dark:text-slate-400">
-              <li>{{ t('tesla.sync_item1') }}</li>
-              <li>{{ t('tesla.sync_item2') }}</li>
-              <li>{{ t('tesla.sync_item3') }}</li>
-              <li>{{ t('tesla.sync_item4') }}</li>
-              <li>{{ t('tesla.sync_item5') }}</li>
-            </ul>
-            <p class="text-xs text-slate-500 dark:text-slate-500 mt-2">{{ t('tesla.sync_note') }}</p>
-          </div>
-        </details>
-
-        <div v-if="syncResult" class="bg-gray-50 dark:bg-slate-900/60 rounded-lg p-3 text-sm">
-          <p class="font-medium text-gray-800 dark:text-gray-200">{{ syncResult.message }}</p>
-          <p v-if="syncResult.logsSkipped > 0" class="text-slate-500 dark:text-slate-400 text-xs mt-1">{{ t('tesla.skipped', { n: syncResult.logsSkipped }) }}</p>
-        </div>
-        <div v-if="status.geocodingInProgress" class="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
-          <ArrowPathIcon class="h-4 w-4 text-blue-500 dark:text-blue-400 animate-spin shrink-0" />
-          <p class="text-sm text-blue-800 dark:text-blue-200">{{ t('tesla.geocoding') }}</p>
+            <ChevronDownIcon class="h-4 w-4 shrink-0 text-gray-500 transition-transform duration-300 motion-reduce:transition-none"
+              :class="syncInfoOpen ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
+          </button>
+          <Collapse :open="syncInfoOpen">
+            <div class="px-4 pb-4">
+              <ul class="list-inside list-disc space-y-0.5 text-sm text-gray-700 dark:text-gray-300">
+                <li>{{ t('tesla.sync_item1') }}</li>
+                <li>{{ t('tesla.sync_item2') }}</li>
+                <li>{{ t('tesla.sync_item3') }}</li>
+                <li>{{ t('tesla.sync_item4') }}</li>
+                <li>{{ t('tesla.sync_item5') }}</li>
+              </ul>
+              <p class="mt-2 text-[13px] text-gray-500 dark:text-gray-400">{{ t('tesla.sync_note') }}</p>
+            </div>
+          </Collapse>
         </div>
 
-        <div class="flex gap-2">
-          <button
-            @click="handleSyncHistory"
-            :disabled="isLoading"
-            class="btn-3d flex-1 flex items-center justify-center gap-2 bg-gray-900 dark:bg-slate-700 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-800 dark:hover:bg-slate-600 transition disabled:opacity-50"
-          >
-            <ArrowPathIcon class="h-4 w-4" :class="{ 'animate-spin': isLoading }" />
+        <div v-if="syncResult" role="status" :class="[CI_NOTE, 'py-3']">
+          <p class="font-semibold text-gray-900 dark:text-gray-100">{{ syncResult.message }}</p>
+          <p v-if="syncResult.logsSkipped > 0" class="mt-1 text-[13px] text-gray-500 dark:text-gray-400">{{ t('tesla.skipped', { n: syncResult.logsSkipped }) }}</p>
+        </div>
+        <p v-if="status.geocodingInProgress" role="status" :class="[CI_NOTE, 'flex items-center gap-2 py-3']">
+          <ArrowPathIcon class="h-5 w-5 shrink-0 animate-spin text-gray-500 dark:text-gray-400" aria-hidden="true" />{{ t('tesla.geocoding') }}
+        </p>
+
+        <div class="flex flex-wrap gap-2">
+          <button type="button" :class="[CI_BTN_SECONDARY, 'flex-1']" :disabled="isLoading" @click="handleSyncHistory">
+            <ArrowPathIcon class="h-5 w-5" :class="{ 'animate-spin': isLoading }" aria-hidden="true" />
             {{ isLoading ? t('tesla.sync_btn_loading') : t('tesla.sync_btn') }}
           </button>
-          <button
-            @click="handleDisconnect"
-            class="shrink-0 px-4 py-2.5 rounded-lg border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-400 text-sm font-medium transition"
-            :class="confirmDisconnect ? 'bg-red-50 dark:bg-red-900/20' : 'hover:bg-red-50 dark:hover:bg-red-900/20'"
-          >
+          <button type="button" :class="confirmDisconnect ? CI_BTN_DANGER : CI_BTN_SECONDARY" @click="handleDisconnect">
             {{ confirmDisconnect ? t('tesla.confirm_disconnect') : t('tesla.disconnect_btn') }}
           </button>
         </div>
-        <p class="text-xs text-slate-500 dark:text-slate-500 text-center">{{ t('tesla.auto_import_hint') }}</p>
+        <p class="text-center text-[13px] text-gray-500 dark:text-gray-400">{{ t('tesla.auto_import_hint') }}</p>
 
-        <!-- Undo last import -->
-        <div v-if="lastImportedIds.length > 0" class="border-t border-gray-100 dark:border-slate-700/40 pt-4">
-          <button
-            @click="handleUndoLastImport"
-            :disabled="isLoading"
-            class="w-full flex items-center justify-center gap-2 text-sm px-4 py-2 rounded-lg border border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition disabled:opacity-50"
-          >
-            <ArrowPathIcon class="h-4 w-4" />
+        <!-- Undo last import / Delete all -->
+        <div class="grid gap-2 border-t border-gray-200 pt-4 dark:border-white/10">
+          <button v-if="lastImportedIds.length > 0" type="button" :class="[CI_BTN_SECONDARY, 'w-full']" :disabled="isLoading" @click="handleUndoLastImport">
+            <ArrowUturnLeftIcon class="h-5 w-5" aria-hidden="true" />
             {{ t('tesla.undo_btn', { n: lastImportedIds.length }) }}
           </button>
-        </div>
-
-        <!-- Delete all -->
-        <div class="border-t border-gray-100 dark:border-slate-700/40 pt-4">
-          <button @click="showDeleteAllConfirm = true" class="w-full text-sm px-4 py-2 rounded-lg border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition">
+          <button type="button" :class="[CI_BTN_SECONDARY, 'w-full']" @click="showDeleteAllConfirm = true">
             {{ t('tesla.delete_all_btn') }}
           </button>
         </div>
@@ -397,84 +368,48 @@ async function retryConnect() {
     </template>
   </div>
 
-  <!-- Tesla callback error modal -->
-  <div
-    v-if="callbackErrorCode"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="callback-error-title"
-    class="fixed inset-0 flex items-center justify-center z-50 p-4"
-    style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);"
-    @click.self="closeCallbackError"
-  >
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4" @click.stop>
-      <div class="flex flex-col items-center gap-2 text-center">
-        <ExclamationTriangleIcon class="w-8 h-8 text-amber-500" />
-        <h3 id="callback-error-title" class="text-xl font-bold text-gray-900 dark:text-white">
+  <!-- Tesla callback error -->
+  <BottomSheet v-if="callbackErrorCode" edge
+    :label="callbackErrorCode === 'VIN_ALREADY_LINKED' ? t('tesla.callback_error_vin_linked_title') : t('tesla.callback_error_unknown_title')"
+    @close="closeCallbackError">
+    <template #default="{ close }">
+      <div class="grid gap-4 overflow-y-auto px-4 pb-4 pt-3 sm:px-6 sm:pt-6">
+        <div class="mx-auto h-1 w-10 rounded-full bg-gray-300 sm:hidden dark:bg-gray-600" />
+        <h3 class="flex items-start gap-2 text-xl font-extrabold text-gray-900 dark:text-gray-50">
+          <ExclamationTriangleIcon class="mt-0.5 h-6 w-6 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
           {{ callbackErrorCode === 'VIN_ALREADY_LINKED' ? t('tesla.callback_error_vin_linked_title') : t('tesla.callback_error_unknown_title') }}
         </h3>
+        <p class="text-sm text-gray-700 dark:text-gray-300">
+          {{ callbackErrorCode === 'VIN_ALREADY_LINKED' ? t('tesla.callback_error_vin_linked_body') : t('tesla.callback_error_unknown_body') }}
+        </p>
+        <div class="grid gap-3" :class="callbackErrorCode !== 'VIN_ALREADY_LINKED' ? 'grid-cols-2' : ''">
+          <button type="button" :class="CI_BTN_SECONDARY" @click="close">{{ t('tesla.callback_error_close') }}</button>
+          <button v-if="callbackErrorCode !== 'VIN_ALREADY_LINKED'" type="button" :class="CI_BTN_PRIMARY" @click="retryConnect">
+            {{ t('tesla.callback_error_retry') }}
+          </button>
+        </div>
       </div>
-      <p class="text-gray-700 dark:text-gray-300 text-sm text-center">
-        {{ callbackErrorCode === 'VIN_ALREADY_LINKED' ? t('tesla.callback_error_vin_linked_body') : t('tesla.callback_error_unknown_body') }}
-      </p>
-      <div class="flex gap-3">
-        <button
-          @click="closeCallbackError"
-          class="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
-        >
-          {{ t('tesla.callback_error_close') }}
-        </button>
-        <button
-          v-if="callbackErrorCode !== 'VIN_ALREADY_LINKED'"
-          @click="retryConnect"
-          class="flex-1 px-4 py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold rounded-lg hover:opacity-90 transition"
-        >
-          {{ t('tesla.callback_error_retry') }}
-        </button>
-      </div>
-    </div>
-  </div>
+    </template>
+  </BottomSheet>
 
-  <!-- Delete all confirmation modal -->
-  <div
-    v-if="showDeleteAllConfirm"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="delete-all-title"
-    class="fixed inset-0 flex items-center justify-center z-50 p-4"
-    style="backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.3);"
-    @click.self="showDeleteAllConfirm = false"
-  >
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4" @click.stop>
-      <div class="flex flex-col items-center gap-2 text-center">
-        <ExclamationTriangleIcon class="w-8 h-8 text-red-600" />
-        <h3 id="delete-all-title" class="text-xl font-bold text-red-600">{{ t('tesla.delete_modal_title') }}</h3>
+  <!-- Alle Tesla-Importe löschen: einziger rote Knopf -->
+  <BottomSheet v-if="showDeleteAllConfirm" edge :label="t('tesla.delete_modal_title')" @close="showDeleteAllConfirm = false">
+    <template #default="{ close }">
+      <div class="grid gap-4 overflow-y-auto px-4 pb-4 pt-3 sm:px-6 sm:pt-6">
+        <div class="mx-auto h-1 w-10 rounded-full bg-gray-300 sm:hidden dark:bg-gray-600" />
+        <h3 class="text-xl font-extrabold text-gray-900 dark:text-gray-50">{{ t('tesla.delete_modal_title') }}</h3>
+        <p class="text-sm text-gray-700 dark:text-gray-300" v-html="t('tesla.delete_modal_desc')" />
+        <p v-if="deleteAllError" role="alert" :class="[CI_NOTE, 'flex items-start gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']">
+          <ExclamationCircleIcon class="h-5 w-5 shrink-0 text-gray-700 dark:text-gray-300" aria-hidden="true" />{{ deleteAllError }}
+        </p>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" :class="CI_BTN_SECONDARY" :disabled="deleteAllLoading" @click="close">{{ t('tesla.delete_modal_cancel') }}</button>
+          <button type="button" :class="CI_BTN_DANGER" :disabled="deleteAllLoading" @click="handleDeleteAllImports">
+            <ArrowPathIcon v-if="deleteAllLoading" class="h-5 w-5 animate-spin" aria-hidden="true" />
+            {{ deleteAllLoading ? t('tesla.delete_modal_btn_loading') : t('tesla.delete_modal_btn') }}
+          </button>
+        </div>
       </div>
-      <p class="text-gray-700 dark:text-gray-300 text-sm" v-html="t('tesla.delete_modal_desc')" />
-      <div v-if="deleteAllError" class="p-3 bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 rounded-lg border border-red-300 dark:border-red-700 text-sm">
-        <ExclamationTriangleIcon class="w-4 h-4 inline-block mr-1" />
-        {{ deleteAllError }}
-      </div>
-      <div class="flex gap-3">
-        <button
-          @click="showDeleteAllConfirm = false"
-          :disabled="deleteAllLoading"
-          class="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 font-semibold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition disabled:opacity-50"
-        >
-          {{ t('tesla.delete_modal_cancel') }}
-        </button>
-        <button
-          @click="handleDeleteAllImports"
-          :disabled="deleteAllLoading"
-          class="flex-1 px-4 py-3 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition disabled:opacity-50 flex items-center justify-center gap-2"
-        >
-          <svg v-if="deleteAllLoading" class="animate-spin h-5 w-5 text-white flex-shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          {{ deleteAllLoading ? t('tesla.delete_modal_btn_loading') : t('tesla.delete_modal_btn') }}
-        </button>
-      </div>
-    </div>
-  </div>
+    </template>
+  </BottomSheet>
 </template>

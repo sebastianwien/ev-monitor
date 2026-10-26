@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, watch, onUnmounted, useId, type Component } from 'vue'
+import { useId, type Component } from 'vue'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
-import Collapse from '../shared/Collapse.vue'
+import LazyCollapse from '../shared/LazyCollapse.vue'
 
 /**
  * Eine Sektion auf /imports: Kopfzeile zum Auf- und Zuklappen, darunter der Weg (docs/design/ci.md, Collapse).
  * Welche offen ist, hält die Seite (useImportsTab), die Sektion meldet nur den Klick.
+ * Der Inhalt mountet erst beim Aufklappen (LazyCollapse): die Integrationen laden dann ihren Status.
  * mark: Kürzel in der Kachel, wenn es für den Anbieter kein Icon gibt (T, SM, VW).
  */
-const props = defineProps<{
+defineProps<{
   open: boolean
   title: string
   subtitle?: string
@@ -21,17 +22,6 @@ const props = defineProps<{
 defineEmits<{ toggle: [] }>()
 
 const bodyId = useId()
-
-// Inhalt nur, solange offen (plus Zuklapp-Animation, 300 ms wie Collapse): die Integrationen laden beim
-// Mounten ihren Status, zugeklappt sollen sie weder laden noch nachfragen
-const mounted = ref(props.open)
-let unmountTimer: ReturnType<typeof setTimeout> | undefined
-watch(() => props.open, (open) => {
-  clearTimeout(unmountTimer)
-  if (open) mounted.value = true
-  else unmountTimer = setTimeout(() => { mounted.value = false }, 300)
-})
-onUnmounted(() => clearTimeout(unmountTimer))
 </script>
 
 <template>
@@ -54,10 +44,10 @@ onUnmounted(() => clearTimeout(unmountTimer))
       <ChevronDownIcon class="h-5 w-5 shrink-0 text-gray-400 transition-transform duration-300 motion-reduce:transition-none"
         :class="open ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
     </button>
-    <Collapse :id="bodyId" :open="open">
-      <div v-if="mounted" class="px-4 pb-6 pt-1 md:px-8">
+    <LazyCollapse :id="bodyId" :open="open">
+      <div class="px-4 pb-6 pt-1 md:px-8">
         <slot />
       </div>
-    </Collapse>
+    </LazyCollapse>
   </div>
 </template>

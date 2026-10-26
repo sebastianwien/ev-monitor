@@ -13,6 +13,8 @@
 import { ref, computed, onMounted, watch, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { LockClosedIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import LazyCollapse from '../shared/LazyCollapse.vue'
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_LABEL, CI_NOTE } from '../../utils/ciClasses'
 import type { Car } from '../../api/carService'
 import smartcarService, { connectionsOf, type SmartcarConnectionStatus } from '../../api/smartcarService'
 import { subscriptionService } from '../../api/subscriptionService'
@@ -140,16 +142,6 @@ function brandInitials(car: Car): string {
     return raw.slice(0, words[0].length <= 3 ? words[0].length : 2).toUpperCase()
 }
 
-/** Hintergrundfarbe des Brand-Tags basierend auf TileState - mit den
- *  bestehenden State-Farben (emerald aktiv, neutral verfuegbar etc.). */
-function brandTagClasses(car: Car): string {
-    const state = tileStateFor(car)
-    if (state === 'active') return 'bg-gray-950 dark:bg-gray-700 text-white dark:text-white'
-    if (state === 'unavailable') return 'bg-yellow-400 text-gray-950'
-    if (state === 'locked') return 'bg-gray-300 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
-    return 'bg-indigo-600 text-white'
-}
-
 watch(activeCar, (car) => {
     emit('active-car-label', car ? car.modelDisplayName : null)
 }, { immediate: true })
@@ -165,7 +157,7 @@ function toggleExpand(carId: string) {
 </script>
 
 <template>
-    <div class="space-y-4">
+    <div class="grid gap-4">
         <!-- Non-premium: render the existing Smartcar teaser/pitch (brand list,
              FAQ, upgrade CTA). Tiles only make sense for Premium users with an
              actual active subscription. -->
@@ -177,165 +169,94 @@ function toggleExpand(carId: string) {
 
         <template v-else>
             <!-- Empty state: no cars -->
-            <div v-if="props.cars.length === 0"
-                 class="border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 rounded-sm p-6 text-center">
-                <p class="text-sm text-gray-600 dark:text-gray-400 font-medium">{{ t('imports.autosync_no_cars_hint') }}</p>
-                <router-link
-                    to="/cars"
-                    class="inline-block mt-3 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
-                >
-                    {{ t('imports.autosync_no_cars_cta') }}
-                </router-link>
+            <div v-if="props.cars.length === 0" :class="[CI_NOTE, 'grid justify-items-center gap-3 p-6 text-center']">
+                <p>{{ t('imports.autosync_no_cars_hint') }}</p>
+                <router-link to="/cars" :class="CI_BTN_PRIMARY">{{ t('imports.autosync_no_cars_cta') }}</router-link>
             </div>
 
-            <!-- Stacked Rows -->
-            <div v-else class="space-y-4">
-                <div
-                    v-for="car in sortedCars"
-                    :key="car.id"
-                    class="rounded-sm overflow-hidden transition-[box-shadow] duration-150"
-                    :class="tileStateFor(car) === 'active'
-                        ? 'border-2 border-gray-900 dark:border-gray-500 bg-white dark:bg-gray-900 shadow-[2px_2px_0_0_#0a0a0a] dark:shadow-[2px_2px_0_0_#4b5563]'
-                        : tileStateFor(car) === 'unavailable'
-                            ? 'border-2 border-dashed border-gray-300 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 opacity-75'
-                            : 'border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]'"
-                >
-                    <!-- Row header -->
-                    <button
-                        type="button"
-                        class="w-full flex items-stretch text-left hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                        @click="toggleExpand(car.id)"
-                    >
-                        <!-- Brand-Tag (links) -->
-                        <div
-                            class="px-3 py-4 flex flex-col justify-center items-center min-w-[80px] md:min-w-[88px] shrink-0 border-r-2"
-                            :class="[
-                                brandTagClasses(car),
-                                tileStateFor(car) === 'active' ? 'border-gray-900 dark:border-gray-500'
-                                  : tileStateFor(car) === 'unavailable' ? 'border-dashed border-gray-300 dark:border-gray-700'
-                                  : 'border-gray-300 dark:border-gray-700'
-                            ]"
-                        >
-                            <p class="text-xl md:text-2xl font-extrabold tracking-tight">{{ brandInitials(car) }}</p>
-                            <p class="text-[9px] font-bold uppercase tracking-wider mt-0.5 opacity-75">{{ providerLabel(car) }}</p>
-                        </div>
-
-                        <!-- Content -->
-                        <div class="flex-1 flex items-center gap-3 px-4 py-3.5 min-w-0">
-                            <div class="flex-1 min-w-0">
-                                <h3 class="text-base font-bold text-gray-900 dark:text-white truncate">{{ carLabel(car) }}</h3>
-                                <p v-if="carDetails(car)" class="text-xs text-gray-500 dark:text-gray-400 font-mono mt-0.5 truncate">{{ carDetails(car) }}</p>
-                            </div>
-
-                            <!-- State badge -->
-                            <span
-                                v-if="tileStateFor(car) === 'active'"
-                                class="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-green-600 text-white px-2 py-1 rounded-sm whitespace-nowrap"
-                            >● {{ t('imports.autosync_state_active') }}</span>
-                            <span
-                                v-else-if="tileStateFor(car) === 'locked'"
-                                class="shrink-0 inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-gray-950 px-2 py-1 rounded-sm whitespace-nowrap"
-                            >
-                                <LockClosedIcon class="h-3 w-3" />
-                                {{ t('imports.autosync_state_locked') }}
+            <!-- Eine Karte je Auto; nicht verfügbare ohne Kante, sie lassen sich nur zur Erklärung aufklappen -->
+            <div v-else class="grid gap-3">
+                <div v-for="car in sortedCars" :key="car.id" class="overflow-hidden rounded-2xl"
+                    :class="tileStateFor(car) === 'unavailable' ? 'bg-gray-100 dark:bg-gray-800/60' : 'bg-white edge-card dark:bg-gray-700/50'">
+                    <button type="button" :aria-expanded="expandedCarId === car.id"
+                        class="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50 dark:hover:bg-white/5"
+                        @click="toggleExpand(car.id)">
+                        <!-- Marke als Kürzel, aktiv dunkel -->
+                        <span class="grid h-12 w-14 shrink-0 place-items-center rounded-xl text-center"
+                            :class="tileStateFor(car) === 'active' ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-200'">
+                            <span>
+                                <span class="block text-[17px] font-extrabold leading-none tracking-tight">{{ brandInitials(car) }}</span>
+                                <span class="mt-1 block text-[9px] font-bold uppercase tracking-wide opacity-75">{{ providerLabel(car) }}</span>
                             </span>
-                            <span
-                                v-else-if="tileStateFor(car) === 'unavailable'"
-                                class="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-400 px-2 py-1 rounded-sm whitespace-nowrap"
-                            >— {{ t('imports.autosync_state_unavailable') }}</span>
-                            <span
-                                v-else
-                                class="shrink-0 text-[10px] font-bold uppercase tracking-wider bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-2 py-1 rounded-sm whitespace-nowrap"
-                            >○ {{ t('imports.autosync_state_available') }}</span>
+                        </span>
 
-                            <ChevronDownIcon
-                                class="h-4 w-4 text-gray-500 dark:text-gray-400 shrink-0 transition-transform duration-200"
-                                :class="expandedCarId === car.id ? 'rotate-180' : ''"
-                            />
-                        </div>
+                        <span class="min-w-0 flex-1">
+                            <span class="block truncate text-[15px] font-bold text-gray-900 dark:text-gray-100">{{ carLabel(car) }}</span>
+                            <span v-if="carDetails(car)" class="mt-0.5 block truncate text-[12px] text-gray-500 dark:text-gray-400">{{ carDetails(car) }}</span>
+                            <!-- Zustand: Grün nur für aktiv (Ergebnis), Amber für gesperrt (es fehlt ein Platz) -->
+                            <span class="mt-1 inline-flex items-center gap-1.5 text-[12.5px] font-semibold"
+                                :class="tileStateFor(car) === 'active' ? 'text-green-700 dark:text-green-400'
+                                  : tileStateFor(car) === 'locked' ? 'text-amber-700 dark:text-amber-400'
+                                  : 'text-gray-500 dark:text-gray-400'">
+                                <LockClosedIcon v-if="tileStateFor(car) === 'locked'" class="h-3.5 w-3.5" aria-hidden="true" />
+                                <span v-else class="h-2 w-2 rounded-full" aria-hidden="true"
+                                    :class="tileStateFor(car) === 'active' ? 'bg-green-600 dark:bg-green-400' : 'border border-gray-400'" />
+                                {{ tileStateFor(car) === 'active' ? t('imports.autosync_state_active')
+                                  : tileStateFor(car) === 'locked' ? t('imports.autosync_state_locked')
+                                  : tileStateFor(car) === 'unavailable' ? t('imports.autosync_state_unavailable')
+                                  : t('imports.autosync_state_available') }}
+                            </span>
+                        </span>
+
+                        <ChevronDownIcon class="h-5 w-5 shrink-0 text-gray-400 transition-transform duration-300 motion-reduce:transition-none"
+                            :class="expandedCarId === car.id ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
                     </button>
 
-                    <!-- Expanded body -->
-                    <Transition name="accordion">
-                        <div v-if="expandedCarId === car.id" class="border-t-2 border-gray-200 dark:border-gray-700">
+                    <LazyCollapse :open="expandedCarId === car.id">
+                        <div class="border-t border-gray-200 p-4 dark:border-white/10">
                             <!-- Locked: alle AutoSync-Plätze belegt (ein Abo je Fahrzeug) -->
-                            <div v-if="tileStateFor(car) === 'locked' && activeCar" class="p-4 md:p-5">
-                                <div class="border-l-2 border-amber-500 bg-amber-50 dark:bg-amber-950/30 px-4 py-3 rounded-r-sm space-y-3">
-                                    <p class="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
-                                        {{ t('imports.autosync_locked_title', { count: slots }) }}
-                                    </p>
-                                    <p
-                                        class="text-sm text-gray-700 dark:text-gray-200 font-medium leading-relaxed"
-                                        v-html="t('imports.autosync_locked_desc', { activeCars: activeCarsLabel })"
-                                    />
-                                    <div v-if="props.premiumEnabled" class="space-y-2">
-                                        <p class="text-[11px] font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300">{{ t('imports.autosync_locked_cta') }}</p>
-                                        <div class="flex flex-wrap gap-2">
-                                            <button
-                                                v-for="plan in (['monthly', 'yearly'] as const)"
-                                                :key="plan"
-                                                type="button"
-                                                :disabled="checkoutBusy"
-                                                class="bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75"
-                                                @click="buyAnotherSubscription(plan)"
-                                            >
-                                                {{ t(plan === 'monthly' ? 'upgrade.plan_monthly' : 'upgrade.plan_yearly') }}
-                                            </button>
-                                        </div>
-                                        <p v-if="checkoutError" class="text-xs text-red-600 dark:text-red-400">{{ checkoutError }}</p>
+                            <div v-if="tileStateFor(car) === 'locked' && activeCar" class="grid gap-3 rounded-2xl bg-amber-50 p-4 dark:bg-amber-900/20">
+                                <p :class="CI_LABEL">{{ t('imports.autosync_locked_title', { count: slots }) }}</p>
+                                <p class="text-sm leading-relaxed text-gray-800 dark:text-gray-100" v-html="t('imports.autosync_locked_desc', { activeCars: activeCarsLabel })" />
+                                <div v-if="props.premiumEnabled" class="grid gap-2">
+                                    <p class="text-[13px] font-semibold text-gray-700 dark:text-gray-300">{{ t('imports.autosync_locked_cta') }}</p>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button v-for="plan in (['monthly', 'yearly'] as const)" :key="plan" type="button"
+                                            :class="CI_BTN_SECONDARY" :disabled="checkoutBusy" @click="buyAnotherSubscription(plan)">
+                                            {{ t(plan === 'monthly' ? 'upgrade.plan_monthly' : 'upgrade.plan_yearly') }}
+                                        </button>
                                     </div>
+                                    <p v-if="checkoutError" role="alert" class="text-[13px] font-semibold text-gray-900 dark:text-gray-100">{{ checkoutError }}</p>
                                 </div>
                             </div>
 
                             <!-- Unavailable: brand has no AutoSync provider -->
-                            <div v-else-if="tileStateFor(car) === 'unavailable'" class="p-4 md:p-5">
-                                <p class="text-sm text-gray-700 dark:text-gray-300 font-medium">
-                                    {{ t('imports.autosync_unavailable_desc', { brand: car.brand }) }}
-                                </p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-2 leading-relaxed">
-                                    {{ t('imports.autosync_unavailable_alternatives') }}
-                                </p>
+                            <div v-else-if="tileStateFor(car) === 'unavailable'" class="grid gap-2">
+                                <p class="text-sm text-gray-700 dark:text-gray-300">{{ t('imports.autosync_unavailable_desc', { brand: car.brand }) }}</p>
+                                <p class="text-[13px] leading-relaxed text-gray-500 dark:text-gray-400">{{ t('imports.autosync_unavailable_alternatives') }}</p>
                             </div>
 
                             <!-- Active or Available: show provider component. Tesla pairs
                                  in its own free "Tesla Telemetry" tab, so the picker only
                                  ever routes Smartcar brands here. -->
-                            <div v-else class="p-4 md:p-5">
-                                <SmartcarIntegration
-                                    v-if="autoSyncProviderFor(car) === 'SMARTCAR'"
-                                    :premium-enabled="props.premiumEnabled"
-                                    :is-premium="props.isPremium"
-                                    :embedded="true"
-                                    :forced-car-id="car.id"
-                                    @disconnected="refreshStatus"
-                                />
-                            </div>
+                            <SmartcarIntegration
+                                v-else-if="autoSyncProviderFor(car) === 'SMARTCAR'"
+                                :premium-enabled="props.premiumEnabled"
+                                :is-premium="props.isPremium"
+                                :embedded="true"
+                                :forced-car-id="car.id"
+                                @disconnected="refreshStatus"
+                            />
                         </div>
-                    </Transition>
+                    </LazyCollapse>
                 </div>
             </div>
 
             <!-- Footer-Hinweis nur bei 2+ Autos: erst dann ist die Slot-Regel für den Nutzer relevant -->
-            <div v-if="sortedCars.length >= 2" class="border-l-2 border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-800/40 px-4 py-3 rounded-r-sm">
-                <p class="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
-                    <strong class="font-bold uppercase tracking-wider text-[11px]">{{ t('imports.autosync_footer_label') }} ·</strong>
-                    {{ t('imports.autosync_footer_hint') }}
-                </p>
-            </div>
+            <p v-if="sortedCars.length >= 2" :class="[CI_NOTE, 'py-3 text-[13px]']">
+                <strong class="font-semibold text-gray-900 dark:text-gray-100">{{ t('imports.autosync_footer_label') }} ·</strong>
+                {{ t('imports.autosync_footer_hint') }}
+            </p>
         </template>
     </div>
 </template>
-
-<style scoped>
-.accordion-enter-active,
-.accordion-leave-active {
-    transition: opacity 0.18s ease, max-height 0.22s ease;
-    max-height: 1200px;
-    overflow: hidden;
-}
-.accordion-enter-from,
-.accordion-leave-to {
-    opacity: 0;
-    max-height: 0;
-}
-</style>
