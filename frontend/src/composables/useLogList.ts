@@ -549,7 +549,7 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
   watch(() => logsRefreshStore.version, () => {
     fetchLogs()
   })
-  // Neues Fenster (Zeitraum, Darstellung, "Aeltere laden") -> neu laden.
+  // Neues Fenster (Darstellung, "Aeltere laden") -> neu laden.
   watch(feedWindow.queryParams, () => {
     fetchLogs({ withLatest: false })
   })
@@ -564,12 +564,8 @@ export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, 
     priceAmendingLog,
     // Zeitfenster des Feeds
     feedResolution: feedWindow.resolution,
-    feedTimeRange: feedWindow.timeRange,
-    feedCustomStartDate: feedWindow.customStartDate,
-    feedCustomEndDate: feedWindow.customEndDate,
-    feedNextOlderMonth: feedWindow.nextOlderMonth,
+    feedNextOlder: feedWindow.nextOlder,
     loadOlderFeed: feedWindow.loadOlder,
-    widenFeedAutomatically: feedWindow.widenAutomatically,
     expandedGroups,
     toggleLadegruppe,
     hasAnyLogs,

@@ -1,64 +1,51 @@
 import { ref, computed, watch } from 'vue'
-import { resolveTripWindow, type TripWindow } from '../utils/tripMonthSummary'
+import type { TripWindow } from '../utils/tripMonthSummary'
 import type { PeriodResolution } from '../utils/tripPeriods'
 
 /**
- * Zeitfenster des Log-Feeds. Der Feed laedt keine Seiten mehr, sondern ein Fenster; Einzeln
- * laedt auf Wunsch monatsweise weiter zurueck. Nutzer mit hunderten Fahrten rendern so nur,
- * was sie gerade ansehen.
+ * Zeitfenster des Log-Feeds. Der Feed laedt keine Seiten, sondern ein festes Fenster je
+ * Darstellung: Einzeln den laufenden Monat (wie die Uebersicht), Monat drei Monate, Woche acht
+ * Wochen, Tag zwei Wochen. "Aeltere laden" holt je ein weiteres Stueck derselben Groesse. Nutzer
+ * mit hunderten Fahrten rendern so nur, was sie gerade ansehen.
  *
- * Ein Zeitraum fuer alle Darstellungen: der Wechsel zwischen Tag, Woche und Monat aendert nur
- * die Gruppierung, nicht, was man sieht. Aufloesung und Zeitraum halten ueber Sitzungen hinweg.
+ * Die Raender liegen auf ganzen Tagen, Wochen (ab Montag) und Monaten - eine Gruppe am Rand
+ * zeigte sonst zu kleine Summen unter einem Kopf, der den ganzen Zeitraum nennt.
  */
 export type FeedResolution = 'cycle' | PeriodResolution
 export const FEED_RESOLUTIONS: FeedResolution[] = ['day', 'week', 'month', 'cycle']
-export const FEED_RANGE_DEFAULT = 'THIS_MONTH'
-/** "Alle" gibt es im Feed bewusst nicht - das ist genau das Fenster, das den Browser stocken laesst. */
-export const FEED_TIME_RANGES = ['THIS_MONTH', 'LAST_MONTH', 'LAST_3_MONTHS', 'LAST_6_MONTHS', 'LAST_12_MONTHS', 'THIS_YEAR', 'CUSTOM']
-
-/**
- * Naechstgroesserer Zeitraum, wenn der Feed leer aussieht - immer eine Option des Pickers, damit
- * er den echten Zeitraum zeigt. Abgeschlossene Zeitraeume (letzter Monat, eigene Daten) hat der
- * Nutzer bewusst gewaehlt; die weiten sich nie.
- */
-const WIDER_RANGE: Record<string, string> = {
-  THIS_MONTH: 'LAST_3_MONTHS',
-  LAST_3_MONTHS: 'LAST_6_MONTHS',
-  LAST_6_MONTHS: 'LAST_12_MONTHS',
-  THIS_YEAR: 'LAST_12_MONTHS',
-}
-
 export const FEED_RESOLUTION_KEY = 'logfeed_resolution'
-export const FEED_TIME_RANGE_KEY = 'logfeed_time_range'
-const FEED_CUSTOM_START_KEY = 'logfeed_custom_start'
-const FEED_CUSTOM_END_KEY = 'logfeed_custom_end'
 
 const DAY_MS = 86_400_000
 
-/** Montag 00:00 der Woche, in der `ms` liegt - in UTC gerechnet wie die Monatsgrenzen (Wandzeit). */
+/**
+ * Fenster als Wandzeit in UTC-Notation: Ladungen tragen ihre Zeit als lokale Wandzeit ohne Zone.
+ * Daher zaehlt das lokale Datum von "jetzt", nicht das UTC-Datum.
+ */
+const today = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())
+const monthStart = (d: Date, back: number) => Date.UTC(d.getFullYear(), d.getMonth() - back, 1)
 function mondayOf(ms: number): number {
-  const d = new Date(ms)
-  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - ((d.getUTCDay() + 6) % 7))
+  return ms - ((new Date(ms).getUTCDay() + 6) % 7) * DAY_MS
 }
 
-/**
- * Weitet das Fenster auf ganze Wochen bzw. Monate der Darstellung. Eine Gruppe am Rand zeigte
- * sonst nur ihre Tage im Fenster - mit zu kleinen Summen unter einem Kopf, der die ganze Woche
- * nennt. Ein offenes Ende ("bis jetzt") bleibt offen.
- */
-function widenToWholePeriods(w: TripWindow, resolution: FeedResolution, openEnd: boolean): TripWindow {
-  if (resolution === 'week') {
-    return { startMs: mondayOf(w.startMs), endMs: openEnd ? w.endMs : mondayOf(w.endMs) + 7 * DAY_MS - 1 }
+/** Beginn des Fensters, `steps` Stuecke weiter zurueck; Stueck 0 ist das Standardfenster. */
+function windowStart(resolution: FeedResolution, now: Date, steps: number): number {
+  switch (resolution) {
+    case 'cycle': return monthStart(now, steps)
+    case 'month': return monthStart(now, 2 + 3 * steps)
+    case 'week': return mondayOf(today(now)) - (7 + 8 * steps) * 7 * DAY_MS
+    case 'day': return today(now) - (13 + 14 * steps) * DAY_MS
   }
-  if (resolution === 'month') {
-    const start = new Date(w.startMs)
-    const end = new Date(w.endMs)
-    return {
-      startMs: Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1),
-      endMs: openEnd ? w.endMs : Date.UTC(end.getUTCFullYear(), end.getUTCMonth() + 1, 1) - 1,
-    }
-  }
-  return w
+}
+
+/** Das naechste Stueck fuer "Aeltere laden", lesbar: Monat(e) oder Tage, je nach Darstellung. */
+export function formatOlderWindow(w: TripWindow, resolution: FeedResolution, locale: string): string {
+  const options: Intl.DateTimeFormatOptions = resolution === 'cycle' || resolution === 'month'
+    ? { month: 'short', year: 'numeric', timeZone: 'UTC' }
+    : { day: 'numeric', month: 'short', timeZone: 'UTC' }
+  const format = new Intl.DateTimeFormat(locale, options)
+  if (resolution === 'cycle') return format.format(w.startMs)
+  // Bindestrich statt des Halbgeviert- oder Geviertstrichs aus Intl
+  return format.formatRange(w.startMs, w.endMs).replace(/\s*[\u2013\u2014]\s*/g, '-')
 }
 
 function readStored(key: string): string | null {
@@ -68,104 +55,30 @@ function writeStored(key: string, value: string) {
   try { localStorage.setItem(key, value) } catch { /* Safari private mode, quota */ }
 }
 
-/**
- * Frueher lag hier ein Zeitraum pro Darstellung als JSON-Map. Davon gilt der Wert der zuletzt
- * genutzten Darstellung - das ist der, den der Nutzer zuletzt gesehen hat.
- */
-function readStoredRange(resolution: FeedResolution): string | null {
-  const raw = readStored(FEED_TIME_RANGE_KEY)
-  if (raw == null || FEED_TIME_RANGES.includes(raw)) return raw
-  try {
-    const legacy = JSON.parse(raw)?.[resolution]
-    return FEED_TIME_RANGES.includes(legacy) ? legacy : null
-  } catch {
-    return null
-  }
-}
-
 export function useFeedWindow(now: () => Date = () => new Date()) {
   const storedResolution = readStored(FEED_RESOLUTION_KEY) as FeedResolution | null
   const resolution = ref<FeedResolution>(
     storedResolution && FEED_RESOLUTIONS.includes(storedResolution) ? storedResolution : 'month')
   watch(resolution, (value) => writeStored(FEED_RESOLUTION_KEY, value))
 
-  const storedRange = readStoredRange(resolution.value)
-  const chosenRange = ref<string>(storedRange ?? FEED_RANGE_DEFAULT)
-  // Eine alte Map sofort als einzelnen Wert zurueckschreiben.
-  if (storedRange != null) writeStored(FEED_TIME_RANGE_KEY, storedRange)
+  // Stuecke, die "Aeltere laden" dazugeholt hat; jede Darstellung beginnt wieder bei ihrem Fenster.
+  const olderSteps = ref(0)
+  watch(resolution, () => { olderSteps.value = 0 }, { flush: 'sync' })
+  const loadOlder = () => { olderSteps.value += 1 }
 
-  // Automatisch geweiteter Zeitraum (widenAutomatically) - nur fuer die Sitzung, nie gespeichert.
-  // Eine eigene Wahl im Picker hebt ihn auf und schaltet die Automatik bis zum Neuladen ab.
-  const autoRange = ref<string | null>(null)
-  const autoAllowed = ref(true)
-
-  /** Der Zeitraum, den der Feed zeigt. Schreiben = eigene Wahl des Nutzers. */
-  const timeRange = computed<string>({
-    get: () => autoRange.value ?? chosenRange.value,
-    set: (value) => {
-      autoRange.value = null
-      autoAllowed.value = false
-      olderMonths.value = 0
-      chosenRange.value = value
-      writeStored(FEED_TIME_RANGE_KEY, value)
-    },
-  })
-
-  const customStartDate = ref<string>(readStored(FEED_CUSTOM_START_KEY) ?? '')
-  const customEndDate = ref<string>(readStored(FEED_CUSTOM_END_KEY) ?? '')
-  watch(customStartDate, (v) => writeStored(FEED_CUSTOM_START_KEY, v))
-  watch(customEndDate, (v) => writeStored(FEED_CUSTOM_END_KEY, v))
-
-  // "Aeltere laden": verlaengert das Fenster monatsweise nach hinten, bis der Nutzer den
-  // Zeitraum wechselt - dann faengt es wieder beim gewaehlten Fenster an. Ein Wechsel der
-  // Darstellung behaelt Zeitraum und Verlaengerung; Woche und Monat runden nur die Raender.
-  const olderMonths = ref(0)
-  watch([customStartDate, customEndDate], () => { olderMonths.value = 0 }, { flush: 'sync' })
-  const loadOlder = () => { olderMonths.value += 1 }
-
-  /**
-   * Weitet den Zeitraum eine Stufe, wenn der Feed leer aussieht. false = nichts mehr zu tun:
-   * eigene Wahl, abgeschlossener Zeitraum, schon 12 Monate, oder "Aeltere laden" von Hand.
-   */
-  function widenAutomatically(): boolean {
-    const wider = WIDER_RANGE[timeRange.value]
-    if (!autoAllowed.value || olderMonths.value > 0 || !wider) return false
-    autoRange.value = wider
-    return true
-  }
-
-  const baseWindow = computed<TripWindow>(() => {
+  const window = computed<TripWindow>(() => {
     const current = now()
-    return resolveTripWindow(timeRange.value, customStartDate.value || null, customEndDate.value || null, current)
-      ?? resolveTripWindow(FEED_RANGE_DEFAULT, null, null, current)!
+    return { startMs: windowStart(resolution.value, current, olderSteps.value), endMs: current.getTime() }
   })
 
-  const shiftMonths = (ms: number, months: number) => {
-    const d = new Date(ms)
-    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - months, 1)
-  }
-
-  const monthWindow = computed<TripWindow>(() => ({
-    startMs: olderMonths.value > 0 ? shiftMonths(baseWindow.value.startMs, olderMonths.value) : baseWindow.value.startMs,
-    endMs: baseWindow.value.endMs,
+  /** Das Stueck, das der naechste "Aeltere laden"-Klick dazuholt. */
+  const nextOlder = computed<TripWindow>(() => ({
+    startMs: windowStart(resolution.value, now(), olderSteps.value + 1),
+    endMs: window.value.startMs - 1,
   }))
 
-  /** Der Monat, den der naechste "Aeltere laden"-Klick dazuholt. */
-  const nextOlderMonth = computed(() => new Date(shiftMonths(monthWindow.value.startMs, 1)))
+  /** Nur `from`: ein UTC-"jetzt" als `to` wuerde die Ladung von heute frueh abschneiden. */
+  const queryParams = computed(() => `&from=${new Date(window.value.startMs).toISOString()}`)
 
-  /**
-   * Zeitraeume, die "bis jetzt" reichen, schicken kein `to`: Ladungen tragen ihre Zeit als
-   * lokale Wandzeit ohne Zone, ein UTC-"jetzt" wuerde die Ladung von heute frueh abschneiden.
-   */
-  const openEnded = computed(() => !['LAST_MONTH', 'CUSTOM'].includes(timeRange.value))
-
-  const window = computed(() => widenToWholePeriods(monthWindow.value, resolution.value, openEnded.value))
-  const queryParams = computed(() =>
-    `&from=${new Date(window.value.startMs).toISOString()}`
-    + (openEnded.value ? '' : `&to=${new Date(window.value.endMs).toISOString()}`))
-
-  return {
-    resolution, timeRange, customStartDate, customEndDate, window, queryParams, loadOlder, nextOlderMonth,
-    widenAutomatically,
-  }
+  return { resolution, window, queryParams, loadOlder, nextOlder }
 }

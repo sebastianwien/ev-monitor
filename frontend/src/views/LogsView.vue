@@ -82,9 +82,7 @@ import { useDeletedLogs } from '../composables/useDeletedLogs'
 import PricelessLogsModal from '../components/dashboard/PricelessLogsModal.vue'
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import CarCardDetails from '../components/dashboard/CarCardDetails.vue'
-import PeriodFilterDropdown from '../components/dashboard/PeriodFilterDropdown.vue'
-import { useTimeRangeOptions } from '../composables/useTimeRangeOptions'
-import { FEED_RESOLUTIONS, FEED_TIME_RANGES } from '../composables/useFeedWindow'
+import { FEED_RESOLUTIONS, formatOlderWindow } from '../composables/useFeedWindow'
 import { useRoute, useRouter } from 'vue-router'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
@@ -126,8 +124,7 @@ const {
   pricelessCount, pricelessBannerDismissed, dismissPricelessBanner, fetchPricelessCount,
   setLogsSection, currentOdometerKm,
   logs, logsLoading, editingLog, priceAmendingLog,
-  feedResolution, feedTimeRange, feedCustomStartDate, feedCustomEndDate, feedNextOlderMonth, loadOlderFeed,
-  widenFeedAutomatically,
+  feedResolution, feedNextOlder, loadOlderFeed,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer,
   openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
   reassignError, reassignSuccessMessage, deleteError, otherCars, openReassignModal, saveReassign,
@@ -400,12 +397,9 @@ const cycleFeed = computed<any[]>(() => {
 })
 
 // Aufloesung + Zeitfenster des Feeds leben im CarContext (useFeedWindow); hier nur die Chips.
+// Jede Darstellung hat ihr festes Fenster, "Aeltere laden" nennt das naechste Stueck.
 const RESOLUTIONS = FEED_RESOLUTIONS
-const allTimeRangeOptions = useTimeRangeOptions()
-const feedRangeOptions = computed(() =>
-  allTimeRangeOptions.value.filter((o) => FEED_TIME_RANGES.includes(o.value)))
-const nextOlderMonthLabel = computed(() =>
-  feedNextOlderMonth.value.toLocaleDateString(locale.value, { month: 'short', year: 'numeric', timeZone: 'UTC' }))
+const nextOlderLabel = computed(() => formatOlderWindow(feedNextOlder.value, feedResolution.value, locale.value))
 
 /**
  * Verbrauch und Kosten einer einzelnen Fahrt - dieselben Werte, die auch in ihrer Zeile
@@ -1353,22 +1347,6 @@ function toggleAllFeed() {
   setAllChargesExpanded(expand)
 }
 
-// Ist der Feed kuerzer als ein Bildschirm, sieht er leer aus - etwa am Monatsanfang oder in
-// "Monat" mit nur einem Monat. Dann laedt er von selbst den naechstgroesseren Zeitraum
-// (useFeedWindow.widenAutomatically), bis der Bildschirm voll ist oder 12 Monate erreicht sind.
-// Nur wenn Daten oder Ansicht wechseln (oder die Liste erscheint): Zuklappen soll nichts nachladen.
-const feedListEl = ref<HTMLElement | null>(null)
-let fillFrame = 0
-function widenFeedIfEmpty() {
-  fillFrame = 0
-  if (!viewActive.value || logsLoading.value || !hasAnyLogs.value || !feedListEl.value) return
-  if (feedListEl.value.offsetHeight < window.innerHeight) widenFeedAutomatically()
-}
-function scheduleFillCheck() {
-  if (!fillFrame) fillFrame = requestAnimationFrame(widenFeedIfEmpty)
-}
-watch([feedListEl, mergedLogFeed, logsLoading, feedResolution, viewActive], scheduleFillCheck, { flush: 'post' })
-onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
 </script>
 
 <template>
@@ -1550,22 +1528,16 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
             <button type="button" :aria-label="t('common.close')" @click="deleteError = null" class="grid h-9 w-9 shrink-0 place-items-center rounded-full hover:bg-amber-100 dark:hover:bg-amber-400/20"><XMarkIcon class="h-4 w-4" aria-hidden="true" /></button>
           </div>
 
-          <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum.
-               Voll ausgeschriebene Segmente statt eines Menues - die vier Optionen passen
-               nebeneinander und eine Auswahl, die man sieht, muss man nicht suchen. -->
-          <div v-if="hasAnyLogs" class="mb-4 flex flex-wrap items-center gap-x-2 gap-y-2.5">
-            <div role="group" :aria-label="t('logs.resolution.label')" class="flex w-full flex-wrap gap-1.5 sm:w-auto">
+          <!-- Aufloesung des Feeds: Ladezyklus wie bisher, oder nach Kalenderzeitraum, jede mit
+               festem Fenster. Voll ausgeschriebene Segmente statt eines Menues, zentriert wie die
+               Bereichs-Chips - eine Auswahl, die man sieht, muss man nicht suchen. -->
+          <div v-if="hasAnyLogs" class="mb-4 flex flex-wrap items-center justify-center gap-x-2 gap-y-2.5">
+            <div role="group" :aria-label="t('logs.resolution.label')" class="flex flex-wrap justify-center gap-1.5">
               <ChoiceChip v-for="option in RESOLUTIONS" :key="option" :active="feedResolution === option"
                 @click="feedResolution = option">
                 {{ t('logs.resolution.' + option) }}
               </ChoiceChip>
             </div>
-            <!-- Zeitfenster des Feeds - derselbe Picker wie im Dashboard, ein Wert fuer alle Darstellungen. -->
-            <PeriodFilterDropdown
-              class="sm:ml-2"
-              test-id="logfeed-filter"
-              :options="feedRangeOptions"
-              v-model="feedTimeRange" v-model:custom-start="feedCustomStartDate" v-model:custom-end="feedCustomEndDate" />
             <!-- Alles auf- oder zuklappen; die Doppel-Chevrons wiederholen die Chevrons der Koepfe. -->
             <button v-if="totalTripCount > 0 || chargeCount > 0" type="button" data-testid="logfeed-toggle-all"
                     @click="toggleAllFeed"
@@ -1575,12 +1547,12 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
               <ChevronDoubleUpIcon v-if="allFeedExpanded" class="h-4 w-4" aria-hidden="true" />
               <ChevronDoubleDownIcon v-else class="h-4 w-4" aria-hidden="true" />
             </button>
-            <FeedLegend mode="trigger" class="ml-auto" :has-trips="totalTripCount > 0"
+            <FeedLegend mode="trigger" :has-trips="totalTripCount > 0"
                         :has-charges="chargeCount > 0" :show-phantom="feedShowPhantom"
                         :open="feedLegendOpen" @toggle="toggleFeedLegend" />
           </div>
 
-          <div ref="feedListEl" :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
+          <div :class="['space-y-2', { 'opacity-50 pointer-events-none transition-opacity duration-150': logsLoading && hasAnyLogs }]">
             <template v-if="logsLoading && !hasAnyLogs">
               <div v-for="n in 5" :key="n" class="relative rounded-2xl border-2 border-gray-200 bg-white p-4 dark:border-gray-700 dark:bg-gray-800 animate-pulse">
                 <div class="flex items-center justify-between gap-2">
@@ -2668,11 +2640,11 @@ onUnmounted(() => { if (fillFrame) cancelAnimationFrame(fillFrame) })
               </template><!-- end v-for groupedFeed -->
             </template>
           </div>
-          <!-- Monatsweise weiter zurueck, statt eines festen Seitenendes - in jeder Darstellung. -->
+          <!-- Ein Stueck weiter zurueck (so gross wie das Fenster der Darstellung), statt eines festen Seitenendes. -->
           <div v-if="hasAnyLogs" class="mt-5 flex justify-center">
             <button type="button" data-testid="logfeed-load-older" :disabled="logsLoading" @click="loadOlderFeed()" :class="[FEED_TEXT_BTN, 'disabled:opacity-50']">
               <ChevronDownIcon class="h-4 w-4" aria-hidden="true" />
-              {{ t('logs.load_older', { month: nextOlderMonthLabel }) }}
+              {{ t('logs.load_older', { range: nextOlderLabel }) }}
             </button>
           </div>
 
