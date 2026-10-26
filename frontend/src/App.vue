@@ -184,7 +184,7 @@ watch(() => authStore.token, (newToken) => {
   }
 }, { immediate: true })
 
-// Animate badge when balance increases — skip the initial fetch (0 → actual value)
+// Animate badge when balance increases - skip the initial fetch (0 → actual value)
 watch(() => coinStore.balance, (newVal, oldVal) => {
   if (!balanceInitialized.value) {
     balanceInitialized.value = true
@@ -256,7 +256,8 @@ watch(navRef, (el) => {
 onUnmounted(() => navResizeObserver?.disconnect())
 
 const WORKSPACE_PATHS: readonly string[] = WORKSPACE_TABS.map(tab => tab.to)
-const isWorkspaceRoute = computed(() => WORKSPACE_PATHS.includes(route.path))
+/** Chip-Reihe des alten Chromes; im neuen Design (publicNav) bringt WorkspaceFrame sie mit */
+const isWorkspaceRoute = computed(() => memberChrome.value && WORKSPACE_PATHS.includes(route.path))
 
 // Impersonation
 const impersonatingAs = computed(() => sessionStorage.getItem('impersonating'))

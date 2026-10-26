@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CONTEXT_TABS, CAR_TABS, WORKSPACE_TABS, WORKSPACE_LINKS } from '../tabs'
+import { CONTEXT_TABS, CAR_TABS, WORKSPACE_TABS, WORKSPACE_LINKS, contextTabPaths } from '../tabs'
 
 describe('Tab-Konfiguration', () => {
   it('die Desktop-Leiste zeigt alle vier Ziele in der geplanten Reihenfolge', () => {
@@ -23,5 +23,10 @@ describe('Tab-Konfiguration', () => {
   it('die Übersicht verlinkt zusätzlich Import und Autos vergleichen, außerhalb der Wisch-Tabs', () => {
     expect(WORKSPACE_LINKS.map(l => l.to)).toEqual(['/imports', '/modelle'])
     for (const l of WORKSPACE_LINKS) expect(WORKSPACE_TABS.map(tab => tab.to)).not.toContain(l.to)
+  })
+
+  it('neues Design: die Übersicht (/story) steht im Wisch-Paar an der Stelle des Dashboards', () => {
+    expect(contextTabPaths(true)).toEqual(['/story', '/logs'])
+    expect(contextTabPaths(false)).toEqual(['/dashboard', '/logs'])
   })
 })

@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ArrowUturnLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
-import { provideCarContext } from '../composables/useCarContext'
+import { useCarContext } from '../composables/useCarContext'
 import { useDashboardStory, type StoryMonth, type StoryCarContext } from '../composables/useDashboardStory'
 import { useStoryOptIn } from '../composables/useStoryOptIn'
 import { useChargingLive } from '../composables/useChargingLive'
 import { registerSoftReload } from '../composables/usePullToRefresh'
 import { useAuthStore } from '../stores/auth'
-import { useCountryStore } from '../stores/country'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useHaptic } from '../composables/useHaptic'
@@ -23,10 +22,6 @@ import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
 import { connectionsOf } from '../api/smartcarService'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
-import { WORKSPACE_TABS, WORKSPACE_LINKS } from '../config/tabs'
-import PublicNav from '../components/shared/PublicNav.vue'
-import LeaderboardTicker from '../components/shared/LeaderboardTicker.vue'
-import ChoiceChip from '../components/shared/ChoiceChip.vue'
 import StoryHero from '../components/story/StoryHero.vue'
 import StoryMomentHero from '../components/story/StoryMomentHero.vue'
 import StoryLatestCards from '../components/story/StoryLatestCards.vue'
@@ -53,16 +48,16 @@ const LogFormModal = defineAsyncComponent(() => import('../components/log-form/L
 const { t, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
-const countryStore = useCountryStore()
 const { haptic } = useHaptic()
 const upsellTo = useAnalyticsUpsellTarget()
 const { set: setOptIn, alwaysMonth } = useStoryOptIn()
 
 // Das Template hat genau ein Wurzelelement, ohne Kommentar davor: die Routen-Transition in App.vue
 // (mode out-in) kann ein Fragment nicht ausblenden, der Leave endet nie und die router-view bleibt leer.
-// Aufbau wie die Modellseiten: eigene gruene Nav (Route-Meta publicNav), opake Flaeche ueber dem
-// Wallpaper der App, Boxen mobil randlos, ab md mit Kante.
-const ctx = provideCarContext()
+// Linker Tab im CarContextLayout: Kopf und Chips bringt dessen WorkspaceFrame, den Car-Context teilt
+// die Uebersicht mit /logs. Mobil liegt sie auch auf /logs gemountet im Pager daneben.
+// Boxen mobil randlos, ab md mit Kante auf dem Wallpaper.
+const ctx = useCarContext()
 const { selectedCarId, cars, wltp, currentOdometerKm, smartcarStatus } = ctx
 
 const selectedCar = computed(() => cars.value.find((c: any) => c.id === selectedCarId.value) ?? cars.value[0] ?? null)
@@ -170,10 +165,6 @@ const narrow = useIsMobile('(max-width: 1023px)')
 const sheetIds = computed(() => tiles.value.map(x => x.id))
 const showFeed = computed(() => !loading.value && !error.value && (hasCharges.value || liveActive.value))
 
-// Desktop: die Ziele des eingeloggten Bereichs als Chips (mobil traegt die Bottom-Nav). Die Story ist das Dashboard.
-const workspaceTabs = computed(() => [...WORKSPACE_TABS, ...WORKSPACE_LINKS].map(tab => ({ to: tab.to, label: t(tab.labelKey), active: tab.to === '/dashboard' })))
-// Community-Ticker wie im App-Kopf: nicht im Demo-Konto, nur DACH.
-const showTicker = computed(() => !authStore.isDemoAccount && ['DE', 'AT', 'CH'].includes(countryStore.country))
 
 // Monatswechsel: Chips oder horizontaler Wisch auf dem Hero. View Transition, wo verfuegbar.
 function selectMonth(o: number) {
@@ -289,23 +280,21 @@ function onAddChargeClosed() {
 // Rueckgaengig im Loesch-Toast (Ladung oder Fahrt) aendert die Zahlen des Monats
 watch(() => useLogsRefreshStore().version, () => story.reload())
 
-// Pull-to-refresh (native App) laedt hier die Daten neu statt der ganzen Seite.
-const unregisterReload = registerSoftReload(() => story.reload())
-onUnmounted(unregisterReload)
-onMounted(() => analytics.track('story_viewed'))
+// Nur solange die Uebersicht offen ist (mobil liegt sie auch unter /logs im Pager): Oeffnen zaehlen,
+// Pull-to-refresh (native App) laedt dann ihre Daten neu statt der ganzen Seite.
+const route = useRoute()
+let unregisterReload: (() => void) | null = null
+watch(() => route.path === '/story', (open) => {
+  unregisterReload?.()
+  unregisterReload = open ? registerSoftReload(() => story.reload()) : null
+  if (open) analytics.track('story_viewed')
+}, { immediate: true })
+onUnmounted(() => unregisterReload?.())
 </script>
 
 <template>
-  <div class="min-h-screen bg-gray-100 md:bg-gray-50 dark:bg-gray-950" data-testid="story-view">
-    <PublicNav home>
-      <template #below><LeaderboardTicker v-if="showTicker" docked /></template>
-    </PublicNav>
-    <nav class="mx-auto hidden max-w-6xl flex-wrap gap-2 px-6 pt-4 md:flex" :aria-label="t('story.workspace_aria')">
-      <ChoiceChip v-for="tab in workspaceTabs" :key="tab.to" :href="tab.to" :active="tab.active" :aria-current="tab.active ? 'page' : undefined">
-        {{ tab.label }}
-      </ChoiceChip>
-    </nav>
-    <main class="mx-auto grid max-w-6xl grid-cols-1 gap-4 pb-6 md:px-6 md:pb-12 md:pt-4">
+  <div data-testid="story-view">
+    <main class="mx-auto grid max-w-6xl grid-cols-1 gap-4 pb-6 md:px-6 md:pb-12">
       <!-- Eine Box: ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts der Feed. -->
       <section class="grid grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box">
         <div class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7">
@@ -433,12 +422,15 @@ onMounted(() => analytics.track('story_viewed'))
       @close="openDay = null"
       @changed="story.reload()"
       @add-charge="onAddCharge" />
-    <LogFormModal
-      v-if="addCharge"
-      :car-id="selectedCarId"
-      :initial-logged-at="addCharge.loggedAt"
-      @saved="story.reload()"
-      @close="onAddChargeClosed" />
+    <!-- Teleport: mobil liegt die Uebersicht im verschobenen Pager-Track, fixed waere dort relativ zum Track -->
+    <Teleport to="body">
+      <LogFormModal
+        v-if="addCharge"
+        :car-id="selectedCarId"
+        :initial-logged-at="addCharge.loggedAt"
+        @saved="story.reload()"
+        @close="onAddChargeClosed" />
+    </Teleport>
   </div>
 </template>
 

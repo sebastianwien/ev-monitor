@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { provideCarContext } from '../composables/useCarContext'
 import { useStickyTabIndex } from '../composables/useStickyTabIndex'
@@ -13,22 +13,30 @@ import { useCarShareSheet } from '../composables/useCarShareSheet'
 import { carDisplayName } from '../utils/enumLabel'
 import type { Car } from '../api/carService'
 import { useCoinStore } from '../stores/coins'
-import { CONTEXT_TABS } from '../config/tabs'
+import { contextTabPaths } from '../config/tabs'
+import { useStoryOptIn } from '../composables/useStoryOptIn'
 import DashboardView from '../views/DashboardView.vue'
+import WorkspaceFrame from './WorkspaceFrame.vue'
 
 const LogsView = defineAsyncComponent(() => import('../views/LogsView.vue'))
+const StoryDashboardView = defineAsyncComponent(() => import('../views/StoryDashboardView.vue'))
 
 /**
- * Geteiltes Layout fuer /dashboard und /logs. Beide Routen zeigen auf diese
- * Komponente -> Vue Router reused die Instanz, der Header (Auto-Card + Tab-Switch)
- * bleibt stehen. Der gemeinsame State lebt hier einmal (provideCarContext).
+ * Geteiltes Layout fuer /dashboard bzw. /story und /logs. Alle Routen zeigen auf diese
+ * Komponente -> Vue Router reused die Instanz, der Header bleibt stehen. Der gemeinsame
+ * State lebt hier einmal (provideCarContext).
  * Den horizontalen Wechsel zwischen beiden Bodies macht der SwipeTabPager.
+ *
+ * Neues Design (Story-Opt-in, einzige Weiche): Gerüst WorkspaceFrame (gruener Kopf, Chips),
+ * links die Uebersicht. Altes Design: Chrome aus App.vue, links das Dashboard. Faellt das alte
+ * Design weg, wandert der Frame in eine Eltern-Route und die Weiche hier entfaellt.
  *
  * Mobile hat hier bewusst keine eigene Tab-Leiste: die Bottom-Nav (Start/Logs) fuehrt
  * schon zwischen genau diesen beiden Zielen, ein zweiter Umschalter im Header waere
  * dieselbe Navigation doppelt. Desktop bekommt die Leiste aus App.vue.
  */
-const TAB_PATHS: readonly string[] = CONTEXT_TABS.map(tab => tab.to)
+const { enabled: storyDesign } = useStoryOptIn()
+const tabPaths = computed(() => contextTabPaths(storyDesign.value))
 
 const {
   selectedCarId, cars, carImageUrls, wltp, currentOdometerKm,
@@ -36,7 +44,7 @@ const {
   editingLog, priceAmendingLog, refreshLogsAndGroups, fetchPricelessCount,
 } = provideCarContext()
 
-const activeIndex = useStickyTabIndex(TAB_PATHS)
+const activeIndex = useStickyTabIndex(tabPaths)
 const wattToast = ref<InstanceType<typeof WattToast> | null>(null)
 const coinStore = useCoinStore()
 const { t } = useI18n()
@@ -48,11 +56,12 @@ function shareFromHeader(car: Car) {
 </script>
 
 <template>
-  <div>
-    <!-- Geteilter Mobile-Header: Auto-Card (persistent ueber beide Tabs) -->
-    <div class="md:hidden px-3">
+  <component :is="storyDesign ? WorkspaceFrame : 'div'">
+    <!-- Geteilter Mobile-Header: Auto-Card. Im neuen Design nur ueber den Logs (die Uebersicht
+         nennt das Auto im eigenen Kopf) und mit eigenem Abstand, weil keine Ticker-Lasche ihn haelt. -->
+    <div class="md:hidden px-3" :class="{ 'pt-3': storyDesign }">
       <MobileCarSelector
-        v-if="cars.length > 0"
+        v-if="cars.length > 0 && (!storyDesign || activeIndex === 1)"
         v-model="selectedCarId"
         :cars="cars"
         :car-image-urls="carImageUrls"
@@ -76,8 +85,8 @@ function shareFromHeader(car: Car) {
 
     <!-- Die Desktop-Leiste mit allen vier Zielen liegt in App.vue - sie bleibt beim
          Tab-Wechsel stehen, waehrend der Inhalt darunter durchwischt. -->
-    <SwipeTabPager :tabs="TAB_PATHS" :active-index="activeIndex">
-      <template #left><DashboardView /></template>
+    <SwipeTabPager :tabs="tabPaths" :active-index="activeIndex">
+      <template #left><StoryDashboardView v-if="storyDesign" /><DashboardView v-else /></template>
       <template #right><LogsView /></template>
     </SwipeTabPager>
 
@@ -100,5 +109,5 @@ function shareFromHeader(car: Car) {
       @saved="(_log, coins, batch) => { priceAmendingLog = null; refreshLogsAndGroups(); fetchPricelessCount(); wattToast?.show(coins, batch > 0 ? t('priceamend.batch_done', batch) : ''); if (coins) coinStore.refresh() }"
     />
     <WattToast ref="wattToast" />
-  </div>
+  </component>
 </template>

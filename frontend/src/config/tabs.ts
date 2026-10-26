@@ -11,6 +11,11 @@ export const CONTEXT_TABS = [
   { to: '/logs', labelKey: 'logs.title' },
 ] as const
 
+/** Wisch-Paar des CarContextLayout: im neuen Design (Story-Opt-in) steht die Übersicht an der Stelle des Dashboards. */
+export function contextTabPaths(storyDesign: boolean): readonly string[] {
+  return storyDesign ? ['/story', CONTEXT_TABS[1].to] : CONTEXT_TABS.map(tab => tab.to)
+}
+
 export const CAR_TABS = [
   { to: '/cars', labelKey: 'cars.title' },
   { to: '/charging-providers', labelKey: 'settings.tariff_title' },

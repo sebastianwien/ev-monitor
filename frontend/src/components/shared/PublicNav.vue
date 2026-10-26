@@ -70,7 +70,7 @@ import BoltLogo from './BoltLogo.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import LocaleSwitcher from './LocaleSwitcher.vue'
 
-/** home: the members' home page itself (story dashboard) - no link to itself, the profile instead */
+/** home: inside the members' area (story, logs) - home is in the chips and the bottom nav, the profile instead */
 defineProps<{ home?: boolean }>()
 
 const { t, locale } = useI18n()

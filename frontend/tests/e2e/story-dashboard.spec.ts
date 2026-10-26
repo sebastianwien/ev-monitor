@@ -74,6 +74,27 @@ test.describe('Story-Dashboard', () => {
     expect(errors).toEqual([]);
   });
 
+  test('Kopf und Chips bleiben beim Wechsel Übersicht <-> Logs stehen, nur der Inhalt tauscht', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.addInitScript(() => localStorage.setItem('story_dashboard_opt_in', 'true'));
+    await page.goto('/story');
+    await expect(page.getByTestId('story-view')).toBeVisible();
+
+    // Dieselben DOM-Elemente vorher und nachher: kein Neu-Rendern des Gerüsts (sonst flackert es)
+    const head = await page.getByTestId('public-nav-settings').elementHandle();
+    const chips = page.getByRole('navigation', { name: /Bereiche|Sections|Områder|Områden/ });
+    const chipsHandle = await chips.elementHandle();
+    await chips.getByRole('link', { name: /Ladevorgänge/ }).click();
+    await expect(page).toHaveURL(/\/logs/);
+    await expect(chips.getByRole('link', { name: /Ladevorgänge/ })).toHaveAttribute('aria-current', 'page');
+    expect(await head!.evaluate(el => el.isConnected)).toBe(true);
+    expect(await chipsHandle!.evaluate(el => el.isConnected)).toBe(true);
+
+    await chips.getByRole('link', { name: /Dashboard/ }).click();
+    await expect(page).toHaveURL(/\/story/);
+    expect(await head!.evaluate(el => el.isConnected)).toBe(true);
+  });
+
   test('Hero mit Fixkosten faechert Kostenschichten auf', async ({ page }) => {
     await page.addInitScript(() => localStorage.setItem('story_dashboard_opt_in', 'true'));
     await page.goto('/story');

@@ -1,4 +1,4 @@
-import { ref, watch, type Ref } from 'vue'
+import { ref, watch, toValue, type MaybeRefOrGetter, type Ref } from 'vue'
 import { useRoute } from 'vue-router'
 
 /**
@@ -16,11 +16,11 @@ export function nextTabIndex(current: number, path: string, tabs: readonly strin
   return index === -1 ? current : index
 }
 
-export function useStickyTabIndex(tabs: readonly string[]): Ref<number> {
+export function useStickyTabIndex(tabs: MaybeRefOrGetter<readonly string[]>): Ref<number> {
   const route = useRoute()
-  const index = ref(nextTabIndex(0, route.path, tabs))
-  watch(() => route.path, (path) => {
-    index.value = nextTabIndex(index.value, path, tabs)
+  const index = ref(nextTabIndex(0, route.path, toValue(tabs)))
+  watch([() => route.path, () => toValue(tabs)], ([path, list]) => {
+    index.value = nextTabIndex(index.value, path, list)
   })
   return index
 }

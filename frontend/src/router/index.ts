@@ -96,15 +96,15 @@ const router = createRouter({
         {
             path: '/story',
             name: 'story',
-            component: () => import('../views/StoryDashboardView.vue'),
-            // Gruene Nav der Modellseiten statt App-Chrome (Kopf, Ticker); die View legt sie selbst an
-            meta: { requiresAuth: true, publicNav: true }
+            // Neues Design: Uebersicht im CarContextLayout (WorkspaceFrame statt App-Chrome); mobil ruhige Flaeche
+            component: CarContextLayout,
+            meta: { requiresAuth: true, publicNav: true, plainBackground: true }
         },
         {
             path: '/logs',
             name: 'logs',
             component: CarContextLayout,
-            // App-CI: auf dem Handy ruhige Flaeche statt Wallpaper, wie /settings
+            // App-CI: mobil ruhige Flaeche; publicNav (Kopf des neuen Designs) setzt der Guard je nach Story-Opt-in
             meta: { requiresAuth: true, plainBackground: true }
         },
         {
@@ -491,8 +491,16 @@ const router = createRouter({
 // dieselben CSS-Klassen, damit sich jeder Tab-Klick gleich anfuehlt.
 // Story-Dashboard (Experiment): wer es eingeschaltet hat, landet statt auf /dashboard dort.
 router.beforeEach((to) => {
-    if (to.path === '/dashboard' && isStoryOptIn()) {
+    // Story-Opt-in ist die Weiche zwischen altem und neuem Design: Uebersicht statt Dashboard, /logs im neuen Kopf
+    const storyDesign = isStoryOptIn();
+    if (to.path === '/dashboard' && storyDesign) {
         return '/story';
+    }
+    if (to.path === '/story' && !storyDesign) {
+        return '/dashboard';
+    }
+    if (to.path === '/logs') {
+        to.meta.publicNav = storyDesign;
     }
 });
 
