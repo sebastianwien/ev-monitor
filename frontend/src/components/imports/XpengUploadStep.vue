@@ -2,7 +2,8 @@
 import UploadSampleNotice from './UploadSampleNotice.vue'
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ArrowUpTrayIcon, ExclamationCircleIcon, ChevronDownIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
+import { ArrowUpTrayIcon, ArrowPathIcon, ExclamationCircleIcon, ChevronDownIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
+import { CI_BTN_PRIMARY, CI_INPUT, CI_LABEL, CI_CARD, CI_NOTE } from '../../utils/ciClasses'
 import xpengService, { type XpengJobDto } from '../../api/xpengService'
 import type { Car } from '../../api/carService'
 import { carLabel } from '../../composables/useCarLabel'
@@ -57,13 +58,12 @@ async function submit() {
 </script>
 
 <template>
-  <section
-    class="rounded-sm border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
-    <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">
+  <section :class="CI_CARD">
+    <p :class="[CI_LABEL, 'mb-2']">
       {{ t('xpeng.eyebrow_step2') }}
     </p>
 
-    <h3 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-2">
+    <h3 class="mb-2 text-[18px] font-bold tracking-tight text-gray-900 dark:text-gray-100">
       {{ t('xpeng.step_upload_title') }}
     </h3>
 
@@ -75,47 +75,46 @@ async function submit() {
       href="https://www.xpeng.com/data-act"
       target="_blank"
       rel="noopener noreferrer"
-      class="inline-flex items-center gap-1.5 text-sm font-bold text-green-700 dark:text-green-400 hover:underline mb-4">
+      class="mb-4 inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-gray-900 underline underline-offset-2 hover:no-underline dark:text-gray-100">
       {{ t('xpeng.manual_prompt_portal_link') }}
-      <ArrowTopRightOnSquareIcon class="w-4 h-4" />
+      <ArrowTopRightOnSquareIcon class="h-4 w-4" aria-hidden="true" />
     </a>
 
-    <div class="space-y-4">
+    <div class="grid gap-4">
       <div>
-        <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+        <label for="xpeng-car" :class="[CI_LABEL, 'mb-1.5 block']">
           {{ t('xpeng.car_label') }}
         </label>
         <div class="relative">
-          <select v-model="carId"
-                  class="appearance-none w-full px-3 py-2.5 pr-10 border-2 border-gray-300 dark:border-gray-600 rounded-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-white text-sm font-medium focus:outline-none focus:border-amber-500 dark:focus:border-amber-500 transition-colors">
+          <select id="xpeng-car" v-model="carId" :class="[CI_INPUT, 'appearance-none pr-10']">
             <option value="" disabled>{{ t('cars.select_placeholder') }}</option>
             <option v-for="car in cars" :key="car.id" :value="car.id">
               {{ carLabel(car) }}
             </option>
           </select>
-          <ChevronDownIcon class="w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-gray-500" />
+          <ChevronDownIcon class="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400 dark:text-gray-500" aria-hidden="true" />
         </div>
       </div>
 
       <div>
-        <label class="block text-[11px] font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1.5">
+        <label for="xpeng-file" :class="[CI_LABEL, 'mb-1.5 block']">
           {{ t('xpeng.file_label') }}
         </label>
-        <input type="file" accept=".zip" @change="onFileChange"
-               class="block w-full text-sm text-gray-700 dark:text-gray-300 file:mr-3 file:py-2 file:px-4 file:rounded-sm file:border-2 file:border-gray-400 dark:file:border-gray-600 file:bg-transparent file:text-gray-800 dark:file:text-gray-200 file:font-bold file:uppercase file:text-xs file:tracking-wider hover:file:bg-gray-50 dark:hover:file:bg-gray-700/40 file:cursor-pointer file:shadow-[2px_2px_0_0_#9ca3af] dark:file:shadow-[2px_2px_0_0_#4b5563] file:transition-[transform,box-shadow] file:duration-75 active:file:translate-x-[3px] active:file:translate-y-[3px] active:file:shadow-none" />
+        <input id="xpeng-file" type="file" accept=".zip" @change="onFileChange"
+               class="block w-full text-sm text-gray-700 file:mr-3 file:min-h-11 file:cursor-pointer file:rounded-xl file:border-2 file:border-edge file:bg-white file:px-4 file:text-sm file:font-semibold file:text-gray-900 hover:file:bg-gray-50 dark:text-gray-300 dark:file:bg-white/10 dark:file:text-gray-100" />
       </div>
     </div>
 
-    <div v-if="errorMessage"
-         class="mt-4 border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3 rounded-r-sm text-sm text-red-900 dark:text-red-200 flex gap-2">
-      <ExclamationCircleIcon class="w-5 h-5 flex-shrink-0" />
+    <div v-if="errorMessage" role="alert"
+         :class="[CI_NOTE, 'mt-4 flex gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']">
+      <ExclamationCircleIcon class="h-5 w-5 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />
       <span>{{ errorMessage }}</span>
     </div>
 
     <button @click="submit" :disabled="!canSubmit"
-            class="mt-5 w-full inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-400 disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-500 disabled:cursor-not-allowed text-gray-950 font-bold uppercase tracking-wider text-xs px-5 py-3.5 rounded-sm border-2 border-amber-500 disabled:border-gray-300 dark:disabled:border-gray-700 shadow-[2px_2px_0_0_#030712] disabled:shadow-none active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow,background-color] duration-75">
-      <span v-if="busy" class="w-4 h-4 border-2 border-gray-950/30 border-t-gray-950 rounded-full animate-spin" />
-      <ArrowUpTrayIcon v-else class="w-4 h-4" />
+            type="button" :class="[CI_BTN_PRIMARY, 'mt-5 w-full']">
+      <ArrowPathIcon v-if="busy" class="h-5 w-5 animate-spin" aria-hidden="true" />
+      <ArrowUpTrayIcon v-else class="h-5 w-5" aria-hidden="true" />
       <span>{{ busy ? t('xpeng.uploading') : t('xpeng.btn_upload') }}</span>
     </button>
     <UploadSampleNotice class="mt-3" />

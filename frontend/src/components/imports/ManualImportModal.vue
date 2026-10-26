@@ -1,72 +1,65 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-start justify-center pt-12 px-4 pb-4 bg-black/50">
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg flex flex-col max-h-[90vh]">
+  <BottomSheet edge :label="importType === 'trips' ? t('manual_import.title_trips') : t('manual_import.title')" @close="$emit('close')">
+    <template #default="{ close }">
       <!-- Header -->
-      <div class="flex items-center justify-between p-5 border-b border-gray-100 dark:border-gray-700">
-        <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">{{ importType === 'trips' ? t('manual_import.title_trips') : t('manual_import.title') }}</h2>
-        <button @click="$emit('close')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
-          <XMarkIcon class="w-5 h-5" />
+      <div class="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4 pb-3 pt-4 sm:px-6 dark:border-white/10">
+        <h2 class="text-xl font-extrabold text-gray-900 dark:text-gray-50">{{ importType === 'trips' ? t('manual_import.title_trips') : t('manual_import.title') }}</h2>
+        <button type="button" :class="CI_ICON_BTN" :aria-label="t('common.close')" @click="close">
+          <XMarkIcon class="h-5 w-5" aria-hidden="true" />
         </button>
       </div>
 
-      <div class="overflow-y-auto p-5 space-y-5">
-        <!-- Import type -->
-        <div role="tablist" :aria-label="t('manual_import.type_label')" class="grid grid-cols-2 gap-1 p-1 bg-gray-100 dark:bg-gray-900 rounded-xl">
+      <div class="grid content-start gap-5 overflow-y-auto px-4 py-4 sm:px-6">
+        <!-- Import type: Segment-Schalter (filtert den Dialog, keine Navigation) -->
+        <div role="tablist" :aria-label="t('manual_import.type_label')" class="grid grid-cols-2 rounded-full border-2 border-edge p-0.5">
           <button
             v-for="type in (['sessions', 'trips'] as const)"
             :key="type"
+            type="button"
             role="tab"
             :aria-selected="importType === type ? 'true' : 'false'"
             :data-testid="`import-type-${type}`"
             @click="selectType(type)"
-            :class="['min-h-[44px] rounded-lg text-sm font-medium transition-colors',
+            :class="['min-h-11 rounded-full text-sm font-semibold transition-colors',
               importType === type
-                ? 'bg-white dark:bg-gray-700 text-green-700 dark:text-green-400 shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200']"
+                ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+                : 'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100']"
           >{{ type === 'trips' ? t('manual_import.type_trips') : t('manual_import.type_sessions') }}</button>
         </div>
 
         <!-- Info -->
-        <div class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex gap-2.5">
-          <ExclamationTriangleIcon class="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
-          <p class="text-sm text-amber-800 dark:text-amber-200" v-html="importType === 'trips' ? t('manual_import.format_info_trips') : t('manual_import.format_info')" />
-        </div>
+        <p :class="[CI_NOTE, 'flex gap-2.5 py-3']">
+          <InformationCircleIcon class="mt-0.5 h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          <span v-html="importType === 'trips' ? t('manual_import.format_info_trips') : t('manual_import.format_info')" />
+        </p>
 
         <!-- Format toggle -->
         <div class="flex gap-2">
-          <button
-            v-for="fmt in (['csv', 'json'] as const)"
-            :key="fmt"
-            @click="selectedFormat = fmt"
-            :class="['btn-3d text-sm px-4 py-1.5 rounded-lg font-medium transition-colors',
-              selectedFormat === fmt
-                ? 'active bg-green-600 text-white'
-                : 'bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-600']"
-          >{{ fmt.toUpperCase() }}</button>
+          <ChoiceChip v-for="fmt in (['csv', 'json'] as const)" :key="fmt" size="sm" :active="selectedFormat === fmt" @click="selectedFormat = fmt">
+            {{ fmt.toUpperCase() }}
+          </ChoiceChip>
         </div>
 
         <!-- Format spec -->
-        <div class="bg-gray-50 dark:bg-gray-900 rounded-xl p-4 space-y-2">
-          <div class="flex items-center justify-between">
-            <p class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('manual_import.template_label') }}</p>
-            <button
-              @click="copyTemplate"
-              class="text-xs text-green-600 hover:text-green-700 font-medium flex items-center gap-1 transition-colors"
-            >
-              <ClipboardDocumentIcon class="w-3.5 h-3.5" />
+        <div :class="[CI_CARD, 'grid gap-2']">
+          <div class="flex items-center justify-between gap-3">
+            <p :class="CI_LABEL">{{ t('manual_import.template_label') }}</p>
+            <button type="button" class="inline-flex min-h-11 items-center gap-1 text-[13px] font-semibold text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100" @click="copyTemplate">
+              <CheckIcon v-if="copied" class="h-4 w-4 text-green-700 dark:text-green-400" aria-hidden="true" />
+              <ClipboardDocumentIcon v-else class="h-4 w-4" aria-hidden="true" />
               {{ copied ? t('manual_import.copied') : t('manual_import.copy_btn') }}
             </button>
           </div>
 
-          <pre v-if="selectedFormat === 'csv'" class="text-xs text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre">{{ csvTemplate }}</pre>
-          <pre v-else class="text-xs text-gray-700 dark:text-gray-300 overflow-x-auto whitespace-pre">{{ jsonTemplate }}</pre>
+          <pre v-if="selectedFormat === 'csv'" class="overflow-x-auto whitespace-pre rounded-xl bg-gray-100 p-3 text-[12px] text-gray-800 dark:bg-gray-900 dark:text-gray-200">{{ csvTemplate }}</pre>
+          <pre v-else class="overflow-x-auto whitespace-pre rounded-xl bg-gray-100 p-3 text-[12px] text-gray-800 dark:bg-gray-900 dark:text-gray-200">{{ jsonTemplate }}</pre>
 
-          <p v-if="importType === 'trips'" class="text-xs text-gray-500 dark:text-gray-400">
+          <p v-if="importType === 'trips'" class="text-[13px] text-gray-500 dark:text-gray-400">
             <span v-html="t('manual_import.required_fields_trips')" /><br>
             <span v-html="t('manual_import.trips_fields_hint')" /><br>
             <span v-html="t('manual_import.trips_date_hint')" />
           </p>
-          <p v-else class="text-xs text-gray-500 dark:text-gray-400">
+          <p v-else class="text-[13px] text-gray-500 dark:text-gray-400">
             <span v-html="t('manual_import.required_fields')" /><br>
             <span v-html="t('manual_import.kwh_hint')" /><br>
             <span v-html="t('manual_import.date_formats')" /><br>
@@ -76,17 +69,17 @@
         </div>
 
         <!-- File upload -->
-        <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('manual_import.upload_label') }}</label>
+        <div class="grid gap-1.5">
+          <label :class="CI_LABEL">{{ t('manual_import.upload_label') }}</label>
           <div
-            class="border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-xl p-6 text-center cursor-pointer hover:border-green-400 transition-colors"
+            class="cursor-pointer rounded-2xl border-2 border-dashed border-gray-300 p-6 text-center transition-colors hover:border-gray-500 dark:border-gray-600 dark:hover:border-gray-400"
             @click="fileInput?.click()"
             @dragover.prevent
             @drop.prevent="onDrop"
           >
-            <ArrowUpTrayIcon class="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+            <ArrowUpTrayIcon class="mx-auto mb-2 h-8 w-8 text-gray-400" aria-hidden="true" />
             <p v-if="!fileName" class="text-sm text-gray-500 dark:text-gray-400" v-html="t('manual_import.drop_hint')" />
-            <p v-else class="text-sm font-medium text-gray-700 dark:text-gray-300">{{ fileName }}</p>
+            <p v-else class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ fileName }}</p>
             <input
               ref="fileInput"
               type="file"
@@ -98,63 +91,63 @@
         </div>
 
         <!-- Or paste -->
-        <div class="space-y-1.5">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">{{ t('manual_import.paste_label') }}</label>
+        <div class="grid gap-1.5">
+          <label for="manual-import-paste" :class="CI_LABEL">{{ t('manual_import.paste_label') }}</label>
           <textarea
+            id="manual-import-paste"
             v-model="rawData"
             rows="5"
-            class="w-full text-xs font-mono border border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
+            class="w-full resize-none rounded-xl border border-gray-200 bg-white p-3 font-mono text-[13px] text-gray-900 focus:border-green-600 focus:outline-none focus:ring-2 focus:ring-green-600/30 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
             :placeholder="selectedFormat === 'csv' ? csvTemplate : jsonTemplate"
           />
         </div>
 
         <!-- Result -->
-        <div v-if="result" class="rounded-xl p-4 space-y-2"
-          :class="result.errors > 0 && result.imported === 0 ? 'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700' : 'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700'">
-          <p class="text-sm font-medium" :class="result.errors > 0 && result.imported === 0 ? 'text-red-700 dark:text-red-300' : 'text-green-700 dark:text-green-300'">
-            {{ t('manual_import.result_summary', { imported: result.imported, skipped: result.skipped }) }}
-            <template v-if="result.errors > 0">{{ t('manual_import.result_errors', { errors: result.errors }) }}</template>
-            <template v-if="(result.warnings ?? 0) > 0">{{ t('manual_import.result_warnings', { warnings: result.warnings }) }}</template>
+        <div v-if="result" role="status" :class="[CI_NOTE, 'grid gap-1 py-3']">
+          <p class="flex items-start gap-2 font-semibold tabular-nums text-gray-900 dark:text-gray-100">
+            <ExclamationCircleIcon v-if="result.errors > 0 && result.imported === 0" class="h-5 w-5 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />
+            <CheckCircleIcon v-else class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+            <span>
+              {{ t('manual_import.result_summary', { imported: result.imported, skipped: result.skipped }) }}
+              <template v-if="result.errors > 0">{{ t('manual_import.result_errors', { errors: result.errors }) }}</template>
+              <template v-if="(result.warnings ?? 0) > 0">{{ t('manual_import.result_warnings', { warnings: result.warnings }) }}</template>
+            </span>
           </p>
-          <p v-if="result.errors > 0 && result.imported === 0" class="text-xs text-red-600 dark:text-red-400">
+          <p v-if="result.errors > 0 && result.imported === 0" class="pl-7 text-[13px] text-gray-700 dark:text-gray-300">
             {{ importType === 'trips' ? t('manual_import.hint_all_errors_trips') : t('manual_import.hint_all_errors') }}
           </p>
         </div>
 
-        <!-- Column mismatch warning -->
-        <div v-if="(result?.warnings ?? 0) > 0" class="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex gap-2.5">
-          <ExclamationTriangleIcon class="w-4 h-4 text-amber-500 dark:text-amber-400 shrink-0 mt-0.5" />
-          <p class="text-sm text-amber-800 dark:text-amber-200">{{ t('manual_import.hint_column_mismatch') }}</p>
-        </div>
+        <!-- Column mismatch warning: Spalten fehlen, Amber -->
+        <p v-if="(result?.warnings ?? 0) > 0" class="flex gap-2.5 rounded-2xl bg-amber-50 p-4 text-sm text-gray-800 dark:bg-amber-900/20 dark:text-gray-100">
+          <ExclamationTriangleIcon class="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden="true" />{{ t('manual_import.hint_column_mismatch') }}
+        </p>
 
         <!-- Error -->
-        <p v-if="errorMsg" class="text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl p-3">{{ errorMsg }}</p>
+        <p v-if="errorMsg" role="alert" :class="[CI_NOTE, 'py-3 font-semibold text-gray-900 dark:text-gray-100']">{{ errorMsg }}</p>
       </div>
 
       <!-- Footer -->
-      <div class="flex justify-end gap-3 p-5 border-t border-gray-100 dark:border-gray-700 shrink-0">
-        <button
-          @click="$emit('close')"
-          class="btn-3d px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
-        >{{ t('manual_import.close_btn') }}</button>
-        <button
-          data-testid="import-submit"
-          @click="runImport"
-          :disabled="!rawData.trim() || loading"
-          class="btn-3d px-5 py-2 text-sm font-medium text-white bg-green-600 rounded-xl hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-        >
-          <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+      <div class="flex shrink-0 justify-end gap-2 border-t border-gray-200 px-4 py-3 sm:px-6 dark:border-white/10">
+        <button type="button" :class="CI_BTN_SECONDARY" @click="close">{{ t('manual_import.close_btn') }}</button>
+        <button type="button" data-testid="import-submit" :class="CI_BTN_PRIMARY" :disabled="!rawData.trim() || loading" @click="runImport">
+          <ArrowPathIcon v-if="loading" class="h-5 w-5 animate-spin" aria-hidden="true" />
           {{ t('manual_import.import_btn') }}
         </button>
       </div>
-    </div>
-  </div>
+    </template>
+  </BottomSheet>
 </template>
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, ArrowUpTrayIcon, ExclamationTriangleIcon, ClipboardDocumentIcon } from '@heroicons/vue/24/outline'
+import {
+  XMarkIcon, ArrowUpTrayIcon, ArrowPathIcon, ExclamationTriangleIcon, ExclamationCircleIcon, ClipboardDocumentIcon, CheckIcon, CheckCircleIcon, InformationCircleIcon,
+} from '@heroicons/vue/24/outline'
+import BottomSheet from '../shared/BottomSheet.vue'
+import ChoiceChip from '../shared/ChoiceChip.vue'
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_ICON_BTN, CI_LABEL, CI_CARD, CI_NOTE } from '../../utils/ciClasses'
 import { manualImportService, type ManualImportResult } from '../../api/manualImportService'
 
 const { t } = useI18n()

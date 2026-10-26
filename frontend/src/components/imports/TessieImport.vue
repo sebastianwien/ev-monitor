@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { CheckCircleIcon, ExclamationCircleIcon, BoltIcon } from '@heroicons/vue/24/outline';
+import { CheckCircleIcon, CheckIcon, ExclamationCircleIcon, BoltIcon, ArrowPathIcon, XMarkIcon } from '@heroicons/vue/24/outline';
+import BottomSheet from '../shared/BottomSheet.vue';
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_ICON_BTN, CI_INPUT, CI_LABEL, CI_CARD, CI_NOTE } from '../../utils/ciClasses';
 import { tessieService, type TessieVehicle, type TessieImportResult } from '../../api/tessieService';
 import CarSelectDropdown from '../car/CarSelectDropdown.vue';
 import type { Car } from '../../api/carService';
@@ -118,142 +120,105 @@ const startImport = async () => {
   }
   step.value = 'done';
 };
-
-const handleBackdropClick = () => {
-  if (step.value === 'importing') return;
-  emit('close');
-};
 </script>
 
 <template>
-  <div
-    class="fixed inset-0 flex items-center justify-center z-50 p-4"
-    style="backdrop-filter: blur(8px); background-color: rgba(0,0,0,0.3);"
-    @click.self="handleBackdropClick"
-  >
-    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto" @click.stop>
+  <BottomSheet edge :locked="step === 'importing'" :label="t('tessie.title')" @close="emit('close')">
+    <template #default="{ close }">
       <!-- Header -->
-      <div class="sticky top-0 bg-gray-900 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
-        <h2 class="text-xl font-bold">{{ t('tessie.title') }}</h2>
-        <button
-          v-if="step !== 'importing'"
-          @click="emit('close')"
-          class="text-white hover:text-gray-300 text-2xl font-bold leading-none"
-        >&times;</button>
+      <div class="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4 pb-3 pt-4 sm:px-6 dark:border-white/10">
+        <h2 class="text-xl font-extrabold text-gray-900 dark:text-gray-50">{{ t('tessie.title') }}</h2>
+        <button v-if="step !== 'importing'" type="button" :class="CI_ICON_BTN" :aria-label="t('common.close')" @click="close">
+          <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+        </button>
       </div>
 
-      <div class="p-6 space-y-4">
-        <!-- Error -->
-        <div v-if="error" class="p-3 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-lg text-sm">
-          {{ error }}
-        </div>
+      <div class="grid content-start gap-4 overflow-y-auto px-4 py-4 sm:px-6">
+        <p v-if="error" role="alert" :class="[CI_NOTE, 'flex items-start gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']">
+          <ExclamationCircleIcon class="h-5 w-5 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />{{ error }}
+        </p>
 
         <!-- Step 1: Token -->
-        <div v-if="step === 'token'" class="space-y-4">
+        <div v-if="step === 'token'" class="grid gap-4">
           <p class="text-sm text-gray-600 dark:text-gray-400" v-html="t('tessie.step1_intro')" />
-          <div>
-            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('tessie.token_label') }}</label>
-            <input
-              v-model="token"
-              type="password"
-              :placeholder="t('tessie.token_placeholder')"
-              @keyup.enter="fetchVehicles"
-              class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 rounded-lg focus:ring-2 focus:ring-gray-500 focus:border-gray-500 font-mono text-sm"
-            />
-            <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+          <div class="grid gap-1.5">
+            <label for="tessie-token" :class="CI_LABEL">{{ t('tessie.token_label') }}</label>
+            <input id="tessie-token" v-model="token" type="password" :placeholder="t('tessie.token_placeholder')"
+              :class="[CI_INPUT, 'font-mono']" @keyup.enter="fetchVehicles" />
+            <p class="text-[13px] text-gray-500 dark:text-gray-400">
               {{ t('tessie.token_hint_pre') }}
-              <a href="https://dash.tessie.com/settings/api" target="_blank" rel="noopener noreferrer" class="text-indigo-600 dark:text-indigo-400 underline">dash.tessie.com/settings/api</a>
+              <a href="https://dash.tessie.com/settings/api" target="_blank" rel="noopener noreferrer" class="font-semibold text-gray-900 underline dark:text-gray-100">dash.tessie.com/settings/api</a>
               {{ t('tessie.token_hint_post') }}
             </p>
           </div>
-          <button
-            @click="fetchVehicles"
-            :disabled="loading"
-            class="btn-3d w-full flex items-center justify-center gap-2 bg-gray-900 text-white px-5 py-3 rounded-lg font-semibold text-sm hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition"
-          >
-            <svg v-if="loading" class="animate-spin h-4 w-4 text-white shrink-0" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-            </svg>
+          <button type="button" :class="[CI_BTN_PRIMARY, 'w-full']" :disabled="loading" @click="fetchVehicles">
+            <ArrowPathIcon v-if="loading" class="h-5 w-5 animate-spin" aria-hidden="true" />
             {{ loading ? t('tessie.load_btn_loading') : t('tessie.load_btn') }}
           </button>
         </div>
 
         <!-- Step 2: VIN selection -->
-        <div v-if="step === 'vehicles'" class="space-y-4">
-          <div class="flex items-center justify-between">
-            <p class="text-sm text-gray-700 dark:text-gray-300 font-medium">
+        <div v-if="step === 'vehicles'" class="grid gap-4">
+          <div class="flex items-center justify-between gap-3">
+            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {{ t('tessie.step2_found', { n: vehicles.length }) }}
             </p>
-            <button @click="toggleAll" class="text-xs text-indigo-600 dark:text-indigo-400 hover:underline">
+            <button type="button" class="inline-flex min-h-11 items-center text-[13px] font-semibold text-gray-700 underline-offset-2 hover:underline dark:text-gray-300" @click="toggleAll">
               {{ allSelected() ? t('tessie.deselect_all') : t('tessie.select_all') }}
             </button>
           </div>
 
-          <div class="space-y-2">
-            <button
-              v-for="v in vehicles"
-              :key="v.vin"
-              @click="toggleVin(v.vin)"
-              :class="[
-                'w-full text-left px-4 py-3 rounded-lg border-2 transition-all',
-                selected.has(v.vin)
-                  ? 'border-gray-900 dark:border-gray-300 bg-gray-50 dark:bg-gray-700'
-                  : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 opacity-60'
-              ]"
-            >
-              <div class="flex items-center gap-3">
-                <div :class="['w-5 h-5 rounded-full border-2 shrink-0 flex items-center justify-center transition-colors',
-                  selected.has(v.vin) ? 'border-gray-900 dark:border-gray-200 bg-gray-900 dark:bg-gray-200' : 'border-gray-300 dark:border-gray-500']">
-                  <div v-if="selected.has(v.vin)" class="w-2 h-2 rounded-full bg-white dark:bg-gray-900" />
-                </div>
-                <div class="min-w-0">
-                  <p class="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{{ v.displayName }}</p>
-                  <p class="text-xs font-mono text-gray-500 dark:text-gray-400 mt-0.5">{{ v.vin }}</p>
-                  <span v-if="!v.isActive" class="text-[10px] bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 px-1.5 py-0.5 rounded-full font-semibold">{{ t('tessie.inactive') }}</span>
-                </div>
-              </div>
+          <div class="grid gap-2">
+            <button v-for="v in vehicles" :key="v.vin" type="button" :aria-pressed="selected.has(v.vin)"
+              :class="['w-full rounded-2xl px-4 py-3 text-left transition-colors',
+                selected.has(v.vin) ? 'bg-white edge-card dark:bg-gray-700/50' : 'bg-gray-100 text-gray-500 dark:bg-gray-800/60']"
+              @click="toggleVin(v.vin)">
+              <span class="flex items-center gap-3">
+                <span :class="['flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+                  selected.has(v.vin) ? 'border-gray-900 bg-gray-900 dark:border-gray-100 dark:bg-gray-100' : 'border-gray-400 dark:border-gray-500']" aria-hidden="true">
+                  <CheckIcon v-if="selected.has(v.vin)" class="h-3 w-3 text-white dark:text-gray-900" stroke-width="3" />
+                </span>
+                <span class="min-w-0">
+                  <span class="block truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ v.displayName }}</span>
+                  <span class="mt-0.5 block font-mono text-[12px] text-gray-500 dark:text-gray-400">{{ v.vin }}</span>
+                  <span v-if="!v.isActive" class="mt-1 inline-block rounded-full bg-gray-100 px-2 py-0.5 text-[11.5px] font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300">{{ t('tessie.inactive') }}</span>
+                </span>
+              </span>
             </button>
           </div>
 
           <div class="flex gap-2 pt-2">
-            <button @click="step = 'token'" class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <button type="button" :class="[CI_BTN_SECONDARY, 'flex-1']" @click="step = 'token'">
               {{ t('tessie.back_btn') }}
             </button>
-            <button
-              @click="proceedToMapping"
-              :disabled="selected.size === 0"
-              class="btn-3d flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
-            >
+            <button type="button" :class="[CI_BTN_PRIMARY, 'flex-1']" :disabled="selected.size === 0" @click="proceedToMapping">
               {{ t('tessie.continue_btn', { n: selected.size }) }}
             </button>
           </div>
         </div>
 
         <!-- Step 3: VIN -> car mapping -->
-        <div v-if="step === 'mapping'" class="space-y-4">
-          <p class="text-sm text-gray-700 dark:text-gray-300 font-medium">{{ t('tessie.step3_title') }}</p>
-          <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('tessie.step3_intro') }}</p>
-
-          <div class="flex items-start gap-2 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700">
-            <BoltIcon class="h-4 w-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
-            <p class="text-xs text-blue-800 dark:text-blue-200">{{ t('tessie.ac_hint') }}</p>
+        <div v-if="step === 'mapping'" class="grid gap-4">
+          <div>
+            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('tessie.step3_title') }}</p>
+            <p class="mt-1 text-[13px] text-gray-500 dark:text-gray-400">{{ t('tessie.step3_intro') }}</p>
           </div>
 
-          <div v-if="hasNoCars" class="p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg text-sm text-amber-800 dark:text-amber-300">
+          <p :class="[CI_NOTE, 'flex items-start gap-2 py-3 text-[13px]']">
+            <BoltIcon class="mt-0.5 h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />{{ t('tessie.ac_hint') }}
+          </p>
+
+          <!-- Ohne Auto fehlt etwas: Amber mit Handlung -->
+          <p v-if="hasNoCars" class="rounded-2xl bg-amber-50 p-4 text-sm text-gray-800 dark:bg-amber-900/20 dark:text-gray-100">
             {{ t('tessie.mapping_no_cars') }}
-            <router-link to="/cars" class="font-medium underline">{{ t('tessie.mapping_no_cars_link') }}</router-link>
-          </div>
+            <router-link to="/cars" class="font-semibold underline">{{ t('tessie.mapping_no_cars_link') }}</router-link>
+          </p>
 
-          <div v-else class="space-y-3">
-            <div
-              v-for="v in selectedVins"
-              :key="v.vin"
-              class="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3"
-            >
-              <div class="min-w-0 mb-2">
-                <p class="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">{{ v.displayName }}</p>
-                <p class="text-[11px] font-mono text-gray-500 dark:text-gray-400 mt-0.5">{{ v.vin }}</p>
+          <div v-else class="grid gap-3">
+            <div v-for="v in selectedVins" :key="v.vin" :class="[CI_CARD, 'grid gap-2 py-3']">
+              <div class="min-w-0">
+                <p class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ v.displayName }}</p>
+                <p class="mt-0.5 font-mono text-[12px] text-gray-500 dark:text-gray-400">{{ v.vin }}</p>
               </div>
               <CarSelectDropdown
                 :cars="cars"
@@ -265,65 +230,51 @@ const handleBackdropClick = () => {
           </div>
 
           <div class="flex gap-2 pt-2">
-            <button @click="step = 'vehicles'" class="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition">
+            <button type="button" :class="[CI_BTN_SECONDARY, 'flex-1']" @click="step = 'vehicles'">
               {{ t('tessie.back_btn') }}
             </button>
-            <button
-              @click="startImport"
-              :disabled="!allMapped || hasNoCars"
-              class="btn-3d flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
-              data-test="tessie-start-import"
-            >
+            <button type="button" :class="[CI_BTN_PRIMARY, 'flex-1']" :disabled="!allMapped || hasNoCars" data-test="tessie-start-import" @click="startImport">
               {{ t('tessie.import_btn', { n: selectedVins.length }) }}
             </button>
           </div>
         </div>
 
         <!-- Step 4: Importing -->
-        <div v-if="step === 'importing'" class="text-center space-y-4 py-4">
-          <svg class="animate-spin h-14 w-14 text-gray-700 dark:text-gray-300 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-          </svg>
-          <p class="font-semibold text-gray-800 dark:text-gray-200">{{ t('tessie.importing_title') }}</p>
+        <div v-if="step === 'importing'" class="grid justify-items-center gap-3 py-4 text-center" aria-live="polite">
+          <ArrowPathIcon class="h-12 w-12 animate-spin text-gray-400" aria-hidden="true" />
+          <p class="font-semibold text-gray-900 dark:text-gray-100">{{ t('tessie.importing_title') }}</p>
           <p class="text-sm text-gray-500 dark:text-gray-400">{{ currentVin }}</p>
-          <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('tessie.importing_progress', { current: currentIndex, total: selectedVins.length }) }}</p>
-          <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-            <div class="bg-gray-900 dark:bg-gray-300 h-2 rounded-full transition-all duration-300" :style="{ width: `${(currentIndex / selectedVins.length) * 100}%` }" />
+          <p class="text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ t('tessie.importing_progress', { current: currentIndex, total: selectedVins.length }) }}</p>
+          <div class="h-2.5 w-full overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+            <div class="h-full rounded-full bg-gray-900 transition-all duration-300 dark:bg-gray-100" :style="{ width: `${(currentIndex / selectedVins.length) * 100}%` }" />
           </div>
         </div>
 
         <!-- Step 5: Done -->
-        <div v-if="step === 'done'" class="space-y-4">
-          <div class="text-center">
-            <CheckCircleIcon class="h-14 w-14 text-green-500 mx-auto mb-3" />
+        <div v-if="step === 'done'" class="grid gap-4">
+          <div class="grid justify-items-center gap-3 text-center">
+            <CheckCircleIcon class="h-12 w-12 text-green-700 dark:text-green-400" aria-hidden="true" />
             <h3 class="text-xl font-bold text-gray-900 dark:text-gray-100">{{ t('tessie.done_title') }}</h3>
           </div>
 
           <!-- Total summary -->
-          <div class="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 space-y-1.5">
-            <p class="text-sm font-semibold text-green-700 dark:text-green-400">{{ t('tessie.done_charges', { n: totalEvLogs() }) }}</p>
-            <p class="text-sm font-semibold text-green-700 dark:text-green-400">{{ t('tessie.done_drives', { n: totalEvTrips() }) }}</p>
-            <p v-if="totalSkipped() > 0" class="text-sm text-amber-600 dark:text-amber-400">{{ t('tessie.done_skipped', { n: totalSkipped() }) }}</p>
+          <div :class="[CI_CARD, 'grid gap-1.5']">
+            <p class="text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ t('tessie.done_charges', { n: totalEvLogs() }) }}</p>
+            <p class="text-sm font-bold tabular-nums text-gray-900 dark:text-gray-100">{{ t('tessie.done_drives', { n: totalEvTrips() }) }}</p>
+            <p v-if="totalSkipped() > 0" class="text-sm tabular-nums text-gray-600 dark:text-gray-400">{{ t('tessie.done_skipped', { n: totalSkipped() }) }}</p>
           </div>
 
           <!-- Per-vehicle breakdown -->
-          <div v-if="results.length > 1" class="space-y-2">
-            <p class="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{{ t('tessie.done_per_vehicle') }}</p>
-            <div
-              v-for="r in results"
-              :key="r.vin"
-              :class="['px-3 py-2 border rounded-lg', r.error
-                ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700'
-                : 'bg-white dark:bg-gray-700 border-gray-200 dark:border-gray-600']"
-            >
+          <div v-if="results.length > 1" class="grid gap-2">
+            <p :class="CI_LABEL">{{ t('tessie.done_per_vehicle') }}</p>
+            <div v-for="r in results" :key="r.vin" :class="r.error ? [CI_NOTE, 'py-3'] : [CI_CARD, 'py-3']">
               <div class="flex items-start gap-2">
-                <ExclamationCircleIcon v-if="r.error" class="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{{ r.name }}</p>
-                  <p class="text-xs font-mono text-gray-400 dark:text-gray-500">{{ r.vin }}</p>
-                  <p v-if="r.error" class="text-xs text-red-600 dark:text-red-400 mt-0.5">{{ r.error }}</p>
-                  <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                <ExclamationCircleIcon v-if="r.error" class="mt-0.5 h-4 w-4 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />
+                <div class="min-w-0 flex-1">
+                  <p class="truncate text-sm font-semibold text-gray-900 dark:text-gray-100">{{ r.name }}</p>
+                  <p class="font-mono text-[12px] text-gray-500 dark:text-gray-400">{{ r.vin }}</p>
+                  <p v-if="r.error" class="mt-0.5 text-[13px] font-semibold text-gray-900 dark:text-gray-100">{{ r.error }}</p>
+                  <p v-else class="mt-0.5 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">
                     {{ t('tessie.done_charges', { n: r.result.evLogsCreated }) }} · {{ t('tessie.done_drives', { n: r.result.evTripsCreated }) }}
                   </p>
                 </div>
@@ -331,30 +282,22 @@ const handleBackdropClick = () => {
             </div>
           </div>
 
-          <div v-if="hasErrors()" class="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 rounded-lg">
-            <ExclamationCircleIcon class="h-4 w-4 text-red-500 shrink-0 mt-0.5" />
-            <p class="text-xs text-red-700 dark:text-red-300">{{ t('tessie.done_partial_error') }}</p>
-          </div>
+          <p v-if="hasErrors()" role="alert" :class="[CI_NOTE, 'flex items-start gap-2 py-3 text-[13px] font-semibold text-gray-900 dark:text-gray-100']">
+            <ExclamationCircleIcon class="mt-0.5 h-4 w-4 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />{{ t('tessie.done_partial_error') }}
+          </p>
 
-          <p class="text-xs text-gray-500 dark:text-gray-400 text-center">{{ t('tessie.done_hint') }}</p>
+          <p class="text-center text-[13px] text-gray-500 dark:text-gray-400">{{ t('tessie.done_hint') }}</p>
 
-          <div class="flex flex-col sm:flex-row gap-2">
-            <button
-              @click="emit('close')"
-              class="btn-3d flex-1 px-5 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-lg font-semibold text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition"
-            >
+          <div class="flex flex-col gap-2 sm:flex-row">
+            <button type="button" :class="[CI_BTN_SECONDARY, 'flex-1']" @click="close">
               {{ t('tessie.done_btn') }}
             </button>
-            <router-link
-              to="/dashboard"
-              @click="emit('close')"
-              class="btn-3d flex-1 inline-flex items-center justify-center px-5 py-3 bg-gray-900 text-white rounded-lg font-semibold text-sm hover:bg-gray-800 transition"
-            >
+            <router-link to="/dashboard" :class="[CI_BTN_PRIMARY, 'flex-1']" @click="emit('close')">
               {{ t('tessie.done_to_dashboard') }}
             </router-link>
           </div>
         </div>
       </div>
-    </div>
-  </div>
+    </template>
+  </BottomSheet>
 </template>

@@ -15,7 +15,7 @@ import { ref, onMounted } from 'vue'
  * Block fuer position:fixed - das Overlay wuerde sich sonst am 200% breiten Track statt
  * am Viewport ausrichten und links aus dem Bild haengen.
  */
-withDefaults(defineProps<{
+const props = withDefaults(defineProps<{
   /** Beschriftung des Dialogs fuer Screenreader. */
   label?: string
   /**
@@ -30,10 +30,13 @@ withDefaults(defineProps<{
   edge?: boolean
   /** Liegt über einem anderen Sheet: leichter abdunkeln, das untere bleibt erkennbar. */
   stacked?: boolean
+  /** Klick neben das Panel schließt nicht (z. B. während ein Import läuft); requestClose bleibt möglich. */
+  locked?: boolean
 }>(), {
   panelClass: 'sm:max-w-lg',
   edge: false,
   stacked: false,
+  locked: false,
 })
 
 const emit = defineEmits<{ close: [] }>()
@@ -43,6 +46,9 @@ onMounted(() => { visible.value = true })
 
 function requestClose() {
   visible.value = false
+}
+function onBackdrop() {
+  if (!props.locked) requestClose()
 }
 
 defineExpose({ requestClose })
@@ -57,8 +63,8 @@ defineExpose({ requestClose })
         role="dialog"
         aria-modal="true"
         :aria-label="label"
-        @click.self="requestClose">
-        <div class="absolute inset-0" :class="stacked ? 'bg-black/25' : 'bg-black/50'" @click="requestClose" />
+        @click.self="onBackdrop">
+        <div class="absolute inset-0" :class="stacked ? 'bg-black/25' : 'bg-black/50'" @click="onBackdrop" />
         <div
           :data-testid="testid"
           class="sheet-panel relative w-full max-h-[90vh] flex flex-col overflow-hidden bg-white dark:bg-gray-800 rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0"

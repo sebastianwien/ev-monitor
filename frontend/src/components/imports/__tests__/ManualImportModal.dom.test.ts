@@ -13,13 +13,15 @@ let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 beforeEach(() => { post.mockClear() })
 
-function mount(props: Record<string, unknown> = {}) {
+// Der Dialog ist ein BottomSheet: er teleportiert an body und erscheint nach dem Mounten
+async function mount(props: Record<string, unknown> = {}) {
   const el = document.createElement('div')
   document.body.appendChild(el)
   app = createApp(defineComponent({ render: () => h(ManualImportModal, { carId: 'car-1', ...props }) }))
   app.use(i18n)
   app.mount(el)
-  return el
+  await nextTick()
+  return document.body
 }
 
 const tab = (el: HTMLElement, type: string) =>
@@ -29,14 +31,14 @@ const textarea = (el: HTMLElement) => el.querySelector('textarea')!
 const importBtn = (el: HTMLElement) => el.querySelector<HTMLButtonElement>('[data-testid="import-submit"]')!
 
 describe('ManualImportModal', () => {
-  it('startet mit Ladevorgängen und zeigt die Sessions-Vorlage', () => {
-    const el = mount()
+  it('startet mit Ladevorgängen und zeigt die Sessions-Vorlage', async () => {
+    const el = await mount()
     expect(tab(el, 'sessions').getAttribute('aria-selected')).toBe('true')
     expect(template(el)).toContain('date,kwh')
   })
 
   it('wechselt auf Fahrten, tauscht Vorlage und Titel', async () => {
-    const el = mount()
+    const el = await mount()
     const sessionsTitle = el.querySelector('h2')!.textContent
     tab(el, 'trips').click()
     await nextTick()
@@ -49,7 +51,7 @@ describe('ManualImportModal', () => {
   })
 
   it('setzt eingegebene Daten beim Typwechsel zurück', async () => {
-    const el = mount()
+    const el = await mount()
     textarea(el).value = 'date,kwh\n2025-01-01,10'
     textarea(el).dispatchEvent(new Event('input'))
     await nextTick()
@@ -59,7 +61,7 @@ describe('ManualImportModal', () => {
   })
 
   it('schickt Fahrten an /import/trips, Ladevorgänge an /import/sessions', async () => {
-    const el = mount()
+    const el = await mount()
     textarea(el).value = 'date,kwh\n2025-01-01,10'
     textarea(el).dispatchEvent(new Event('input'))
     await nextTick()
@@ -77,8 +79,8 @@ describe('ManualImportModal', () => {
     expect(post).toHaveBeenLastCalledWith('/import/trips', { carId: 'car-1', format: 'csv', data: expect.stringContaining('started_at') })
   })
 
-  it('öffnet direkt auf Fahrten, wenn initialType gesetzt ist', () => {
-    const el = mount({ initialType: 'trips' })
+  it('öffnet direkt auf Fahrten, wenn initialType gesetzt ist', async () => {
+    const el = await mount({ initialType: 'trips' })
     expect(tab(el, 'trips').getAttribute('aria-selected')).toBe('true')
   })
 })

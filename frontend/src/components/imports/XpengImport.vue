@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ExclamationCircleIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { CI_BTN_SECONDARY, CI_LABEL, CI_CARD, CI_NOTE } from '../../utils/ciClasses'
 import XpengUploadStep from './XpengUploadStep.vue'
 import XpengJobStatus from './XpengJobStatus.vue'
 import XpengAutoSyncWaitlist from './XpengAutoSyncWaitlist.vue'
@@ -77,13 +78,13 @@ async function onDeleteAllData() {
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="grid gap-5">
     <!-- Page header (Editorial style) -->
     <div class="pb-2">
-      <p class="text-amber-600 dark:text-amber-500 text-[11px] font-bold uppercase tracking-[0.14em] mb-2">
+      <p :class="[CI_LABEL, 'mb-2']">
         {{ t('xpeng.eyebrow_brand') }}
       </p>
-      <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white leading-tight mb-2">
+      <h2 class="mb-2 text-[22px] font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-gray-100">
         {{ t('xpeng.intro_title') }}
       </h2>
       <p class="text-gray-600 dark:text-gray-400 text-sm md:text-[15px] max-w-xl leading-relaxed">
@@ -91,9 +92,9 @@ async function onDeleteAllData() {
       </p>
     </div>
 
-    <div v-if="topError"
-         class="rounded-sm border-2 border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 p-3 text-sm text-red-900 dark:text-red-200 flex gap-2 shadow-[2px_2px_0_0_#fca5a5] dark:shadow-[2px_2px_0_0_#b91c1c]">
-      <ExclamationCircleIcon class="w-5 h-5 flex-shrink-0" />
+    <div v-if="topError" role="alert"
+         :class="[CI_NOTE, 'flex gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']">
+      <ExclamationCircleIcon class="h-5 w-5 shrink-0 text-gray-600 dark:text-gray-300" aria-hidden="true" />
       <span>{{ topError }}</span>
     </div>
 
@@ -120,25 +121,24 @@ async function onDeleteAllData() {
       <XpengAutoSyncWaitlist v-if="xpengCars.length > 0" />
 
       <!-- Destruktive Aktion: alle XPENG_IMPORT-Daten loeschen -->
-      <div v-if="hasImportedData"
-           class="rounded-sm border-2 border-red-600 dark:border-red-700 bg-white dark:bg-gray-800 p-5 md:p-6 shadow-[2px_2px_0_0_#dc2626] dark:shadow-[2px_2px_0_0_#b91c1c]">
-        <h3 class="text-lg md:text-xl font-bold text-gray-900 dark:text-white tracking-tight mb-3 flex items-center gap-2">
-          <TrashIcon class="w-5 h-5 text-red-600 dark:text-red-400" />
+      <div v-if="hasImportedData" :class="CI_CARD">
+        <h3 class="mb-3 flex items-center gap-2 text-[18px] font-bold tracking-tight text-gray-900 dark:text-gray-100">
+          <TrashIcon class="h-5 w-5 text-gray-500 dark:text-gray-400" aria-hidden="true" />
           {{ t('xpeng.delete_all_title') }}
         </h3>
         <p class="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-4">
           {{ t('xpeng.delete_all_body') }}
         </p>
         <p v-if="deleteResultMsg"
-           class="text-sm font-medium text-green-700 dark:text-green-300 mb-3">
+           role="status" class="mb-3 text-sm font-semibold text-gray-900 dark:text-gray-100">
           {{ deleteResultMsg }}
         </p>
         <button
           type="button"
-          class="inline-flex items-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold uppercase tracking-wider text-xs px-5 py-3 rounded-sm border-2 border-red-600 shadow-[2px_2px_0_0_#030712] dark:shadow-[2px_2px_0_0_#030712] active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-[transform,box-shadow] duration-75 font-family-inherit"
+          :class="CI_BTN_SECONDARY"
           :disabled="deleting"
           @click="onDeleteAllData">
-          <TrashIcon class="w-4 h-4" />
+          <TrashIcon class="h-5 w-5" aria-hidden="true" />
           {{ deleting ? t('common.loading') : t('xpeng.delete_all_button') }}
         </button>
       </div>
