@@ -6,6 +6,8 @@ import {
   CheckCircleIcon, ExclamationTriangleIcon, ClockIcon, EnvelopeIcon, ChevronRightIcon, ChevronDownIcon,
   XCircleIcon, PauseCircleIcon, ArrowPathIcon, LockClosedIcon,
 } from '@heroicons/vue/24/outline'
+import LazyCollapse from '../shared/LazyCollapse.vue'
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_LABEL } from '../../utils/ciClasses'
 import vwEudaSyncService, { type VwEudaSyncActivity, type VwEudaConnectionStatus } from '../../api/vwEudaSyncService'
 import { classifyVwEudaHealth, isVwEudaManufacturerAtFault, type VwEudaHealth } from '../../composables/useVwEudaHealth'
 import { buildVwEudaComplaintMail } from '../../composables/useVwEudaComplaintMail'
@@ -64,11 +66,11 @@ const tone = computed<Tone>(() => {
   return status.value === 'ACTIVE' ? 'wait' : status.value === 'EXPIRED' ? 'off' : 'bad'
 })
 const toneClass = computed(() => ({
-  ok: 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-200',
-  wait: 'border-gray-400 bg-gray-50 dark:bg-gray-800/60 text-gray-800 dark:text-gray-200',
-  warn: 'border-amber-500 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200',
-  bad: 'border-red-500 bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200',
-  off: 'border-gray-300 bg-gray-50 dark:bg-gray-800/60 text-gray-600 dark:text-gray-400',
+  ok: 'bg-gray-100 text-gray-900 dark:bg-gray-800/60 dark:text-gray-100 [&>div>svg]:text-green-700 dark:[&>div>svg]:text-green-400',
+  wait: 'bg-gray-100 text-gray-800 dark:bg-gray-800/60 dark:text-gray-200',
+  warn: 'bg-amber-50 text-gray-900 dark:bg-amber-900/20 dark:text-gray-100 [&>div>svg]:text-amber-600 dark:[&>div>svg]:text-amber-400',
+  bad: 'bg-gray-100 text-gray-900 dark:bg-gray-800/60 dark:text-gray-100',
+  off: 'bg-gray-100 text-gray-600 dark:bg-gray-800/60 dark:text-gray-400',
 }[tone.value]))
 const toneIcon = computed(() => ({
   ok: CheckCircleIcon, wait: ClockIcon, warn: ExclamationTriangleIcon, bad: XCircleIcon, off: PauseCircleIcon,
@@ -115,27 +117,28 @@ const primary = computed(() => deriveVwEudaPrimaryAction({
   status: status.value, health: health.value, hasComplaint: complaint.value !== null, historyOpen: historyOpen.value,
   contentStaleConfirmed: carInUseConfirmed.value,
 }))
-const primaryClass = 'inline-flex items-center justify-center gap-1.5 w-full sm:w-auto font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 disabled:opacity-60'
-const secondaryClass = 'inline-flex items-center gap-1.5 min-h-[44px] text-[11px] font-bold uppercase tracking-wider px-3.5 py-2 rounded-sm border-2 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-gray-500 dark:hover:border-gray-400 disabled:opacity-60'
+// Eine grüne Handlung aus dem Zustand, alles Weitere sekundär (docs/design/ci.md)
+const primaryClass = `${CI_BTN_PRIMARY} w-full sm:w-auto`
+const secondaryClass = CI_BTN_SECONDARY
 
 const OUTCOME_TONE: Record<string, string> = {
-  OK: 'text-emerald-700 dark:text-emerald-300', IMPORTED: 'text-emerald-700 dark:text-emerald-300',
+  OK: 'text-green-700 dark:text-green-400', IMPORTED: 'text-green-700 dark:text-green-400',
   NO_NEW_DATA: 'text-gray-500 dark:text-gray-400', NO_CHARGING_DATA: 'text-gray-500 dark:text-gray-400',
-  PORTAL_ERROR: 'text-red-700 dark:text-red-300', IMPORT_ERROR: 'text-red-700 dark:text-red-300',
-  AUTH_FAILED: 'text-red-700 dark:text-red-300', FAILED: 'text-red-700 dark:text-red-300',
+  PORTAL_ERROR: 'font-bold text-gray-900 dark:text-gray-100', IMPORT_ERROR: 'font-bold text-gray-900 dark:text-gray-100',
+  AUTH_FAILED: 'font-bold text-gray-900 dark:text-gray-100', FAILED: 'font-bold text-gray-900 dark:text-gray-100',
 }
 const outcomeClass = (outcome: string | null) => OUTCOME_TONE[outcome ?? ''] ?? 'text-gray-500 dark:text-gray-400'
 const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.outcome_${(outcome ?? 'PENDING').toLowerCase()}`)
 </script>
 
 <template>
-  <section class="space-y-4" data-testid="euda-activity">
+  <section class="grid gap-4" data-testid="euda-activity">
     <!-- 1. Lagebild -->
-    <div :class="['border-l-2 px-3 py-2.5 rounded-r-sm text-sm', toneClass]" data-testid="euda-health" :data-health="health ?? status">
+    <div :class="['rounded-2xl px-4 py-3 text-sm', toneClass]" data-testid="euda-health" :data-health="health ?? status">
       <div class="flex items-start gap-2">
         <component :is="toneIcon" class="h-5 w-5 shrink-0 mt-0.5" aria-hidden="true" />
         <div class="min-w-0 space-y-0.5">
-          <p class="font-medium">{{ headline }}</p>
+          <p class="font-semibold">{{ headline }}</p>
           <p v-if="summary && conn" class="text-xs opacity-80">
             {{ t('eu_data_act_sync.activity.summary_since', { since: fmt(conn.connectedAt, false), seen: summary.deliveriesSeen, empty: emptyDeliveries, content: summary.deliveriesWithContent }) }}
             {{ t('eu_data_act_sync.activity.sessions_imported', { n: summary.sessionsImported }) }}.
@@ -146,7 +149,7 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
           <template v-if="health === 'STALE_CONTENT' && status === 'ACTIVE'">
             <p class="text-xs opacity-80">{{ t('eu_data_act_sync.activity.stale_content_hint') }}</p>
             <label class="flex items-start gap-2 min-h-[44px] text-xs font-medium cursor-pointer">
-              <input v-model="carInUseConfirmed" type="checkbox" data-testid="euda-confirm-in-use" class="mt-0.5 h-4 w-4 rounded border-gray-400 accent-current" />
+              <input v-model="carInUseConfirmed" type="checkbox" data-testid="euda-confirm-in-use" class="mt-0.5 h-4 w-4 rounded border-gray-400 accent-gray-900 dark:accent-gray-100" />
               <span>{{ t('eu_data_act_sync.activity.confirm_in_use') }}</span>
             </label>
           </template>
@@ -155,48 +158,48 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
     </div>
 
     <!-- 2. Fakten -->
-    <dl class="text-sm divide-y divide-gray-100 dark:divide-gray-800">
-      <div class="flex justify-between gap-4 py-1.5">
+    <dl class="divide-y divide-gray-200 text-sm dark:divide-white/10">
+      <div class="flex justify-between gap-4 py-2">
         <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('eu_data_act_sync.label_account') }}</dt>
-        <dd class="text-gray-900 dark:text-gray-100 truncate text-right">{{ connection.email }}</dd>
+        <dd class="truncate text-right font-semibold text-gray-900 dark:text-gray-100">{{ connection.email }}</dd>
       </div>
-      <div class="flex justify-between gap-4 py-1.5">
+      <div class="flex justify-between gap-4 py-2">
         <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('eu_data_act_sync.activity.fact_last_data') }}</dt>
-        <dd class="text-gray-900 dark:text-gray-100 text-right">{{ lastDataLabel }}</dd>
+        <dd class="text-right font-semibold text-gray-900 dark:text-gray-100">{{ lastDataLabel }}</dd>
       </div>
-      <div class="flex justify-between gap-4 py-1.5">
+      <div class="flex justify-between gap-4 py-2">
         <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('eu_data_act_sync.activity.fact_data_state') }}</dt>
-        <dd class="text-gray-900 dark:text-gray-100 text-right" data-testid="euda-data-state">{{ dataStateLabel }}</dd>
+        <dd class="text-right font-semibold text-gray-900 dark:text-gray-100" data-testid="euda-data-state">{{ dataStateLabel }}</dd>
       </div>
-      <div class="flex justify-between gap-4 py-1.5">
+      <div class="flex justify-between gap-4 py-2">
         <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('eu_data_act_sync.activity.fact_history') }}</dt>
-        <dd class="text-gray-900 dark:text-gray-100 text-right" data-testid="euda-history-state">{{ historyLabel }}</dd>
+        <dd class="text-right font-semibold text-gray-900 dark:text-gray-100" data-testid="euda-history-state">{{ historyLabel }}</dd>
       </div>
-      <div v-if="trialEndsAt && status === 'ACTIVE'" class="flex justify-between gap-4 py-1.5" data-testid="euda-trial-hint">
+      <div v-if="trialEndsAt && status === 'ACTIVE'" class="flex justify-between gap-4 py-2" data-testid="euda-trial-hint">
         <dt class="text-gray-500 dark:text-gray-400 shrink-0">{{ t('eu_data_act_sync.activity.fact_access') }}</dt>
-        <dd class="text-gray-900 dark:text-gray-100 text-right">{{ t('eu_data_act_sync.activity.access_trial', { date: trialEndsAt }) }}</dd>
+        <dd class="text-right font-semibold text-gray-900 dark:text-gray-100">{{ t('eu_data_act_sync.activity.access_trial', { date: trialEndsAt }) }}</dd>
       </div>
     </dl>
-    <p v-if="trialEndsAt && status === 'ACTIVE'" class="text-xs text-gray-500 dark:text-gray-400 -mt-2">{{ t('eu_data_act_sync.activity.access_trial_note') }}</p>
-    <p v-if="status === 'EXPIRED'" class="text-xs text-gray-500 dark:text-gray-400 -mt-2" data-testid="euda-expired-hint">{{ t('eu_data_act_sync.expired_hint') }}</p>
-    <p v-else-if="status === 'AUTH_FAILED'" class="text-xs text-gray-500 dark:text-gray-400 -mt-2">{{ t('eu_data_act_sync.auth_failed_hint') }}</p>
+    <p v-if="trialEndsAt && status === 'ACTIVE'" class="text-[13px] text-gray-500 dark:text-gray-400 -mt-2">{{ t('eu_data_act_sync.activity.access_trial_note') }}</p>
+    <p v-if="status === 'EXPIRED'" class="text-[13px] text-gray-500 dark:text-gray-400 -mt-2" data-testid="euda-expired-hint">{{ t('eu_data_act_sync.expired_hint') }}</p>
+    <p v-else-if="status === 'AUTH_FAILED'" class="text-[13px] text-gray-500 dark:text-gray-400 -mt-2">{{ t('eu_data_act_sync.auth_failed_hint') }}</p>
 
     <!-- 3. Eine Handlung -->
-    <div class="space-y-2">
-      <router-link v-if="primary === 'upgrade'" to="/upgrade" data-testid="euda-upgrade" :class="[primaryClass, 'bg-amber-500 hover:bg-amber-400 text-gray-950 border-amber-500']">
+    <div class="grid gap-2">
+      <router-link v-if="primary === 'upgrade'" to="/upgrade" data-testid="euda-upgrade" :class="primaryClass">
         {{ t('eu_data_act_sync.teaser_cta') }}
-        <ChevronRightIcon class="h-3.5 w-3.5" aria-hidden="true" />
+        <ChevronRightIcon class="h-4 w-4" aria-hidden="true" />
       </router-link>
-      <button v-else-if="primary === 'relogin'" type="button" :disabled="busy" data-testid="euda-relogin" :class="[primaryClass, 'bg-gray-950 dark:bg-white text-white dark:text-gray-950 border-gray-950 dark:border-white']" @click="emit('disconnect')">
-        <LockClosedIcon class="h-4 w-4" aria-hidden="true" />
+      <button v-else-if="primary === 'relogin'" type="button" :disabled="busy" data-testid="euda-relogin" :class="primaryClass" @click="emit('disconnect')">
+        <LockClosedIcon class="h-5 w-5" aria-hidden="true" />
         {{ t('eu_data_act_sync.activity.btn_relogin') }}
       </button>
-      <a v-else-if="primary === 'complaint' && complaint" :href="complaint.href" data-testid="euda-complaint" :class="[primaryClass, 'bg-gray-950 dark:bg-white text-white dark:text-gray-950 border-gray-950 dark:border-white']">
-        <EnvelopeIcon class="h-4 w-4" aria-hidden="true" />
+      <a v-else-if="primary === 'complaint' && complaint" :href="complaint.href" data-testid="euda-complaint" :class="primaryClass">
+        <EnvelopeIcon class="h-5 w-5" aria-hidden="true" />
         {{ t('eu_data_act_sync.activity.complaint_btn') }}
       </a>
-      <button v-else-if="primary === 'history'" type="button" :disabled="busy" data-testid="euda-history" :class="[primaryClass, 'bg-gray-950 dark:bg-white text-white dark:text-gray-950 border-gray-950 dark:border-white']" @click="emit('requestHistory')">
-        <ArrowPathIcon class="h-4 w-4" aria-hidden="true" />
+      <button v-else-if="primary === 'history'" type="button" :disabled="busy" data-testid="euda-history" :class="primaryClass" @click="emit('requestHistory')">
+        <ArrowPathIcon class="h-5 w-5" aria-hidden="true" />
         {{ t('eu_data_act_sync.btn_history') }}
       </button>
       <p v-if="primary === 'complaint'" class="text-xs text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.activity.complaint_note', { contact: activity?.manufacturerContact }) }}</p>
@@ -206,7 +209,7 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
         <a v-if="primary !== 'complaint' && complaint && status === 'ACTIVE'" :href="complaint.href" data-testid="euda-complaint" :class="secondaryClass">{{ t('eu_data_act_sync.activity.complaint_btn') }}</a>
         <button v-if="manufacturerAtFault && status === 'ACTIVE'" type="button" data-testid="euda-authority" :class="secondaryClass" @click="authorityOpen = true">{{ t('eu_data_act_sync.activity.authority_btn') }}</button>
         <button v-if="status !== 'EXPIRED'" type="button" :disabled="busy" data-testid="euda-reactivate-smartcar" :class="secondaryClass" @click="emit('reactivateSmartcar')">{{ t('eu_data_act_sync.btn_reactivate_smartcar') }}</button>
-        <button type="button" :disabled="busy" data-testid="euda-disconnect" :class="[secondaryClass, 'border-red-300 dark:border-red-800 text-red-700 dark:text-red-300 hover:border-red-500']" @click="emit('disconnect')">{{ t('eu_data_act_sync.btn_disconnect') }}</button>
+        <button type="button" :disabled="busy" data-testid="euda-disconnect" :class="secondaryClass" @click="emit('disconnect')">{{ t('eu_data_act_sync.btn_disconnect') }}</button>
       </div>
       <UploadSampleNotice v-if="primary === 'history' || (historyOpen && status === 'ACTIVE')" />
     </div>
@@ -214,45 +217,46 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
 
     <!-- 4. Details -->
     <div v-if="activity && conn">
-      <button type="button" class="flex items-center gap-1 min-h-[44px] text-xs font-bold uppercase tracking-wider text-gray-600 dark:text-gray-300" @click="detailsOpen = !detailsOpen" data-testid="euda-activity-toggle">
-        <component :is="detailsOpen ? ChevronDownIcon : ChevronRightIcon" class="h-3.5 w-3.5" aria-hidden="true" />
+      <button type="button" :aria-expanded="detailsOpen" class="inline-flex min-h-11 items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-gray-300" @click="detailsOpen = !detailsOpen" data-testid="euda-activity-toggle">
         {{ t('eu_data_act_sync.activity.details_toggle') }}
+        <ChevronDownIcon class="h-4 w-4 transition-transform duration-300 motion-reduce:transition-none" :class="detailsOpen ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
       </button>
-      <div v-if="detailsOpen" class="space-y-4 text-xs pt-2">
+      <LazyCollapse :open="detailsOpen">
+      <div class="grid gap-4 pt-2 text-[13px]">
         <div v-if="conn.lastError || conn.history?.error">
-          <h4 class="font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">{{ t('eu_data_act_sync.activity.errors_title') }}</h4>
-          <p v-if="conn.lastError" class="font-mono text-red-700 dark:text-red-300 break-words">{{ t('eu_data_act_sync.activity.last_error', { n: conn.consecutiveFailures, date: fmt(conn.lastPolledAt) }) }} {{ conn.lastError }}</p>
-          <p v-if="conn.history?.error" class="font-mono text-red-700 dark:text-red-300 break-words">{{ t('eu_data_act_sync.activity.history_label') }}: {{ conn.history.error }}</p>
+          <h4 :class="[CI_LABEL, 'mb-1']">{{ t('eu_data_act_sync.activity.errors_title') }}</h4>
+          <p v-if="conn.lastError" class="font-mono font-semibold text-gray-900 dark:text-gray-100 break-words">{{ t('eu_data_act_sync.activity.last_error', { n: conn.consecutiveFailures, date: fmt(conn.lastPolledAt) }) }} {{ conn.lastError }}</p>
+          <p v-if="conn.history?.error" class="font-mono font-semibold text-gray-900 dark:text-gray-100 break-words">{{ t('eu_data_act_sync.activity.history_label') }}: {{ conn.history.error }}</p>
         </div>
         <div>
-          <h4 class="font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">{{ t('eu_data_act_sync.activity.polls_title') }}</h4>
+          <h4 :class="[CI_LABEL, 'mb-1']">{{ t('eu_data_act_sync.activity.polls_title') }}</h4>
           <p v-if="activity.polls.length === 0" class="text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.activity.empty') }}</p>
-          <ul v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+          <ul v-else class="divide-y divide-gray-200 dark:divide-white/10">
             <li v-for="p in activity.polls" :key="p.at + p.outcome" class="py-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
               <span class="text-gray-500 dark:text-gray-400 tabular-nums">{{ fmt(p.at) }}</span>
               <span :class="['font-medium', outcomeClass(p.outcome)]">{{ p.history ? t('eu_data_act_sync.activity.history_label') + ' · ' : '' }}{{ outcomeLabel(p.outcome) }}</span>
               <span v-if="!p.history" class="text-gray-600 dark:text-gray-300">{{ t('eu_data_act_sync.activity.poll_counts', { seen: p.deliveriesSeen, content: p.deliveriesWithContent, imported: p.sessionsImported }) }}</span>
               <span v-else class="text-gray-600 dark:text-gray-300">{{ t('eu_data_act_sync.activity.sessions_imported', { n: p.sessionsImported }) }}</span>
-              <span v-if="p.error" class="w-full font-mono text-red-700 dark:text-red-300 break-words">{{ p.error }}</span>
+              <span v-if="p.error" class="w-full font-mono font-semibold text-gray-900 dark:text-gray-100 break-words">{{ p.error }}</span>
             </li>
           </ul>
         </div>
         <div>
-          <h4 class="font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">{{ t('eu_data_act_sync.activity.deliveries_title') }}</h4>
+          <h4 :class="[CI_LABEL, 'mb-1']">{{ t('eu_data_act_sync.activity.deliveries_title') }}</h4>
           <p v-if="activity.deliveries.length === 0" class="text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.activity.empty_deliveries') }}</p>
-          <ul v-else class="divide-y divide-gray-200 dark:divide-gray-700">
+          <ul v-else class="divide-y divide-gray-200 dark:divide-white/10">
             <li v-for="d in activity.deliveries" :key="d.filename" class="py-1.5 flex flex-wrap gap-x-3 gap-y-0.5">
               <span class="text-gray-500 dark:text-gray-400 tabular-nums">{{ fmt(d.createdOn) }}</span>
               <span :class="['font-medium', outcomeClass(d.outcome)]">{{ outcomeLabel(d.outcome) }}</span>
               <span v-if="d.sessionsImported !== null" class="text-gray-600 dark:text-gray-300">{{ t('eu_data_act_sync.activity.sessions_imported', { n: d.sessionsImported }) }}</span>
               <span class="text-gray-500 dark:text-gray-400">{{ kb(d.sizeBytes) }}</span>
               <span class="w-full font-mono text-gray-500 dark:text-gray-400 truncate">{{ d.filename }}</span>
-              <span v-if="d.error && d.outcome === 'FAILED'" class="w-full font-mono text-red-700 dark:text-red-300 break-words">{{ d.error }}</span>
+              <span v-if="d.error && d.outcome === 'FAILED'" class="w-full font-mono font-semibold text-gray-900 dark:text-gray-100 break-words">{{ d.error }}</span>
             </li>
           </ul>
         </div>
         <div>
-          <h4 class="font-bold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-1">{{ t('eu_data_act_sync.activity.identifiers_title') }}</h4>
+          <h4 :class="[CI_LABEL, 'mb-1']">{{ t('eu_data_act_sync.activity.identifiers_title') }}</h4>
           <dl class="grid grid-cols-1 gap-y-0.5">
             <div v-for="id in activity.identifiers" :key="id.label" class="flex flex-wrap gap-x-2">
               <dt class="text-gray-500 dark:text-gray-400">{{ id.label }}</dt>
@@ -262,6 +266,7 @@ const outcomeLabel = (outcome: string | null) => t(`eu_data_act_sync.activity.ou
         </div>
         <p class="text-gray-500 dark:text-gray-400">{{ t('eu_data_act_sync.history_hint') }}</p>
       </div>
+      </LazyCollapse>
     </div>
   </section>
 </template>

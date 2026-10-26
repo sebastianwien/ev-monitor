@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { BoltIcon, ChevronRightIcon, ChevronDownIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ChevronRightIcon, ChevronDownIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
+import LazyCollapse from '../shared/LazyCollapse.vue'
+import { CI_BTN_PRIMARY, CI_INPUT, CI_LABEL, CI_CARD, CI_NOTE } from '../../utils/ciClasses'
 import vwEudaSyncService, {
   eudaBrandOf,
   eudaErrorCode,
@@ -160,24 +162,24 @@ onMounted(load)
 <template>
   <!-- Die Marken-Vorauswahl trifft die Import-Seite; hier entscheidet nur noch die Berechtigung
        (Abo oder launch-verankertes Trial), welcher Zustand zu sehen ist. -->
-  <div :class="embedded ? '' : 'border-2 border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5'">
-    <div v-if="!embedded" class="flex items-start gap-3 mb-3">
-      <BoltIcon class="h-6 w-6 shrink-0 text-indigo-500" aria-hidden="true" />
+  <div class="grid gap-3" :class="embedded ? '' : CI_CARD">
+    <div v-if="!embedded" class="flex items-start gap-3">
+      <BoltIcon class="h-6 w-6 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
       <div class="min-w-0">
-        <h3 class="font-bold text-gray-900 dark:text-gray-100 text-base md:text-lg">{{ t('eu_data_act_sync.title') }}</h3>
+        <h3 class="text-[18px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('eu_data_act_sync.title') }}</h3>
         <p v-if="!connection" class="text-sm text-gray-600 dark:text-gray-400">{{ t('eu_data_act_sync.desc') }}</p>
       </div>
-      <span class="ml-auto shrink-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-sm bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">Beta</span>
+      <span class="ml-auto shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11.5px] font-bold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">Beta</span>
     </div>
 
-      <CarSelectDropdown v-if="cars.length > 1" v-model="selectedCarId" :cars="cars" class="mb-3" />
+      <CarSelectDropdown v-if="cars.length > 1" v-model="selectedCarId" :cars="cars" />
 
       <div v-if="loading" class="text-sm text-gray-500 dark:text-gray-400">…</div>
 
       <!-- Verbunden: das Panel (Lagebild, Fakten, Handlung, Details) gehört VwEudaSyncActivity -->
-      <div v-else-if="connection" class="space-y-3" data-testid="euda-connected">
-        <p v-if="justConnected" class="text-sm font-medium text-emerald-800 dark:text-emerald-300 border-l-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 px-3 py-2 rounded-r-sm" data-testid="euda-success">
-          {{ t('eu_data_act_sync.connected_success') }}
+      <div v-else-if="connection" class="grid gap-3" data-testid="euda-connected">
+        <p v-if="justConnected" role="status" :class="[CI_NOTE, 'flex items-start gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']" data-testid="euda-success">
+          <CheckCircleIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />{{ t('eu_data_act_sync.connected_success') }}
         </p>
         <VwEudaSyncActivity
           :connection="connection"
@@ -192,33 +194,24 @@ onMounted(load)
       </div>
 
       <!-- Nicht verbunden, nicht berechtigt: Teaser statt Formular -->
-      <div v-else-if="!entitlement.entitled" class="space-y-3" data-testid="euda-teaser">
+      <div v-else-if="!entitlement.entitled" class="grid gap-3" data-testid="euda-teaser">
         <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('eu_data_act_sync.teaser') }}</p>
-        <p v-if="entitlement.trialEndsAt" class="text-xs text-gray-500 dark:text-gray-400">
+        <p v-if="entitlement.trialEndsAt" class="text-[13px] text-gray-500 dark:text-gray-400">
           {{ t('eu_data_act_sync.trial_ended', { date: trialEndsAt }) }}
         </p>
-        <router-link
-          to="/upgrade"
-          data-testid="euda-upgrade"
-          class="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-[11px] px-4 py-2.5 rounded-sm border-2 border-amber-500"
-        >
+        <router-link to="/upgrade" data-testid="euda-upgrade" :class="[CI_BTN_PRIMARY, 'justify-self-start']">
           {{ t('eu_data_act_sync.teaser_cta') }}
-          <ChevronRightIcon class="h-3.5 w-3.5" aria-hidden="true" />
+          <ChevronRightIcon class="h-4 w-4" aria-hidden="true" />
         </router-link>
       </div>
 
       <!-- Schritt 1: Entscheiden - drei Saetze, Trial, Details auf Wunsch -->
-      <div v-else-if="step === 'decide'" class="space-y-4" data-testid="euda-step-decide">
-        <p class="text-sm text-gray-800 dark:text-gray-200 leading-relaxed">{{ t('eu_data_act_sync.decide_pitch') }}</p>
+      <div v-else-if="step === 'decide'" class="grid gap-4" data-testid="euda-step-decide">
+        <p class="text-[15px] leading-relaxed text-gray-800 dark:text-gray-200">{{ t('eu_data_act_sync.decide_pitch') }}</p>
         <p v-if="entitlement.viaTrial" class="text-sm text-gray-600 dark:text-gray-400" data-testid="euda-trial-hint">
           {{ t('eu_data_act_sync.trial_hint', { date: trialEndsAt }) }}
         </p>
-        <button
-          type="button"
-          data-testid="euda-start"
-          @click="step = 'connect'"
-          class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-xs md:text-sm px-5 py-3.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[4px] active:translate-y-[4px]"
-        >
+        <button type="button" data-testid="euda-start" :class="[CI_BTN_PRIMARY, 'w-full sm:w-auto sm:justify-self-start']" @click="step = 'connect'">
           {{ t('eu_data_act_sync.btn_start') }}
         </button>
         <div>
@@ -228,29 +221,33 @@ onMounted(load)
             :aria-expanded="detailsOpen"
             aria-controls="euda-details"
             @click="detailsOpen = !detailsOpen"
-            class="inline-flex items-center gap-1 text-sm font-medium text-indigo-700 dark:text-indigo-300 underline min-h-[44px]"
+            class="inline-flex min-h-11 items-center gap-1 text-sm font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100"
           >
             {{ t('eu_data_act_sync.details_toggle') }}
-            <ChevronDownIcon class="h-4 w-4 transition-transform" :class="detailsOpen ? 'rotate-180' : ''" aria-hidden="true" />
+            <ChevronDownIcon class="h-4 w-4 transition-transform duration-300 motion-reduce:transition-none"
+              :class="detailsOpen ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
           </button>
-          <VwEudaExplainer v-if="detailsOpen" id="euda-details" class="mt-3 pt-3 border-t-2 border-gray-200 dark:border-gray-700" />
+          <LazyCollapse id="euda-details" :open="detailsOpen">
+            <VwEudaExplainer class="mt-2 border-t border-gray-200 pt-3 dark:border-white/10" />
+          </LazyCollapse>
         </div>
       </div>
 
       <!-- Schritt 2: Anmelden -->
-      <form v-else class="space-y-3" data-testid="euda-step-connect" @submit.prevent="connect">
+      <form v-else class="grid gap-3" data-testid="euda-step-connect" @submit.prevent="connect">
         <button
           type="button"
           data-testid="euda-back"
           @click="step = 'decide'"
-          class="inline-flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 min-h-[44px]"
+          class="inline-flex min-h-11 items-center gap-1 justify-self-start text-sm font-semibold text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100"
         >
           <ArrowLeftIcon class="h-4 w-4" aria-hidden="true" />
           {{ t('common.back') }}
         </button>
         <p class="text-sm text-gray-700 dark:text-gray-300">{{ t('eu_data_act_sync.connect_intro') }}</p>
-        <div>
-          <span class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('eu_data_act_sync.label_brand') }}</span>
+        <div class="grid gap-1.5">
+          <span :class="CI_LABEL">{{ t('eu_data_act_sync.label_brand') }}</span>
+          <!-- Antwort-Chips (ChoiceChip-Optik), als Radiogruppe ausgezeichnet -->
           <div class="flex flex-wrap gap-2" role="radiogroup" :aria-label="t('eu_data_act_sync.label_brand')">
             <button
               v-for="b in BRANDS"
@@ -259,31 +256,29 @@ onMounted(load)
               role="radio"
               :aria-checked="brand === b.key"
               @click="brand = b.key"
-              class="px-3 py-2 rounded-sm border-2 text-sm font-medium"
+              class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center rounded-full border-2 border-edge px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
               :class="brand === b.key
-                ? 'border-indigo-600 bg-indigo-50 text-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-200 dark:border-indigo-400'
-                : 'border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200'"
+                ? 'active bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
+                : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15'"
             >{{ b.label }}</button>
           </div>
         </div>
-        <div>
-          <label for="euda-email" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('eu_data_act_sync.label_email') }}</label>
-          <input id="euda-email" v-model="email" type="email" autocomplete="username" required
-                 class="w-full rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100" />
+        <div class="grid gap-1.5">
+          <label for="euda-email" :class="CI_LABEL">{{ t('eu_data_act_sync.label_email') }}</label>
+          <input id="euda-email" v-model="email" type="email" autocomplete="username" required :class="CI_INPUT" />
         </div>
-        <div>
-          <label for="euda-password" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">{{ t('eu_data_act_sync.label_password') }}</label>
-          <input id="euda-password" v-model="password" type="password" autocomplete="current-password" required
-                 class="w-full rounded-sm border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 px-3 py-2 text-sm text-gray-900 dark:text-gray-100" />
+        <div class="grid gap-1.5">
+          <label for="euda-password" :class="CI_LABEL">{{ t('eu_data_act_sync.label_password') }}</label>
+          <input id="euda-password" v-model="password" type="password" autocomplete="current-password" required :class="CI_INPUT" />
         </div>
-        <ul class="text-xs text-gray-600 dark:text-gray-400 space-y-1 list-disc pl-4">
+        <ul class="list-disc space-y-1 pl-4 text-[13px] text-gray-600 dark:text-gray-400">
           <li>{{ t('eu_data_act_sync.privacy_password') }}</li>
           <li>{{ t('eu_data_act_sync.privacy_request') }}</li>
           <li v-if="viaSmartcar" data-testid="euda-smartcar-note">{{ t('eu_data_act_sync.privacy_smartcar') }}</li>
           <li>
             {{ t('eu_data_act_sync.privacy_open_source') }}
             <a :href="LOGIN_SOURCE_URL" target="_blank" rel="noopener noreferrer" data-testid="euda-open-source"
-               class="inline-flex items-center gap-1 text-indigo-700 dark:text-indigo-300 underline font-medium">
+               class="inline-flex items-center gap-1 font-semibold text-gray-900 underline dark:text-gray-100">
               {{ t('eu_data_act_sync.privacy_open_source_link') }}
               <ArrowTopRightOnSquareIcon class="h-3 w-3" aria-hidden="true" />
             </a>
@@ -293,14 +288,14 @@ onMounted(load)
           type="submit"
           data-testid="euda-connect"
           :disabled="connecting || !selectedCarId || !email || !password"
-          class="w-full sm:w-auto bg-amber-500 hover:bg-amber-400 text-gray-950 font-bold uppercase tracking-wider text-xs md:text-sm px-5 py-3.5 rounded-sm border-2 border-amber-500 shadow-[2px_2px_0_0_#030712] active:translate-x-[4px] active:translate-y-[4px] disabled:opacity-60 disabled:cursor-not-allowed"
+          :class="[CI_BTN_PRIMARY, 'w-full sm:w-auto sm:justify-self-start']"
         >
           {{ connecting ? t('eu_data_act_sync.connecting') : t('eu_data_act_sync.btn_connect') }}
         </button>
       </form>
 
-      <div v-if="error" class="mt-3 border-l-2 border-red-500 bg-red-50 dark:bg-red-950/40 px-4 py-3 rounded-r-sm text-sm text-red-800 dark:text-red-200" role="alert">
-        {{ error }}
-      </div>
+      <p v-if="error" role="alert" :class="[CI_NOTE, 'flex items-start gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']">
+        <ExclamationCircleIcon class="h-5 w-5 shrink-0 text-gray-700 dark:text-gray-300" aria-hidden="true" />{{ error }}
+      </p>
   </div>
 </template>
