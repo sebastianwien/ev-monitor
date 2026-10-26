@@ -53,7 +53,68 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
         evLogRepository.save(log);
     }
 
+    /** Anker plus n Winterladungen im Dezember des Vorjahres, je 100 km mit kwhPer100 kWh. */
+    private void addWinterLogs(UUID carId, int n, double kwhPer100) {
+        LocalDateTime start = LocalDateTime.of(LocalDateTime.now().getYear() - 1, 12, 1, 18, 0);
+        EvLog anchor = EvLog.createNew(carId, new BigDecimal("0.1"), null,
+                1, null, 0, null, null, start, null, null, null, false, null);
+        evLogRepository.save(anchor.toBuilder().includeInStatistics(true).build());
+        for (int i = 1; i <= n; i++) {
+            EvLog log = EvLog.createNew(carId, BigDecimal.valueOf(kwhPer100), new BigDecimal("6.0"),
+                    60, null, i * 100, null, null, start.plusDays(i), null, null, null, false, null);
+            evLogRepository.save(log.toBuilder().includeInStatistics(true).build());
+        }
+    }
+
     // --- tests ---
+
+    private Car peerCar(int i, VehicleSpecification spec) {
+        return createCar(createUser("peer" + i + "@example.com", "DE").getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+    }
+
+    @Test
+    void getPeerModelComparison_allVariantsWinter_fromPeerWinterLogsOfAllVariants() {
+        VehicleSpecification userSpec = saveSpec("Tesla", "Model 3", "2024 LR", new BigDecimal("75.0"));
+        VehicleSpecification otherSpec = saveSpec("Tesla", "Model 3", "2025 RWD", new BigDecimal("60.0"));
+        User user = createUser("user@example.com", "DE");
+        Car userCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, userSpec.getId());
+        addWinterLogs(userCar.getId(), 10, 40.0);
+
+        // 5 Fahrer, 10 Winterladungen: 6 x 22 und 4 x 27 kWh/100km
+        for (int i = 1; i <= 3; i++) addWinterLogs(peerCar(i, userSpec).getId(), 2, 22.0);
+        for (int i = 4; i <= 5; i++) addWinterLogs(peerCar(i, otherSpec).getId(), 2, 27.0);
+
+        PeerModelComparisonResponse response = evLogStatisticsService.getPeerModelComparison(userCar, user);
+
+        // eigene 40 kWh/100km zählen nicht
+        assertEquals(new BigDecimal("24.00"),
+                response.allVariantsWinterConsumptionKwhPer100km().setScale(2, java.math.RoundingMode.HALF_UP));
+    }
+
+    @Test
+    void getPeerModelComparison_allVariantsWinter_nullBelowFiveWinterDrivers() {
+        VehicleSpecification spec = saveSpec("Tesla", "Model 3", "2024 LR", new BigDecimal("75.0"));
+        User user = createUser("user@example.com", "DE");
+        Car userCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+
+        for (int i = 1; i <= 4; i++) addWinterLogs(peerCar(i, spec).getId(), 3, 22.0);
+        // fünfter Fahrer nur mit Sommerladung
+        addLog(peerCar(5, spec).getId(), 20.0, 100.0, 6.0);
+
+        assertNull(evLogStatisticsService.getPeerModelComparison(userCar, user).allVariantsWinterConsumptionKwhPer100km());
+    }
+
+    @Test
+    void getPeerModelComparison_allVariantsWinter_nullBelowTenWinterLogs() {
+        VehicleSpecification spec = saveSpec("Tesla", "Model 3", "2024 LR", new BigDecimal("75.0"));
+        User user = createUser("user@example.com", "DE");
+        Car userCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+
+        for (int i = 1; i <= 4; i++) addWinterLogs(peerCar(i, spec).getId(), 2, 22.0);
+        addWinterLogs(peerCar(5, spec).getId(), 1, 22.0);
+
+        assertNull(evLogStatisticsService.getPeerModelComparison(userCar, user).allVariantsWinterConsumptionKwhPer100km());
+    }
 
     @Test
     void getPeerModelComparison_returnsAllSpecsOfSameModel_groupedBySpecId() {

@@ -962,7 +962,7 @@ public class EvLogStatisticsService {
 
     public PeerModelComparisonResponse getPeerModelComparison(Car userCar, User user) {
         if (userCar.getVehicleSpecificationId() == null) {
-            return new PeerModelComparisonResponse(List.of(), null);
+            return new PeerModelComparisonResponse(List.of(), null, null);
         }
 
         VehicleSpecification userSpec = vehicleSpecificationRepository.findById(userCar.getVehicleSpecificationId())
@@ -1054,7 +1054,25 @@ public class EvLogStatisticsService {
             ));
         }
 
-        return new PeerModelComparisonResponse(items, allVariantsMetrics(allPeerCars));
+        return new PeerModelComparisonResponse(items, allVariantsMetrics(allPeerCars), allVariantsWinter(allPeerCars));
+    }
+
+    /** Ab so vielen Winterladungen von so vielen Fahrern ersetzt ihr Winterwert im Story-Dashboard den fehlenden eigenen. */
+    private static final int MIN_PEER_WINTER_LOGS = 10;
+    private static final int MIN_PEER_WINTER_CARS = 5;
+
+    private BigDecimal allVariantsWinter(List<Car> peerCars) {
+        if (peerCars.size() < MIN_PEER_WINTER_CARS) return null;
+        // Wintermonate wie in calculateSeasonalConsumption
+        long winterCars = evLogRepository.findAllByCarIds(peerCars.stream().map(Car::getId).toList()).stream()
+                .filter(EvLog::isIncludeInStatistics)
+                .filter(l -> { int m = l.getLoggedAt().getMonthValue(); return m >= 11 || m <= 2; })
+                .map(EvLog::getCarId)
+                .distinct()
+                .count();
+        if (winterCars < MIN_PEER_WINTER_CARS) return null;
+        SeasonalConsumptionResult seasonal = calculateSeasonalConsumption(peerCars, false);
+        return seasonal.winterLogCount() >= MIN_PEER_WINTER_LOGS ? seasonal.winterConsumptionKwhPer100km() : null;
     }
 
     /** Dieselben Formeln wie je Variante, nur über die Autos aller Varianten des Modells. */
