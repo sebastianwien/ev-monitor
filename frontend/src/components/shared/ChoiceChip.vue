@@ -12,7 +12,9 @@
       SIZES[size],
       active
         ? 'active bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
-        : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15',
+        : solid
+          ? 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700'
+          : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15',
     ]"
   ><slot /></component>
 </template>
@@ -27,7 +29,9 @@ withDefaults(defineProps<{
   href?: string
   /** sm: dense rows of chips; lg: a question's answers (44 px touch target) */
   size?: 'sm' | 'md' | 'lg'
-}>(), { active: false, href: undefined, size: 'md' })
+  /** opaque in dark mode too: chips straight on the wallpaper, not on a box */
+  solid?: boolean
+}>(), { active: false, href: undefined, size: 'md', solid: false })
 
 const SIZES = { sm: 'min-h-9 px-3.5 text-[13.5px]', md: 'min-h-10 px-3.5 text-sm', lg: 'min-h-11 px-5 text-[14px]' }
 </script>
