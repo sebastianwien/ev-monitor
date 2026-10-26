@@ -2696,9 +2696,6 @@ announcements:
   soh_autodetect_v1_cta: "Til kjøretøyet"
   car_reassignment_v1_title: Tilordne økter til et annet kjøretøy
   car_reassignment_v1_body: Har du tilordnet en kjøretur til feil bil? Ikke noe problem – i dashbordet kan du med ett klikk tilordne en hvilken som helst kjøretur (eller en hel gruppe) til et annet kjøretøy.
-  autosync_premium_v1_title: "Nytt: EV Monitor AutoSync"
-  autosync_premium_v1_body: Koble til bilen én gang, så importeres alle ladinger automatisk til EV Monitor – ingen manuell registrering er nødvendig. Nå tilgjengelig som en pro-funksjon. Støtter 28 merker – blant annet BMW, VW, Mercedes, Audi, Tesla, Hyundai, Volvo, Polestar og mange flere.
-  autosync_premium_v1_cta: Les mer
   kwh_primary_formula_v1_title: Mer presis forbruksberegning
   kwh_primary_formula_v1_body: Forbruket ble tidligere beregnet fra SoC-prosenter × nominell kapasitet. BMS-en kalibrerer imidlertid prosentvisningen til den faktiske batterikapasiteten - for batterier med degradering avvek dette fra nominell kapasitet og ga litt for høye verdier. Nå brukes målte kilowattimer direkte, pluss en liten SoC-korreksjon mellom øktene. For eldre batterier kan forskjellen være opptil 2 kWh/100km. Alle verdier er automatisk oppdatert. Jeg har også forklart hvorfor EV Monitor ofte viser mer enn tripptelleren din.
   spritmonitor_raw_refresh_v1_title: "SpritMonitor: Importer rådata på nytt"
@@ -2823,10 +2820,6 @@ supporter:
   footer_note: "Sikker betaling via Stripe · avslutt når som helst · ingen skjulte kostnader."
 upgrade:
   loading: Laster...
-  already_pro_title: Du er allerede Pro
-  already_pro_desc: EV Monitor AutoSync er nå tilgjengelig for deg.
-  already_pro_cta: Gå til AutoSync
-  badge: EV MONITOR PRO
   headline: Du trenger aldri å logge inn manuelt igjen.
   subtitle: Koble bilen til én gang – alle ladinger vises automatisk i loggboken din.
   how_title: Slik fungerer AutoSync
