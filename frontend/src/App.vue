@@ -47,6 +47,7 @@ import BottomNav from './components/shared/BottomNav.vue'
 import MoreSheet from './components/shared/MoreSheet.vue'
 import { Capacitor } from '@capacitor/core'
 import { isModelsRoute, modelsPageSwap } from './router/pageTransitions'
+import { showsWorkspaceFrame } from './router/designSwitch'
 
 // Native App (iOS/Android). Platform-Konstante (aendert sich zur Laufzeit nicht).
 const isNative = Capacitor.isNativePlatform()
@@ -138,8 +139,11 @@ const authStore = useAuthStore()
  * Views denselben Wert nutzen koennen statt ihn nachzubauen - z.B. das
  * Datumsband im Log-Feed. Steht nach dem authStore, weil mainPaddingTop ihn liest.
  */
-watch(mainPaddingTop, (v) => {
-  document.documentElement.style.setProperty('--content-top', v)
+watch([mainPaddingTop, memberChrome], ([v, chrome]) => {
+  // Ohne App-Chrome klebt eine PublicNav oben, "0px" wäre falsch: dann greifen die Rückfallwerte der Seiten,
+  // unter dem Gerüst WorkspaceFrame setzt das Gerüst den Wert für seinen Teilbaum
+  if (chrome) document.documentElement.style.setProperty('--content-top', v)
+  else document.documentElement.style.removeProperty('--content-top')
 }, { immediate: true })
 // Anteil der Lasche an --content-top. Neben der Lasche ist das Band durchsichtig; klebende
 // Koepfe decken diesen Streifen damit ab, sonst scheint dort Inhalt durch (Log-Feed).
@@ -259,9 +263,8 @@ onUnmounted(() => navResizeObserver?.disconnect())
 const WORKSPACE_PATHS: readonly string[] = WORKSPACE_TABS.map(tab => tab.to)
 /** Chip-Reihe des alten Chromes; im neuen Design (publicNav) bringt WorkspaceFrame sie mit */
 const isWorkspaceRoute = computed(() => memberChrome.value && WORKSPACE_PATHS.includes(route.path))
-/** Neues Design: ein Gerüst über allen vier Bereichen und der Übersicht, damit der Kopf beim Wechsel stehen bleibt */
-const workspaceFrame = computed(() => authStore.isAuthenticated() && publicNavRoute.value
-  && (route.path === '/story' || WORKSPACE_PATHS.includes(route.path)))
+/** Neues Design: ein Gerüst über den Seiten des eingeloggten Bereichs und den Modellseiten, damit der Kopf beim Wechsel stehen bleibt */
+const workspaceFrame = computed(() => showsWorkspaceFrame(route, authStore.isAuthenticated()))
 
 // Impersonation
 const impersonatingAs = computed(() => sessionStorage.getItem('impersonating'))

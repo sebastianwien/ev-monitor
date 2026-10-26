@@ -19,6 +19,10 @@ declare module 'vue-router' {
         country?: CountryCode
         /** Handy: ruhige CI-Fläche statt Wallpaper (Seiten im App-CI mit Boxen, docs/design/ci.md). */
         plainBackground?: boolean
+        /** Eigener öffentlicher Kopf statt App-Chrome (Modellseiten fest, Bereiche der App je nach Story-Opt-in). */
+        publicNav?: boolean
+        /** Seite des eingeloggten Bereichs, die im neuen Design im Gerüst WorkspaceFrame steht (siehe designSwitch). */
+        workspaceFrame?: boolean
     }
 }
 import LandingPageView from '../views/LandingPageView.vue';
@@ -30,6 +34,7 @@ import VerifyEmailView from '../views/VerifyEmailView.vue';
 import OAuth2RedirectHandler from '../views/OAuth2RedirectHandler.vue';
 import CarContextLayout from '../layouts/CarContextLayout.vue';
 import { isStoryOptIn } from '../composables/useStoryOptIn';
+import { applyDesignSwitch } from './designSwitch';
 import CarsLayout from '../layouts/CarsLayout.vue';
 import SettingsView from '../views/SettingsView.vue';
 import PublicModelsListEntry from '../views/PublicModelsListEntry.vue';
@@ -98,14 +103,14 @@ const router = createRouter({
             name: 'story',
             // Neues Design: Uebersicht im CarContextLayout (WorkspaceFrame statt App-Chrome); mobil ruhige Flaeche
             component: CarContextLayout,
-            meta: { requiresAuth: true, publicNav: true, plainBackground: true }
+            meta: { requiresAuth: true, publicNav: true, plainBackground: true, workspaceFrame: true }
         },
         {
             path: '/logs',
             name: 'logs',
             component: CarContextLayout,
             // App-CI: mobil ruhige Flaeche; publicNav (Kopf des neuen Designs) setzt der Guard je nach Story-Opt-in
-            meta: { requiresAuth: true, plainBackground: true }
+            meta: { requiresAuth: true, plainBackground: true, workspaceFrame: true }
         },
         {
             path: '/statistics',
@@ -117,26 +122,26 @@ const router = createRouter({
             name: 'cars',
             component: CarsLayout,
             // App-CI: mobil ruhige Flaeche; publicNav setzt der Guard je nach Story-Opt-in
-            meta: { requiresAuth: true, plainBackground: true }
+            meta: { requiresAuth: true, plainBackground: true, workspaceFrame: true }
         },
         {
             path: '/charging-providers',
             name: 'charging-providers',
             component: CarsLayout,
             // App-CI: mobil ruhige Flaeche; publicNav setzt der Guard je nach Story-Opt-in
-            meta: { requiresAuth: true, plainBackground: true }
+            meta: { requiresAuth: true, plainBackground: true, workspaceFrame: true }
         },
         {
             path: '/settings',
             name: 'settings',
             component: SettingsView,
-            meta: { requiresAuth: true, plainBackground: true }
+            meta: { requiresAuth: true, plainBackground: true, workspaceFrame: true }
         },
         {
             path: '/coins/history',
             name: 'coin-history',
             component: CoinHistoryView,
-            meta: { requiresAuth: true, plainBackground: true }
+            meta: { requiresAuth: true, plainBackground: true, workspaceFrame: true }
         },
         {
             path: '/wallbox',
@@ -148,7 +153,7 @@ const router = createRouter({
             path: '/imports',
             name: 'imports',
             component: ImportsView,
-            meta: { requiresAuth: true }
+            meta: { requiresAuth: true, plainBackground: true, workspaceFrame: true }
         },
         {
             path: '/live',
@@ -460,7 +465,7 @@ const router = createRouter({
             path: '/leaderboard',
             name: 'leaderboard',
             component: LeaderboardView,
-            meta: { requiresAuth: true, plainBackground: true }
+            meta: { requiresAuth: true, plainBackground: true, workspaceFrame: true }
         },
         {
             path: '/rankings',
@@ -492,19 +497,7 @@ const router = createRouter({
 // und der Uebergang laeuft als Routen-Transition. Beide nutzen dieselbe Richtung und
 // dieselben CSS-Klassen, damit sich jeder Tab-Klick gleich anfuehlt.
 // Story-Dashboard (Experiment): wer es eingeschaltet hat, landet statt auf /dashboard dort.
-router.beforeEach((to) => {
-    // Story-Opt-in ist die Weiche zwischen altem und neuem Design: Uebersicht statt Dashboard, /logs im neuen Kopf
-    const storyDesign = isStoryOptIn();
-    if (to.path === '/dashboard' && storyDesign) {
-        return '/story';
-    }
-    if (to.path === '/story' && !storyDesign) {
-        return '/dashboard';
-    }
-    if (to.path === '/logs' || to.path === '/cars' || to.path === '/charging-providers') {
-        to.meta.publicNav = storyDesign;
-    }
-});
+router.beforeEach((to) => applyDesignSwitch(to, isStoryOptIn()));
 
 router.beforeEach((to, from) => {
     to.meta.transition = slideDirection(from.path, to.path);

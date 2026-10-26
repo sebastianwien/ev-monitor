@@ -122,3 +122,38 @@ test.describe('Einstellungen', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('Neues Design: ein Kopf über App und Modellseiten', () => {
+  test.beforeEach(async ({ page }) => {
+    await dismissAnnouncements(page);
+    await login(page);
+    await page.addInitScript(() => localStorage.setItem('story_dashboard_opt_in', 'true'));
+  });
+
+  for (const path of ['/settings', '/imports', '/coins/history', '/leaderboard', '/modelle', '/modelle/Tesla/Model_3']) {
+    test(`${path}: genau eine Navbar mit Konto-Knopf und Ticker`, async ({ page }) => {
+      const errors: string[] = [];
+      page.on('pageerror', (err) => errors.push(err.message));
+
+      await page.goto(path);
+      await page.waitForLoadState('networkidle');
+
+      await expect(page.locator('.public-nav-row')).toHaveCount(1);
+      await expect(page.getByTestId('public-nav-account')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'Ticker pausieren' })).toBeVisible();
+      expect(errors).toEqual([]);
+    });
+  }
+
+  test('altes Design: /settings bleibt im App-Kopf, /modelle bekommt den neuen Kopf', async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem('story_dashboard_opt_in', 'false'));
+    await page.goto('/settings');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('.public-nav-row')).toHaveCount(0);
+
+    await page.goto('/modelle');
+    await page.waitForLoadState('networkidle');
+    await expect(page.locator('.public-nav-row')).toHaveCount(1);
+    await expect(page.getByTestId('public-nav-account')).toBeVisible();
+  });
+});

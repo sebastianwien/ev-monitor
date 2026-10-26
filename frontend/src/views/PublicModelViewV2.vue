@@ -89,7 +89,7 @@
               </div>
               <ProfileQuestions :sliders="profileSliders" id-prefix="story" :highlight-key="highlightKey" @answer="answer" />
             </ModelBox>
-            <div :class="answersOpen ? 'md:col-span-2' : 'md:sticky md:top-24'">
+            <div :class="answersOpen ? 'md:col-span-2' : 'md:sticky md:top-[calc(var(--content-top,4.5rem)+1.5rem)]'">
               <PersonalRangeCalculator
                 v-model:profile-open="profileOpen"
                 :brand="brand"

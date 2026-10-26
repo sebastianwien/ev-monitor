@@ -34,10 +34,10 @@
         </div>
       </header>
 
-      <!-- Phone: the names stay in view once the column heads scroll away, right under the public nav (70 px) -->
+      <!-- Phone: the names stay in view once the column heads scroll away, right under the public nav (70 px; members: the frame's head, --content-top) -->
       <div ref="stickysentinel" class="h-0 md:hidden"></div>
       <Transition name="slide-down">
-        <div v-if="floatingHeaderVisible" class="fixed inset-x-0 top-[calc(70px+env(safe-area-inset-top))] z-40 border-b border-gray-200 bg-white px-4 py-2 md:hidden dark:border-gray-800 dark:bg-gray-900">
+        <div v-if="floatingHeaderVisible" class="fixed inset-x-0 top-[var(--content-top,calc(70px+env(safe-area-inset-top)))] z-40 border-b border-gray-200 bg-white px-4 py-2 md:hidden dark:border-gray-800 dark:bg-gray-900">
           <div class="grid gap-3" :class="COLS[items.length]">
             <div v-for="item in items" :key="item.key" class="truncate text-center text-[13px] font-bold text-gray-900 dark:text-gray-100">{{ shortName(item) }}</div>
           </div>

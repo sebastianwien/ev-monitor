@@ -146,7 +146,7 @@ onMounted(async () => {
 </script>
 
 <template>
-<div class="grid gap-2 pb-6 max-md:-mt-[var(--ticker-lasche-h)] md:mx-auto md:max-w-2xl md:gap-4 md:p-6">
+<div class="grid gap-2 pb-6 max-md:-mt-[var(--ticker-lasche-h)] md:mx-auto md:max-w-2xl md:gap-4 md:px-6 md:pb-6 md:pt-[var(--page-top,1.5rem)]">
   <!-- Konto -->
   <!-- Handy: erste Box läuft unter die Ticker-Lasche, Inhalt rückt um die Lasche nach unten -->
   <ModelBox class="max-md:pt-[calc(1.5rem+var(--ticker-lasche-h))]">

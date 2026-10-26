@@ -2,7 +2,7 @@
   <!-- Guests everywhere it is placed; members only on routes marked publicNav (the model pages, the story
        dashboard), where the app chrome steps back and this nav carries the way home instead of register and login.
        Under the workspace frame only the frame's own nav (home) renders, the page's nav steps back. -->
-  <div v-if="!authStore.isAuthenticated() || member" ref="header" class="sticky top-0 z-50 [view-transition-name:public-nav]">
+  <div v-if="!authStore.isAuthenticated() || (member && (home || !framed))" ref="header" class="sticky top-0 z-50 [view-transition-name:public-nav]">
     <div class="public-nav-accent h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
     <nav class="relative pt-[env(safe-area-inset-top)] bg-green-50 dark:bg-green-950 border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
     <!-- home: dieselbe Achse wie Ticker und Inhalt des eingeloggten Bereichs (max-w-6xl) -->
@@ -102,7 +102,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue'
+import { computed, inject, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import {
@@ -113,6 +113,7 @@ import { useCoinStore } from '../../stores/coins'
 import BoltLogo from './BoltLogo.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import LocaleSwitcher from './LocaleSwitcher.vue'
+import { WORKSPACE_FRAME_HEAD } from '../../layouts/workspaceFrameHead'
 
 /** home: inside the members' area (story, logs) - home is in the chips and the bottom nav, the profile instead */
 defineProps<{ home?: boolean }>()
@@ -124,6 +125,8 @@ const coinStore = useCoinStore()
 const route = useRoute()
 /** signed in on a route that keeps the public nav (router meta publicNav): home and balance instead of register */
 const member = computed(() => authStore.isAuthenticated() && !!route.meta.publicNav)
+/** Das Gerüst WorkspaceFrame bringt seinen Kopf mit (home): die eigene Nav einer Seite darunter tritt zurück */
+const framed = inject(WORKSPACE_FRAME_HEAD, ref(false))
 const isEn = computed(() => locale.value === 'en')
 const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
 const loginPath = computed(() => isEn.value ? '/en/login' : '/login')

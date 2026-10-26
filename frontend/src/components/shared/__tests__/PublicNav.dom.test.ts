@@ -1,16 +1,18 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest'
-import { createApp, nextTick, type App } from 'vue'
+import { createApp, nextTick, ref, type App } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import { i18n } from '../../../i18n'
 import { useAuthStore } from '../../../stores/auth'
 import PublicNav from '../PublicNav.vue'
+import { WORKSPACE_FRAME_HEAD } from '../../../layouts/workspaceFrameHead'
 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
-async function mount(loggedIn: boolean, publicNav: boolean, props: Record<string, unknown> = {}, demo = false) {
+/** framed: das Gerüst WorkspaceFrame liegt darüber und bringt seinen eigenen Kopf mit */
+async function mount(loggedIn: boolean, publicNav: boolean, props: Record<string, unknown> = {}, demo = false, framed = false) {
   setActivePinia(createPinia())
   if (loggedIn) {
     const auth = useAuthStore()
@@ -30,11 +32,25 @@ async function mount(loggedIn: boolean, publicNav: boolean, props: Record<string
     template: '<PublicNav v-bind="props"><template #below><div data-testid="below-slot" /></template></PublicNav>',
   })
   app.use(i18n).use(router)
+  app.provide(WORKSPACE_FRAME_HEAD, ref(framed))
   app.mount(host)
   return host
 }
 
 describe('PublicNav', () => {
+  it('member under the workspace frame: the page\'s own nav steps back, the frame\'s nav (home) stays', async () => {
+    const page = await mount(true, true, {}, false, true)
+    expect(page.querySelector('nav')).toBeNull()
+    app?.unmount(); app = null; document.body.innerHTML = ''
+    const frame = await mount(true, true, { home: true }, false, true)
+    expect(frame.querySelector('[data-testid="public-nav-account"]')).not.toBeNull()
+  })
+
+  it('guest never sees the frame: the page keeps its nav even if a frame were provided', async () => {
+    const host = await mount(false, true, {}, false, true)
+    expect(host.textContent).toContain('Registrieren')
+  })
+
   it('guest: register and login, no dashboard', async () => {
     const host = await mount(false, true)
     expect(host.textContent).toContain('Registrieren')

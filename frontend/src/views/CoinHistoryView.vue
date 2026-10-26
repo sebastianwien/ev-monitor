@@ -119,7 +119,7 @@ const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 d
 </script>
 
 <template>
-  <div class="grid gap-2 pb-6 max-md:-mt-[var(--ticker-lasche-h)] md:mx-auto md:max-w-2xl md:gap-4 md:p-6">
+  <div class="grid gap-2 pb-6 max-md:-mt-[var(--ticker-lasche-h)] md:mx-auto md:max-w-2xl md:gap-4 md:px-6 md:pb-6 md:pt-[var(--page-top,1.5rem)]">
     <!-- Kopf: Kontostand und Weg zur Rangliste -->
     <ModelBox class="max-md:pt-[calc(1.5rem+var(--ticker-lasche-h))]">
       <header class="flex items-end justify-between gap-3">
