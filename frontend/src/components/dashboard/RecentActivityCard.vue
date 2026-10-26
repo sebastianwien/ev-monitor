@@ -5,7 +5,7 @@ import { BoltIcon, MapPinIcon, ExclamationTriangleIcon } from '@heroicons/vue/24
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { normalizeCharge, relativeTimeParts, tripTimestamp, tripSpeedKeyAndArgs } from '../../utils/recentActivity'
 import { tripConsumption } from '../../utils/tripCalculations'
-import { tripLine, isRoutedLine } from '../../utils/tripMap'
+import { tripLine, isRoutedLine, mapCredit as creditFor } from '../../utils/tripMap'
 import RecentActivityRow from './RecentActivityRow.vue'
 import TripClimateMarkers from '../TripClimateMarkers.vue'
 // Async: Leaflet stays out of the dashboard's initial chunk (same reasoning as the
@@ -159,7 +159,7 @@ const tripMeta = computed<string[]>(() => [...(tripRouteLabel.value ? [tripRoute
 const mapCredit = computed<string | null>(() => {
   if (!hasChargeLocation.value && !hasTripLocation.value) return null
   const routed = hasTripLocation.value && isRoutedLine(tripLine(props.trip?.tracePolyline, props.trip?.routePolyline, props.trip?.routeKind))
-  return routed ? '© OpenStreetMap · Route © openrouteservice by HeiGIT' : '© OpenStreetMap'
+  return creditFor(routed)
 })
 </script>
 

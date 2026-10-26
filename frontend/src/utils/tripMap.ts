@@ -123,3 +123,8 @@ export function hasTripMap(trip: TripMapSource | null | undefined): boolean {
 export function isRoutedLine(line: TripLine | null): boolean {
   return line?.source === 'sketch' || line?.source === 'matched'
 }
+
+/** Gesammelte Nennung unter Kartenvorschauen ohne eigene Attribution: OSM immer, der Router nur, wenn eine Linie von ihm stammt. */
+export function mapCredit(routed: boolean): string {
+  return routed ? '© OpenStreetMap · Route © openrouteservice by HeiGIT' : '© OpenStreetMap'
+}
