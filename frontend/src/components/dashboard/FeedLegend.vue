@@ -43,7 +43,7 @@ const { t } = useI18n()
           :class="open ? 'text-gray-900 dark:text-gray-100' : ''">
     <InformationCircleIcon class="h-5 w-5 sm:hidden" aria-hidden="true" />
     <span class="hidden sm:inline">{{ t('logs.legend.toggle') }}</span>
-    <ChevronDownIcon class="hidden h-3.5 w-3.5 transition-transform duration-300 ease-out sm:block" :class="open ? 'rotate-180' : ''" aria-hidden="true" />
+    <ChevronDownIcon class="hidden h-3.5 w-3.5 transition-transform duration-300 sm:block" :class="open ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
   </button>
 
   <!-- Panel: zwei Bloecke, Begriff + Beschreibung im Grid ausgerichtet. -->

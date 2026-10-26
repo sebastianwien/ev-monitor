@@ -203,7 +203,7 @@ function formatDate(iso: string) {
                 @click="showExcluded = !showExcluded" :aria-expanded="showExcluded"
                 class="w-full flex min-h-12 items-center justify-between px-5 text-[14px] font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5 transition">
                 <span>{{ t('implausible.excluded_count', excludedLogs.length) }}</span>
-                <ChevronDownIcon :class="['h-4 w-4 text-gray-400 transition-transform duration-300 ease-out', showExcluded ? 'rotate-180' : '']" aria-hidden="true" />
+                <ChevronDownIcon :class="['h-4 w-4 text-gray-400 transition-transform duration-300', showExcluded ? 'rotate-180 ease-out' : 'ease-in']" aria-hidden="true" />
               </button>
               <Collapse :open="showExcluded">
               <ul class="divide-y divide-gray-200 dark:divide-gray-700 bg-gray-50 dark:bg-white/5">

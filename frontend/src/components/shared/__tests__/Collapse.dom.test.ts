@@ -38,6 +38,17 @@ describe('Collapse', () => {
     expect(inner().className).not.toContain('overflow-hidden')
   })
 
+  it('klappt als Umkehrung zu: auf ease-out, zu ease-in', async () => {
+    const { open, outer } = mount(false)
+    open.value = true
+    await nextTick(); await raf(); await nextTick()
+    expect(outer().className).toContain('ease-out')
+    open.value = false
+    await nextTick()
+    expect(outer().className).toContain('ease-in')
+    expect(outer().className).not.toContain('ease-out')
+  })
+
   it('clippt wieder, sobald es zuklappt', async () => {
     const { open, inner } = mount(true)
     open.value = false

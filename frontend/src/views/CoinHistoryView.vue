@@ -141,7 +141,7 @@ const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 d
         <h2 class="text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ t('coins.ranking_title') }}</h2>
         <span class="flex items-center gap-1 text-[13px] font-semibold text-gray-500 dark:text-gray-400">
           {{ standingsOpen ? t('coins.collapse') : t('coins.expand') }}
-          <ChevronDownIcon class="h-4 w-4 transition-transform duration-300 ease-out motion-reduce:transition-none" :class="standingsOpen ? 'rotate-180' : ''" aria-hidden="true" />
+          <ChevronDownIcon class="h-4 w-4 transition-transform duration-300 motion-reduce:transition-none" :class="standingsOpen ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
         </span>
       </button>
       <Collapse :open="standingsOpen">
@@ -172,7 +172,7 @@ const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 d
     <ModelBox>
       <button type="button" class="-my-2 flex min-h-11 w-full items-center justify-between gap-3 text-left" :aria-expanded="legendOpen" @click="legendOpen = !legendOpen">
           <h2 class="text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ t('coins.legend_title') }}</h2>
-          <ChevronDownIcon class="h-4 w-4 text-gray-500 transition-transform duration-300 ease-out motion-reduce:transition-none" :class="legendOpen ? 'rotate-180' : ''" aria-hidden="true" />
+          <ChevronDownIcon class="h-4 w-4 text-gray-500 transition-transform duration-300 motion-reduce:transition-none" :class="legendOpen ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
       </button>
       <Collapse :open="legendOpen">
         <div class="grid gap-5 pt-4">

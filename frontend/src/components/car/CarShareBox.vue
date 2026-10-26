@@ -46,7 +46,7 @@
         class="flex w-full items-center gap-2 py-2 min-h-[44px] text-left text-sm font-medium text-gray-800 dark:text-gray-200">
         <CodeBracketIcon class="w-4 h-4 shrink-0 text-gray-500 dark:text-gray-400" />
         <span class="flex-1">{{ t('share_car.signature_title') }}</span>
-        <ChevronDownIcon :class="['w-4 h-4 shrink-0 text-gray-400 transition-transform duration-300 ease-out', signatureOpen ? 'rotate-180' : '']" aria-hidden="true" />
+        <ChevronDownIcon :class="['w-4 h-4 shrink-0 text-gray-400 transition-transform duration-300', signatureOpen ? 'rotate-180 ease-out' : 'ease-in']" aria-hidden="true" />
       </button>
       <Collapse :open="signatureOpen"><div class="pb-1">
         <img :src="bannerUrlFor(share, locale)" :alt="t('share_car.banner_alt', { model: title })"

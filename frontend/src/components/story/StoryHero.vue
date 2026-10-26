@@ -93,7 +93,7 @@ watch(() => props.monthLabel, () => { layersOpen.value = false })
           class="-my-2.5 inline-flex min-h-11 items-center gap-1 rounded-md text-[14px] font-bold text-gray-900 tabular-nums underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 md:text-[15px] dark:text-gray-50 dark:decoration-gray-600 dark:focus-visible:ring-gray-100"
           @click="toggleLayers">
           {{ layersTotal }}
-          <ChevronDownIcon class="h-4 w-4 shrink-0 transition-transform duration-300 ease-out" :class="layersOpen ? 'rotate-180' : ''" aria-hidden="true" />
+          <ChevronDownIcon class="h-4 w-4 shrink-0 transition-transform duration-300" :class="layersOpen ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
         </button>
       </div>
       <Collapse v-if="layers" :open="layersOpen">

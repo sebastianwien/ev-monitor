@@ -178,7 +178,7 @@ const place = computed(() => {
         <button v-if="isGroup" type="button" @click.stop="expanded = !expanded"
           class="grid h-8 w-8 place-items-center rounded-full text-gray-500 transition hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:text-gray-400 dark:hover:bg-white/10"
           :aria-expanded="expanded" :aria-label="t('logs.period.charge_toggle_topups')">
-          <ChevronDownIcon class="h-4 w-4 transition-transform duration-300 ease-out" :class="expanded ? 'rotate-180' : ''" aria-hidden="true" />
+          <ChevronDownIcon class="h-4 w-4 transition-transform duration-300" :class="expanded ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
         </button>
         <!-- Einzelladung: direkt editierbar. Gruppe: nur je Teilladung im Aufklapp. -->
         <button v-else type="button" @click.stop="emit('edit', entry)"

@@ -74,7 +74,7 @@ const dateInputClass = 'block w-full min-h-10 px-2.5 pr-7 py-1.5 text-sm border-
         <span class="text-gray-300 dark:text-gray-500">·</span>
         <span>{{ currentGroupLabel }}</span>
       </template>
-      <ChevronDownIcon class="h-3.5 w-3.5 text-gray-500 transition-transform duration-300 ease-out dark:text-gray-400" :class="{ 'rotate-180': open }" aria-hidden="true" />
+      <ChevronDownIcon class="h-3.5 w-3.5 text-gray-500 transition-transform duration-300 dark:text-gray-400" :class="open ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
     </button>
     <Transition name="dropdown">
       <div v-if="open"
