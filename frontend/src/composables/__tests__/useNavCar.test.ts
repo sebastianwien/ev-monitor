@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createApp } from 'vue'
-import { useNavCar, NAV_CAR_PAUSE_MS } from '../useNavCar'
+import { useNavCar, NAV_CAR_PAUSE_MS, NAV_CAR_MODELS } from '../useNavCar'
 
 vi.mock('../prefersReducedEffects', () => ({ prefersReducedEffects: () => reduced }))
 let reduced = false
@@ -20,8 +20,8 @@ describe('useNavCar', () => {
   beforeEach(() => { vi.useFakeTimers(); reduced = false; setHidden(false) })
   afterEach(() => vi.useRealTimers())
 
-  it('wartet zwischen 10 und 30 Sekunden', () => {
-    expect(NAV_CAR_PAUSE_MS).toEqual([10_000, 30_000])
+  it('wartet zwischen 30 und 60 Sekunden', () => {
+    expect(NAV_CAR_PAUSE_MS).toEqual([30_000, 60_000])
     const { car } = mount(() => 1)
     vi.advanceTimersByTime(MAX - 1)
     expect(car.driving.value).toBe(false)
@@ -46,6 +46,12 @@ describe('useNavCar', () => {
     car.arrived()
     vi.advanceTimersByTime(MIN)
     expect(car.direction.value).toBe('right')
+  })
+
+  it('wählt je Fahrt eins der Automodelle zufällig', () => {
+    const { car } = mount(() => 0.99)
+    vi.advanceTimersByTime(MAX)
+    expect(car.model.value).toBe(NAV_CAR_MODELS - 1)
   })
 
   it('fährt nicht, wenn der Nutzer weniger Bewegung wünscht', () => {
