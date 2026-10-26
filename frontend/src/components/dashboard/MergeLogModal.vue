@@ -179,7 +179,7 @@ const mergedPreview = computed(() => {
           </ul>
 
           <!-- Preview -->
-          <div v-if="mergedPreview" class="mx-5 my-3 rounded-xl border-2 border-gray-900 p-3 dark:border-gray-700">
+          <div v-if="mergedPreview" class="mx-5 my-3 rounded-xl border-2 border-edge p-3 dark:border-gray-700">
             <p class="mb-2 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('dashboard.merge_preview_label') }}</p>
             <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[13px] tabular-nums">
               <template v-if="mergedPreview.kwhCharged != null">

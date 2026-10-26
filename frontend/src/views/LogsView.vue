@@ -908,8 +908,8 @@ const NOTE_WARN = 'grid gap-1 rounded-xl bg-amber-50 p-3 text-[13px] leading-snu
 const NOTE_INFO = 'grid gap-1 rounded-xl bg-gray-50 p-3 text-[13px] leading-snug text-gray-700 dark:bg-white/5 dark:text-gray-300'
 
 /** Symbolkreise der Desktop-Zeilen, kleiner Bruder des Kreises in FeedEventRow. */
-const ROW_ICON_TRIP = 'grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-white dark:border-gray-200 dark:bg-gray-900'
-const ROW_ICON_CHARGE = 'grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950'
+const ROW_ICON_TRIP = 'grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-edge bg-white dark:border-gray-200 dark:bg-gray-900'
+const ROW_ICON_CHARGE = 'grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950'
 /** Leere Rasterzelle: leiser Bindestrich, damit die Spalten lesbar bleiben. */
 const EMPTY_CELL = 'text-gray-300 dark:text-gray-600'
 
@@ -1653,7 +1653,7 @@ function toggleAllFeed() {
                   <DataFeedbackPanel v-if="trip.dataSource !== 'USER_CREATED'" subject-type="TRIP" :subject-id="trip.id" />
                   <!-- Vorschau des Zusammenfuehrens mit der Fahrt davor -->
                   <template v-if="previousTripMap[trip.id]">
-                    <div v-if="mergePreviewForTripId === trip.id" class="grid gap-2 rounded-xl border-2 border-gray-900 p-3 dark:border-gray-700">
+                    <div v-if="mergePreviewForTripId === trip.id" class="grid gap-2 rounded-xl border-2 border-edge p-3 dark:border-gray-700">
                       <p class="text-[14px] font-semibold text-gray-900 dark:text-gray-100">{{ t('dashboard.trip_merge_title') }}</p>
                       <dl class="grid gap-1 text-[13px] tabular-nums text-gray-600 dark:text-gray-300">
                         <div class="flex justify-between gap-2">
@@ -1676,7 +1676,7 @@ function toggleAllFeed() {
                           {{ t('dashboard.trip_cancel') }}
                         </button>
                         <button type="button" @click="doMergeTrip(trip.id, previousTripMap[trip.id].id)" :disabled="tripMerging"
-                          class="btn-3d min-h-11 flex-1 rounded-xl border-2 border-edge bg-gray-900 px-3 text-[14px] font-semibold text-white disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900">
+                          class="btn-3d min-h-11 flex-1 rounded-xl border-2 border-gray-900 bg-gray-900 dark:border-edge px-3 text-[14px] font-semibold text-white disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900">
                           {{ t('dashboard.trip_merge_confirm') }}
                         </button>
                       </div>

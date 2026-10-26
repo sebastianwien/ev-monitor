@@ -23,7 +23,7 @@ const { isPanelOpen, toggleTag, sendNegative, draftTags, draftComment } = useDat
       class="w-full resize-none rounded-xl border-2 border-gray-300 bg-white px-3 py-2 text-[15px] text-gray-900 placeholder-gray-400 outline-none focus:border-gray-900 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100 dark:focus:border-gray-300" />
     <div class="flex justify-end">
       <button type="button" @click="sendNegative(props.subjectType, props.subjectId)"
-        class="btn-3d min-h-10 rounded-full border-2 border-edge bg-gray-900 px-4 text-[14px] font-semibold text-white dark:bg-gray-100 dark:text-gray-900">
+        class="btn-3d min-h-10 rounded-full border-2 border-gray-900 bg-gray-900 dark:border-edge px-4 text-[14px] font-semibold text-white dark:bg-gray-100 dark:text-gray-900">
         {{ t('dashboard.data_feedback_send') }}
       </button>
     </div>

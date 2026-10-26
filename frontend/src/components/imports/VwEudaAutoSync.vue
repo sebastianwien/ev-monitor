@@ -256,10 +256,10 @@ onMounted(load)
               role="radio"
               :aria-checked="brand === b.key"
               @click="brand = b.key"
-              class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center rounded-full border-2 border-edge px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+              class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center rounded-full border-2 px-4 text-sm font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
               :class="brand === b.key
-                ? 'active bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
-                : 'bg-white text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15'"
+                ? 'active border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
+                : 'border-edge bg-white text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15'"
             >{{ b.label }}</button>
           </div>
         </div>

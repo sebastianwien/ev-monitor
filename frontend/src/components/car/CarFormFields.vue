@@ -74,7 +74,7 @@ function pick(option: CapacityOption) {
 
 const inputClass = 'w-full rounded-xl border-gray-300 dark:border-gray-600 focus:border-green-600 focus:ring-green-600 p-2 border dark:bg-gray-700 dark:text-gray-100'
 const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
-const chipOn = 'btn-3d cta-shadow-sm active border-2 border-edge bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
+const chipOn = 'btn-3d cta-shadow-sm active border-2 border-gray-900 bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
 const chipOff = 'btn-3d cta-shadow-sm border-2 border-edge bg-white text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15'
 </script>
 

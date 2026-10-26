@@ -15,7 +15,7 @@ const { t } = useI18n()
 
 const ROUTES = ['CITY', 'COMBINED', 'HIGHWAY'] as const
 const label = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'
-const input = 'min-h-12 w-full min-w-0 rounded-xl border-2 border-gray-900 bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
+const input = 'min-h-12 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100'
 </script>
 
 <template>

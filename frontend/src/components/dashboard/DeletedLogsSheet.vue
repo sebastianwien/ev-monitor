@@ -66,7 +66,7 @@ defineExpose({ requestClose: () => sheet.value?.requestClose() })
           {{ failed.get(log.id) === 'purge' ? t('logs.trash.purge_failed') : t('logs.trash.failed') }}
         </p>
 
-        <div v-if="confirmingPurgeId === log.id" class="mt-2 rounded-xl border-2 border-gray-900 p-3 dark:border-gray-700">
+        <div v-if="confirmingPurgeId === log.id" class="mt-2 rounded-xl border-2 border-edge p-3 dark:border-gray-700">
           <p class="text-sm text-gray-800 dark:text-gray-200">{{ t('logs.trash.purge_confirm') }}</p>
           <div class="mt-2 flex gap-2">
             <button type="button" data-testid="deleted-log-purge-confirm" :disabled="busyId === log.id" @click="confirmPurge(log.id)"

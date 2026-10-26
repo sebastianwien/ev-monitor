@@ -59,12 +59,12 @@ const confirming = ref<string | null>(null)
             <LinkIcon class="h-4 w-4" aria-hidden="true" />{{ t('storyday.merge') }}
           </button>
         </div>
-        <div v-else class="my-1 mr-2 grid gap-2 rounded-xl border-2 border-gray-900 p-3 dark:border-gray-700" role="group" :aria-label="t('storyday.merge')">
+        <div v-else class="my-1 mr-2 grid gap-2 rounded-xl border-2 border-edge p-3 dark:border-gray-700" role="group" :aria-label="t('storyday.merge')">
           <p class="text-[13.5px] text-gray-800 dark:text-gray-200">{{ t('storyday.merge_confirm') }}</p>
           <div class="flex gap-2">
             <button type="button" class="min-h-11 flex-1 rounded-xl px-3 text-[14px] font-semibold text-gray-600 dark:text-gray-300" @click="confirming = null">{{ t('common.cancel') }}</button>
             <button type="button" data-testid="day-merge-confirm" :disabled="merging"
-              class="btn-3d min-h-11 flex-1 rounded-xl border-2 border-edge bg-gray-900 px-3 text-[14px] font-semibold text-white disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900"
+              class="btn-3d min-h-11 flex-1 rounded-xl border-2 border-gray-900 bg-gray-900 dark:border-edge px-3 text-[14px] font-semibold text-white disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900"
               @click="emit('merge', events[i - 1], e)">{{ t('storyday.merge_do') }}</button>
           </div>
         </div>
@@ -82,7 +82,7 @@ const confirming = ref<string | null>(null)
             {{ hm(e.from) }}<span class="block font-normal text-gray-400 dark:text-gray-500">{{ hm(e.to) }}</span>
           </span>
           <template v-if="e.kind === 'trip'">
-            <span class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-white dark:border-gray-200 dark:bg-gray-900">
+            <span class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-white dark:border-gray-200 dark:bg-gray-900">
               <MapIcon class="h-[18px] w-[18px]" aria-hidden="true" />
             </span>
             <span class="min-w-0 flex-1">
@@ -102,7 +102,7 @@ const confirming = ref<string | null>(null)
             </svg>
           </template>
           <template v-else>
-            <span class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
+            <span class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
               <BoltIcon class="h-[18px] w-[18px]" aria-hidden="true" />
             </span>
             <span class="min-w-0 flex-1">

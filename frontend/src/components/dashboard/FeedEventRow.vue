@@ -36,12 +36,12 @@ const emit = defineEmits<{ activate: [] }>()
       {{ from }}<span v-if="to" class="block font-normal text-gray-400 dark:text-gray-500">{{ to }}</span>
     </span>
     <span v-if="kind === 'trip'"
-      class="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-white sm:h-9 sm:w-9 dark:border-gray-200 dark:bg-gray-900"
+      class="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-edge bg-white sm:h-9 sm:w-9 dark:border-gray-200 dark:bg-gray-900"
       :class="iconTone">
       <MapIcon class="h-4 w-4 sm:h-[18px] sm:w-[18px]" aria-hidden="true" />
     </span>
     <span v-else
-      class="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-green-600 text-white sm:h-9 sm:w-9 dark:border-transparent dark:bg-green-500 dark:text-gray-950">
+      class="grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white sm:h-9 sm:w-9 dark:border-transparent dark:bg-green-500 dark:text-gray-950">
       <BoltIcon class="h-4 w-4 sm:h-[18px] sm:w-[18px]" aria-hidden="true" />
     </span>
     <span class="min-w-0 flex-1">

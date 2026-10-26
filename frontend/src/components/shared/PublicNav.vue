@@ -134,7 +134,7 @@ const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
 const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
 const pricingPath = computed(() => isEn.value ? '/pricing' : '/preise')
 // Ohne display: mobil Link, ab md Knopf der Konto-Zeile; ein inline-flex hier schlüge das hidden des jeweils anderen
-const profileButton = 'h-10 w-10 items-center justify-center rounded-full border-2 border-edge text-white transition-colors hover:bg-green-700'
+const profileButton = 'h-10 w-10 items-center justify-center rounded-full border-2 border-gray-900 text-white dark:border-edge transition-colors hover:bg-green-700'
 // Hover der rechten Gruppe (Watt, Feedback; ThemeToggle und LocaleSwitcher tragen denselben selbst)
 const navItem = 'h-10 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-black/10 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white'
 // Wie die Bereiche: Text statt Kachel, beim Hover wächst ein Unterstrich von links herein

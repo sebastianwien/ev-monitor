@@ -152,7 +152,7 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
           </div>
 
           <div class="mt-3 grid min-h-0 flex-1" :class="showMap ? 'grid-rows-[40%_1fr] lg:grid-cols-[1.4fr_1fr] lg:grid-rows-1' : 'grid-rows-1'">
-            <div v-if="showMap" class="relative min-h-0 border-y-2 border-gray-900 lg:border-b-0 lg:border-r-2 dark:border-gray-800">
+            <div v-if="showMap" class="relative min-h-0 border-y-2 border-edge lg:border-b-0 lg:border-r-2 dark:border-gray-800">
               <PlacesMap ref="mapRef" :pins="pins" :lines="lines" :active="selection.active" @tap="gh => onTap(gh, true)" />
               <div aria-hidden="true" data-testid="places-legend"
                 class="pointer-events-none absolute bottom-2 left-2 z-[500] flex flex-wrap gap-x-3 gap-y-1 rounded-lg bg-white/90 px-2.5 py-1.5 text-[11.5px] font-semibold text-gray-700 dark:bg-gray-900/90 dark:text-gray-300">
@@ -165,7 +165,7 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
               </div>
             </div>
             <div ref="listEl" class="min-h-0 overflow-y-auto pb-[env(safe-area-inset-bottom)]"
-              :class="showMap ? 'lg:border-t-2 lg:border-gray-900 dark:lg:border-gray-800' : 'border-t-2 border-gray-900 dark:border-gray-800'">
+              :class="showMap ? 'lg:border-t-2 lg:border-edge dark:lg:border-gray-800' : 'border-t-2 border-edge dark:border-gray-800'">
               <div v-if="loading || !loaded" class="grid gap-3 p-4 lg:px-6" aria-busy="true">
                 <div v-for="i in 3" :key="i" class="h-12 animate-pulse rounded-lg bg-gray-200 dark:bg-gray-800" />
               </div>

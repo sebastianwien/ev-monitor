@@ -137,7 +137,7 @@ const place = computed(() => {
   <div v-if="layout === 'row'" class="border-t border-gray-100 tabular-nums dark:border-gray-700/70">
     <div :class="[FEED_GRID_COLS, 'items-center px-4 py-2 text-[13px]']">
       <div class="flex items-center gap-1.5">
-        <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-gray-900 bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
+        <span class="grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
           <BoltIcon class="h-3.5 w-3.5" aria-hidden="true" />
         </span>
         <span v-if="isGroup" class="text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ count }}&times;</span>

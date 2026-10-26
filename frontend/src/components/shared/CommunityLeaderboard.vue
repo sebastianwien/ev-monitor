@@ -126,7 +126,7 @@ function rankDeltaLabel(delta: number | null, isNew: boolean): string {
 // Neutrale Plakette statt Medaille (App-CI: keine Farbcodes); die Rangfolge traegt Groesse und Flaeche.
 function plaqueClass(rank: number): string {
   if (rank === 1) return 'grid h-10 w-10 place-items-center rounded-full bg-gray-900 text-base font-extrabold text-white dark:bg-gray-100 dark:text-gray-900'
-  if (rank <= 3) return 'grid h-9 w-9 place-items-center rounded-full border-2 border-gray-900 text-sm font-bold text-gray-900 dark:border-gray-300 dark:text-gray-100'
+  if (rank <= 3) return 'grid h-9 w-9 place-items-center rounded-full border-2 border-edge text-sm font-bold text-gray-900 dark:border-gray-300 dark:text-gray-100'
   return 'w-9 text-center text-sm font-semibold text-gray-500 dark:text-gray-400'
 }
 
