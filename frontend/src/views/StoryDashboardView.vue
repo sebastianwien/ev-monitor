@@ -68,8 +68,7 @@ const effectiveCapacity = computed<number | null>(() => selectedCar.value?.effec
 // Live-Laden: Polling nur, wenn das Gate offen ist (gleiche Regel wie die LiveChargingCard).
 const liveGate = computed(() => authStore.canViewLiveCharging(selectedCar.value?.brand ?? null))
 const liveCarId = computed(() => liveGate.value ? selectedCarId.value : null)
-const { data: live } = useChargingLive(liveCarId)
-const liveActive = computed(() => !!live.value?.isActive && live.value?.chargingType === 'DC')
+const { data: live, isLive: liveActive } = useChargingLive(liveCarId)
 watch(liveActive, (v) => { if (v) analytics.track('story_live_shown') })
 
 // AutoSync-Satz im Stille-Moment: Marke hat einen Weg, dieses Auto ist nicht verbunden.

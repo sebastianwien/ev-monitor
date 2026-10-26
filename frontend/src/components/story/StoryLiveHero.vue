@@ -8,7 +8,7 @@ import type { LiveChargingData } from '../../composables/useChargingLive'
 import { prefersReducedEffects } from '../../composables/prefersReducedEffects'
 
 /**
- * Der Hero waehrend einer DC-Ladung: SoC-Ring, Leistung, Restzeit, Reichweite.
+ * Der Hero waehrend einer Ladung (AC oder DC): SoC-Ring, Leistung, Restzeit, Reichweite.
  * Ersetzt die Monatszahl, solange geladen wird. Keine Kosten: die Live-Daten tragen keine.
  */
 const props = defineProps<{ live: LiveChargingData }>()

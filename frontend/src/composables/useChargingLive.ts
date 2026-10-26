@@ -1,4 +1,4 @@
-import { ref, watchEffect, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watchEffect, onMounted, onUnmounted } from 'vue'
 import type { Ref } from 'vue'
 // IMPORTANT: 'api' aus '../api/axios' importieren (nicht raw axios!) - sonst
 // fehlt der Authorization-Header und das Backend antwortet mit 401, obwohl der
@@ -167,5 +167,9 @@ export function useChargingLive(carId: Ref<string | null>) {
     }
   })
 
-  return { data, powerHistory, error, refresh }
+  // Eine laufende Ladung, egal ob AC oder DC. Einzige Regel fuer "Live sichtbar"
+  // (Dashboard-Card und Story-Hero).
+  const isLive = computed(() => !!data.value?.isActive)
+
+  return { data, isLive, powerHistory, error, refresh }
 }

@@ -91,3 +91,28 @@ describe('useChargingLive power history', () => {
     expect(powerHistory.value.map(p => p.kw)).toEqual([45, 49, 36])
   })
 })
+
+describe('useChargingLive isLive', () => {
+  function mockLive(payload: object) {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (isHistoryUrl(url)) return Promise.resolve({ data: { points: [] } }) as never
+      return Promise.resolve({ data: payload }) as never
+    })
+  }
+
+  it('is true for an active AC session - every charge is shown, not only DC', async () => {
+    mockLive({ ...activeData, chargingType: 'AC', powerKw: 11 })
+    const { useChargingLive } = await import('../useChargingLive')
+    const { isLive } = useChargingLive(ref('car-1'))
+    await flush()
+    expect(isLive.value).toBe(true)
+  })
+
+  it('is false once the session has ended', async () => {
+    mockLive({ ...activeData, isActive: false, chargingType: null, sessionEndedAt: '2026-06-04T17:40:00Z' })
+    const { useChargingLive } = await import('../useChargingLive')
+    const { isLive } = useChargingLive(ref('car-1'))
+    await flush()
+    expect(isLive.value).toBe(false)
+  })
+})
