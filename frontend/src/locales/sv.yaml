@@ -2146,7 +2146,7 @@ imports:
   tab_manuell: Manuell
   tab_api: API
   sprit_title: Sprit-Monitor Import
-  sprit_desc: Importera hela din laddningshistorik från Sprit-Monitor – inklusive kostnader och förbrukning. Din API-token raderas omedelbart efter importen, ingenting sparas.
+  sprit_desc: Importera hela din laddningshistorik från Sprit-Monitor, inklusive kostnader och förbrukning. Din API-token raderas omedelbart efter importen, ingenting sparas.
   sprit_feat1: Fullständig laddningshistorik från Sprit-Monitor
   sprit_feat2: Kostnader, kWh, datum – allt ingår
   sprit_feat3: Val av fordon
@@ -2322,10 +2322,11 @@ tesla:
   setup_subtitle: Via Teslas officiella Fleet API
   sync_info_title: "Vad realtidstelemetri levererar:"
   sync_item1: Laddningssessioner i realtid så snart bilen ansluts
-  sync_item2: kWh, SoC och plats direkt från bilen, utan API-polling
-  sync_item3: Supercharger-kostnader fylls i automatiskt via daglig avstämning
-  sync_item4: Inga uppvakningar, skonsamt för batteri och Teslas moln
-  sync_item5: Vägmätarställning för varje session, rena data för framtida statistik
+  sync_item2: Varje resa registreras automatiskt, med sträcka, förbrukning och rutt
+  sync_item3: kWh, SoC och plats direkt från bilen, utan API-polling
+  sync_item4: Supercharger-kostnader fylls i automatiskt via daglig avstämning
+  sync_item5: Inga uppvakningar, skonsamt för batteri och Teslas moln
+  sync_item6: Vägmätarställning för varje session, rena data för framtida statistik
   sync_note: Förutsättning - parkoppla den virtuella nyckeln i Tesla-appen, sedan körs allt automatiskt.
   connect_desc: Anslut ditt Tesla-konto via den officiella OAuth2-processen. I nästa steg parkopplar du den virtuella nyckeln i Tesla-appen, sedan startar realtidstelemetri automatiskt.
   select_car_label: Vilken modell är din Tesla?
