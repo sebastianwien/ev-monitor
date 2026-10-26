@@ -6,7 +6,7 @@ import { useNavCar } from '../../composables/useNavCar'
  * Ein Comic-Auto, das ab und zu über die Unterkante der Navbar fährt: die Kante ist die Straße. Reine Deko,
  * ohne Klickfläche und für Screenreader unsichtbar. Takt und Abschalten bei weniger Bewegung: useNavCar.
  */
-const { driving, arrived } = useNavCar()
+const { driving, direction, arrived } = useNavCar()
 const road = ref<HTMLElement | null>(null)
 const car = ref<SVGSVGElement | null>(null)
 
@@ -14,14 +14,17 @@ const car = ref<SVGSVGElement | null>(null)
 const PX_PER_S = 240
 const MIN_MS = 3500
 
+// Start und Ziel liegen je eine Autobreite außerhalb der Straße, das Auto fährt also ganz herein und ganz hinaus.
+// Nach links fährt es gespiegelt, die Front zeigt immer in Fahrtrichtung.
 watch(car, el => {
   if (!el || !road.value) return
   if (typeof el.animate !== 'function') { arrived(); return }
-  const from = -el.getBoundingClientRect().width
-  const to = road.value.clientWidth
+  const outLeft = -el.getBoundingClientRect().width
+  const outRight = road.value.clientWidth
+  const [from, to, flip] = direction.value === 'right' ? [outLeft, outRight, ''] : [outRight, outLeft, ' scaleX(-1)']
   const ride = el.animate(
-    [{ transform: `translateX(${from}px)` }, { transform: `translateX(${to}px)` }],
-    { duration: Math.max(MIN_MS, ((to - from) / PX_PER_S) * 1000), easing: 'linear' },
+    [{ transform: `translateX(${from}px)${flip}` }, { transform: `translateX(${to}px)${flip}` }],
+    { duration: Math.max(MIN_MS, (Math.abs(to - from) / PX_PER_S) * 1000), easing: 'linear', fill: 'backwards' },
   )
   ride.onfinish = arrived
   ride.oncancel = arrived
@@ -31,7 +34,7 @@ watch(car, el => {
 <template>
   <div ref="road" class="pointer-events-none absolute inset-x-0 bottom-0 h-7 overflow-hidden" aria-hidden="true">
     <svg v-if="driving" ref="car" data-testid="nav-car" viewBox="-16 0 80 29"
-         class="absolute bottom-0 left-0 h-[26px] w-auto -translate-x-full text-gray-900 dark:text-gray-100"
+         class="absolute bottom-0 left-0 h-[26px] w-auto text-gray-900 dark:text-gray-100"
          fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <path class="nav-car-lines" d="M-13 9h6M-15 14.5h9M-12 20h5" />
       <g class="nav-car-body">

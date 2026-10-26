@@ -1,33 +1,36 @@
 import { onUnmounted, ref } from 'vue'
 import { prefersReducedEffects } from './prefersReducedEffects'
 
-/** Pause bis zur ersten Fahrt nach dem Laden, danach zwischen zwei Fahrten [min, max] in ms. */
-export const NAV_CAR_FIRST_MS: [number, number] = [5_000, 5_000]
-export const NAV_CAR_GAP_MS: [number, number] = [120_000, 300_000]
+/** Pause vor jeder Fahrt [min, max] in ms, auch vor der ersten nach dem Laden. */
+export const NAV_CAR_PAUSE_MS: [number, number] = [10_000, 30_000]
+
+export type NavCarDirection = 'right' | 'left'
 
 /**
- * Takt für das Auto, das ab und zu über die Navbar fährt (NavCar.vue): driving wird nach einer zufälligen Pause
- * true, arrived() beendet die Fahrt und startet die nächste Pause. Ein Hintergrund-Tab lässt die Fahrt ausfallen,
- * bei weniger Bewegung fährt es nie.
+ * Takt für das Auto, das über die Navbar pendelt (NavCar.vue): driving wird nach einer zufälligen Pause true,
+ * arrived() beendet die Fahrt, dreht die Richtung um und startet die nächste Pause. Die erste Fahrt geht nach rechts.
+ * Ein Hintergrund-Tab lässt die Fahrt ausfallen, bei weniger Bewegung fährt es nie.
  */
 export function useNavCar(random: () => number = Math.random) {
   const driving = ref(false)
+  const direction = ref<NavCarDirection>('right')
   let timer: ReturnType<typeof setTimeout> | undefined
-  const pause = ([min, max]: [number, number]) => min + random() * (max - min)
+  const [min, max] = NAV_CAR_PAUSE_MS
 
-  const schedule = (range: [number, number]) => {
+  const schedule = () => {
     clearTimeout(timer)
     timer = setTimeout(() => {
-      if (document.hidden) schedule(NAV_CAR_GAP_MS)
+      if (document.hidden) schedule()
       else driving.value = true
-    }, pause(range))
+    }, min + random() * (max - min))
   }
   const arrived = () => {
     driving.value = false
-    schedule(NAV_CAR_GAP_MS)
+    direction.value = direction.value === 'right' ? 'left' : 'right'
+    schedule()
   }
 
-  if (!prefersReducedEffects()) schedule(NAV_CAR_FIRST_MS)
+  if (!prefersReducedEffects()) schedule()
   onUnmounted(() => clearTimeout(timer))
-  return { driving, arrived }
+  return { driving, direction, arrived }
 }
