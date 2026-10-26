@@ -288,10 +288,7 @@ onMounted(async () => {
 
       <!-- Pro Subscription -->
       <div class="mb-8">
-        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center gap-2">
-          {{ t('upgrade.pro_section_title') }}
-          <span class="text-xs font-bold bg-indigo-600 text-white px-2 py-0.5 rounded-full">PRO</span>
-        </h2>
+        <h2 class="text-xl font-bold text-gray-800 dark:text-gray-200 mb-4">{{ t('upgrade.subscription_title') }}</h2>
         <div v-if="authStore.isPremium || authStore.isSupporter" class="space-y-3">
           <div class="flex items-center justify-between p-4 bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-sm">
             <div class="flex items-center gap-3">
@@ -356,10 +353,14 @@ onMounted(async () => {
           </div>
           <p v-if="tierActionError" class="text-xs text-red-600 dark:text-red-400 text-center">{{ tierActionError }}</p>
         </div>
-        <div v-else-if="purchasesAvailable() && !onlyUnsupportedBrands" class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-sm">
-          <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.pro_upgrade_hint', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
-          <router-link to="/upgrade" class="shrink-0 ml-4 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors whitespace-nowrap">
-            {{ t('upgrade.pro_upgrade_btn') }}
+        <div v-else-if="purchasesAvailable() && !onlyUnsupportedBrands" class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between p-4 bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-600 rounded-sm">
+          <div class="min-w-0 sm:flex-1">
+            <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ t('settings.tier_autosync') }}</p>
+            <p class="text-sm text-gray-600 dark:text-gray-400">{{ t('upgrade.autosync_offer_benefit') }}</p>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('upgrade.autosync_offer_price', { priceMonthly: t('upgrade.price_monthly') }) }}</p>
+          </div>
+          <router-link to="/upgrade" class="inline-flex min-h-11 items-center self-start sm:self-auto shrink-0 sm:ml-4 text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-800 dark:hover:text-indigo-200 transition-colors whitespace-nowrap">
+            {{ t('upgrade.autosync_offer_cta') }}
           </router-link>
         </div>
       </div>
