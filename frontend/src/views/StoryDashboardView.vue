@@ -32,8 +32,7 @@ import DataQualityLine from '../components/story/DataQualityLine.vue'
 import StoryMonthSwitch from '../components/story/StoryMonthSwitch.vue'
 import CarSwitch from '../components/car/CarSwitch.vue'
 import api from '../api/axios'
-import { periodWindow, teaserParts, type PlacePeriod } from '../composables/storyPlaces'
-import { useChargingPlaces } from '../composables/useChargingPlaces'
+import { teaserParts, type PlacePeriod } from '../composables/storyPlaces'
 import type { EvLogResponse } from '../components/dashboard/EditLogModal.vue'
 import { dayKeyOf } from '../composables/storyDay'
 import { useLogsRefreshStore } from '../stores/logsRefresh'
@@ -54,7 +53,7 @@ const { set: setOptIn, alwaysMonth } = useStoryOptIn()
 
 // Das Template hat genau ein Wurzelelement, ohne Kommentar davor: die Routen-Transition in App.vue
 // (mode out-in) kann ein Fragment nicht ausblenden, der Leave endet nie und die router-view bleibt leer.
-// Linker Tab im CarContextLayout: Kopf und Chips bringt dessen WorkspaceFrame, den Car-Context teilt
+// Linker Tab im CarContextLayout: Kopf und Chips bringt WorkspaceFrame aus App.vue, den Car-Context teilt
 // die Uebersicht mit /logs. Mobil liegt sie auch auf /logs gemountet im Pager daneben.
 // Boxen mobil randlos, ab md mit Kante auf dem Wallpaper.
 const ctx = useCarContext()
@@ -88,7 +87,7 @@ const storyCtx = (): StoryCarContext => ({
   alwaysMonth: alwaysMonth.value,
 })
 const story = useDashboardStory(selectedCarId, storyCtx)
-const { month, months, offset, tiles, feed, days, monthStats, hasCharges, loading, error, layers, quality } = story
+const { month, months, offset, tiles, feed, days, monthStats, hasCharges, loading, error, layers, quality, switching } = story
 
 
 const { isVehicleCharging } = useVehicleCharging(cars, smartcarStatus)
@@ -163,18 +162,36 @@ const petrolEur = computed(() => petrolCostEur(monthStats.value?.totalDistanceKm
 // Unter lg steht der Feed zwischen "Zuletzt" und den Kacheln, ab lg rechts neben dem Hero. Einmal gerendert, nicht zweimal.
 const narrow = useIsMobile('(max-width: 1023px)')
 const sheetIds = computed(() => tiles.value.map(x => x.id))
-const showFeed = computed(() => !loading.value && !error.value && (hasCharges.value || liveActive.value))
+// Steht, sobald ein Monat da ist, und bleibt beim Monatswechsel stehen (der neue kommt mit seinen Daten)
+const showFeed = computed(() => !!monthStats.value && !error.value && (hasCharges.value || liveActive.value))
 
 
-// Monatswechsel: Chips oder horizontaler Wisch auf dem Hero. View Transition, wo verfuegbar.
+// Monatswechsel: Segment-Schalter oder horizontaler Wisch auf dem Hero.
 function selectMonth(o: number) {
   if (o === offset.value) return
   haptic()
   analytics.track('story_month_changed', { offset: o })
-  const apply = () => story.setOffset(o)
-  const d = document as Document & { startViewTransition?: (cb: () => void) => void }
-  d.startViewTransition ? d.startViewTransition(apply) : apply()
+  monthDirection = Math.sign(o - offset.value)
+  story.setOffset(o)
 }
+// Bewegung nur im Inhalt der Box: dieselbe wie beim Seitenwechsel (14 px, Einblenden), ein neuerer Monat von rechts,
+// ein älterer von links. Keine View Transition, die griffe das ganze Dokument samt Seitenwechsel-Regeln aus App.vue
+// und die Seite spränge. Animiert wird, sobald der neue Monat steht: aus dem Cache sofort, sonst nach dem Laden.
+// Noch nicht vorgeladen (langsames Netz): der bisherige Monat bleibt stehen und dimmt erst nach 150 ms, ein schneller
+// Wechsel flackert so nicht
+const monthWaiting = 'opacity-50 transition-opacity duration-200 delay-150'
+const monthMain = ref<HTMLElement | null>(null)
+const monthSide = ref<HTMLElement | null>(null)
+let monthDirection = 0
+watch(monthStats, () => {
+  const dir = monthDirection
+  monthDirection = 0
+  if (!dir || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  for (const el of [monthMain.value, monthSide.value]) {
+    el?.animate([{ opacity: 0, transform: `translateX(${dir * 14}px)` }, { opacity: 1, transform: 'none' }],
+      { duration: 220, easing: 'cubic-bezier(0.22, 0.68, 0.24, 1)' })
+  }
+}, { flush: 'post' })
 let swipeX: number | null = null
 function onPointerDown(e: PointerEvent) { swipeX = e.clientX }
 function onPointerUp(e: PointerEvent) {
@@ -183,7 +200,7 @@ function onPointerUp(e: PointerEvent) {
   swipeX = null
   if (Math.abs(dx) < 60) return
   const next = dx < 0 ? offset.value + 1 : offset.value - 1
-  if (next <= 0 && next >= -2) selectMonth(next)
+  if (next <= 0 && next >= story.minOffset.value) selectMonth(next)
 }
 
 const openTile = ref<TileId | null>(null)
@@ -203,24 +220,12 @@ function closeOperator(changed: boolean) {
   operatorLog.value = null
   if (!changed) return
   placesSheet.value?.reload()
-  loadTeaser(true)
   story.reload()
 }
 
-// Teaser der Ladekarte unter dem Feed: Orte des Story-Monats. Erst nach den Story-Daten laden,
-// damit er nicht mit Hero und Kacheln um den ersten Paint konkurriert.
-const teaserPlaces = useChargingPlaces(() => selectedCarId.value)
-const teaserRows = teaserPlaces.rows
+// Teaser der Ladekarte unter dem Feed: Orte des Story-Monats, kommen mit dessen Daten und wechseln mit ihm
+const teaserRows = story.placeRows
 const placesTeaser = computed(() => teaserParts(teaserRows.value))
-let teaserKey = ''
-function loadTeaser(force = false) {
-  if (!selectedCarId.value || loading.value) return
-  const key = `${selectedCarId.value}|${month.value.year}-${month.value.month}`
-  if (key === teaserKey && !force) return
-  teaserKey = key
-  teaserPlaces.load(periodWindow('month', month.value, new Date()))
-}
-watch([selectedCarId, month, loading], () => loadTeaser(), { immediate: true })
 /** Der Teaser spricht vom Story-Monat, also öffnet die Karte dort. Ohne Orte im Monat die zwölf Monate. */
 function openPlaces() {
   placesPeriod.value = placesTeaser.value ? 'month' : '12m'
@@ -295,14 +300,15 @@ onUnmounted(() => unregisterReload?.())
 <template>
   <div data-testid="story-view">
     <main class="mx-auto grid max-w-6xl grid-cols-1 gap-4 pb-6 md:px-6 md:pb-12">
-      <!-- Eine Box: ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts der Feed. -->
+      <!-- Eine Box: oben Auto und Monat, darunter ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts der Feed. -->
       <section class="grid grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box">
-        <div class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7">
-          <header class="flex items-center justify-between gap-2">
-            <CarSwitch v-if="selectedCar" v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
-            <p v-else class="truncate text-[15px] font-bold text-gray-900 dark:text-gray-50">{{ t('story.title') }}</p>
-            <StoryMonthSwitch :months="months" :offset="offset" :label-of="monthLabelShort" @select="selectMonth" />
-          </header>
+        <!-- Auto und Monat über beiden Spalten: der Monat steuert auch den Feed rechts -->
+        <header class="flex items-center justify-between gap-2 lg:col-span-12">
+          <CarSwitch v-if="selectedCar" v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
+          <p v-else class="truncate text-[15px] font-bold text-gray-900 dark:text-gray-50">{{ t('story.title') }}</p>
+          <StoryMonthSwitch :months="months" :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" :data-months="story.dataMonths.value" @select="selectMonth" />
+        </header>
+        <div ref="monthMain" class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7" :class="switching ? monthWaiting : ''">
 
           <p v-if="charging && !liveActive" class="flex items-center gap-2 text-[13px] text-story-accent dark:text-story-accent-dark" data-testid="story-live">
             <span class="h-1.5 w-1.5 rounded-full bg-current motion-safe:animate-pulse" />{{ t('story.live_charging') }}
@@ -367,15 +373,15 @@ onUnmounted(() => unregisterReload?.())
             <StoryFeed
               v-if="narrow && showFeed"
               :feed="feed" :upsell-to="upsellTo" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
-              :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)"
+              :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0"
               @open="openSheet" @map="openPlaces" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
           </template>
         </div>
-        <div v-if="!narrow && showFeed" class="min-w-0 lg:col-span-5 lg:pt-9">
+        <div v-if="!narrow && showFeed" ref="monthSide" class="min-w-0 lg:col-span-5" :class="switching ? monthWaiting : ''">
           <StoryFeed
             :feed="feed" :upsell-to="upsellTo" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
-            :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" map-preview
+            :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0" map-preview
             @open="openSheet" @map="openPlaces" />
         </div>
       </section>

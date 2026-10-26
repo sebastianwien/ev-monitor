@@ -1,7 +1,7 @@
 import { ref, computed } from 'vue'
 import api from '../api/axios'
 import { chargingBenchmarkService, type ChargingBenchmark } from '../api/chargingBenchmarkService'
-import { placeClass, benchmarkKey, benchmarkPairs, sortPlaces, type ChargingPlace, type DayWindow, type PlaceRow } from './storyPlaces'
+import { benchmarkPairs, toPlaceRows, type ChargingPlace, type DayWindow, type PlaceRow } from './storyPlaces'
 
 /**
  * Ladeorte eines Autos in einem Zeitraum samt Preisvergleich je Betreiber und Ladeart.
@@ -13,11 +13,7 @@ export function useChargingPlaces(carId: () => string | null) {
   const loading = ref(false)
   const error = ref(false)
 
-  const rows = computed<PlaceRow[]>(() => sortPlaces(places.value).map(p => {
-    const key = benchmarkKey(p)
-    const benchmark = key ? benchmarks.value[key] ?? null : null
-    return { place: p, cls: placeClass(p, benchmark), benchmark }
-  }))
+  const rows = computed<PlaceRow[]>(() => toPlaceRows(places.value, benchmarks.value))
 
   let token = 0
   /** Orte, danach die fehlenden Vergleiche. Eine spätere Anfrage gewinnt gegen eine frühere. */

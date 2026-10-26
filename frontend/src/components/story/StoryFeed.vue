@@ -5,7 +5,7 @@ import PlacesTeaser from './places/PlacesTeaser.vue'
 import type { StoryFeedItem as Item, TileId } from '../../composables/storyModel'
 import type { PlaceRow, PlacesTeaser as Teaser } from '../../composables/storyPlaces'
 
-/** "Diesen Monat": die Feed-Zeilen und darunter der Teaser zur Karte. Steht auf dem Handy unter "Zuletzt", ab lg rechts neben dem Hero. */
+/** "Diesen Monat" bzw. "Im September": die Feed-Zeilen und darunter der Teaser zur Karte. Steht auf dem Handy unter "Zuletzt", ab lg rechts neben dem Hero. */
 withDefaults(defineProps<{
   feed: Item[]
   upsellTo: string
@@ -18,16 +18,18 @@ withDefaults(defineProps<{
   placesTeaser?: Teaser | null
   placesRows?: PlaceRow[]
   monthName?: string
+  /** Laufender Monat: "Diesen Monat", sonst der Name des gewählten Monats. */
+  runningMonth?: boolean
   /** Kartenbild im Teaser, nur in der rechten Spalte (ab lg). */
   mapPreview?: boolean
-}>(), { placesTeaser: null, placesRows: () => [], monthName: '', mapPreview: false })
+}>(), { placesTeaser: null, placesRows: () => [], monthName: '', runningMonth: true, mapPreview: false })
 const emit = defineEmits<{ open: [id: TileId]; map: [] }>()
 const { t } = useI18n()
 </script>
 
 <template>
   <section class="grid content-start" aria-labelledby="story-feed-title" data-testid="story-feed">
-    <h2 id="story-feed-title" class="pb-1 text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ t('story.feed_title') }}</h2>
+    <h2 id="story-feed-title" class="pb-1 text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ runningMonth ? t('story.feed_title') : t('story.feed_title_past', { month: monthName }) }}</h2>
     <StoryFeedItem
       v-for="item in feed"
       :key="item.moment?.key ?? item.id"

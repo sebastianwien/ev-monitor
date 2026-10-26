@@ -10,7 +10,7 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
 const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 
-function mount(on: Record<string, (...a: unknown[]) => void>) {
+function mount(on: Record<string, unknown>) {
   const host = document.createElement('div')
   document.body.appendChild(host)
   app = createApp(StoryFeed, {
@@ -27,11 +27,16 @@ describe('StoryFeed', () => {
   it('Überschrift "Diesen Monat", Zeile öffnet die Kachel, Karte meldet sich', () => {
     const opened: string[] = []
     let map = 0
-    const host = mount({ onOpen: (id) => opened.push(id as string), onMap: () => { map++ } })
+    const host = mount({ onOpen: (id: unknown) => opened.push(id as string), onMap: () => { map++ } })
     expect(host.querySelector('h2')!.textContent).toBe('Diesen Monat')
     ;(host.querySelector('[data-testid="story-feed-cost_trend"]') as HTMLButtonElement).click()
     ;(host.querySelector('[data-testid="story-map-open"]') as HTMLButtonElement).click()
     expect(opened).toEqual(['cost'])
     expect(map).toBe(1)
+  })
+
+  it('nennt einen vergangenen Monat beim Namen statt "Diesen Monat"', () => {
+    const host = mount({ runningMonth: false, monthName: 'September' })
+    expect(host.querySelector('h2')!.textContent).toBe('Im September')
   })
 })

@@ -20,6 +20,8 @@ import {
   type Moment, type MomentLog, type MomentTrip, type MomentPoint,
 } from './storyMoments'
 import { useMomentSeen } from './useMomentSeen'
+import { benchmarkPairs, toPlaceRows, type ChargingPlace, type PlaceRow } from './storyPlaces'
+import { chargeMonths, earliestOffset } from './storyMonthGrid'
 
 /**
  * Laedt die Monatsdaten fuer das Story-Dashboard und leitet Kacheln und Feed ab.
@@ -27,8 +29,9 @@ import { useMomentSeen } from './useMomentSeen'
  * Eigene Abfragen statt des Dashboard-Zeitraums: das Story-Dashboard denkt in Monaten,
  * das alte Dashboard in frei waehlbaren Zeitraeumen. Beide teilen sich keinen localStorage.
  * Je Monat: drei Statistiken, Fahrten, Leaderboard. Je Auto einmal: Ersparnis, Peer-Modelle (alle Varianten),
- * preislose Ladungen, SoH-Verlauf. Alles je Monat wartet gemeinsam, damit der Feed nicht
- * nach dem ersten Paint umsortiert.
+ * preislose Ladungen, SoH-Verlauf, letzte Ladungen und Fahrten. Alles je Monat wartet gemeinsam, damit der Feed
+ * nicht nach dem ersten Paint umsortiert, und ohne Cache auch auf die Daten je Auto, sonst springt der Hero vom
+ * Monat zum Moment um und die Zuletzt-Karten rutschen nach.
  */
 export interface StoryMonth {
   year: number
@@ -61,7 +64,7 @@ export const LEADERBOARD_CATEGORIES = [
   'MONTHLY_NIGHT_OWL', 'MONTHLY_ICE_CHARGER', 'MONTHLY_HEAT_CHARGER', 'MONTHLY_POWER_CHARGER',
 ] as const
 
-function monthAt(offset: number, now = new Date()): StoryMonth {
+export function monthAt(offset: number, now = new Date()): StoryMonth {
   const d = new Date(now.getFullYear(), now.getMonth() + offset, 1)
   return { year: d.getFullYear(), month: d.getMonth() + 1, offset }
 }
@@ -128,6 +131,9 @@ interface MonthBundle {
   ranks: RankResponse[]
   /** Ladungen ab Vormonat, nur mit Freischaltung: Preis der Standverluste. */
   charges: StandbyPricing['charges']
+  /** Ladeorte des Monats samt Vergleich je Betreiber und Ladeart: der Karten-Teaser wechselt mit dem Monat. */
+  places: ChargingPlace[]
+  benchmarks: Record<string, ChargingBenchmark | null>
 }
 
 /**
@@ -135,6 +141,60 @@ interface MonthBundle {
  * im Hintergrund wird er trotzdem neu geladen (stale while revalidate).
  */
 const monthCache = new Map<string, MonthBundle>()
+/** Laufende Abrufe je Auto und Monat: Vorladen und Wechsel teilen sich denselben. */
+const monthInflight = new Map<string, Promise<MonthBundle | null>>()
+/** Vergleiche je Betreiber und Ladeart, über Monate geteilt: dieselben Betreiber kommen in jedem Monat vor. */
+const benchmarkCache = new Map<string, Promise<ChargingBenchmark | null>>()
+
+function monthKey(carId: string, m: StoryMonth): string { return `${carId}:${m.year}-${m.month}` }
+
+function fetchBenchmark(cpo: string, type: 'AC' | 'DC'): Promise<ChargingBenchmark | null> {
+  const key = `${cpo}|${type}`
+  let found = benchmarkCache.get(key)
+  if (!found) {
+    found = chargingBenchmarkService.get(cpo, type).catch(() => null)
+    benchmarkCache.set(key, found)
+  }
+  return found
+}
+
+async function fetchMonthPlaces(carId: string, m: StoryMonth): Promise<Pick<MonthBundle, 'places' | 'benchmarks'>> {
+  const w = monthWindow(m.year, m.month)
+  try {
+    const res = await api.get<ChargingPlace[]>('/logs/places', { params: { carId, from: w.start, to: w.end } })
+    const places = Array.isArray(res.data) ? res.data : []
+    const pairs = benchmarkPairs(places)
+    const found = await Promise.all(pairs.map(p => fetchBenchmark(p.cpo, p.type)))
+    return { places, benchmarks: Object.fromEntries(pairs.map((p, i) => [`${p.cpo}|${p.type}`, found[i]])) }
+  } catch {
+    return { places: [], benchmarks: {} }
+  }
+}
+
+/** Alles eines Monats in einem Schritt. null, wenn die Monatsstatistik fehlt; der Rest fällt einzeln auf leer zurück. */
+function fetchMonthBundle(carId: string, m: StoryMonth, withCharges: boolean): Promise<MonthBundle | null> {
+  const key = monthKey(carId, m)
+  const running = monthInflight.get(key)
+  if (running) return running
+  const job = (async () => {
+    const cur = monthWindow(m.year, m.month)
+    const prev = monthWindow(m.year, m.month, -1)
+    const first = monthWindow(m.year, m.month, -5)
+    const monthsBack = -m.offset
+    const [a, b, c, t, r, ch, pl] = await Promise.all([
+      fetchStats(carId, cur.start, cur.end, 'DAY'),
+      fetchStats(carId, prev.start, prev.end, 'MONTH'),
+      fetchStats(carId, first.start, cur.end, 'MONTH'),
+      fetchTrips(carId, cur.start, cur.end),
+      monthsBack <= 1 ? fetchRanks(monthsBack) : Promise.resolve([] as RankResponse[]),
+      withCharges ? fetchCharges(carId, prev.start, cur.end) : Promise.resolve([]),
+      fetchMonthPlaces(carId, m),
+    ])
+    return a == null ? null : { monthStats: a, previousStats: b, series: c, trips: t, ranks: r, charges: ch, ...pl }
+  })().finally(() => monthInflight.delete(key))
+  monthInflight.set(key, job)
+  return job
+}
 
 /** Benzinpreis gilt fuer die ganze App, nicht je Auto: ein Abruf je Sitzung reicht. */
 let fuelPricePromise: Promise<FuelPrices | null> | null = null
@@ -149,14 +209,90 @@ export interface PetrolPrice {
   live: boolean
 }
 
+/** Was je Auto einmal geladen wird, unabhaengig vom Monat: Basis von Moment-Hero, Zuletzt-Karten und Reichweite. */
+interface CarBundle {
+  savingsEur: number | null
+  amortisationYearsRemaining: number | null
+  peerModels: PeerModelComparisonResponse | null
+  pricelessLogs: MomentLog[]
+  sohHistory: BatterySohEntry[]
+  petrol: PetrolPrice
+  recentStats: StatisticsData | null
+  recentLogs: Array<LatestLogSource & MomentLog>
+  benchmark: ChargingBenchmark | null
+  recentTrips: MomentTrip[]
+  lifetimeSeries: MomentPoint[]
+  latestTrip: LatestTripSource | null
+}
+
+/** Wie der Monats-Cache, nur je Auto: Hero und Zuletzt-Karten stehen beim naechsten Oeffnen sofort. */
+const carCache = new Map<string, CarBundle>()
+
+/**
+ * Die letzten Ladungen und, wenn die neueste oeffentliche einen Vergleich lohnt, was andere
+ * Fahrer dort zahlen. In einem Schritt, damit der Moment-Hero nicht nach dem ersten Paint wechselt.
+ */
+async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<LatestLogSource & MomentLog>; benchmark: ChargingBenchmark | null }> {
+  const res = await api.get<Array<LatestLogSource & MomentLog>>(`/logs?carId=${carId}&limit=${RECENT_LOGS}`)
+  const logs = Array.isArray(res.data) ? res.data : []
+  const c = expensiveCandidate(logs, Date.now())
+  const cpo = c?.log.cpoName
+  const type = c?.log.chargingType
+  const bench = cpo && (type === 'AC' || type === 'DC')
+    ? await chargingBenchmarkService.get(cpo, type).catch(() => null)
+    : null
+  return { logs, benchmark: bench }
+}
+
+async function fetchCarBundle(carId: string): Promise<CarBundle> {
+  const tripsFrom = new Date(Date.now() - MOMENT_TRIP_DAYS * DAY).toISOString()
+  const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime] = await Promise.allSettled([
+    chargingSavingsService.get(),
+    peerModelComparisonService.getPeerModelComparison(carId),
+    api.get<MomentLog[]>(`/logs/priceless?carId=${carId}&includeUnknown=true`),
+    carService.getSohHistory(carId),
+    fetchFuelPrices(),
+    recentLogsWithBenchmark(carId),
+    api.get<LatestTripSource[]>(`/trips?carId=${carId}&limit=1`),
+    fetchStats(carId, isoDate(daysAgo(RECENT_DAYS - 1)), isoDate(daysAgo(0)), 'MONTH'),
+    api.get<MomentTrip[]>(`/trips?carId=${carId}&from=${encodeURIComponent(tripsFrom)}&to=${encodeURIComponent(new Date().toISOString())}`),
+    api.get<StatisticsData>(`/logs/statistics?carId=${carId}&groupBy=DAY`),
+  ])
+  const prices = fuel.status === 'fulfilled' ? fuel.value : null
+  return {
+    petrol: prices && prices.petrolEurPerLitre > 0
+      ? { eurPerLitre: prices.petrolEurPerLitre, live: prices.updatedAt != null }
+      : { eurPerLitre: PETROL_EUR_PER_L_DE, live: false },
+    savingsEur: savings.status === 'fulfilled' ? savings.value.savings?.savingsEur ?? null : null,
+    amortisationYearsRemaining: savings.status === 'fulfilled' ? savings.value.savings?.amortisationYearsRemaining ?? null : null,
+    peerModels: models.status === 'fulfilled' ? models.value : null,
+    pricelessLogs: priceless.status === 'fulfilled' && Array.isArray(priceless.value.data) ? priceless.value.data : [],
+    sohHistory: soh.status === 'fulfilled' ? soh.value : [],
+    recentStats: recent.status === 'fulfilled' ? recent.value : null,
+    recentLogs: lastLogs.status === 'fulfilled' ? lastLogs.value.logs : [],
+    benchmark: lastLogs.status === 'fulfilled' ? lastLogs.value.benchmark : null,
+    recentTrips: momentTrips.status === 'fulfilled' && Array.isArray(momentTrips.value.data) ? momentTrips.value.data : [],
+    lifetimeSeries: lifetime.status === 'fulfilled' ? lifetime.value.data?.chargesOverTime ?? [] : [],
+    // Fahrten liefert das Backend nur Berechtigten, ein Fehler heisst dann einfach: keine Fahrt.
+    latestTrip: lastTrip.status === 'fulfilled' && Array.isArray(lastTrip.value.data) ? lastTrip.value.data[0] ?? null : null,
+  }
+}
+
 export function clearStoryCache(): void {
   fuelPricePromise = null
   monthCache.clear()
+  monthInflight.clear()
+  benchmarkCache.clear()
+  carCache.clear()
 }
 
 export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => StoryCarContext) {
+  /** Der gewählte Monat (Schalter), springt sofort. */
   const offset = ref(0)
-  const month = computed(() => monthAt(offset.value))
+  /** Der angezeigte Monat: wechselt erst zusammen mit seinen Daten (apply), sonst passten Tage und Zahlen nicht zusammen. */
+  const month = ref<StoryMonth>(monthAt(0))
+  /** Gewählt, aber noch nicht da: der bisherige Monat bleibt stehen, bis der neue komplett ist. */
+  const switching = computed(() => offset.value !== month.value.offset)
   const months = computed(() => STORY_MONTH_OFFSETS.map(o => monthAt(o)))
 
   const monthStats = ref<StatisticsData | null>(null)
@@ -165,6 +301,9 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const trips = ref<TripForTemperature[]>([])
   const charges = ref<StandbyPricing['charges']>([])
   const ranks = ref<RankResponse[]>([])
+  const places = ref<ChargingPlace[]>([])
+  const placeBenchmarks = ref<Record<string, ChargingBenchmark | null>>({})
+  const placeRows = computed<PlaceRow[]>(() => toPlaceRows(places.value, placeBenchmarks.value))
   const savingsEur = ref<number | null>(null)
   const amortisationYearsRemaining = ref<number | null>(null)
   const peerModels = ref<PeerModelComparisonResponse | null>(null)
@@ -186,110 +325,109 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const error = ref(false)
 
   let requestId = 0
+  let carRequestId = 0
+  /** Steht fuer "Daten je Auto sind da"; mit Cache-Treffer sofort erfuellt. */
+  let carReady: Promise<void> = Promise.resolve()
 
-  function apply(b: MonthBundle) {
+  function apply(b: MonthBundle, m: StoryMonth) {
+    month.value = m
     monthStats.value = b.monthStats
     previousStats.value = b.previousStats
     series.value = b.series
     trips.value = b.trips
     ranks.value = b.ranks
     charges.value = b.charges
+    places.value = b.places
+    placeBenchmarks.value = b.benchmarks
   }
 
   async function load() {
     const carId = selectedCarId.value
     if (!carId) { loading.value = false; return }
     const id = ++requestId
-    const m = month.value
-    const key = `${carId}:${m.year}-${m.month}`
+    const m = monthAt(offset.value)
+    const key = monthKey(carId, m)
     const hit = monthCache.get(key)
     if (hit) {
-      apply(hit)
+      apply(hit, m)
       loading.value = false
     } else {
       loading.value = true
     }
     error.value = false
-    const cur = monthWindow(m.year, m.month)
-    const prev = monthWindow(m.year, m.month, -1)
-    const first = monthWindow(m.year, m.month, -5)
-    const monthsBack = -m.offset
-    const [a, b, c, t, r, ch] = await Promise.all([
-      fetchStats(carId, cur.start, cur.end, 'DAY'),
-      fetchStats(carId, prev.start, prev.end, 'MONTH'),
-      fetchStats(carId, first.start, cur.end, 'MONTH'),
-      fetchTrips(carId, cur.start, cur.end),
-      monthsBack <= 1 ? fetchRanks(monthsBack) : Promise.resolve([] as RankResponse[]),
-      ctx().canViewLiveAnalytics ? fetchCharges(carId, prev.start, cur.end) : Promise.resolve([]),
-    ])
+    const bundle = await fetchMonthBundle(carId, m, ctx().canViewLiveAnalytics)
     if (id !== requestId) return
-    if (a == null) {
+    if (!bundle) {
       // Hintergrund-Reload gescheitert: der gecachte Stand bleibt stehen, sonst Fehlerzustand.
       if (!hit) error.value = true
       loading.value = false
       return
     }
-    const bundle: MonthBundle = { monthStats: a, previousStats: b, series: c, trips: t, ranks: r, charges: ch }
     monthCache.set(key, bundle)
-    apply(bundle)
+    // Erst zeigen, wenn auch die Daten je Auto da sind: Hero und Zuletzt-Karten kommen in einem Paint.
+    await carReady
+    if (id !== requestId) return
+    apply(bundle, m)
     loading.value = false
+    prefetchMonths(carId, m.offset)
   }
 
   /**
-   * Die letzten Ladungen und, wenn die neueste oeffentliche einen Vergleich lohnt, was andere
-   * Fahrer dort zahlen. In einem Schritt, damit der Moment-Hero nicht nach dem ersten Paint wechselt.
+   * Nach dem ersten Paint nacheinander vorladen, was als Nächstes kommt: die Monate des Schalters und die Nachbarn des
+   * gezeigten (Wischen auf dem Hero, ältere Monate aus dem Raster). Der Wechsel steht dann sofort.
    */
-  async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<LatestLogSource & MomentLog>; benchmark: ChargingBenchmark | null }> {
-    const res = await api.get<Array<LatestLogSource & MomentLog>>(`/logs?carId=${carId}&limit=${RECENT_LOGS}`)
-    const logs = Array.isArray(res.data) ? res.data : []
-    const c = expensiveCandidate(logs, Date.now())
-    const cpo = c?.log.cpoName
-    const type = c?.log.chargingType
-    const bench = cpo && (type === 'AC' || type === 'DC')
-      ? await chargingBenchmarkService.get(cpo, type).catch(() => null)
-      : null
-    return { logs, benchmark: bench }
+  async function prefetchMonths(carId: string, shown: number) {
+    const next = new Set<number>([...STORY_MONTH_OFFSETS, shown - 1, shown + 1])
+    for (const o of next) {
+      if (o > 0 || o < minOffset.value) continue
+      const m = monthAt(o)
+      const key = monthKey(carId, m)
+      if (monthCache.has(key)) continue
+      if (carId !== selectedCarId.value) return
+      const b = await fetchMonthBundle(carId, m, ctx().canViewLiveAnalytics)
+      if (b) monthCache.set(key, b)
+    }
   }
 
-  async function loadPerCar(carId: string) {
-    const tripsFrom = new Date(Date.now() - MOMENT_TRIP_DAYS * DAY).toISOString()
-    const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime] = await Promise.allSettled([
-      chargingSavingsService.get(),
-      peerModelComparisonService.getPeerModelComparison(carId),
-      api.get<MomentLog[]>(`/logs/priceless?carId=${carId}&includeUnknown=true`),
-      carService.getSohHistory(carId),
-      fetchFuelPrices(),
-      recentLogsWithBenchmark(carId),
-      api.get<LatestTripSource[]>(`/trips?carId=${carId}&limit=1`),
-      fetchStats(carId, isoDate(daysAgo(RECENT_DAYS - 1)), isoDate(daysAgo(0)), 'MONTH'),
-      api.get<MomentTrip[]>(`/trips?carId=${carId}&from=${encodeURIComponent(tripsFrom)}&to=${encodeURIComponent(new Date().toISOString())}`),
-      api.get<StatisticsData>(`/logs/statistics?carId=${carId}&groupBy=DAY`),
-    ])
-    if (carId !== selectedCarId.value) return
-    const prices = fuel.status === 'fulfilled' ? fuel.value : null
-    petrol.value = prices && prices.petrolEurPerLitre > 0
-      ? { eurPerLitre: prices.petrolEurPerLitre, live: prices.updatedAt != null }
-      : { eurPerLitre: PETROL_EUR_PER_L_DE, live: false }
-    savingsEur.value = savings.status === 'fulfilled' ? savings.value.savings?.savingsEur ?? null : null
-    amortisationYearsRemaining.value = savings.status === 'fulfilled' ? savings.value.savings?.amortisationYearsRemaining ?? null : null
-    peerModels.value = models.status === 'fulfilled' ? models.value : null
-    pricelessLogs.value = priceless.status === 'fulfilled' && Array.isArray(priceless.value.data) ? priceless.value.data : []
-    sohHistory.value = soh.status === 'fulfilled' ? soh.value : []
-    recentStats.value = recent.status === 'fulfilled' ? recent.value : null
-    recentLogs.value = lastLogs.status === 'fulfilled' ? lastLogs.value.logs : []
-    benchmark.value = lastLogs.status === 'fulfilled' ? lastLogs.value.benchmark : null
-    recentTrips.value = momentTrips.status === 'fulfilled' && Array.isArray(momentTrips.value.data) ? momentTrips.value.data : []
-    lifetimeSeries.value = lifetime.status === 'fulfilled' ? lifetime.value.data?.chargesOverTime ?? [] : []
-    // Fahrten liefert das Backend nur Berechtigten, ein Fehler heisst dann einfach: keine Fahrt.
-    latest.value = buildLatest(
-      recentLogs.value[0] ?? null,
-      lastTrip.status === 'fulfilled' && Array.isArray(lastTrip.value.data) ? lastTrip.value.data[0] : null,
-    )
+  function applyCar(b: CarBundle) {
+    petrol.value = b.petrol
+    savingsEur.value = b.savingsEur
+    amortisationYearsRemaining.value = b.amortisationYearsRemaining
+    peerModels.value = b.peerModels
+    pricelessLogs.value = b.pricelessLogs
+    sohHistory.value = b.sohHistory
+    recentStats.value = b.recentStats
+    recentLogs.value = b.recentLogs
+    benchmark.value = b.benchmark
+    recentTrips.value = b.recentTrips
+    lifetimeSeries.value = b.lifetimeSeries
+    latest.value = buildLatest(b.recentLogs[0] ?? null, b.latestTrip)
   }
 
-  // flush sync: ein Cache-Treffer steht noch im selben Tick, bevor Vue rendert.
+  /** Gecachter Stand sofort, frischer im Hintergrund (stale while revalidate). */
+  function loadCar(carId: string): Promise<void> {
+    const id = ++carRequestId
+    const hit = carCache.get(carId)
+    if (hit) applyCar(hit)
+    const fresh = fetchCarBundle(carId).then((b) => {
+      if (id !== carRequestId) return
+      carCache.set(carId, b)
+      applyCar(b)
+    })
+    // Scheitert der Abruf, zeigt die Seite trotzdem den Monat, statt im Skeleton zu haengen.
+    return hit ? Promise.resolve() : fresh.catch(() => undefined)
+  }
+
+  /** Monat und Daten je Auto: nach einer neuen oder geaenderten Ladung stimmen sonst Hero und Zuletzt-Karten nicht. */
+  function reload(): Promise<void> {
+    if (selectedCarId.value) carReady = loadCar(selectedCarId.value)
+    return load()
+  }
+
+  // flush sync: ein Cache-Treffer steht noch im selben Tick, bevor Vue rendert. Die Daten je Auto zuerst,
+  // load() wartet auf carReady.
+  watch(selectedCarId, (id) => { carReady = id ? loadCar(id) : Promise.resolve() }, { immediate: true, flush: 'sync' })
   watch([selectedCarId, offset], () => { load() }, { immediate: true, flush: 'sync' })
-  watch(selectedCarId, (id) => { if (id) loadPerCar(id) }, { immediate: true })
 
   /** Sechs Monatswerte, aeltester zuerst. Fehlende Monate werden mit 0 bzw. null aufgefuellt. */
   function monthlySeries(pick: (p: StatisticsData['chargesOverTime'][number]) => number | null): number[] {
@@ -433,20 +571,28 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     try {
       await api.patch(`/logs/${logId}/gap`, { field: 'PRICE' })
       pricelessLogs.value = pricelessLogs.value.map(l => l.id === logId ? { ...l, priceUnknown: true } : l)
+      const carId = selectedCarId.value
+      const cached = carId ? carCache.get(carId) : undefined
+      if (carId && cached) carCache.set(carId, { ...cached, pricelessLogs: pricelessLogs.value })
       return true
     } catch {
       return false
     }
   }
 
+  /** Monate mit Ladungen und der früheste wählbare (Monatsraster), aus der Tagesreihe über die Lebenszeit. */
+  const dataMonths = computed(() => chargeMonths(lifetimeSeries.value))
+  const minOffset = computed(() => earliestOffset(dataMonths.value, new Date()))
+
+  /** Die drei Monate des Schalters und über das Raster jeder ältere bis zur ersten Ladung. */
   function setOffset(o: number) {
-    if (STORY_MONTH_OFFSETS.includes(o as typeof STORY_MONTH_OFFSETS[number])) offset.value = o
+    if (Number.isInteger(o) && o <= 0 && o >= minOffset.value) offset.value = o
   }
 
   return {
-    offset, month, months, setOffset,
+    offset, month, months, setOffset, switching, placeRows, dataMonths, minOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
     layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, moment, benchmark,
-    reload: load, markPriceUnknown,
+    reload, markPriceUnknown,
   }
 }

@@ -201,3 +201,12 @@ export interface PlaceRow {
   cls: PlaceClass
   benchmark: ChargingBenchmark | null
 }
+
+/** Orte sortiert, je mit Preisklasse und Vergleich (Schlüssel benchmarkKey). */
+export function toPlaceRows(places: ChargingPlace[], benchmarks: Record<string, ChargingBenchmark | null>): PlaceRow[] {
+  return sortPlaces(places).map(p => {
+    const key = benchmarkKey(p)
+    const benchmark = key ? benchmarks[key] ?? null : null
+    return { place: p, cls: placeClass(p, benchmark), benchmark }
+  })
+}

@@ -76,7 +76,7 @@ watch(() => props.monthLabel, () => { layersOpen.value = false })
   <div class="story-hero flex items-start justify-between gap-3">
     <div class="grid min-w-0 gap-1.5">
       <h1 class="text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50">
-        <span data-testid="story-hero-value" class="block" style="view-transition-name: story-hero-value">
+        <span data-testid="story-hero-value" class="block">
           <template v-if="sentenceParts.month">{{ `${sentenceParts.month} ` }}</template><span class="whitespace-nowrap">{{ sentenceParts.rest }}</span>
         </span>
       </h1>

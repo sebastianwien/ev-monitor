@@ -2,13 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 
 const getMock = vi.fn()
-vi.mock('../api/axios', () => ({ default: { get: (...a: unknown[]) => getMock(...a) } }))
+const patchMock = vi.fn()
+vi.mock('../api/axios', () => ({ default: { get: (...a: unknown[]) => getMock(...a), patch: (...a: unknown[]) => patchMock(...a) } }))
 vi.mock('../api/chargingSavingsService', () => ({ default: { get: vi.fn().mockResolvedValue({ savings: null }) } }))
 vi.mock('../api/peerModelComparisonService', () => ({ peerModelComparisonService: { getPeerModelComparison: vi.fn().mockResolvedValue({ modelComparisons: [] }) } }))
 vi.mock('../api/carService', () => ({ carService: { getSohHistory: vi.fn().mockResolvedValue([]) } }))
 
 import { useDashboardStory, clearStoryCache } from './useDashboardStory'
-import { PETROL_EUR_PER_L_DE } from './storyModel'
+import { PETROL_EUR_PER_L_DE, monthWindow } from './storyModel'
 
 const stats = (totalCostEur: number) => ({
   totalKwhCharged: 100, energyCostEur: totalCostEur, fixedCostEur: 0, fixedIncomeEur: 0, totalCostEur,
@@ -165,5 +166,191 @@ describe('useDashboardStory - Moment-Hero', () => {
     past.setOffset(-1)
     await flush()
     expect(past.moment.value.kind).toBe('month')
+  })
+})
+
+describe('useDashboardStory - Auto-Daten beim Öffnen', () => {
+  const log = { id: 'l9', loggedAt: '2026-10-01T18:00:00Z', kwhCharged: 30, kwhAtVehicle: 28.5, costEur: 9.9 }
+  const callsTo = (url: string) => getMock.mock.calls.filter(c => c[0] === url).length
+
+  beforeEach(async () => {
+    clearStoryCache()
+    getMock.mockReset()
+    const { carService } = await import('../api/carService')
+    vi.mocked(carService.getSohHistory).mockResolvedValue([])
+  })
+
+  it('zeigt den Monat erst, wenn auch letzte Ladung und Fahrt da sind', async () => {
+    let releaseTrip: (v: unknown) => void = () => {}
+    getMock.mockImplementation((url: string) => {
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      if (url === '/trips?carId=car-1&limit=1') return new Promise(r => { releaseTrip = r })
+      if (url.startsWith('/logs?')) return Promise.resolve({ data: [log] })
+      return Promise.resolve({ data: [] })
+    })
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    // Monat ist geladen, die letzte Fahrt noch nicht: weiter Skeleton statt einer Seite, die danach umspringt.
+    expect(story.loading.value).toBe(true)
+    expect(story.monthStats.value).toBeNull()
+
+    releaseTrip({ data: [] })
+    await flush()
+    expect(story.loading.value).toBe(false)
+    expect(story.monthStats.value).not.toBeNull()
+    expect(story.latest.value?.charge?.id).toBe('l9')
+  })
+
+  it('zeigt die Auto-Daten beim nächsten Öffnen sofort und lädt sie im Hintergrund neu', async () => {
+    getMock.mockImplementation((url: string) => {
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      if (url.startsWith('/logs?')) return Promise.resolve({ data: [log] })
+      return Promise.resolve({ data: [] })
+    })
+    useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    const before = callsTo('/trips?carId=car-1&limit=1')
+
+    const again = useDashboardStory(ref<string | null>('car-1'), ctx)
+    expect(again.loading.value).toBe(false)
+    expect(again.latest.value?.charge?.id).toBe('l9')
+    await flush()
+    expect(callsTo('/trips?carId=car-1&limit=1')).toBe(before + 1)
+  })
+
+  it('reload holt auch die letzte Ladung neu', async () => {
+    let logs = [log]
+    getMock.mockImplementation((url: string) => {
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      if (url.startsWith('/logs?')) return Promise.resolve({ data: logs })
+      return Promise.resolve({ data: [] })
+    })
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    logs = [{ ...log, id: 'l10', loggedAt: '2026-10-02T18:00:00Z' }]
+    story.reload()
+    await flush()
+    expect(story.latest.value?.charge?.id).toBe('l10')
+  })
+
+  it('"Weiß ich nicht mehr" gilt auch für den gecachten Stand', async () => {
+    const priceless = { id: 'p1', loggedAt: new Date(Date.now() - 3 * 86_400_000).toISOString(), kwhAtVehicle: 20, costEur: null }
+    getMock.mockImplementation((url: string) => {
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      if (url.startsWith('/logs/priceless')) return Promise.resolve({ data: [priceless] })
+      if (url.startsWith('/logs?')) return Promise.resolve({ data: [priceless] })
+      return Promise.resolve({ data: [] })
+    })
+    patchMock.mockResolvedValue({})
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    expect(story.moment.value.kind).toBe('gap')
+    await story.markPriceUnknown('p1')
+
+    const again = useDashboardStory(ref<string | null>('car-1'), ctx)
+    expect(again.latest.value?.charge?.id).toBe('p1')
+    expect(again.moment.value.kind).not.toBe('gap')
+  })
+})
+
+describe('useDashboardStory - Monatswechsel aus einem Guss', () => {
+  const prev = (() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth() - 1, 1) })()
+  const prevDay = `startDate=${monthWindow(prev.getFullYear(), prev.getMonth() + 1).start}`
+  const place = (cpoName: string) => ({ geohash: 'u33db', kind: 'PUBLIC', charges: 1, kwh: 30, costEur: 15, pricePerKwh: 0.5, lastChargedAt: '2026-10-01T10:00:00Z', lastLogId: 'l1', cpoName, chargingType: 'DC' })
+
+  beforeEach(async () => {
+    clearStoryCache()
+    getMock.mockReset()
+    const { carService } = await import('../api/carService')
+    vi.mocked(carService.getSohHistory).mockResolvedValue([])
+  })
+
+  it('zeigt den neuen Monat erst zusammen mit seinen Daten, der Schalter springt sofort', async () => {
+    let releasePrev: (v: unknown) => void = () => {}
+    const prevStats = new Promise(r => { releasePrev = r })
+    getMock.mockImplementation((url: string) => {
+      if (url.includes('/logs/statistics') && url.includes(prevDay) && url.includes('groupBy=DAY')) return prevStats
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      return Promise.resolve({ data: [] })
+    })
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    const current = story.monthStats.value
+
+    story.setOffset(-1)
+    await flush()
+    expect(story.offset.value).toBe(-1)
+    expect(story.month.value.offset).toBe(0)
+    expect(story.monthStats.value).toBe(current)
+    expect(story.switching.value).toBe(true)
+
+    releasePrev({ data: stats(20) })
+    await flush()
+    expect(story.month.value.offset).toBe(-1)
+    expect(story.monthStats.value!.totalCostEur).toBe(20)
+    expect(story.switching.value).toBe(false)
+  })
+
+  it('lädt die anderen Monate des Schalters vor: der Wechsel steht sofort', async () => {
+    getMock.mockImplementation((url: string) => {
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      return Promise.resolve({ data: [] })
+    })
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    await flush()
+
+    story.setOffset(-2)
+    expect(story.month.value.offset).toBe(-2)
+    expect(story.loading.value).toBe(false)
+  })
+
+  it('die Ladeorte des Teasers gehören zum Monat und wechseln mit ihm', async () => {
+    getMock.mockImplementation((url: string, config?: { params?: { from?: string } }) => {
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      if (url === '/logs/places') {
+        const isPrev = config?.params?.from === monthWindow(prev.getFullYear(), prev.getMonth() + 1).start
+        return Promise.resolve({ data: [place(isPrev ? 'EnBW' : 'Ionity')] })
+      }
+      return Promise.resolve({ data: [] })
+    })
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    await flush()
+    expect(story.placeRows.value.map(r => r.place.cpoName)).toEqual(['Ionity'])
+
+    story.setOffset(-1)
+    expect(story.placeRows.value.map(r => r.place.cpoName)).toEqual(['EnBW'])
+  })
+})
+
+describe('useDashboardStory - ältere Monate', () => {
+  beforeEach(async () => {
+    clearStoryCache()
+    getMock.mockReset()
+    const { carService } = await import('../api/carService')
+    vi.mocked(carService.getSohHistory).mockResolvedValue([])
+  })
+
+  it('erlaubt Monate bis zur ersten Ladung, nicht davor', async () => {
+    const now = new Date()
+    const first = new Date(now.getFullYear(), now.getMonth() - 7, 5, 12)
+    getMock.mockImplementation((url: string) => {
+      if (url === '/logs/statistics?carId=car-1&groupBy=DAY') {
+        return Promise.resolve({ data: { ...stats(1), chargesOverTime: [{ timestamp: first.toISOString(), charges: 1, distanceKm: null, consumptionKwhPer100km: null }] } })
+      }
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      return Promise.resolve({ data: [] })
+    })
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    expect(story.minOffset.value).toBe(-7)
+    expect(story.dataMonths.value.has(`${first.getFullYear()}-${first.getMonth() + 1}`)).toBe(true)
+
+    story.setOffset(-7)
+    await flush()
+    expect(story.month.value.offset).toBe(-7)
+    story.setOffset(-8)
+    expect(story.offset.value).toBe(-7)
   })
 })

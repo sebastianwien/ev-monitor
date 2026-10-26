@@ -4192,6 +4192,9 @@ story:
   back_to_dashboard: "Klassisk instrumentpanel"
   experiment_note: "Experiment. Alla siffror kommer från dina loggar. Överst visas först det som just hänt; bara den här enheten minns vilka tips du har sett. Gå tillbaka när som helst via länken nedan."
   month_aria: "Välj månad"
+  month_older: Tidigare månad
+  year_prev: Föregående år
+  year_next: Nästa år
   live_charging: "Laddar nu"
   days_aria: "Dagar med data den här månaden"
   days_caption: "{total} dagar, {withData} med data."
@@ -4230,6 +4233,7 @@ story:
   battery_bad: "avvikande"
   estimated_badge: "uppskattad"
   feed_title: "Den här månaden"
+  feed_title_past: "I {month}"
   feed_consumption_better: "Din förbrukning är {diff} bättre än förra månaden: {current} i stället för {previous}."
   feed_consumption_worse: "Din förbrukning är {diff} högre än förra månaden: {current} i stället för {previous}."
   feed_cost_lower: "Du lade ut {diff} mindre än förra månaden."

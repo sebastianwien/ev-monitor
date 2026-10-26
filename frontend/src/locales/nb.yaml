@@ -4192,6 +4192,9 @@ story:
   back_to_dashboard: "Klassisk dashbord"
   experiment_note: "Eksperiment. Alle tall kommer fra loggene dine. Øverst vises først det som nettopp skjedde; bare denne enheten husker hvilke hint du har sett. Gå tilbake når som helst via lenken nederst."
   month_aria: "Velg måned"
+  month_older: Tidligere måned
+  year_prev: Forrige år
+  year_next: Neste år
   live_charging: "Lader nå"
   days_aria: "Dager med data denne måneden"
   days_caption: "{total} dager, {withData} med data."
@@ -4230,6 +4233,7 @@ story:
   battery_bad: "uvanlig"
   estimated_badge: "estimert"
   feed_title: "Denne måneden"
+  feed_title_past: "I {month}"
   feed_consumption_better: "Forbruket ditt er {diff} bedre enn forrige måned: {current} i stedet for {previous}."
   feed_consumption_worse: "Forbruket ditt er {diff} høyere enn forrige måned: {current} i stedet for {previous}."
   feed_cost_lower: "Du brukte {diff} mindre enn forrige måned."
