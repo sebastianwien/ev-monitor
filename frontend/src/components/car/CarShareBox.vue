@@ -1,12 +1,12 @@
 <template>
-  <div class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-3 py-2.5">
+  <div class="rounded-xl bg-white px-4 py-3 edge-card dark:bg-gray-700/50">
     <div class="flex items-start gap-3">
       <div class="min-w-0 flex-1">
-        <p class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ t('share_car.label') }}</p>
+        <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('share_car.label') }}</p>
         <p v-if="!compact || hintOpen" class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{{ t('share_car.hint') }}</p>
         <p v-else class="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
           {{ t('share_car.hint_short') }}
-          <button type="button" class="font-medium text-indigo-600 dark:text-indigo-400 underline-offset-2 hover:underline" @click="hintOpen = true">{{ t('share_car.hint_more') }}</button>
+          <button type="button" class="font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100" @click="hintOpen = true">{{ t('share_car.hint_more') }}</button>
         </p>
       </div>
       <button
@@ -28,11 +28,11 @@
 
     <div v-if="share" class="mt-2.5 flex items-center gap-2">
       <a :href="share.url" target="_blank" rel="noopener"
-        class="min-w-0 flex-1 truncate text-xs text-indigo-600 dark:text-indigo-300 hover:underline">
+        class="min-w-0 flex-1 truncate text-xs text-gray-600 underline-offset-2 hover:underline dark:text-gray-300">
         {{ share.url.replace(/^https?:\/\//, '') }}
       </a>
       <button type="button" v-haptic @click="onShare"
-        class="btn-3d [--btn-shadow-color:#a5b4fc] dark:[--btn-shadow-color:#3730a3] inline-flex items-center gap-1.5 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-sm text-sm font-semibold min-h-[44px]">
+        class="btn-3d inline-flex items-center gap-1.5 rounded-xl border-2 border-edge bg-white px-3 py-2 text-sm font-semibold text-gray-900 min-h-[44px] hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">
         <CheckIcon v-if="outcome === 'copied'" class="w-4 h-4" />
         <ShareIcon v-else class="w-4 h-4" />
         {{ outcome === 'copied' ? t('share_car.link_copied') : t('share_car.share_link') }}
@@ -40,28 +40,28 @@
     </div>
 
     <!-- Forum-Signatur: eingeklappt, damit die Karte nicht waechst -->
-    <div v-if="share" class="mt-2 border-t border-gray-200 dark:border-gray-700 pt-1">
+    <div v-if="share" class="mt-2 border-t border-gray-200 dark:border-white/10 pt-1">
       <button type="button" @click="signatureOpen = !signatureOpen"
         :aria-expanded="signatureOpen"
         class="flex w-full items-center gap-2 py-2 min-h-[44px] text-left text-sm font-medium text-gray-800 dark:text-gray-200">
         <CodeBracketIcon class="w-4 h-4 shrink-0 text-gray-500 dark:text-gray-400" />
         <span class="flex-1">{{ t('share_car.signature_title') }}</span>
-        <ChevronDownIcon :class="['w-4 h-4 shrink-0 text-gray-400 transition-transform', signatureOpen ? 'rotate-180' : '']" />
+        <ChevronDownIcon :class="['w-4 h-4 shrink-0 text-gray-400 transition-transform duration-300 ease-out', signatureOpen ? 'rotate-180' : '']" aria-hidden="true" />
       </button>
-      <div v-if="signatureOpen" class="pb-1">
+      <Collapse :open="signatureOpen"><div class="pb-1">
         <img :src="bannerUrlFor(share, locale)" :alt="t('share_car.banner_alt', { model: title })"
           width="468" height="60" loading="lazy"
           class="block max-w-full h-auto rounded-sm" />
         <p class="text-xs text-gray-500 dark:text-gray-400 mt-2">{{ t('share_car.signature_hint') }}</p>
         <div class="mt-2 grid grid-cols-2 gap-2">
           <button v-for="kind in kinds" :key="kind" type="button" v-haptic @click="onCopySignature(kind)"
-            class="btn-3d [--btn-shadow-color:#a5b4fc] dark:[--btn-shadow-color:#3730a3] inline-flex items-center justify-center gap-1.5 bg-indigo-100 dark:bg-indigo-700 text-indigo-800 dark:text-white px-3 py-2 rounded-sm text-sm font-semibold min-h-[44px]">
+            class="btn-3d inline-flex items-center justify-center gap-1.5 rounded-xl border-2 border-edge bg-white px-3 py-2 text-sm font-semibold text-gray-900 min-h-[44px] hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">
             <CheckIcon v-if="copiedKind === kind" class="w-4 h-4" />
             <ClipboardDocumentIcon v-else class="w-4 h-4" />
             {{ copiedKind === kind ? t('share_car.signature_copied') : t(kind === 'bbcode' ? 'share_car.copy_bbcode' : 'share_car.copy_html') }}
           </button>
         </div>
-      </div>
+      </div></Collapse>
     </div>
 
     <p v-if="error || copyFailed" class="mt-2 text-xs text-red-600 dark:text-red-400">{{ t('share_car.error_failed') }}</p>
@@ -74,6 +74,7 @@ import { useI18n } from 'vue-i18n'
 import { ShareIcon, CheckIcon, CodeBracketIcon, ChevronDownIcon, ClipboardDocumentIcon } from '@heroicons/vue/24/outline'
 import { useCarShare, bannerUrlFor, type CarShareOutcome, type SignatureKind } from '../../composables/useCarShare'
 import type { CarShareSource } from '../../composables/useCarShareSheet'
+import Collapse from '../shared/Collapse.vue'
 
 const props = withDefaults(defineProps<{
   carId: string

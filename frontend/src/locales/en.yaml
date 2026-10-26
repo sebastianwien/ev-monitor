@@ -1671,7 +1671,6 @@ cars:
   hero_rated_aria: "Rated, edit your rating"
   hero_shared_aria: "Shared, open sharing settings"
   switcher_label: "Choose vehicle"
-  switcher_add: "Add"
   menu_activate_hint: "Preselected when logging"
   menu_add: "Add another vehicle"
   menu_delete_hint: "Restorable for 7 days"

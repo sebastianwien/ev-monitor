@@ -92,11 +92,11 @@ async function removeCurrent() {
 }
 
 const money = (v: number) => formatCurrency(v, { decimals: 0 })
-const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 disabled:opacity-30 disabled:hover:bg-transparent'
+const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10 disabled:opacity-30 disabled:hover:bg-transparent'
 </script>
 
 <template>
-  <section class="rounded-sm bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5" data-testid="car-cost-card">
+  <section class="rounded-xl bg-white edge-card p-4 md:p-5 dark:bg-gray-700/50" data-testid="car-cost-card">
     <div class="flex items-center justify-between gap-3">
       <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('cars.costs.title') }}</h2>
       <!-- Kalenderjahr waehlen -->
@@ -112,7 +112,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm tex
     </div>
 
     <p v-if="error" class="mt-3 text-sm text-red-600 dark:text-red-400">{{ t('common.error_load') }}</p>
-    <div v-else-if="loading" class="mt-4 h-24 animate-pulse rounded-sm bg-gray-100 dark:bg-gray-600" aria-hidden="true" />
+    <div v-else-if="loading" class="mt-4 h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-600" aria-hidden="true" />
 
     <template v-else>
       <!-- Kopfzahl -->
@@ -139,7 +139,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm tex
           <div v-for="x in shares" :key="x.key" class="h-full border-r border-white last:border-r-0 dark:border-gray-700" :style="{ width: `${x.pct}%`, background: colorOf(x.key) }" />
         </div>
 
-        <RouterLink v-if="showHistoryLink" to="/dashboard" class="mt-3 inline-flex items-center gap-1.5 min-h-11 text-sm font-medium text-indigo-600 dark:text-indigo-400" data-testid="car-cost-history-link">
+        <RouterLink v-if="showHistoryLink" to="/dashboard" class="mt-3 inline-flex items-center gap-1.5 min-h-11 text-sm font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100" data-testid="car-cost-history-link">
           {{ t('cars.costs.history_link') }}<ArrowRightIcon class="h-4 w-4" aria-hidden="true" />
         </RouterLink>
       </div>
@@ -173,7 +173,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm tex
             </div>
             <ul v-if="openGroups.has(g.category)" class="pb-2 pl-7">
               <li v-for="fc in g.items" :key="fc.id">
-                <button type="button" class="flex w-full items-center gap-2 min-h-11 py-1.5 text-left text-sm rounded-sm hover:bg-gray-50 dark:hover:bg-gray-600/40" @click="sheet = { edit: fc }">
+                <button type="button" class="flex w-full items-center gap-2 min-h-11 py-1.5 text-left text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-white/5" @click="sheet = { edit: fc }">
                   <span class="min-w-0 flex-1">
                     <span class="block truncate text-gray-800 dark:text-gray-200">{{ fc.description }}</span>
                     <span class="block text-xs text-gray-500 dark:text-gray-400">{{ t(`fixed_costs.recurrence_${fc.recurrence}`) }}<template v-if="itemDate(fc)"> · {{ itemDate(fc) }}</template></span>
@@ -186,7 +186,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm tex
         </ul>
         <p v-if="!groups.length" class="mt-2 text-sm text-gray-600 dark:text-gray-300">{{ t('cars.costs.empty_fixed') }}</p>
 
-        <button type="button" v-haptic class="btn-3d mt-3 inline-flex items-center gap-1.5 min-h-11 rounded-sm bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700 transition" data-testid="car-cost-add" @click="sheet = { edit: null }">
+        <button type="button" v-haptic class="btn-3d mt-3 inline-flex items-center gap-1.5 min-h-11 rounded-xl border-2 border-edge bg-white px-4 text-sm font-semibold text-gray-900 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15" data-testid="car-cost-add" @click="sheet = { edit: null }">
           <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('cars.costs.add') }}
         </button>
       </div>

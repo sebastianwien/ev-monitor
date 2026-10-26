@@ -5,6 +5,8 @@ import ViewSegmentedControl from '../components/shared/ViewSegmentedControl.vue'
 import SwipeTabPager from '../components/shared/SwipeTabPager.vue'
 import { useStickyTabIndex } from '../composables/useStickyTabIndex'
 import { CAR_TABS } from '../config/tabs'
+import { useStoryOptIn } from '../composables/useStoryOptIn'
+import WorkspaceFrame from './WorkspaceFrame.vue'
 import CarManagementView from '../views/CarManagementView.vue'
 
 const ChargingProvidersView = defineAsyncComponent(() => import('../views/ChargingProvidersView.vue'))
@@ -14,8 +16,10 @@ const ChargingProvidersView = defineAsyncComponent(() => import('../views/Chargi
  * Blickwinkeln: die Autos und die Karten, mit denen sie geladen werden. Beide Routen
  * zeigen auf diese Komponente, der Tab-Switch bleibt dabei stehen und der Wechsel
  * laeuft als Swipe (SwipeTabPager), genau wie Dashboard <-> Log-Feed.
+ * Neues Design (Story-Opt-in) wie bei /logs: Gerüst WorkspaceFrame statt App-Chrome.
  */
 const { t } = useI18n()
+const { enabled: storyDesign } = useStoryOptIn()
 
 const TAB_PATHS: readonly string[] = CAR_TABS.map(tab => tab.to)
 const tabs = computed(() => CAR_TABS.map(tab => ({ to: tab.to, label: t(tab.labelKey) })))
@@ -23,17 +27,17 @@ const activeIndex = useStickyTabIndex(TAB_PATHS)
 </script>
 
 <template>
-  <div>
+  <component :is="storyDesign ? WorkspaceFrame : 'div'">
     <!-- Mobile: Zweier-Switch ueber beiden Bodies - er bleibt stehen, waehrend der
          Inhalt darunter durchwischt. -->
-    <div class="md:hidden px-2 pt-2">
+    <div class="md:hidden px-4 pt-3 pb-1">
       <ViewSegmentedControl class="mb-2" :tabs="tabs" />
     </div>
 
-    <!-- Die Desktop-Leiste mit allen vier Zielen liegt in App.vue. -->
+    <!-- Die Desktop-Leiste mit allen vier Zielen liegt in App.vue bzw. im WorkspaceFrame. -->
     <SwipeTabPager :tabs="TAB_PATHS" :active-index="activeIndex">
       <template #left><CarManagementView /></template>
       <template #right><ChargingProvidersView /></template>
     </SwipeTabPager>
-  </div>
+  </component>
 </template>

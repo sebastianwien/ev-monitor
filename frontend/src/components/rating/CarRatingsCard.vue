@@ -46,19 +46,19 @@ const avg = (v: number) => n(v, { minimumFractionDigits: 1, maximumFractionDigit
 </script>
 
 <template>
-  <section v-if="visible" class="rounded-sm bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4 md:p-5" data-testid="car-ratings-card">
+  <section v-if="visible" class="rounded-xl bg-white edge-card p-4 md:p-5 dark:bg-gray-700/50" data-testid="car-ratings-card">
     <div class="flex items-baseline justify-between gap-3">
       <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('rating.cars.title') }}</h2>
-      <a v-if="count > 0" :href="modelPagePath" class="text-xs font-medium text-indigo-600 dark:text-indigo-400">{{ t('rating.cars.model_page') }}</a>
+      <a v-if="count > 0" :href="modelPagePath" class="text-xs font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100">{{ t('rating.cars.model_page') }}</a>
     </div>
 
-    <div v-if="loading" class="mt-4 h-20 animate-pulse rounded-sm bg-gray-100 dark:bg-gray-600" aria-hidden="true" />
+    <div v-if="loading" class="mt-4 h-20 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-600" aria-hidden="true" />
 
     <template v-else>
       <!-- Noch keine Bewertung zum Modell, aber bewertbar: der Anfang -->
       <div v-if="count === 0" class="mt-3 space-y-3">
         <p class="text-sm text-gray-700 dark:text-gray-300">{{ t('rating.public.own_cta', { model }) }}</p>
-        <RouterLink :to="ratePath" class="btn-3d inline-flex items-center justify-center min-h-11 rounded-sm bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700 transition" data-testid="car-rate-cta">
+        <RouterLink :to="ratePath" class="btn-3d inline-flex items-center justify-center min-h-11 rounded-xl border-2 border-edge bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700" data-testid="car-rate-cta">
           {{ t('rating.cars.rate_cta', { model }) }}
         </RouterLink>
       </div>
@@ -85,7 +85,7 @@ const avg = (v: number) => n(v, { minimumFractionDigits: 1, maximumFractionDigit
               <StarIcon v-for="s in 5" :key="s" class="h-4 w-4" :class="s <= Math.round(row.average) ? 'fill-current text-amber-500 dark:text-amber-400' : 'text-gray-300 dark:text-gray-500'" aria-hidden="true" />
             </span>
             <span class="w-8 text-right tabular-nums font-semibold text-gray-900 dark:text-gray-100">{{ avg(row.average) }}</span>
-            <span v-if="row.mine !== null" class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-indigo-600 px-1 text-[11px] font-bold text-white" :title="t('rating.result.legend_you')">
+            <span v-if="row.mine !== null" class="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-gray-900 px-1 text-[11px] font-bold text-white dark:bg-gray-100 dark:text-gray-900" :title="t('rating.result.legend_you')">
               <span class="sr-only">{{ t('rating.result.legend_you') }}: </span>{{ row.mine }}
             </span>
             <span v-else class="w-5" aria-hidden="true" />
@@ -94,7 +94,7 @@ const avg = (v: number) => n(v, { minimumFractionDigits: 1, maximumFractionDigit
 
         <!-- Unter 5: Einzelkarten wie auf der Modellseite -->
         <ul v-else class="mt-3 grid gap-3">
-          <li v-for="(single, i) in ratings!.singles" :key="i" class="rounded-sm border border-gray-200 dark:border-gray-600 p-3 space-y-2">
+          <li v-for="(single, i) in ratings!.singles" :key="i" class="rounded-lg border border-gray-200 dark:border-white/10 p-3 space-y-2">
             <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ t(`rating.q.rebuy.${single.rebuy}`) }}</p>
             <RatingOverall :value="single.ratingValue" :with-hint="false" />
             <dl class="space-y-1">
@@ -114,7 +114,7 @@ const avg = (v: number) => n(v, { minimumFractionDigits: 1, maximumFractionDigit
           <template v-if="eligibility.rated">
             <RouterLink :to="ratePath" class="inline-flex items-center min-h-11 text-sm font-medium text-green-700 dark:text-green-400" data-testid="car-rating-row">{{ t('rating.cars.rated_edit') }}</RouterLink>
           </template>
-          <RouterLink v-else-if="showCta" :to="ratePath" class="btn-3d inline-flex w-full items-center justify-center min-h-11 rounded-sm bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700 transition" data-testid="car-rate-cta">
+          <RouterLink v-else-if="showCta" :to="ratePath" class="btn-3d inline-flex w-full items-center justify-center min-h-11 rounded-xl border-2 border-edge bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700" data-testid="car-rate-cta">
             {{ t('rating.cars.rate_cta', { model }) }}
           </RouterLink>
         </div>

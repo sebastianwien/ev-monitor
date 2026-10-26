@@ -73,9 +73,9 @@ const infoChips = computed<Chip[]>(() => {
   return list
 })
 
-// Info-Chips: solid, flach, dunkleres Indigo als die Aktions-Chips. Ueber dem Foto immer dunkel.
-const infoOnPhoto = 'bg-indigo-900 text-indigo-100'
-const infoOnPage = 'bg-indigo-50 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-100'
+// Info-Chips: flach und grau, ohne Rand - klickbar sind nur die Aktions-Chips. Ueber dem Foto immer dunkel.
+const infoOnPhoto = 'bg-gray-900/80 text-gray-100'
+const infoOnPage = 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200'
 const chipBase = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 min-h-11 md:min-h-8 text-sm md:text-xs font-medium'
 const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px] min-w-[40px] rounded-full bg-black/45 text-white backdrop-blur px-3 text-sm font-medium hover:bg-black/60 transition'
 </script>
@@ -84,7 +84,7 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
   <section :data-testid="`car-hero-${car.id}`">
     <div
       class="relative overflow-hidden bg-gray-800 aspect-[4/3] md:aspect-auto md:h-64"
-      :class="imageUrl ? '' : 'bg-gradient-to-br from-indigo-950 via-indigo-800 to-gray-900'">
+      :class="imageUrl ? '' : 'bg-gray-800'">
       <img v-if="imageUrl" :key="imageUrl" :src="imageUrl" :alt="modelLabel"
         class="absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
         :class="photoReady ? 'opacity-100' : 'opacity-0'" @load="photoReady = true" />

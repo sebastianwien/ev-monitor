@@ -116,13 +116,15 @@ const router = createRouter({
             path: '/cars',
             name: 'cars',
             component: CarsLayout,
-            meta: { requiresAuth: true }
+            // App-CI: mobil ruhige Flaeche; publicNav setzt der Guard je nach Story-Opt-in
+            meta: { requiresAuth: true, plainBackground: true }
         },
         {
             path: '/charging-providers',
             name: 'charging-providers',
             component: CarsLayout,
-            meta: { requiresAuth: true }
+            // App-CI: mobil ruhige Flaeche; publicNav setzt der Guard je nach Story-Opt-in
+            meta: { requiresAuth: true, plainBackground: true }
         },
         {
             path: '/settings',
@@ -499,7 +501,7 @@ router.beforeEach((to) => {
     if (to.path === '/story' && !storyDesign) {
         return '/dashboard';
     }
-    if (to.path === '/logs') {
+    if (to.path === '/logs' || to.path === '/cars' || to.path === '/charging-providers') {
         to.meta.publicNav = storyDesign;
     }
 });

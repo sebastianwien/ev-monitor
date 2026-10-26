@@ -4,7 +4,7 @@ import { computed, onActivated, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
-  TruckIcon, ArrowDownTrayIcon, ChartBarIcon, BoltIcon, LockClosedIcon,
+  TruckIcon, ArrowDownTrayIcon, ChartBarIcon, BoltIcon, LockClosedIcon, ChevronRightIcon,
 } from '@heroicons/vue/24/outline'
 import CarFormFields, { type CarFormState } from '../components/car/CarFormFields.vue'
 import CarFormSheet from '../components/car/CarFormSheet.vue'
@@ -14,7 +14,7 @@ import CarCostCard from '../components/car/CarCostCard.vue'
 import CarShareBox from '../components/car/CarShareBox.vue'
 import CarShareSheet from '../components/car/CarShareSheet.vue'
 import CarHero from '../components/car/CarHero.vue'
-import CarSwitcher from '../components/car/CarSwitcher.vue'
+import CarSwitch from '../components/car/CarSwitch.vue'
 import CarManageSheet from '../components/car/CarManageSheet.vue'
 import { useCarShare } from '../composables/useCarShare'
 import { readLocal, writeLocal } from '../utils/safeStorage'
@@ -295,43 +295,46 @@ const copyCarId = async (id: string) => {
 </script>
 
 <template>
-  <div class="md:max-w-6xl md:mx-auto md:px-6 md:pb-6">
+  <div class="mx-auto max-w-6xl pb-6 md:px-6 md:pb-12">
     <Transition name="fade" mode="out-in">
       <div v-if="!loading">
         <!-- Der aktive Tab benennt die Seite, die Ueberschrift bleibt fuer Screenreader. -->
         <h1 class="sr-only">{{ t('cars.title') }}</h1>
 
-      <div v-if="error" class="mb-4 mx-4 md:mx-0 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm">
-        {{ error }}
-      </div>
+      <!-- Eine Box wie in der Uebersicht: mobil edge-to-edge, ab md mit Kante. Das Foto liegt randlos oben. -->
+      <section class="overflow-hidden bg-white pb-6 md:rounded-3xl md:edge-box dark:bg-gray-900" data-testid="cars-box">
 
-      <!-- Ohne Auto: Leerzustand und Anlege-Formular im grauen Kasten wie bisher -->
-      <div v-if="cars.length === 0" class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] p-4 md:p-6 pb-6">
+      <p v-if="error" class="mx-4 mt-4 rounded-xl bg-white px-4 py-3 text-sm text-gray-900 edge-card md:mx-6 dark:bg-gray-700/50 dark:text-gray-100" role="alert">
+        {{ error }}
+      </p>
+
+      <!-- Ohne Auto: Leerzustand und Anlege-Formular -->
+      <div v-if="cars.length === 0" class="px-4 pt-4 md:px-6 md:pt-6">
 
       <!-- Anlegen ohne Autos: inline, damit der Leerzustand und das Formular zusammen stehen -->
-      <div v-if="showForm && !editingCar" class="mb-8 p-6 bg-white dark:bg-gray-700 rounded-sm border-2 border-gray-300 dark:border-gray-600 shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]">
-        <h2 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-200">{{ t('cars.add_title') }}</h2>
+      <div v-if="showForm && !editingCar" class="mb-8 rounded-xl bg-white p-4 edge-card md:p-6 dark:bg-gray-700/50">
+        <h2 class="text-xl font-bold mb-4 text-gray-900 dark:text-gray-100">{{ t('cars.add_title') }}</h2>
         <CarFormFields :form="formState" :submitting="submitting" @submit="doSubmitForm" @cancel="resetForm" @missing="missingDialogOpen = true" />
       </div>
 
       <!-- Empty State: No Cars -->
       <div v-if="cars.length === 0 && !showForm" class="text-center py-16 px-4">
-        <TruckIcon class="h-24 w-24 mx-auto text-gray-300 mb-6" />
-        <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-3">{{ t('cars.empty_title') }}</h3>
+        <TruckIcon class="h-24 w-24 mx-auto text-gray-300 dark:text-gray-600 mb-6" />
+        <h3 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-3">{{ t('cars.empty_title') }}</h3>
         <p class="text-gray-600 dark:text-gray-400 mb-8 max-w-md mx-auto">
           {{ t('cars.empty_desc') }}
         </p>
         <button
           @click="openAddForm"
-          class="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 font-medium shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)] hover:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:hover:shadow-[5px_5px_0_rgba(255,255,255,0.35)] transition">
+          class="btn-3d inline-flex min-h-12 items-center gap-2 rounded-xl border-2 border-edge bg-green-600 px-8 text-[15px] font-semibold text-white hover:bg-green-700">
           <TruckIcon class="h-5 w-5" />
           {{ t('cars.add_first_btn') }}
         </button>
         <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-2xl mx-auto text-left">
           <div v-for="feat in emptyStateFeatures" :key="feat.titleKey"
-            class="bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] p-4">
-            <component :is="feat.icon" class="h-6 w-6 mb-2 text-indigo-600 dark:text-indigo-400" aria-hidden="true" />
-            <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t(feat.titleKey) }}</p>
+            class="rounded-xl bg-white p-4 edge-card dark:bg-gray-700/50">
+            <component :is="feat.icon" class="h-6 w-6 mb-2 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+            <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-1">{{ t(feat.titleKey) }}</p>
             <p class="text-xs text-gray-600 dark:text-gray-400">{{ t(feat.descKey) }}</p>
           </div>
         </div>
@@ -339,13 +342,13 @@ const copyCarId = async (id: string) => {
 
     </div>
 
-      <!-- Fahrzeugseite: ein Auto, von oben nach unten Switcher, Hero, Karten -->
+      <!-- Fahrzeugseite: ein Auto, von oben nach unten Wechsel, Hero, Karten -->
       <template v-if="selectedCar">
-        <CarSwitcher v-if="cars.length > 1" :cars="cars" :selected-id="selectedCar.id" :image-urls="imageBlobUrls" :model-label="getModelLabel"
-          @select="selectCar" @add="openAddForm" />
+        <!-- Kopfzeile wie in Uebersicht und Logs, nur bei mehreren Autos: den Namen traegt sonst das Foto -->
+        <header v-if="cars.length > 1" class="px-4 py-2 md:px-6 md:py-3">
+          <CarSwitch :model-value="selectedCar.id" :cars="cars" :car-image-urls="imageBlobUrls" @update:model-value="selectCar" />
+        </header>
 
-        <!-- Hero plus Karten auf einer Flaeche: mobil edge-to-edge, ab md der gewohnte Kasten -->
-        <div class="bg-gray-100 dark:bg-gray-800 md:rounded-sm md:shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:md:shadow-[4px_4px_0_rgba(255,255,255,0.30)] md:overflow-hidden pb-6">
         <CarHero
           :car="selectedCar"
           :model-label="carDisplayName(selectedCar)"
@@ -384,10 +387,9 @@ const copyCarId = async (id: string) => {
           </div>
 
           <button type="button" @click="openAddForm" v-haptic
-            class="inline-flex items-center gap-2 min-h-11 px-4 rounded-sm border border-dashed border-gray-400 dark:border-gray-500 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+            class="btn-3d inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-edge bg-white px-4 text-sm font-semibold text-gray-900 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">
             {{ t('cars.add_btn') }}
           </button>
-        </div>
         </div>
 
         <CarManageSheet
@@ -410,6 +412,24 @@ const copyCarId = async (id: string) => {
           @delete="menuOpen = false; doDeleteCar(selectedCar.id)" />
       </template>
 
+      <!-- Import und Erklaerung der Zahlen: fuer alle Autos, darum unter dem Auto -->
+      <div class="space-y-3 px-4 pt-4 md:px-6">
+      <!-- Import Hub Hint -->
+      <router-link
+        to="/imports"
+        class="group flex min-h-14 items-center gap-3 rounded-xl bg-white px-4 py-3 edge-card transition-colors hover:bg-gray-50 dark:bg-gray-700/50 dark:hover:bg-gray-700"
+      >
+        <ArrowDownTrayIcon class="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0" />
+        <div>
+          <span class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('cars.import_title') }}</span>
+          <span class="text-sm text-gray-500 dark:text-gray-400 ml-1">- Tesla, Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
+        </div>
+        <ChevronRightIcon class="ml-auto h-5 w-5 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5 dark:text-gray-500" aria-hidden="true" />
+      </router-link>
+      <ConsumptionInfoBox :initial-expanded="true" />
+    </div>
+      </section>
+
       <!-- Anlegen mit vorhandenen Autos: als Sheet -->
       <CarFormSheet v-if="showForm && !editingCar && cars.length > 0" :form="formState" :submitting="submitting" :title="t('cars.add_title')"
         @submit="doSubmitForm" @cancel="resetForm" @missing="missingDialogOpen = true" />
@@ -431,23 +451,6 @@ const copyCarId = async (id: string) => {
     <CarFormSheet v-if="editingCar" :form="formState" :submitting="submitting" :title="t('cars.edit_title')"
       @submit="doSubmitForm" @cancel="resetForm" @missing="missingDialogOpen = true" />
 
-
-    <!-- Tesla Fleet Integration (only shown when user has a Tesla) -->
-    <div class="md:max-w-6xl md:mx-auto px-4 md:px-0 pt-3 pb-4 space-y-3">
-      <!-- Import Hub Hint -->
-      <router-link
-        to="/imports"
-        class="flex items-center gap-3 bg-white dark:bg-gray-700 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151] px-4 py-3 hover:bg-gray-50 dark:hover:bg-gray-600 transition group"
-      >
-        <ArrowDownTrayIcon class="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0" />
-        <div>
-          <span class="text-sm font-medium text-gray-800 dark:text-gray-200">{{ t('cars.import_title') }}</span>
-          <span class="text-sm text-gray-500 dark:text-gray-400 ml-1">- Tesla, Sprit-Monitor, go-eCharger Cloud, OCPP Wallbox</span>
-        </div>
-        <span class="text-gray-400 dark:text-gray-500 ml-auto group-hover:translate-x-0.5 transition-transform">→</span>
-      </router-link>
-      <ConsumptionInfoBox :initial-expanded="true" />
-    </div>
       </div>
     </Transition>
 
@@ -467,7 +470,7 @@ const copyCarId = async (id: string) => {
          sich der Toast am Pager-Track aus und liegt auf Mobile ausserhalb des Bildes. -->
     <Teleport to="body">
     <div v-if="showToast" class="fixed bottom-6 right-6 z-50 animate-slide-in">
-      <div class="bg-green-600 text-white px-6 py-4 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] max-w-md">
+      <div class="bg-green-600 text-white px-6 py-4 rounded-xl edge-card max-w-md">
         <div class="flex items-start">
           <svg class="w-6 h-6 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>

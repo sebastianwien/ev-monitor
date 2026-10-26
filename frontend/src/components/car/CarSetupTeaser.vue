@@ -13,9 +13,8 @@ import type { CarTeaserKind } from '../../composables/useCarSetupTeaser'
  *
  * Beide Varianten teilen sich denselben Gruen-Akzent; sie unterscheiden sich nur
  * durch Icon und Text. Zwei Farben lasen sich wie zwei Alarmstufen, obwohl es
- * dieselbe Botschaft ist. Gruen ist bewusst *nicht* das App-Indigo: in einer
- * indigolastigen View geht ein indigofarbener Streifen unter. Es ist die
- * Handlungsfarbe der Startseiten-CTAs.
+ * dieselbe Botschaft ist. App-CI: Karte mit Kante, gruen sind nur Icon und Handlung,
+ * keine gruene Flaeche.
  *
  * Welcher Teaser wann erscheint, entscheidet `useCarSetupTeaser`.
  */
@@ -38,7 +37,7 @@ const onDismiss = () => {
 </script>
 
 <template>
-  <div class="relative flex items-start gap-2.5 border-b-2 border-l-4 border-gray-300 dark:border-gray-600 border-l-green-600 dark:border-l-green-500 bg-green-50 dark:bg-green-900/20 px-4 py-3 pr-10">
+  <div class="relative flex items-start gap-2.5 rounded-xl bg-white px-4 py-3 pr-10 edge-card dark:bg-gray-700/50">
     <component
       :is="isTelemetry ? BoltIcon : ArrowPathIcon"
       class="h-5 w-5 shrink-0 text-green-600 dark:text-green-400"
@@ -46,7 +45,7 @@ const onDismiss = () => {
     />
 
     <div class="min-w-0 flex-1">
-      <p class="text-sm font-semibold text-gray-800 dark:text-gray-200 leading-snug">
+      <p class="text-sm font-semibold text-gray-900 dark:text-gray-100 leading-snug">
         {{ isTelemetry ? t('cars.teaser_telemetry_title') : t('cars.teaser_autosync_title') }}
       </p>
       <p class="text-xs text-gray-600 dark:text-gray-400 leading-snug mt-0.5">
@@ -76,7 +75,7 @@ const onDismiss = () => {
 
     <button
       type="button"
-      class="absolute top-2 right-2 h-7 w-7 flex items-center justify-center rounded-sm text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 transition"
+      class="absolute top-0 right-0 h-11 w-11 flex items-center justify-center rounded-xl text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 transition"
       :aria-label="t('cars.teaser_dismiss')"
       :title="t('cars.teaser_dismiss')"
       @click="onDismiss"

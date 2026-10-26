@@ -1628,7 +1628,6 @@ cars:
   hero_rated_aria: "Vurdert, rediger din vurdering"
   hero_shared_aria: "Delt, åpne delingsinnstillinger"
   switcher_label: Velg kjøretøy
-  switcher_add: Legg til
   menu_activate_hint: Forhåndsvalgt ved registrering
   menu_add: Legg til et kjøretøy til
   menu_delete_hint: Kan gjenopprettes i 7 dager

@@ -2,9 +2,10 @@
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 
 /**
- * Chip, der etwas oeffnet (SoH-Details, eigene Bewertung, Teilen). CI-Indigo mit hartem
- * Versatzschatten wie btn-3d und Chevron, gibt beim Tippen nach. Info-Chips daneben sind
- * dunkleres Indigo und flach. Gleiche Form ueberall, damit "klickbar" immer gleich aussieht.
+ * Chip, der etwas oeffnet (SoH-Details, eigene Bewertung, Teilen). Aussehen wie ChoiceChip
+ * (App-CI: Rand und harter Schatten in der Kantenfarbe) plus Chevron, gibt beim Tippen nach.
+ * Info-Chips daneben sind flach und ohne Rand. Gleiche Form ueberall, damit "klickbar" immer
+ * gleich aussieht.
  */
 withDefaults(defineProps<{
   /** sm: dichte Spec-Zeile, md: Standard, lg: Fahrzeug-Hero mit 44 px Tap-Target mobil. */
@@ -13,18 +14,17 @@ withDefaults(defineProps<{
 
 defineEmits<{ click: [] }>()
 
-// Schattenversatz waechst mit der Groesse, sonst wirkt der kleine Chip wie verrutscht.
 const sizeClass = {
-  sm: 'gap-1 px-2 py-0.5 text-[11px] shadow-[2px_2px_0_0_var(--chip-shadow)] active:translate-x-px active:translate-y-px',
-  md: 'gap-1 px-2.5 py-1 text-xs shadow-[3px_3px_0_0_var(--chip-shadow)] active:translate-x-[2px] active:translate-y-[2px]',
-  lg: 'gap-1.5 min-h-11 md:min-h-9 pl-3 pr-2.5 text-sm shadow-[3px_3px_0_0_var(--chip-shadow)] active:translate-x-[2px] active:translate-y-[2px]',
+  sm: 'gap-1 px-2 py-0.5 text-[11px]',
+  md: 'gap-1 px-2.5 py-1 text-xs',
+  lg: 'gap-1.5 min-h-11 md:min-h-9 pl-3 pr-2.5 text-sm',
 }
 </script>
 
 <template>
   <button
     type="button"
-    class="inline-flex items-center whitespace-nowrap rounded-full font-semibold transition-[transform,box-shadow,background-color] duration-75 bg-indigo-600 text-white hover:bg-indigo-500 [--chip-shadow:#a5b4fc] dark:[--chip-shadow:#3730a3] active:shadow-none touch-manipulation focus:outline-hidden focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-gray-900"
+    class="btn-3d cta-shadow-sm inline-flex items-center whitespace-nowrap rounded-full border-2 border-edge bg-white font-semibold text-gray-900 transition-colors hover:bg-gray-50 touch-manipulation focus:outline-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700"
     :class="sizeClass[size]"
     @click.stop="$emit('click')"
   >

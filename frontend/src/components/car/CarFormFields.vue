@@ -72,10 +72,10 @@ function pick(option: CapacityOption) {
   props.form.selectedSpecId = option.vehicleSpecificationId
 }
 
-const inputClass = 'w-full rounded-sm border-gray-300 dark:border-gray-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border dark:bg-gray-700 dark:text-gray-100'
+const inputClass = 'w-full rounded-xl border-gray-300 dark:border-gray-600 focus:border-green-600 focus:ring-green-600 p-2 border dark:bg-gray-700 dark:text-gray-100'
 const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1'
-const chipOn = 'bg-indigo-600 text-white shadow-[3px_3px_0_rgba(0,0,0,0.25)] dark:shadow-[3px_3px_0_rgba(255,255,255,0.25)]'
-const chipOff = 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white hover:bg-indigo-200 dark:hover:bg-gray-500'
+const chipOn = 'btn-3d cta-shadow-sm active border-2 border-edge bg-gray-900 text-white dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900'
+const chipOff = 'btn-3d cta-shadow-sm border-2 border-edge bg-white text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15'
 </script>
 
 <template>
@@ -88,7 +88,7 @@ const chipOff = 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white 
           <option v-for="brand in form.sortedBrands" :key="brand.value" :value="brand.value">{{ brand.label }}</option>
         </select>
         <button type="button" @click="emit('missing')"
-          class="mt-1 min-h-11 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
+          class="mt-1 min-h-11 text-sm font-semibold text-gray-900 dark:text-gray-100 underline underline-offset-2">
           {{ t('cars.missing_brand_model_link') }}
         </button>
       </div>
@@ -119,20 +119,18 @@ const chipOff = 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white 
             <div class="flex gap-2 flex-wrap">
               <button v-for="group in form.trimGroups" :key="group.trimLevel" type="button"
                 @click="form.selectTrimGroup(group.trimLevel)"
-                :class="['px-4 py-2 rounded-sm text-sm font-medium transition', form.selectedTrimLevel === group.trimLevel ? chipOn : chipOff]">
+                :class="['px-4 py-2 rounded-xl text-sm font-semibold transition-colors', form.selectedTrimLevel === group.trimLevel ? chipOn : chipOff]">
                 {{ group.trimLevel }}
               </button>
             </div>
-            <div v-if="form.visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-indigo-200 dark:border-indigo-700">
+            <div v-if="form.visibleOptionsForTrim.length > 1" class="flex gap-2 flex-wrap pl-3 border-l-2 border-gray-200 dark:border-white/10">
               <button v-for="(option, index) in form.visibleOptionsForTrim" :key="option.vehicleSpecificationId ?? option.kWh" type="button"
                 @click="pick(option)"
-                :class="['px-3 py-1.5 rounded-sm text-sm font-medium transition',
-                  form.selectedSpecId === option.vehicleSpecificationId
-                    ? chipOn
-                    : 'bg-indigo-50 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-gray-600']">
+                :class="['px-3 py-1.5 rounded-xl text-sm font-semibold transition-colors',
+                  form.selectedSpecId === option.vehicleSpecificationId ? chipOn : chipOff]">
                 <span class="block text-left">{{ trimOptionLabels[index].primary }}</span>
                 <span v-if="trimOptionLabels[index].secondary"
-                  :class="['block text-left text-xs font-normal', form.selectedSpecId === option.vehicleSpecificationId ? 'text-indigo-100' : 'text-indigo-400 dark:text-indigo-400']">
+                  :class="['block text-left text-xs font-normal', form.selectedSpecId === option.vehicleSpecificationId ? 'opacity-80' : 'text-gray-500 dark:text-gray-400']">
                   {{ trimOptionLabels[index].secondary }}
                 </span>
               </button>
@@ -144,7 +142,7 @@ const chipOff = 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white 
             <div class="flex gap-2 flex-wrap">
               <button v-for="capacity in filteredCapacities" :key="capacity.vehicleSpecificationId ?? capacity.kWh" type="button"
                 @click="pick(capacity)"
-                :class="['px-4 py-2 rounded-sm text-sm font-medium transition',
+                :class="['px-4 py-2 rounded-xl text-sm font-semibold transition-colors',
                   (capacity.vehicleSpecificationId ? form.selectedSpecId === capacity.vehicleSpecificationId : form.selectedCapacity === capacity.kWh) ? chipOn : chipOff]">
                 {{ capacity.variantName ? `${capacity.variantName} · ${capacity.kWh} kWh` : `${capacity.kWh} kWh` }}
               </button>
@@ -152,7 +150,7 @@ const chipOff = 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white 
             </div>
           </template>
           <button type="button" @click="emit('missing')"
-            class="min-h-11 text-sm text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 underline">
+            class="min-h-11 text-sm font-semibold text-gray-900 dark:text-gray-100 underline underline-offset-2">
             {{ t('cars.missing_battery_link') }}
           </button>
         </div>
@@ -235,11 +233,11 @@ const chipOff = 'bg-indigo-100 dark:bg-gray-600 text-indigo-700 dark:text-white 
 
     <div class="flex gap-3 pt-2">
       <button type="submit" v-haptic :disabled="submitting"
-        class="btn-3d bg-indigo-600 text-white px-6 py-2 min-h-11 rounded-sm hover:bg-indigo-700 transition disabled:opacity-60 disabled:cursor-not-allowed">
+        class="btn-3d rounded-xl border-2 border-edge bg-green-600 px-6 py-2 min-h-11 font-semibold text-white hover:bg-green-700 disabled:opacity-60 disabled:cursor-not-allowed">
         {{ submitting ? t('cars.saving') : (form.editingCar ? t('cars.update_btn') : t('cars.add_submit_btn')) }}
       </button>
       <button type="button" @click="emit('cancel')" v-haptic
-        class="btn-3d bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-6 py-2 min-h-11 rounded-sm hover:bg-gray-300 dark:hover:bg-gray-500 transition">
+        class="btn-3d rounded-xl border-2 border-edge bg-white px-6 py-2 min-h-11 font-semibold text-gray-900 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">
         {{ t('cars.cancel') }}
       </button>
     </div>

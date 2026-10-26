@@ -1674,7 +1674,6 @@ cars:
   hero_rated_aria: "Bewertet, eigene Bewertung bearbeiten"
   hero_shared_aria: "Geteilt, Teilen-Einstellungen öffnen"
   switcher_label: "Fahrzeug wählen"
-  switcher_add: "Hinzufügen"
   menu_activate_hint: "Wird beim Erfassen vorausgewählt"
   menu_add: "Weiteres Fahrzeug anlegen"
   menu_delete_hint: "7 Tage wiederherstellbar"

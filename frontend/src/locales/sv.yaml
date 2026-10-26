@@ -1628,7 +1628,6 @@ cars:
   hero_rated_aria: "Betygsatt, redigera ditt betyg"
   hero_shared_aria: "Delad, öppna delningsinställningar"
   switcher_label: Välj fordon
-  switcher_add: Lägg till
   menu_activate_hint: Förvald vid registrering
   menu_add: Lägg till ett fordon till
   menu_delete_hint: Kan återställas i 7 dagar
