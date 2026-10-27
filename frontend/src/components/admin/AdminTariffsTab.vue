@@ -2,11 +2,13 @@
 import { computed, onMounted, ref } from 'vue'
 import { adminChargingTariffService, type TariffCommand, type TariffOverview, type TariffRow } from '../../api/adminChargingTariffService'
 import { apiErrorText } from '../../api/adminVehicleSpecService'
+import AdminTariffCrawlPanel from './AdminTariffCrawlPanel.vue'
 
 /**
  * Admin-Tab "Ladekarten": die gepflegten Tarife hinter dem Story-Moment "Teurer als üblich"
- * und dem Schnellladepreis des Rechners. Preisänderung = alten Tarif beenden, neuen anlegen;
- * "Ändern" ist für Tippfehler und erneuert den Stand.
+ * und dem Schnellladepreis des Rechners. Oben der Tarif-Crawler mit seinen Vorschlägen.
+ * Preisänderung = alten Tarif beenden, neuen anlegen; "Ändern" ist für Tippfehler und erneuert
+ * den Stand, "Geprüft" erneuert nur den Stand.
  */
 const data = ref<TariffOverview | null>(null)
 const loadError = ref('')
@@ -35,15 +37,17 @@ const rows = computed(() => (data.value?.tariffs ?? []).filter(r => showEnded.va
 /** Ohne Betreiber und Tier gilt ein Tarif nur, wenn der Anbieter selbst ein Netz im Katalog hat (ADAC, Maingau nicht). */
 function scope(r: TariffRow): string {
   if (r.cpoName) return r.cpoName
-  if (r.priceTier) return `Tier ${r.priceTier}`
+  if (r.priceTier) return r.appliesElsewhere ? `Tier ${r.priceTier} und alle anderen Betreiber` : `Tier ${r.priceTier}`
+  if (r.appliesElsewhere) return 'alle anderen Betreiber'
   return data.value?.cpos.includes(r.empName) ? 'eigenes Netz' : 'nirgends: kein eigenes Netz, Betreiber setzen'
 }
+const kind = (r: TariffRow) => r.minPowerKw != null ? `${r.chargingType} über ${r.minPowerKw} kW` : r.chargingType
 const validity = (r: TariffRow) => r.validUntil ? `${de(r.validFrom)} bis ${de(r.validUntil)}` : `ab ${de(r.validFrom)}`
 
 const blank = (): TariffCommand => ({
   empName: '', tariffVariant: '', cpoName: null, priceTier: null, chargingType: 'DC', pricePerKwh: 0,
   sessionFeeEur: 0, monthlyFeeEur: 0, blockingFeePerMin: null, blockingFeeAfterMin: null, dynamicPricing: false,
-  validFrom: today(), validUntil: null, sourceUrl: '',
+  validFrom: today(), validUntil: null, sourceUrl: '', appliesElsewhere: false, minPowerKw: null, blockingFeeCapEur: null,
 })
 function startCreate() {
   formError.value = ''
@@ -70,6 +74,8 @@ async function save() {
     monthlyFeeEur: Number(f.monthlyFeeEur || 0),
     blockingFeePerMin: f.blockingFeePerMin === null || (f.blockingFeePerMin as unknown) === '' ? null : Number(f.blockingFeePerMin),
     blockingFeeAfterMin: f.blockingFeeAfterMin === null || (f.blockingFeeAfterMin as unknown) === '' ? null : Number(f.blockingFeeAfterMin),
+    minPowerKw: f.minPowerKw === null || (f.minPowerKw as unknown) === '' ? null : Number(f.minPowerKw),
+    blockingFeeCapEur: f.blockingFeeCapEur === null || (f.blockingFeeCapEur as unknown) === '' ? null : Number(f.blockingFeeCapEur),
   }
   try {
     if (editing.value.id) await adminChargingTariffService.update(editing.value.id, cmd)
@@ -80,6 +86,15 @@ async function save() {
     formError.value = apiErrorText(e, 'Speichern hat nicht geklappt.')
   } finally {
     busy.value = false
+  }
+}
+
+async function verifyTariff(r: TariffRow) {
+  try {
+    await adminChargingTariffService.verify(r.id)
+    await load()
+  } catch (e) {
+    loadError.value = apiErrorText(e, 'Markieren hat nicht geklappt.')
   }
 }
 
@@ -104,8 +119,8 @@ const label = 'block text-xs text-gray-400 mb-1'
       <div>
         <h2 class="text-lg font-semibold text-white">Ladekarten</h2>
         <p class="text-sm text-gray-400 max-w-2xl">
-          Gepflegte Tarife. Ein Tarif gilt im eigenen Netz des Anbieters, beim genannten Betreiber oder über das Tier-Mapping.
-          Preisänderung: alten Tarif beenden, neuen anlegen.
+          Gepflegte Tarife. Ein Tarif gilt beim genannten Betreiber, über das Tier-Mapping, im eigenen Netz des Anbieters
+          oder an allen anderen Betreibern, in dieser Reihenfolge. Preisänderung: alten Tarif beenden, neuen anlegen.
         </p>
       </div>
       <div class="flex items-center gap-4">
@@ -115,6 +130,8 @@ const label = 'block text-xs text-gray-400 mb-1'
         <button type="button" class="px-4 py-2 rounded-sm bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-500" @click="startCreate">Neuer Tarif</button>
       </div>
     </div>
+
+    <AdminTariffCrawlPanel @changed="load" />
 
     <div v-if="loadError" class="mb-4 p-3 bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-sm">{{ loadError }}</div>
 
@@ -173,6 +190,14 @@ const label = 'block text-xs text-gray-400 mb-1'
         <input v-model="editing.form.blockingFeeAfterMin" name="blockingFeeAfterMin" type="number" step="1" min="0" max="1440" :class="field" />
       </div>
       <div>
+        <label :class="label">Blockiergebühr höchstens €</label>
+        <input v-model="editing.form.blockingFeeCapEur" name="blockingFeeCapEur" type="number" step="0.01" min="0" max="100" :class="field" />
+      </div>
+      <div>
+        <label :class="label">Nur über kW (DC, leer = alle)</label>
+        <input v-model="editing.form.minPowerKw" name="minPowerKw" type="number" step="1" min="1" max="1000" :class="field" />
+      </div>
+      <div>
         <label :class="label">Gültig ab</label>
         <input v-model="editing.form.validFrom" name="validFrom" type="date" :class="field" required />
       </div>
@@ -186,6 +211,9 @@ const label = 'block text-xs text-gray-400 mb-1'
       </div>
       <label class="flex items-center gap-2 text-sm text-gray-300 self-end pb-2">
         <input v-model="editing.form.dynamicPricing" name="dynamicPricing" type="checkbox" class="accent-indigo-500" /> Dynamischer Preis
+      </label>
+      <label class="flex items-center gap-2 text-sm text-gray-300 self-end pb-2">
+        <input v-model="editing.form.appliesElsewhere" name="appliesElsewhere" type="checkbox" class="accent-indigo-500" /> Gilt an allen anderen Betreibern
       </label>
       <div v-if="formError" class="sm:col-span-2 lg:col-span-4 p-3 bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-sm">{{ formError }}</div>
       <div class="sm:col-span-2 lg:col-span-4 flex gap-2">
@@ -215,9 +243,9 @@ const label = 'block text-xs text-gray-400 mb-1'
             <td class="px-3 py-2 font-medium">{{ r.empName }}</td>
             <td class="px-3 py-2">{{ r.tariffVariant ?? '-' }}</td>
             <td class="px-3 py-2">{{ scope(r) }}</td>
-            <td class="px-3 py-2">{{ r.chargingType }}</td>
-            <td class="px-3 py-2 text-right tabular-nums">{{ ct(r.pricePerKwh) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums">{{ r.monthlyFeeEur > 0 ? euro(r.monthlyFeeEur) : '-' }}</td>
+            <td class="px-3 py-2 whitespace-nowrap">{{ kind(r) }}</td>
+            <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap">{{ ct(r.pricePerKwh) }}</td>
+            <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap">{{ r.monthlyFeeEur > 0 ? euro(r.monthlyFeeEur) : '-' }}</td>
             <td class="px-3 py-2 whitespace-nowrap">{{ validity(r) }}</td>
             <td class="px-3 py-2 whitespace-nowrap">{{ de(r.lastVerifiedAt) }}</td>
             <td class="px-3 py-2">
@@ -225,6 +253,7 @@ const label = 'block text-xs text-gray-400 mb-1'
               <span v-else>-</span>
             </td>
             <td class="px-3 py-2 whitespace-nowrap text-right">
+              <button v-if="!isEnded(r)" type="button" data-action="verify" class="px-2 py-1 text-emerald-400 hover:underline" @click="verifyTariff(r)">Geprüft</button>
               <button type="button" data-action="edit" class="px-2 py-1 text-indigo-400 hover:underline" @click="startEdit(r)">Ändern</button>
               <button v-if="!isEnded(r)" type="button" data-action="end" class="px-2 py-1 text-amber-400 hover:underline" @click="endTariff(r)">Beenden</button>
             </td>

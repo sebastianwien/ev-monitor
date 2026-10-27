@@ -7,12 +7,18 @@ const overview = vi.fn()
 const create = vi.fn()
 const update = vi.fn()
 const end = vi.fn()
+const verify = vi.fn()
 vi.mock('../../../api/adminChargingTariffService', () => ({
   adminChargingTariffService: {
     overview: () => overview(),
     create: (c: unknown) => create(c),
     update: (id: string, c: unknown) => update(id, c),
     end: (id: string, until: string) => end(id, until),
+    verify: (id: string) => verify(id),
+  },
+  adminTariffCrawlService: {
+    overview: () => Promise.resolve({ sources: [], proposals: [], extractorAvailable: true, enabled: true }),
+    driverCheck: () => Promise.resolve([]),
   },
 }))
 
@@ -22,7 +28,7 @@ const row = (over: Partial<TariffRow>): TariffRow => ({
   id: 't1', empName: 'IONITY', tariffVariant: 'Power', cpoName: null, priceTier: null, chargingType: 'DC',
   pricePerKwh: 0.39, sessionFeeEur: 0, monthlyFeeEur: 11.99, blockingFeePerMin: null, blockingFeeAfterMin: null,
   dynamicPricing: false, validFrom: '2025-01-01', validUntil: null, sourceUrl: 'https://ionity.eu/de/abonnements',
-  lastVerifiedAt: '2026-03-25T10:00:00', ...over,
+  lastVerifiedAt: '2026-03-25T10:00:00', appliesElsewhere: false, minPowerKw: null, blockingFeeCapEur: null, ...over,
 })
 const sample: TariffOverview = {
   tariffs: [
@@ -30,6 +36,8 @@ const sample: TariffOverview = {
     row({ id: 't2', empName: 'EnBW', tariffVariant: 'Tariff S', pricePerKwh: 0.59, monthlyFeeEur: 0, validUntil: '2025-11-30' }),
     row({ id: 't3', empName: 'Maingau', tariffVariant: 'Standard', priceTier: 'HIGH', pricePerKwh: 0.82, monthlyFeeEur: 0 }),
     row({ id: 't4', empName: 'ADAC e-Charge', tariffVariant: 'Standard', pricePerKwh: 0.55, monthlyFeeEur: 0 }),
+    row({ id: 't5', empName: 'ADAC e-Charge', tariffVariant: 'Standard', pricePerKwh: 0.75, monthlyFeeEur: 0, appliesElsewhere: true }),
+    row({ id: 't6', empName: 'IONITY', tariffVariant: 'Direct', pricePerKwh: 0.72, monthlyFeeEur: 0, minPowerKw: 50 }),
   ],
   emps: ['EnBW', 'IONITY', 'Maingau'],
   cpos: ['EnBW', 'IONITY'],
@@ -39,7 +47,7 @@ let app: App | null = null
 afterEach(() => {
   app?.unmount(); app = null
   document.body.innerHTML = ''
-  overview.mockReset(); create.mockReset(); update.mockReset(); end.mockReset()
+  overview.mockReset(); create.mockReset(); update.mockReset(); end.mockReset(); verify.mockReset()
   vi.restoreAllMocks()
 })
 
@@ -62,7 +70,7 @@ const input = (host: HTMLElement, name: string) => host.querySelector(`[name="${
 describe('AdminTariffsTab', () => {
   it('zeigt gültige Tarife mit Geltungsbereich, beendete erst auf Wunsch', async () => {
     const host = await mount()
-    expect(rows(host)).toHaveLength(3)
+    expect(rows(host)).toHaveLength(5)
     expect(rows(host)[0]).toContain('IONITY')
     expect(rows(host)[0]).toContain('eigenes Netz')
     expect(rows(host)[0]).toContain('39,0 ct')
@@ -73,8 +81,26 @@ describe('AdminTariffsTab', () => {
 
     ;(host.querySelector('[name="showEnded"]') as HTMLInputElement).click()
     await flush()
-    expect(rows(host)).toHaveLength(4)
+    expect(rows(host)).toHaveLength(6)
     expect(rows(host).join(' ')).toContain('bis 30.11.2025')
+  })
+
+  it('zeigt Roaming-Preise und Leistungsklassen', async () => {
+    const host = await mount()
+    const all = rows(host)
+    expect(all.find(r => r.includes('75,0 ct'))).toContain('alle anderen Betreiber')
+    expect(all.find(r => r.includes('72,0 ct'))).toContain('DC über 50 kW')
+  })
+
+  it('markiert einen Tarif als geprüft und lädt neu', async () => {
+    verify.mockResolvedValue(row({ lastVerifiedAt: '2026-10-27T12:00:00' }))
+    const host = await mount()
+
+    ;[...host.querySelectorAll('[data-testid="tariff-row"]')][0].querySelector('button[data-action="verify"]')!.dispatchEvent(new Event('click'))
+    await flush()
+
+    expect(verify).toHaveBeenCalledWith('t1')
+    expect(overview).toHaveBeenCalledTimes(2)
   })
 
   it('beendet einen Tarif zum gewählten Tag und lädt neu', async () => {
@@ -107,6 +133,7 @@ describe('AdminTariffsTab', () => {
     expect(create).toHaveBeenCalledWith(expect.objectContaining({
       empName: 'EWE Go', tariffVariant: 'Standard', chargingType: 'DC', pricePerKwh: 0.52, validFrom: '2026-10-01',
       sourceUrl: 'https://www.ewe-go.de/tarife', cpoName: null, priceTier: null,
+      appliesElsewhere: false, minPowerKw: null, blockingFeeCapEur: null,
     }))
   })
 
