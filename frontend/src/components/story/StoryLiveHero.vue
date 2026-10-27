@@ -43,9 +43,10 @@ watch(() => props.live.powerKw, v => tickTo(v ?? 0))
     </p>
 
     <div class="mt-3 flex items-center gap-5 md:gap-8">
-      <SocRing :soc="live.socPercent ?? 0" :soc-start="live.socAtSessionStart" :limit="live.chargeLimitSoc">
+      <!-- Ohne Ladestand keinen Ring: 0 % wäre eine Zahl, die das Auto nie gemeldet hat. -->
+      <SocRing v-if="live.socPercent != null" :soc="live.socPercent" :soc-start="live.socAtSessionStart" :limit="live.chargeLimitSoc">
         <span class="block font-extrabold text-4xl md:text-5xl tabular-nums leading-none text-gray-900 dark:text-gray-50">
-          {{ Math.round(live.socPercent ?? 0) }}<span class="text-lg font-semibold text-gray-500">%</span>
+          {{ Math.round(live.socPercent) }}<span class="text-lg font-semibold text-gray-500">%</span>
         </span>
         <span v-if="live.socAtSessionStart != null" class="block text-[11px] text-gray-500 dark:text-gray-400 mt-1">
           {{ t('story.live_soc_from', { start: Math.round(live.socAtSessionStart) }) }}
