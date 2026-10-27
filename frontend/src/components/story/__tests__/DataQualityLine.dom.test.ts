@@ -114,6 +114,30 @@ describe('DataQualityLine', () => {
     expect(legend(host)).toEqual(['geladen', 'gefahren', 'nichts erfasst'])
   })
 
+  it('Tagesanzeige bleibt am rechten und linken Rand in der Leiste', async () => {
+    // jsdom misst nichts: Leiste 350 px, Anzeige 120 px gestellt.
+    const widths: Record<string, number> = { 'story-days': 350, 'story-day-tip': 120 }
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const w = widths[this.dataset.testid ?? ''] ?? 0
+      return { width: w, height: 10, left: 0, top: 0, right: w, bottom: 10, x: 0, y: 0, toJSON: () => ({}) } as DOMRect
+    })
+    const host = mount(days([1], null, 28), quality())
+    const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement
+    const tip = () => host.querySelector('[data-testid="story-day-tip"]') as HTMLElement
+    const settle = async () => { for (let i = 0; i < 3; i++) await Promise.resolve() }
+    bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }))
+    await settle()
+    expect(tip().style.left).toBe('0px')
+    for (let i = 0; i < 24; i++) bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
+    await settle()
+    // Tag 25 von 31: Mitte bei 277 px, mittig wäre 217 px, der Rand erlaubt höchstens 230 px.
+    expect(tip().style.left).toBe('217px')
+    bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }))
+    await settle()
+    expect(tip().style.left).toBe('230px')
+    spy.mockRestore()
+  })
+
   it('Tagesanzeige nennt Fahrten mit km', async () => {
     const host = mount(days([16], null, 25, [16]), quality())
     const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement

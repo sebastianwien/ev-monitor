@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onUnmounted } from 'vue'
+import { computed, ref, watch, nextTick, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { visibleGap, type DayCoverage } from '../../composables/storyModel'
 import type { DataQuality } from '../../composables/storyInsights'
@@ -95,12 +95,25 @@ const maxKm = computed(() => Math.max(0, ...props.days.map(d => d.tripKm)))
 const hasTrips = computed(() => props.days.some(d => d.trips > 0))
 /** Säulenhöhe in Prozent; eine Fahrt ohne km bleibt als Strich sichtbar. */
 const kmHeight = (d: DayCoverage) => maxKm.value > 0 ? `${Math.max(12, Math.round((d.tripKm / maxKm.value) * 100))}%` : '12%'
-/** Mitte des Felds in Prozent; die Anzeige am Rand bündig, damit sie nicht aus der Box ragt. */
+/** Mitte des Felds in Prozent. */
 const pos = (index: number) => `${((index + 0.5) / props.days.length) * 100}%`
-const tipAlign = computed(() => {
-  const i = active.value ?? 0
-  return i < 3 ? 'translate-x-[-6px]' : i > props.days.length - 4 ? '-translate-x-full translate-x-[6px]' : '-translate-x-1/2'
-})
+/**
+ * Linke Kante der Tagesanzeige: mittig über dem Tag, am Rand nach gemessener Breite in die Leiste
+ * geschoben, damit kein Text abgeschnitten wird. Ohne Maße (vor dem ersten Rendern) nur die Mitte.
+ */
+const tipEl = ref<HTMLElement | null>(null)
+const tipLeft = ref('0%')
+function placeTip() {
+  const i = active.value
+  if (i == null) return
+  const center = (i + 0.5) / props.days.length
+  const barWidth = bar.value?.getBoundingClientRect().width ?? 0
+  const tipWidth = tipEl.value?.getBoundingClientRect().width ?? 0
+  if (!barWidth || !tipWidth) { tipLeft.value = `${center * 100}%`; return }
+  const left = Math.max(0, Math.min(barWidth - tipWidth, center * barWidth - tipWidth / 2))
+  tipLeft.value = `${Math.round(left)}px`
+}
+watch([active, tip], async () => { await nextTick(); placeTip() })
 const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.length))
 </script>
 
@@ -125,9 +138,9 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.leng
              :class="[cellClass(d), active === i ? 'scale-y-[1.4]' : '']" />
         </span>
       </div>
-      <span v-if="tip" data-testid="story-day-tip" role="status"
+      <span v-if="tip" ref="tipEl" data-testid="story-day-tip" role="status"
             class="pointer-events-none absolute bottom-full mb-2 whitespace-nowrap rounded-md bg-gray-900 px-2 py-1 text-[12px] font-semibold text-white tabular-nums shadow-sm dark:bg-gray-100 dark:text-gray-900"
-            :class="tipAlign" :style="{ left: pos(active ?? 0) }">{{ tip }}</span>
+            :style="{ left: tipLeft }">{{ tip }}</span>
       <div class="relative mt-1 h-3.5 text-[10.5px] text-gray-500 tabular-nums dark:text-gray-400" aria-hidden="true">
         <span v-for="d in ticks" :key="d" data-role="tick" class="absolute -translate-x-1/2" :style="{ left: pos(d - 1) }">{{ d }}.</span>
       </div>
