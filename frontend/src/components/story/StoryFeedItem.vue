@@ -4,9 +4,6 @@ import { useI18n } from 'vue-i18n'
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { StoryFeedItem, TileId } from '../../composables/storyModel'
-import { useMomentView } from '../../composables/useMomentView'
-import type { Moment } from '../../composables/storyMoments'
-import { keepUnits } from '../../utils/modelStory'
 import InsightBars, { type InsightBar } from './InsightBars.vue'
 
 /**
@@ -20,24 +17,13 @@ const props = withDefaults(defineProps<{
   modelName?: string
   /** Name des Story-Monats fuer die Vergleichsbasis ("im Oktober") und den Balken. */
   monthName?: string
-  /** Fuer Moment-Eintraege: Ziel von "Preis nachtragen" und Name im AutoSync-Satz. */
-  carId?: string | null
-  carName?: string
   /** Kacheln, die ein Sheet haben: nur dahin fuehrt ein Tipp auf die Zeile. */
   sheets?: TileId[]
-}>(), { modelName: '', monthName: '', carId: null, carName: '', sheets: () => [] })
+}>(), { modelName: '', monthName: '', sheets: () => [] })
 const emit = defineEmits<{ open: [id: TileId] }>()
 
 const { t, locale } = useI18n()
 const { formatCurrency, formatDecimal, formatDistance } = useLocaleFormat()
-
-// Nur fuer id 'moment' gelesen; der computed wertet sonst nie aus.
-const momentView = useMomentView({
-  get moment() { return props.item.moment as Moment },
-  get carId() { return props.carId },
-  get carName() { return props.carName },
-})
-const momentLink = computed(() => props.item.id === 'moment' && momentView.value.action?.to ? momentView.value.action : null)
 
 // Die Zahl, um die es im Satz geht, steht fett: Marker um den Wert, danach in Stücke geteilt (kein v-html).
 const B_OPEN = '\u0001'
@@ -49,10 +35,6 @@ const monthName = (n: number) => new Date(2000, n - 1, 1).toLocaleDateString(loc
 const sentence = computed(() => {
   const p = props.item.params
   switch (props.item.id) {
-    case 'moment': {
-      const v = momentView.value
-      return keepUnits([`${v.eyebrow}${/[.?!]$/.test(v.eyebrow) ? '' : '.'}`, v.sentence, v.sub].filter(Boolean).join(' '))
-    }
     case 'autumn_forecast':
       return t('story.feed_autumn_title', { month: monthName(p.nextMonth), eur: b(eur0(Math.round(p.deltaEur))) })
     case 'peer_cost_eur':
@@ -165,7 +147,6 @@ const tag = computed(() => sheet.value ? 'button' : 'div')
       <span class="min-w-0 flex-1">
         <span class="block text-[15px] leading-snug text-pretty text-gray-900 dark:text-gray-100" :class="sub ? 'font-bold' : ''"><template v-for="(x, i) in parts" :key="i"><b v-if="x.bold" class="font-bold">{{ x.text }}</b><template v-else>{{ x.text }}</template></template></span>
         <span v-if="sub" class="mt-0.5 block text-[13px] leading-snug text-gray-600 dark:text-gray-300">{{ sub }}</span>
-        <router-link v-if="momentLink" :to="momentLink.to!" class="mt-1 inline-flex min-h-[44px] items-center text-sm font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100">{{ momentLink.label }}</router-link>
       </span>
       <span v-if="number" data-testid="story-feed-number" class="shrink-0 text-[17px] font-bold tabular-nums" :class="numberClass">{{ number }}</span>
       <span v-if="sheet" data-testid="story-feed-chevron" class="-ml-1 mt-0.5 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true"><ChevronRightIcon class="h-4 w-4" /></span>

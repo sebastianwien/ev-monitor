@@ -12,12 +12,12 @@ import {
 } from './storyModel'
 import { buildEnergyFlow, buildRange, costLayers, monthCosts, type MonthCosts } from './storyEnergy'
 import {
-  temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, bestRank, ranksFromStandings,
+  temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, ranksFromStandings,
   type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
-  detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
-  detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickMoment, momentFeedItems, DAY,
-  type Moment, type MomentLog, type MomentTrip, type MomentPoint,
+  detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRankClosing,
+  detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickCards, DAY,
+  type Moment, type MomentLog, type MomentTrip, type MomentPoint, type ScoredMoment,
 } from './storyMoments'
 import { useMomentSeen } from './useMomentSeen'
 import { benchmarkPairs, toPlaceRows, type ChargingPlace, type PlaceRow } from './storyPlaces'
@@ -49,12 +49,8 @@ export interface StoryCarContext {
   vehicleCategory: string | null
   effectiveBatteryCapacityKwh: number | null
   canViewLiveAnalytics: boolean
-  /** DC-Ladung laeuft und das Live-Gate ist offen. */
-  liveActive: boolean
   /** Marke hat einen AutoSync-Weg und das Auto ist nicht verbunden. */
   autoSync: boolean
-  /** Widerruf des Moment-Heros. */
-  alwaysMonth: boolean
 }
 
 export const STORY_MONTH_OFFSETS = [-2, -1, 0] as const
@@ -132,7 +128,6 @@ interface MonthBundle {
   previousStats: StatisticsData | null
   series: StatisticsData | null
   trips: TripForTemperature[]
-  ranks: RankResponse[]
   /** Ladungen ab Vormonat, nur mit Freischaltung: Preis der Standverluste. */
   charges: StandbyPricing['charges']
   /** Ladeorte des Monats samt Vergleich je Betreiber und Ladeart: der Karten-Teaser wechselt mit dem Monat. */
@@ -184,17 +179,15 @@ function fetchMonthBundle(carId: string, m: StoryMonth, withCharges: boolean): P
     const cur = monthWindow(m.year, m.month)
     const prev = monthWindow(m.year, m.month, -1)
     const first = monthWindow(m.year, m.month, -5)
-    const monthsBack = -m.offset
-    const [a, b, c, t, r, ch, pl] = await Promise.all([
+    const [a, b, c, t, ch, pl] = await Promise.all([
       fetchStats(carId, cur.start, cur.end, 'DAY'),
       fetchStats(carId, prev.start, prev.end, 'MONTH'),
       fetchStats(carId, first.start, cur.end, 'MONTH'),
       fetchTrips(carId, cur.start, cur.end),
-      monthsBack <= 1 ? fetchRanks(monthsBack) : Promise.resolve([] as RankResponse[]),
       withCharges ? fetchCharges(carId, prev.start, cur.end) : Promise.resolve([]),
       fetchMonthPlaces(carId, m),
     ])
-    return a == null ? null : { monthStats: a, previousStats: b, series: c, trips: t, ranks: r, charges: ch, ...pl }
+    return a == null ? null : { monthStats: a, previousStats: b, series: c, trips: t, charges: ch, ...pl }
   })().finally(() => monthInflight.delete(key))
   monthInflight.set(key, job)
   return job
@@ -227,6 +220,8 @@ interface CarBundle {
   recentTrips: MomentTrip[]
   lifetimeSeries: MomentPoint[]
   latestTrip: LatestTripSource | null
+  /** Endstand des Vormonats je Kategorie, Basis der Ranglisten-Abschlusskarte. */
+  previousRanks: RankResponse[]
 }
 
 /** Wie der Monats-Cache, nur je Auto: Hero und Zuletzt-Karten stehen beim naechsten Oeffnen sofort. */
@@ -250,7 +245,7 @@ async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<Lat
 
 async function fetchCarBundle(carId: string): Promise<CarBundle> {
   const tripsFrom = new Date(Date.now() - MOMENT_TRIP_DAYS * DAY).toISOString()
-  const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime] = await Promise.allSettled([
+  const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime, prevRanks] = await Promise.allSettled([
     chargingSavingsService.get(),
     peerModelComparisonService.getPeerModelComparison(carId),
     api.get<MomentLog[]>(`/logs/priceless?carId=${carId}&includeUnknown=true`),
@@ -261,6 +256,7 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
     fetchStats(carId, isoDate(daysAgo(RECENT_DAYS - 1)), isoDate(daysAgo(0)), 'MONTH'),
     api.get<MomentTrip[]>(`/trips?carId=${carId}&from=${encodeURIComponent(tripsFrom)}&to=${encodeURIComponent(new Date().toISOString())}`),
     api.get<StatisticsData>(`/logs/statistics?carId=${carId}&groupBy=DAY`),
+    fetchRanks(1),
   ])
   const prices = fuel.status === 'fulfilled' ? fuel.value : null
   return {
@@ -279,6 +275,7 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
     lifetimeSeries: lifetime.status === 'fulfilled' ? lifetime.value.data?.chargesOverTime ?? [] : [],
     // Fahrten liefert das Backend nur Berechtigten, ein Fehler heisst dann einfach: keine Fahrt.
     latestTrip: lastTrip.status === 'fulfilled' && Array.isArray(lastTrip.value.data) ? lastTrip.value.data[0] ?? null : null,
+    previousRanks: prevRanks.status === 'fulfilled' ? prevRanks.value : [],
   }
 }
 
@@ -304,7 +301,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const series = ref<StatisticsData | null>(null)
   const trips = ref<TripForTemperature[]>([])
   const charges = ref<StandbyPricing['charges']>([])
-  const ranks = ref<RankResponse[]>([])
+  const previousRanks = ref<RankResponse[]>([])
   const places = ref<ChargingPlace[]>([])
   const placeBenchmarks = ref<Record<string, ChargingBenchmark | null>>({})
   const placeRows = computed<PlaceRow[]>(() => toPlaceRows(places.value, placeBenchmarks.value))
@@ -339,7 +336,6 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     previousStats.value = b.previousStats
     series.value = b.series
     trips.value = b.trips
-    ranks.value = b.ranks
     charges.value = b.charges
     places.value = b.places
     placeBenchmarks.value = b.benchmarks
@@ -405,6 +401,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     benchmark.value = b.benchmark
     recentTrips.value = b.recentTrips
     lifetimeSeries.value = b.lifetimeSeries
+    previousRanks.value = b.previousRanks
     latest.value = buildLatest(b.recentLogs[0] ?? null, b.latestTrip,
       { consumptionKwh100: b.recentStats?.avgConsumptionKwhPer100km ?? null, effectiveCapacityKwh: ctx().effectiveBatteryCapacityKwh })
   }
@@ -507,7 +504,6 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     flow: flow.value,
     range: range.value,
     modelPeers: peers.value,
-    rank: bestRank(ranks.value),
     quality: quality.value,
     temperature: temperature.value,
     pricelessPrevious: pricelessInPreviousMonth.value,
@@ -522,21 +518,21 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   } : null)
 
   /**
-   * Moment-Hero: nur im laufenden Monat, sonst steht der gewaehlte Monat oben. Live gewinnt immer,
-   * auch mit "Immer den Monat zeigen" (wie vor dem Moment-Hero).
+   * Die Karten von unten: Neues seit dem letzten Oeffnen, beste zuerst. Unabhaengig vom gewaehlten
+   * Monat, nur Rueckblick und Ranglisten-Abschluss gehoeren zum laufenden Monat. "Gerade geladen"
+   * ist keine Karte, das zeigt die Zuletzt-Karte; Live steht oben auf der Seite.
    */
-  const moments = computed(() => {
+  const cards = computed<ScoredMoment[]>(() => {
     const c = ctx()
     const now = Date.now()
-    const live = detectLive(c.liveActive)
-    if (month.value.offset !== 0 || c.alwaysMonth) return pickMoment(live ? [live] : [], now, seen.value)
     const lastLog = recentLogs.value[0] ?? null
-    const prev = previousStats.value
+    const running = month.value.offset === 0
+    const prev = running ? previousStats.value : null
     const prevMonth = new Date(month.value.year, month.value.month - 2, 1)
-    const justCharged = detectJustCharged({ log: lastLog, now, consumptionKwh100: range.value?.consumption ?? null })
+    // Die heutige Ladung fragt ihren Preis schon in der Zuletzt-Karte ab.
+    const today = latest.value?.charge && new Date(latest.value.charge.at).toDateString() === new Date(now).toDateString()
+      ? latest.value.charge.id : null
     const candidates = [
-      live,
-      justCharged,
       detectExpensive({ logs: recentLogs.value, benchmark: benchmark.value, now }),
       detectLongTrip({ trips: recentTrips.value, logs: recentLogs.value, now }),
       detectFirstFrost({ trips: recentTrips.value, now, range: range.value }),
@@ -551,24 +547,19 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
         petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory),
       }),
       detectBattery({ history: sohHistory.value, now }),
-      detectRank({ rank: bestRank(ranks.value), now }),
+      running ? detectRankClosing({ ranks: previousRanks.value, now }) : null,
       detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
-      // Die gerade geladene fragt schon selbst nach ihrem Preis.
       detectMilestone({ series: lifetimeSeries.value, now, petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory) }),
-      detectGap({ logs: pricelessLogs.value, now, skipLogId: justCharged?.kind === 'just_charged' ? justCharged.logId : null }),
+      detectGap({ logs: pricelessLogs.value, now, skipLogId: today }),
     ].filter((m): m is Moment => m != null)
-    return pickMoment(candidates, now, seen.value)
+    return pickCards(candidates, now, seen.value)
   })
-  const moment = computed<Moment>(() => moments.value.hero)
 
   const tiles = computed<StoryTile[]>(() => input.value ? buildStoryTiles(input.value) : [])
   // Nur lokal: /story?feed=alle zeigt alle Sätze, die die Daten hergeben, statt der fünf relevantesten.
   const allFeed = import.meta.env.DEV && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('feed') === 'alle'
   const feed = computed<StoryFeedItem[]>(() => input.value
-    ? buildStoryFeed(input.value, {
-      extra: momentFeedItems(moments.value.rest),
-      max: allFeed ? Infinity : undefined,
-    })
+    ? buildStoryFeed(input.value, { max: allFeed ? Infinity : undefined })
     : [])
   const days = computed<DayCoverage[]>(() =>
     buildDayCoverage(monthStats.value?.chargesOverTime ?? [], month.value.year, month.value.month, Date.now(), trips.value))
@@ -600,7 +591,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   return {
     offset, month, months, setOffset, switching, placeRows, dataMonths, minOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
-    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, moment, benchmark,
+    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, cards, benchmark,
     reload, markPriceUnknown,
   }
 }

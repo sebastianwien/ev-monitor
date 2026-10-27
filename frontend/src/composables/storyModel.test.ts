@@ -8,7 +8,7 @@ import {
   heroLine,
   co2Comparison,
   monthWindow,
-  type StoryInput, type StoryFeedItem, MIN_SOLID_CHARGES } from './storyModel'
+  type StoryInput, MIN_SOLID_CHARGES } from './storyModel'
 import type { StatisticsData } from './useDashboardStats'
 import type { TripMonth } from './storyInsights'
 
@@ -61,7 +61,6 @@ function input(over: Partial<StoryInput> = {}): StoryInput {
     flow: null,
     range: null,
     modelPeers: null,
-    rank: null,
     quality: null,
     temperature: null,
     pricelessPrevious: 0,
@@ -456,19 +455,23 @@ describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
 
 describe('buildStoryFeed: Testansicht ohne Grenze', () => {
   it('max hebt die drei Plätze auf', () => {
-    const neg = (id: string, relevance: number) => ({ id: 'moment', question: 1, relevance, sentiment: 'warn', params: {}, moment: { key: id } }) as never
-    const extra = [neg('a', 99), neg('b', 98), neg('c', 97), neg('d', 96), neg('e', 95), neg('f', 94)]
-    const feed = buildStoryFeed(input({ savingsEur: 120 }), { extra, max: Infinity })
-    expect(feed.length).toBeGreaterThan(6)
+    const all = input({
+      quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 0, pricelessOpen: 0, severity: 'bad' },
+      temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 },
+    })
+    expect(buildStoryFeed(all)).toHaveLength(3)
+    expect(buildStoryFeed(all, { max: Infinity }).length).toBeGreaterThan(3)
   })
 })
 
 describe('buildStoryFeed: mindestens ein positiver Satz', () => {
   it('holt den besten positiven Satz in die drei Plätze, wenn keiner darin ist', () => {
-    const neg = (id: string, relevance: number) => ({ id: 'moment', question: 1, relevance, sentiment: 'warn', params: {}, moment: { key: id } }) as never
-    const feed = buildStoryFeed(input({ savingsEur: 120 }), {
-      extra: [neg('a', 99), neg('b', 98), neg('c', 97)],
-    })
+    // Datenqualität (80), teuerste Ladung (66), Temperatur (89) verdrängen die Ersparnis (70), sie kommt auf den letzten Platz.
+    const feed = buildStoryFeed(input({
+      savingsEur: 120,
+      quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 0, pricelessOpen: 0, severity: 'bad' },
+      temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 },
+    }))
     expect(feed).toHaveLength(3)
     expect(feed.some(f => f.sentiment === 'good')).toBe(true)
     expect(feed[feed.length - 1].sentiment).toBe('good')
@@ -568,18 +571,6 @@ describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => 
       temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 },
     }))
     expect(all).toHaveLength(3)
-  })
-})
-
-describe('buildStoryFeed mit Momenten', () => {
-  it('nimmt Momente nach Relevanz auf und lässt ausgelassene Einträge weg', () => {
-    const extra: StoryFeedItem = {
-      id: 'moment', question: 4, relevance: 99, sentiment: 'neutral', params: {},
-      moment: { kind: 'battery', key: 'battery:s', at: 0, lifetimeMs: 1, actionable: false, dismissible: false, sohPercent: 92, estimated: true, previousSohPercent: null, previousAt: null },
-    }
-    const feed = buildStoryFeed(input(), { extra: [extra], omit: ['home_savings'] })
-    expect(feed[0].id).toBe('moment')
-    expect(feed.some(f => f.id === 'home_savings')).toBe(false)
   })
 })
 

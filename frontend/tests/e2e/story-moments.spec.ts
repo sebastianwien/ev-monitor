@@ -4,8 +4,8 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 import { waitForStory } from './fixtures/story';
 
 /**
- * Moment-Hero auf /story: die letzten Ladungen kommen gemockt, alles andere vom echten Backend.
- * So laesst sich jeder Zustand ohne Testdaten in der DB ausloesen.
+ * Karten von unten auf /story: die letzten Ladungen kommen gemockt, alles andere vom echten
+ * Backend. So laesst sich jeder Zustand ohne Testdaten in der DB ausloesen.
  */
 const log = (over: Record<string, unknown>) => ({
   id: '00000000-0000-0000-0000-00000000e2e1', carId: null, kwhCharged: 21, kwhAtVehicle: 20, costEur: null,
@@ -13,15 +13,16 @@ const log = (over: Record<string, unknown>) => ({
   createdAt: new Date().toISOString(), dataSource: 'USER_LOGGED', includeInStatistics: true, ...over,
 });
 
-async function setup(page: Page, opts: { logs: unknown[]; alwaysMonth?: boolean }) {
+async function setup(page: Page, opts: { logs: unknown[] }) {
   const keys = featureAnnouncements.map(a => a.key);
-  await page.addInitScript(([seenKeys, alwaysMonth]) => {
+  await page.addInitScript((seenKeys) => {
     localStorage.setItem('seen-announcements', JSON.stringify(seenKeys));
     localStorage.setItem('story_note_seen', 'true');
     localStorage.setItem('story_dashboard_opt_in', 'true');
-    if (alwaysMonth) localStorage.setItem('story_always_month', 'true');
-  }, [keys, !!opts.alwaysMonth] as const);
+  }, keys);
   await page.route(/\/api\/logs\?carId=[^&]+&limit=10$/, route => route.fulfill({ json: opts.logs }));
+  // Kein Rückblick und kein Ranglisten-Abschluss aus echten Daten: die Karten hier sollen allein stehen.
+  await page.route(/\/api\/public\/leaderboard\/standings\/me/, route => route.fulfill({ json: [] }));
   await page.goto('/login');
   await page.locator('input[type="text"]').fill(TEST_USER.email);
   await page.locator('input[type="password"]').fill(TEST_USER.password);
@@ -31,38 +32,62 @@ async function setup(page: Page, opts: { logs: unknown[]; alwaysMonth?: boolean 
   await waitForStory(page);
 }
 
-test.describe('Story Moment-Hero', () => {
-  test('frische Ladung ohne Preis steht oben und führt zum Nachtragen', async ({ page }) => {
+test.describe('Story: Karten von unten', () => {
+  test('frische Ladung ohne Preis ist keine Karte: "Heute geladen" mit Knopf "Preis eintragen"', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
     await setup(page, { logs: [log({ loggedAt: new Date(Date.now() - 10 * 60_000).toISOString() })] });
 
-    const hero = page.getByTestId('story-moment-just_charged');
-    await expect(hero).toBeVisible();
-    await expect(hero.getByTestId('story-moment-sentence')).toContainText(/20,0\skWh, 30 → 80\s%/);
-    await expect(hero.getByRole('link', { name: 'Preis nachtragen' })).toHaveAttribute('href', /nachtragen=preis/);
-    // Mobil darf der Hero nicht über den Rand ragen.
-    const box = await hero.boundingBox();
+    const today = page.getByTestId('story-latest-today');
+    await expect(today).toContainText(/Heute geladen/);
+    await expect(today).toContainText(/20,0\skWh ab 30\s%/);
+    await expect(today.getByRole('button', { name: 'Preis eintragen' })).toBeVisible();
+    await expect(page.getByTestId('story-news-gap')).toHaveCount(0);
+    const box = await today.boundingBox();
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
     expect(errors).toEqual([]);
   });
 
-  test('Stille mit AutoSync-Satz lässt sich wegklicken und bleibt weg', async ({ page }) => {
+  test('Stille mit AutoSync-Satz: Karte von unten, "Alles erfasst" heißt erledigt und bleibt weg', async ({ page }) => {
     const old = new Date(Date.now() - 20 * 86_400_000).toISOString();
     await setup(page, { logs: [log({ loggedAt: old, createdAt: old })] });
 
-    const hero = page.getByTestId('story-moment-silence');
-    await expect(hero).toContainText(/Letzte Ladung vor 20\sTagen/);
-    await expect(hero).toContainText('kann Ladungen und Fahrten selbst eintragen');
-    await hero.getByRole('button', { name: 'Alles erfasst' }).click();
-    await expect(page.getByTestId('story-moment-silence')).toBeHidden();
+    const card = page.getByTestId('story-news-silence');
+    await expect(card).toContainText(/Letzte Ladung vor 20\sTagen/);
+    await expect(card).toContainText('kann Ladungen und Fahrten selbst eintragen');
+    // Tun-Knopf in ganzer Breite, Karte über der Navigation, nicht über den Rand
+    const button = card.getByRole('link', { name: 'Ladung erfassen' });
+    await expect(button).toBeVisible();
+    const box = await page.getByTestId('story-news').boundingBox();
+    expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
+    expect(box!.y + box!.height).toBeGreaterThanOrEqual(page.viewportSize()!.height - 1);
+    await card.getByRole('button', { name: 'Alles erfasst' }).click();
+    await expect(page.getByTestId('story-news-silence')).toBeHidden();
 
     await page.reload();
     await waitForStory(page);
-    await expect(page.getByTestId('story-moment-silence')).toBeHidden();
+    await expect(page.getByTestId('story-news-silence')).toBeHidden();
+    await expect(page.getByTestId('story-news-tab')).toHaveCount(0);
   });
 
-  test('Lücke fragt nach dem Preis, "Weiß ich nicht mehr" lässt sie verschwinden', async ({ page }) => {
+  test('Tipp neben die Karte klappt sie zum Reiter ein, der Reiter klappt sie wieder auf', async ({ page }) => {
+    const old = new Date(Date.now() - 20 * 86_400_000).toISOString();
+    await setup(page, { logs: [log({ loggedAt: old, createdAt: old })] });
+    await expect(page.getByTestId('story-news-silence')).toBeVisible();
+    await page.getByTestId('story-news-backdrop').click({ position: { x: 20, y: 20 } });
+    await expect(page.getByTestId('story-news')).toHaveCount(0);
+    const tab = page.getByTestId('story-news-tab');
+    await expect(tab).toHaveText(/1 Neuigkeit/);
+    // Der Reiter steht über der Navigation (3,5 rem) und innerhalb des Bildschirms
+    const tabBox = await tab.boundingBox();
+    const h = page.viewportSize()!.height;
+    expect(tabBox!.y + tabBox!.height).toBeLessThanOrEqual(h - 56);
+    expect(tabBox!.y + tabBox!.height).toBeGreaterThan(h - 140);
+    await tab.click();
+    await expect(page.getByTestId('story-news-silence')).toBeVisible();
+  });
+
+  test('Lücke fragt nach dem Preis, "Weiß ich nicht mehr" lässt die Karte verschwinden', async ({ page }) => {
     const twoDays = new Date(Date.now() - 2 * 86_400_000).toISOString();
     const gap = log({ id: '00000000-0000-0000-0000-00000000e2e2', loggedAt: twoDays, createdAt: twoDays, kwhAtVehicle: 28.5, priceUnknown: false });
     await page.route(/\/api\/logs\/priceless\?carId=[^&]+&includeUnknown=true$/, route => route.fulfill({ json: [gap] }));
@@ -70,10 +95,11 @@ test.describe('Story Moment-Hero', () => {
     await page.route(/\/api\/logs\/[^/]+\/gap$/, route => { marked.push(route.request().postDataJSON()); return route.fulfill({ json: {} }); });
     await setup(page, { logs: [log({ loggedAt: twoDays, createdAt: twoDays, costEur: 9 })] });
 
-    const hero = page.getByTestId('story-moment-gap');
-    await expect(hero.getByTestId('story-moment-sentence')).toContainText(/Was haben die 28,5\skWh vom/);
-    await hero.getByRole('button', { name: 'Weiß ich nicht mehr' }).click();
-    await expect(page.getByTestId('story-moment-gap')).toBeHidden();
+    const card = page.getByTestId('story-news-gap');
+    await expect(card.getByTestId('story-news-sentence')).toContainText(/Was haben die 28,5\skWh vom/);
+    await expect(card.getByRole('link', { name: 'Preis nachtragen' })).toHaveAttribute('href', /nachtragen=preis/);
+    await card.getByRole('button', { name: 'Weiß ich nicht mehr' }).click();
+    await expect(page.getByTestId('story-news-gap')).toBeHidden();
     expect(marked).toEqual([{ field: 'PRICE' }]);
   });
 
@@ -93,20 +119,14 @@ test.describe('Story Moment-Hero', () => {
 
     // Login landet schon auf /story, setup laedt die Seite danach noch einmal: je Seitenaufruf eine Abfrage.
     expect(new Set(asked)).toEqual(new Set(['?cpo=IONITY&type=DC']));
-    const hero = page.getByTestId('story-moment-expensive');
-    await expect(hero.getByTestId('story-moment-sentence')).toContainText(/79\sct\/kWh bei IONITY\. Andere Fahrer zahlen dort im Schnitt 52\sct\/kWh, mit einer Ladekarte ab 49\sct\/kWh\./);
-    await expect(hero).not.toContainText('Motion');
-    await hero.getByRole('button', { name: 'Preise anderer Fahrer ansehen' }).click();
+    const card = page.getByTestId('story-news-expensive');
+    await expect(card.getByTestId('story-news-sentence')).toContainText(/79\sct\/kWh bei IONITY\. Andere Fahrer zahlen dort im Schnitt 52\sct\/kWh, mit einer Ladekarte ab 49\sct\/kWh\./);
+    await expect(card).not.toContainText('Motion');
+    await card.getByRole('button', { name: 'Preise anderer Fahrer ansehen' }).click();
     const sheet = page.getByTestId('story-price-sheet');
     await expect(sheet).toContainText('Du hast 79,0');
     await expect(sheet.getByTestId('price-card')).toContainText('IONITY Motion');
     const box = await sheet.boundingBox();
     expect(box!.x + box!.width).toBeLessThanOrEqual(page.viewportSize()!.width);
-  });
-
-  test('"Immer den Monat zeigen" lässt den Moment weg', async ({ page }) => {
-    await setup(page, { logs: [log({})], alwaysMonth: true });
-    await expect(page.getByTestId('story-view')).toBeVisible();
-    await expect(page.locator('[data-testid^="story-moment-"]')).toHaveCount(0);
   });
 });

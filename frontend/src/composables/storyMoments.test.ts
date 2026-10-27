@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import {
-  detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
-  detectRank, detectSilence, detectLive, detectGap, detectMilestone, detectExpensive, expensiveCandidate,
-  monthMoment, momentScore, pickMoment, momentFeedItems, HOUR, DAY, type MomentSeen, type Moment,
+  detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
+  detectRankClosing, detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate,
+  momentScore, pickCards, HOUR, DAY, type MomentSeen, type Moment,
 } from './storyMoments'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
@@ -10,38 +10,6 @@ import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 const NOW = new Date(2026, 9, 24, 12, 0).getTime()
 const iso = (ms: number) => new Date(ms).toISOString()
 const NONE: MomentSeen = { shown: {}, dismissed: {} }
-
-describe('detectJustCharged', () => {
-  const log = { id: 'l1', loggedAt: iso(NOW - HOUR), kwhAtVehicle: 28.5, kwhCharged: 30, costEur: 9.5, socBeforeChargePercent: 35, socAfterChargePercent: 80, dataSource: 'SMARTCAR_LIVE' }
-
-  it('erkennt eine Ladung unter 2 Stunden mit kWh, SoC und Reichweite', () => {
-    const m = detectJustCharged({ log, now: NOW, consumptionKwh100: 13.6 })
-    expect(m).toMatchObject({ kind: 'just_charged', key: 'just_charged:l1', kwh: 28.5, socFrom: 35, socTo: 80, rangeKm: 210, costEur: 9.5, actionable: false })
-  })
-
-  it('ist ohne Preis eine Handlung', () => {
-    expect(detectJustCharged({ log: { ...log, costEur: null }, now: NOW, consumptionKwh100: 13.6 })?.actionable).toBe(true)
-  })
-
-  it('ignoriert Ladungen älter als 2 Stunden', () => {
-    expect(detectJustCharged({ log: { ...log, loggedAt: iso(NOW - 3 * HOUR) }, now: NOW, consumptionKwh100: null })).toBeNull()
-  })
-
-  it('zählt bei manueller Erfassung den Zeitpunkt des Eintragens, wenn die Ladung von heute ist', () => {
-    const manual = { ...log, loggedAt: iso(NOW - 6 * HOUR), createdAt: iso(NOW - 10 * 60_000), dataSource: 'USER_LOGGED' }
-    expect(detectJustCharged({ log: manual, now: NOW, consumptionKwh100: null })?.at).toBe(NOW - 10 * 60_000)
-  })
-
-  it('nachgetragene alte Ladung ist kein "gerade geladen"', () => {
-    const old = { ...log, loggedAt: iso(NOW - 5 * DAY), createdAt: iso(NOW - 60_000), dataSource: 'USER_LOGGED' }
-    expect(detectJustCharged({ log: old, now: NOW, consumptionKwh100: null })).toBeNull()
-  })
-
-  it('lässt SoC und Reichweite weg, wenn sie fehlen oder unplausibel sind', () => {
-    const m = detectJustCharged({ log: { ...log, socBeforeChargePercent: 80, socAfterChargePercent: 35 }, now: NOW, consumptionKwh100: null })
-    expect(m).toMatchObject({ socFrom: null, socTo: null, rangeKm: null })
-  })
-})
 
 describe('detectLongTrip', () => {
   const trip = (id: string, endH: number, km: number) =>
@@ -92,11 +60,12 @@ describe('detectFirstFrost', () => {
 describe('detectMonthChange', () => {
   const previous = { year: 2026, month: 9, distanceKm: 279, energyCostEur: 33, charges: 6, priceless: 0 }
 
-  it('lebt vom 1. bis 5. mit Vormonat und Benzinvergleich', () => {
+  it('im Folgemonat an jedem Tag, mit Vormonat und Benzinvergleich, bis erledigt', () => {
     const now = new Date(2026, 9, 3, 9).getTime()
     const m = detectMonthChange({ now, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })
-    expect(m).toMatchObject({ kind: 'month_change', key: 'month_change:2026-9', km: 279, eur: 33, petrolEur: 279 / 100 * 7.5 * 2 })
+    expect(m).toMatchObject({ kind: 'month_change', key: 'month_change:2026-9', km: 279, eur: 33, petrolEur: 279 / 100 * 7.5 * 2, dismissible: true, lifetimeMs: Infinity })
     expect(m?.at).toBe(new Date(2026, 9, 1).getTime())
+    expect(detectMonthChange({ now: NOW, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ key: 'month_change:2026-9' })
   })
 
   it('vergleicht nicht mit Benzin, wenn dem Vormonat Preise fehlen', () => {
@@ -104,8 +73,7 @@ describe('detectMonthChange', () => {
     expect(detectMonthChange({ now, previous: { ...previous, priceless: 2 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ petrolEur: null })
   })
 
-  it('schweigt ab dem 6. und ohne Ladungen im Vormonat', () => {
-    expect(detectMonthChange({ now: NOW, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toBeNull()
+  it('schweigt ohne Ladungen im Vormonat', () => {
     expect(detectMonthChange({ now: new Date(2026, 9, 2).getTime(), previous: { ...previous, charges: 0 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toBeNull()
   })
 })
@@ -127,10 +95,24 @@ describe('detectBattery', () => {
   })
 })
 
-describe('detectRank und detectSilence', () => {
-  it('Rang nur auf den Plätzen 1 bis 3', () => {
-    expect(detectRank({ rank: { category: 'MONTHLY_KWH', rank: 2, value: 1, unit: 'kWh' }, now: NOW })).toMatchObject({ kind: 'rank', key: 'rank:MONTHLY_KWH:2:2026-10', rank: 2 })
-    expect(detectRank({ rank: { category: 'MONTHLY_KWH', rank: 4, value: 1, unit: 'kWh' }, now: NOW })).toBeNull()
+describe('detectRankClosing und detectSilence', () => {
+  it('Abschluss des Vormonats: alle Treppchenplätze in einer Karte, nach Platz sortiert, bis erledigt', () => {
+    const ranks = [
+      { category: 'MONTHLY_KWH', ownEntry: { rank: 3, value: 310, unit: 'kWh' } },
+      null,
+      { category: 'MONTHLY_DISTANCE', ownEntry: { rank: 1, value: 1234, unit: 'km' } },
+      { category: 'MONTHLY_CHARGES', ownEntry: { rank: 4, value: 12, unit: '' } },
+      { category: 'MONTHLY_NIGHT_OWL', ownEntry: null },
+    ]
+    const m = detectRankClosing({ ranks, now: NOW })!
+    expect(m).toMatchObject({ kind: 'rank', key: 'rank:2026-9', year: 2026, month: 9, dismissible: true, lifetimeMs: Infinity })
+    expect(m.kind === 'rank' && m.places).toEqual([
+      { category: 'MONTHLY_DISTANCE', rank: 1, value: 1234, unit: 'km' },
+      { category: 'MONTHLY_KWH', rank: 3, value: 310, unit: 'kWh' },
+    ])
+    expect(m.at).toBe(new Date(2026, 9, 1).getTime())
+    expect(detectRankClosing({ ranks: [{ category: 'MONTHLY_KWH', ownEntry: { rank: 4, value: 1, unit: 'kWh' } }], now: NOW })).toBeNull()
+    expect(detectRankClosing({ ranks: [], now: NOW })).toBeNull()
   })
 
   it('Stille nach 14 Tagen ohne Ladung, nur bei manuell erfassten Ladungen', () => {
@@ -265,53 +247,30 @@ describe('detectMilestone', () => {
   })
 })
 
-describe('momentScore und pickMoment', () => {
-  const charged = (at: number, actionable = false): Moment => ({
-    kind: 'just_charged', key: 'just_charged:l1', at, lifetimeMs: 2 * HOUR, actionable, dismissible: false,
-    logId: 'l1', kwh: 20, socFrom: null, socTo: null, rangeKm: null, costEur: 5,
-  })
+describe('momentScore und pickCards', () => {
+  const frost = (at: number, actionable = false): Moment =>
+    ({ kind: 'first_frost', key: 'first_frost:2026', at, lifetimeMs: 3 * DAY, actionable, dismissible: false, tempC: 3, winterKm: 254, summerKm: 318 })
   const silence: Moment = { kind: 'silence', key: 'silence:l', at: NOW - DAY, lifetimeMs: Infinity, actionable: true, dismissible: true, days: 15, kwh: 20, autoSync: false }
 
   it('verfällt linear über die Lebensdauer, Handlung gibt einen Bonus', () => {
-    const fresh = momentScore(charged(NOW), NOW, NONE)
-    const half = momentScore(charged(NOW - HOUR), NOW, NONE)
+    const fresh = momentScore(frost(NOW), NOW)
+    const half = momentScore(frost(NOW - 1.5 * DAY), NOW)
     expect(half).toBeCloseTo(fresh / 2, 5)
-    expect(momentScore(charged(NOW - HOUR, true), NOW, NONE)).toBeGreaterThan(half)
+    expect(momentScore(frost(NOW - 1.5 * DAY, true), NOW)).toBeGreaterThan(half)
   })
 
-  it('Monat ist immer da und gewinnt, wenn nichts anderes vorliegt', () => {
-    expect(pickMoment([], NOW, NONE).hero.kind).toBe('month')
-    expect(pickMoment([charged(NOW - 3 * HOUR)], NOW, NONE).hero.kind).toBe('month')
+  it('Karten absteigend nach Punkten, abgelaufene fehlen', () => {
+    expect(pickCards([], NOW, NONE)).toEqual([])
+    expect(pickCards([frost(NOW - 4 * DAY)], NOW, NONE)).toEqual([])
+    expect(pickCards([silence, frost(NOW)], NOW, NONE).map(s => s.moment.kind)).toEqual(['first_frost', 'silence'])
   })
 
-  it('Live schlägt alles, Rest ohne Monat und Live, absteigend', () => {
-    const r = pickMoment([monthMoment(), charged(NOW), silence, detectLive(true)!], NOW, NONE)
-    expect(r.hero.kind).toBe('live')
-    expect(r.rest.map(s => s.moment.kind)).toEqual(['just_charged', 'silence'])
-  })
-
-  it('ein schon gesehener Moment fällt nach der Schonfrist unter den Monat', () => {
-    const seen: MomentSeen = { shown: { 'just_charged:l1': NOW - HOUR }, dismissed: {} }
-    expect(pickMoment([charged(NOW - 5 * 60_000)], NOW, seen).hero.kind).toBe('month')
-    const justNow: MomentSeen = { shown: { 'just_charged:l1': NOW - 60_000 }, dismissed: {} }
-    expect(pickMoment([charged(NOW - 5 * 60_000)], NOW, justNow).hero.kind).toBe('just_charged')
-  })
-
-  it('wegklickbare Momente kennen keinen Gesehen-Abzug, aber das Wegklicken bis zu seinem Ablauf', () => {
-    const shown: MomentSeen = { shown: { 'silence:l': NOW - 5 * DAY }, dismissed: {} }
-    expect(pickMoment([silence], NOW, shown).hero.kind).toBe('silence')
+  it('gesehen nimmt nichts weg, erledigt gilt bis zu seinem Ablauf', () => {
+    const shown: MomentSeen = { shown: { 'silence:l': NOW - 5 * DAY, 'first_frost:2026': NOW - DAY }, dismissed: {} }
+    expect(pickCards([silence, frost(NOW)], NOW, shown)).toHaveLength(2)
     const dismissed: MomentSeen = { shown: {}, dismissed: { 'silence:l': NOW + DAY } }
-    expect(pickMoment([silence], NOW, dismissed).hero.kind).toBe('month')
+    expect(pickCards([silence], NOW, dismissed)).toEqual([])
     const expired: MomentSeen = { shown: {}, dismissed: { 'silence:l': NOW - 1 } }
-    expect(pickMoment([silence], NOW, expired).hero.kind).toBe('silence')
-  })
-})
-
-describe('momentFeedItems', () => {
-  it('macht aus dem Rest Feed-Einträge, ohne Rang (den nennt der Feed selbst), Relevanz höchstens 100', () => {
-    const rank = detectRank({ rank: { category: 'MONTHLY_KWH', rank: 1, value: 1, unit: 'kWh' }, now: NOW })!
-    const frost = { kind: 'first_frost', key: 'first_frost:2026', at: NOW, lifetimeMs: DAY, actionable: false, dismissible: false, tempC: 3, winterKm: 254, summerKm: 318 } as Moment
-    const items = momentFeedItems([{ moment: frost, score: 120 }, { moment: rank, score: 55 }])
-    expect(items).toEqual([expect.objectContaining({ id: 'moment', question: 2, relevance: 100, moment: frost })])
+    expect(pickCards([silence], NOW, expired).map(s => s.moment.kind)).toEqual(['silence'])
   })
 })

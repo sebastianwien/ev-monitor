@@ -14,8 +14,6 @@ withDefaults(defineProps<{
   feed: Item[]
   /** Modell ohne Variante für den Modellvergleich. */
   modelName: string
-  carId: string | null
-  carName: string
   sheets: TileId[]
   /** Ladeorte des Story-Monats für den Karten-Teaser, ohne Orte die schlichte Zeile. */
   placesTeaser?: Teaser | null
@@ -39,12 +37,10 @@ const { t } = useI18n()
     </div>
     <StoryFeedItem
       v-for="item in feed"
-      :key="item.moment?.key ?? item.id"
+      :key="item.id"
       :item="item"
       :model-name="modelName"
       :month-name="monthName"
-      :car-id="carId"
-      :car-name="carName"
       :sheets="sheets"
       @open="emit('open', $event)" />
     <PlacesTeaser :teaser="placesTeaser" :rows="placesRows" :month-name="monthName" :preview="mapPreview" @open="emit('map')" />

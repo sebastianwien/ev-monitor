@@ -37,30 +37,10 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
     return cap(rtf.value.format(Math.round((a.getTime() - n.getTime()) / DAY), 'day'))
   }
   const shortDate = (at: number) => new Date(at).toLocaleDateString(locale.value, { day: 'numeric', month: 'numeric' })
-  function agoWord(at: number): string {
-    const min = Math.max(1, Math.round((now.value - at) / 60_000))
-    return min < 60 ? rtf.value.format(-min, 'minute') : rtf.value.format(-Math.round(min / 60), 'hour')
-  }
 
   return computed<MomentView>(() => {
     const m = props.moment
     switch (m.kind) {
-      case 'just_charged': {
-        const kwh = m.kwh != null ? `${formatDecimal(m.kwh, 1)} kWh` : null
-        const parts = [
-          kwh && m.socFrom != null ? t('story.moment_charged_energy_soc', { kwh, from: Math.round(m.socFrom), to: `${Math.round(m.socTo!)} %` })
-            : kwh ? t('story.moment_charged_energy', { kwh }) : null,
-          m.rangeKm != null ? t('story.moment_charged_range', { km: km(m.rangeKm) }) : null,
-          m.costEur != null ? t('story.moment_charged_cost', { eur: formatCurrency(m.costEur) }) : null,
-        ]
-        return {
-          eyebrow: now.value - m.at < 15 * 60_000 ? t('story.moment_charged_eyebrow_now') : t('story.moment_charged_eyebrow', { ago: agoWord(m.at) }),
-          sentence: parts.filter(Boolean).join(' '),
-          action: m.costEur == null && props.carId
-            ? { id: 'add_price', label: t('story.moment_action_add_price'), to: `/logs?car=${encodeURIComponent(props.carId)}&nachtragen=preis` }
-            : undefined,
-        }
-      }
       case 'expensive': {
         const ct = (v: number) => formatCostPerKwh(v, { subunitDecimals: 0 })
         const p = { when: dayWord(m.at), price: ct(m.pricePerKwh), cpo: m.cpoName, median: ct(m.medianPricePerKwh), card: m.cardFromPricePerKwh != null ? ct(m.cardFromPricePerKwh) : '' }
@@ -89,7 +69,7 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
           eyebrow: t('story.moment_month_eyebrow'),
           sentence: t(`story.hero_${line.kind}`, { month, km: line.km != null ? km(line.km) : '', eur: line.eur != null ? eur(line.eur) : '', n: m.charges }, m.charges),
           sub: m.petrolEur != null ? t('story.hero_petrol_total', { eur: eur(m.petrolEur) }) : undefined,
-          action: { id: 'share', label: t('story.moment_action_share') },
+          action: { id: 'share', label: t('story.moment_action_share_review') },
         }
       }
       case 'battery': {
@@ -107,12 +87,16 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
           action: { id: 'battery', label: t('story.moment_action_battery') },
         }
       }
-      case 'rank':
+      case 'rank': {
+        const month = new Date(m.year, m.month - 1, 1).toLocaleDateString(locale.value, { month: 'long' })
+        const place = (p: typeof m.places[number]) => t('story.moment_rank_place', { rank: p.rank, category: t(`leaderboard.cat_${CAT_LABEL[p.category] ?? 'kwh'}`) })
         return {
           eyebrow: t('story.moment_rank_eyebrow'),
-          sentence: t('story.feed_rank', { rank: m.rank, category: t(`leaderboard.cat_${CAT_LABEL[m.category] ?? 'kwh'}`) }),
+          sentence: t('story.moment_rank_close', { month, n: m.places.length }, m.places.length),
+          sub: m.places.map(place).join(' · '),
           action: { id: 'rank', label: t('story.moment_action_rank'), to: '/leaderboard' },
         }
+      }
       case 'silence':
         return {
           eyebrow: t('story.moment_silence_eyebrow'),

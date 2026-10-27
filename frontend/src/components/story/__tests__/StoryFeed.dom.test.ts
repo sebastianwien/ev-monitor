@@ -15,7 +15,7 @@ function mount(on: Record<string, unknown>) {
   document.body.appendChild(host)
   app = createApp(StoryFeed, {
     feed: [{ id: 'cost_trend', question: 1, relevance: 40, sentiment: 'good', params: { diff: -3, current: 15, previous: 18 } }],
-    upsellTo: '/upgrade', modelName: 'Model 3', carId: 'c1', carName: 'Tesla Model 3', sheets: ['cost'], ...on,
+    modelName: 'Model 3', sheets: ['cost'], ...on,
   })
   app.component('router-link', RouterLink)
   app.use(createPinia()).use(i18n)

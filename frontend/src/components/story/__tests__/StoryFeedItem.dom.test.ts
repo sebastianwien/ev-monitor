@@ -14,24 +14,12 @@ const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 function mount(item: Item, extra: Record<string, unknown> = {}) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(StoryFeedItem, { item, carId: 'c1', carName: 'Tesla Model 3', modelName: 'Model 3', monthName: 'Oktober', ...extra })
+  app = createApp(StoryFeedItem, { item, modelName: 'Model 3', monthName: 'Oktober', ...extra })
   app.component('router-link', RouterLink)
   app.use(createPinia()).use(i18n)
   app.mount(host)
   return host
 }
-
-describe('StoryFeedItem mit Moment', () => {
-  it('nennt Anlass und Satz des Moments und bietet einen Link als Handlung an', () => {
-    const host = mount({
-      id: 'moment', question: 1, relevance: 80, sentiment: 'neutral', params: {},
-      moment: { kind: 'just_charged', key: 'k', at: Date.now(), lifetimeMs: 1, actionable: true, dismissible: false, logId: 'l', kwh: 20, socFrom: null, socTo: null, rangeKm: null, costEur: null },
-    })
-    const text = host.textContent!.replace(/ /g, ' ')
-    expect(text).toContain('Gerade geladen. 20,0 kWh.')
-    expect(host.querySelector('a')!.getAttribute('href')).toBe('/logs?car=c1&nachtragen=preis')
-  })
-})
 
 describe('StoryFeedItem Strecke', () => {
   it('mehr unterwegs als im Vormonat, mit beiden Strecken', () => {

@@ -132,15 +132,24 @@ export async function mockStory(page: Page, data: StoryData) {
 }
 
 /** Uhr stellen, Daten umleiten, einloggen, /story öffnen. Hinweise und Experiment-Notiz sind schon gesehen. */
-export async function openStory(page: Page, data: StoryData, opts: { theme?: 'light' | 'dark' } = {}) {
+/**
+ * Uhr stellen, Daten umleiten, einloggen, /story öffnen. Hinweise sind schon gesehen. Rückblick und
+ * Ranglisten-Abschluss des Vormonats liegen sonst als Karte vor allem anderen: sie gelten als erledigt,
+ * außer der Fall will sie sehen (`keep`).
+ */
+export async function openStory(page: Page, data: StoryData, opts: { theme?: 'light' | 'dark'; keep?: Array<'month_change' | 'rank'> } = {}) {
   await page.clock.setFixedTime(data.now);
   const keys = featureAnnouncements.map(a => a.key);
-  await page.addInitScript(([seenKeys, theme]) => {
+  const d = new Date(data.now);
+  const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1);
+  const done = (['month_change', 'rank'] as const).filter(k => !(opts.keep ?? []).includes(k)).map(k => `${k}:${prev.getFullYear()}-${prev.getMonth() + 1}`);
+  await page.addInitScript(([seenKeys, theme, doneKeys, now]) => {
     localStorage.setItem('seen-announcements', JSON.stringify(seenKeys));
     localStorage.setItem('story_note_seen', 'true');
     localStorage.setItem('story_dashboard_opt_in', 'true');
     localStorage.setItem('theme', theme);
-  }, [keys, opts.theme ?? 'light'] as const);
+    localStorage.setItem('story_moments_seen', JSON.stringify({ shown: {}, dismissed: Object.fromEntries(doneKeys.map(k => [k, now + 365 * 86_400_000])) }));
+  }, [keys, opts.theme ?? 'light', done, data.now] as const);
   await mockStory(page, data);
   await page.goto('/login');
   await page.locator('input[type="text"]').fill(TEST_USER.email);

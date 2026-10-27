@@ -56,7 +56,7 @@ test('Teurer als üblich: echter Vergleich mit anderen Fahrern, Satz und Sheet',
   const chargedAt = Date.now() - 30 * HOUR;
   await chargeAtIonity(api, jwt, carId, MY_PRICE, chargedAt);
 
-  // Am Monatsanfang wäre sonst der Rückblick auf den Vormonat (mit dieser Ladung) der Hero.
+  // Der Rückblick auf den Vormonat (mit dieser Ladung) läge sonst als Karte davor.
   const prev = new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1);
   const monthChangeKey = `month_change:${prev.getFullYear()}-${prev.getMonth() + 1}`;
   const keys = featureAnnouncements.map(a => a.key);
@@ -77,9 +77,9 @@ test('Teurer als üblich: echter Vergleich mit anderen Fahrern, Satz und Sheet',
   if (!/\/story/.test(page.url())) await page.goto('/story');
   expect((await benchmark).status(), 'das Backend liefert einen Vergleich').toBe(200);
   await waitForStory(page);
-  const hero = page.getByTestId('story-moment-expensive');
-  await expect(hero.getByTestId('story-moment-sentence')).toContainText(/89\sct\/kWh bei IONITY\. Andere Fahrer zahlen dort im Schnitt \d+\sct\/kWh/);
-  await hero.getByRole('button', { name: 'Preise anderer Fahrer ansehen' }).click();
+  const card = page.getByTestId('story-news-expensive');
+  await expect(card.getByTestId('story-news-sentence')).toContainText(/89\sct\/kWh bei IONITY\. Andere Fahrer zahlen dort im Schnitt \d+\sct\/kWh/);
+  await card.getByRole('button', { name: 'Preise anderer Fahrer ansehen' }).click();
   const sheet = page.getByTestId('story-price-sheet');
   await expect(sheet).toContainText(/Du hast 89,0\sct\/kWh gezahlt\./);
   await expect(sheet).toContainText(/\d+ Fahrer, Schnellladen \(DC\), letzte 12 Monate/);

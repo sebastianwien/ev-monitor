@@ -8,8 +8,7 @@ import type { StatisticsData, ChargeDataPoint, ChargingTypeSplit } from './useDa
 import { PETROL_KG_CO2_PER_L, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
 import { combustionLiters } from '../utils/costMix'
 import { energyUse, type EnergyFlow, type EnergyUse, type RangeEstimate } from './storyEnergy'
-import type { ModelPeers, RankResult, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
-import type { Moment } from './storyMoments'
+import type { ModelPeers, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
 /** Feste Reihenfolge der Kacheln, siehe TILE_ORDER. */
@@ -65,7 +64,7 @@ export interface StoryTile {
 
 export type FeedId =
   | 'autumn_forecast' | 'peer_cost_eur' | 'home_savings' | 'most_expensive' | 'cost_trend' | 'distance_trend'
-  | 'data_quality' | 'temperature_effect' | 'moment'
+  | 'data_quality' | 'temperature_effect'
 
 export interface StoryFeedItem {
   id: FeedId
@@ -78,8 +77,6 @@ export interface StoryFeedItem {
   params: Record<string, number>
   /** Textschluessel ohne Zahl, z. B. die Leaderboard-Kategorie. */
   label?: string
-  /** Nur 'moment': ein Moment, der nicht Hero wurde, als Feed-Satz. */
-  moment?: Moment
 }
 
 export interface StoryInput {
@@ -99,7 +96,6 @@ export interface StoryInput {
   range: RangeEstimate | null
   /** Du gegen alle Fahrer deines Modells (alle Varianten, Lifetime); null ohne Vergleich. */
   modelPeers: ModelPeers | null
-  rank: RankResult | null
   quality: DataQuality | null
   temperature: TemperatureEffect | null
   /** Ladungen ohne Preis im Vormonat (die des Monats stehen in quality). */
@@ -431,7 +427,7 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
  * omit: Eintraege, die schon der Hero sagt.
  */
 /** max: Plätze statt FEED_MAX, nur für die lokale Testansicht aller Sätze (?feed=alle). */
-export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[]; omit?: FeedId[]; max?: number } = {}): StoryFeedItem[] {
+export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?: number } = {}): StoryFeedItem[] {
   const m = input.month
   const items: StoryFeedItem[] = []
 
@@ -555,7 +551,6 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
     })
   }
 
-  items.push(...(opts.extra ?? []))
   const omit = new Set(opts.omit ?? [])
   const ranked = items.filter(i => !omit.has(i.id)).sort((a, b) => b.relevance - a.relevance)
   return withOnePositive(ranked, opts.max ?? FEED_MAX)

@@ -15,7 +15,6 @@ import ToggleSwitch from '../components/shared/ToggleSwitch.vue'
 import BottomSheet from '../components/shared/BottomSheet.vue'
 import Collapse from '../components/shared/Collapse.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
-import { useStoryOptIn } from '../composables/useStoryOptIn'
 import { useAccountSettings } from '../composables/useAccountSettings'
 import dashboardPreferencesService from '../api/dashboardPreferencesService'
 
@@ -58,7 +57,6 @@ function toggleImplausibleBanner() {
 }
 
 // Neues Dashboard: Widerruf des Moment-Heros, nur auf diesem Geraet (wie der Opt-in selbst).
-const { enabled: storyEnabled, alwaysMonth, setAlwaysMonth } = useStoryOptIn()
 
 // Ersparnis-Kachel: serverseitig gehalten, damit das Ausblenden auf allen Geraeten gilt.
 // Der Toggle bildet die Sicht ab (an = sichtbar), die Persistenz das Gegenteil (dismissed).
@@ -331,13 +329,6 @@ onMounted(async () => {
           <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.savings_card_hint') }}</p>
         </div>
         <ToggleSwitch :model-value="savingsCardVisible" :label="t('settings.savings_card_label')" @update:model-value="toggleSavingsCard()" />
-      </div>
-      <div v-if="storyEnabled" :class="ROW">
-        <div class="min-w-0">
-          <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.story_always_month_label') }}</p>
-          <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.story_always_month_hint') }}</p>
-        </div>
-        <ToggleSwitch data-testid="settings-story-always-month" :model-value="alwaysMonth" :label="t('settings.story_always_month_label')" @update:model-value="setAlwaysMonth($event)" />
       </div>
     </div>
   </ModelBox>

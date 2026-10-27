@@ -11,6 +11,7 @@ import { registerSoftReload } from '../composables/usePullToRefresh'
 import { useAuthStore } from '../stores/auth'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
+import { useMomentView } from '../composables/useMomentView'
 import { useHaptic } from '../composables/useHaptic'
 import { useIsMobile } from '../composables/useIsMobile'
 import { analytics } from '../services/analytics'
@@ -19,6 +20,9 @@ import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
 import { connectionsOf } from '../api/smartcarService'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
+import { DAY, type Moment } from '../composables/storyMoments'
+import { useMomentSeen } from '../composables/useMomentSeen'
+import StoryNewsStack from '../components/story/StoryNewsStack.vue'
 import StoryHero from '../components/story/StoryHero.vue'
 import StoryLatestCards from '../components/story/StoryLatestCards.vue'
 import StoryLiveHero from '../components/story/StoryLiveHero.vue'
@@ -47,7 +51,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const { haptic } = useHaptic()
 const upsellTo = useAnalyticsUpsellTarget()
-const { set: setOptIn, alwaysMonth } = useStoryOptIn()
+const { set: setOptIn } = useStoryOptIn()
 
 // Das Template hat genau ein Wurzelelement, ohne Kommentar davor: die Routen-Transition in App.vue
 // (mode out-in) kann ein Fragment nicht ausblenden, der Leave endet nie und die router-view bleibt leer.
@@ -79,9 +83,7 @@ const storyCtx = (): StoryCarContext => ({
   vehicleCategory: selectedCar.value?.category ?? null,
   effectiveBatteryCapacityKwh: effectiveCapacity.value,
   canViewLiveAnalytics: authStore.canViewLiveAnalytics,
-  liveActive: liveActive.value,
   autoSync: autoSyncOffer.value,
-  alwaysMonth: alwaysMonth.value,
 })
 const story = useDashboardStory(selectedCarId, storyCtx)
 const { month, offset, tiles, feed, days, monthStats, hasCharges, loading, error, layers, switching } = story
@@ -95,9 +97,8 @@ const monthLabelShort = (m: StoryMonth) => new Date(m.year, m.month - 1, 1).toLo
 const sixMonthLabels = computed(() => Array.from({ length: 6 }, (_, i) =>
   new Date(month.value.year, month.value.month - 1 - (5 - i), 1).toLocaleDateString(locale.value, { month: 'short' })))
 
-// Hero: Live, solange geladen wird, sonst immer der Monat. Momente kommen als Karten (Phase 3).
-const moment = story.moment
-const heroMode = computed<'live' | 'month'>(() => moment.value.kind === 'live' && live.value ? 'live' : 'month')
+// Hero: Live, solange geladen wird, sonst immer der Monat. Neues kommt als Karte von unten.
+const heroMode = computed<'live' | 'month'>(() => liveActive.value && live.value ? 'live' : 'month')
 const carName = computed(() => selectedCar.value ? carDisplayName(selectedCar.value) : '')
 /** Modell ohne Variante für den Vergleich mit allen Fahrern des Modells. */
 const modelName = computed<string>(() => selectedCar.value?.modelDisplayName ?? '')
@@ -217,8 +218,45 @@ function openPlaces() {
   placesPeriod.value = placesTeaser.value ? 'month' : '12m'
   openMap.value = true
 }
-/** Was der Nutzer bei der Ladung gezahlt hat, die den Moment "zu teuer geladen" ausloest. */
-const expensivePrice = computed(() => moment.value.kind === 'expensive' ? moment.value.pricePerKwh : null)
+/** Was der Nutzer bei der Ladung gezahlt hat, die die Karte "zu teuer geladen" ausloest. */
+const expensivePrice = computed(() => {
+  const m = story.cards.value.find(c => c.moment.kind === 'expensive')?.moment
+  return m?.kind === 'expensive' ? m.pricePerKwh : null
+})
+
+// Karten von unten: Handlungen, Erledigt (nur dieses Geraet) und Zaehlen.
+const { seen, markShown, dismiss } = useMomentSeen()
+function onNewsShown(m: Moment) {
+  if (seen.value.shown[m.key] != null) return
+  markShown(m.key)
+  analytics.track('story_moment_shown', { moment: m.kind })
+}
+function onNewsAct(m: Moment, id: string) {
+  haptic()
+  analytics.track('story_moment_tapped', { moment: m.kind, action: id })
+  if (id === 'share') {
+    const v = newsText(m)
+    share(v.title, v.text)
+    if (m.kind === 'month_change') dismiss(m.key, Date.now(), 365 * DAY)
+  }
+  else if (id === 'winter') openSheet('range')
+  else if (id === 'prices') openPrices.value = true
+  else if (id === 'price_unknown' && m.kind === 'gap') story.markPriceUnknown(m.logId)
+  else if (id === 'battery') {
+    // Ohne Akku-Kachel (kein SoH am Auto) fuehrt der Verlauf zur Fahrzeugseite.
+    if (tiles.value.some(x => x.id === 'battery')) openSheet('battery')
+    else router.push('/cars')
+  }
+}
+function onNewsDismiss(m: Moment) {
+  analytics.track('story_moment_dismissed', { moment: m.kind })
+  dismiss(m.key, Date.now(), (m.kind === 'month_change' || m.kind === 'rank' ? 365 : 30) * DAY)
+}
+/** Text zum Teilen: Satz und Unterzeile der Karte. */
+function newsText(m: Moment): { title: string; text: string } {
+  const v = useMomentView({ moment: m, carId: selectedCarId.value, carName: carName.value }).value
+  return { title: v.eyebrow, text: [v.sentence, v.sub].filter(Boolean).join(' ') }
+}
 function openSheet(id: TileId) {
   haptic()
   analytics.track('story_tile_opened', { tile: id })
@@ -347,7 +385,7 @@ onUnmounted(() => unregisterReload?.())
             <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
             <StoryFeed
               v-if="narrow && showFeed"
-              :feed="feed" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
+              :feed="feed" :model-name="modelName" :sheets="sheetIds"
               :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0"
               @open="openSheet" @map="openPlaces" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
@@ -355,7 +393,7 @@ onUnmounted(() => unregisterReload?.())
         </div>
         <div v-if="!narrow && showFeed" ref="monthSide" class="min-w-0 lg:col-span-5" :class="switching ? monthWaiting : ''">
           <StoryFeed
-            :feed="feed" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
+            :feed="feed" :model-name="modelName" :sheets="sheetIds"
             :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0" map-preview
             @open="openSheet" @map="openPlaces" />
         </div>
@@ -409,6 +447,11 @@ onUnmounted(() => unregisterReload?.())
       @add-charge="onAddCharge" />
     <!-- Teleport: mobil liegt die Uebersicht im verschobenen Pager-Track, fixed waere dort relativ zum Track -->
     <Teleport to="body">
+      <StoryNewsStack
+        v-if="route.path === '/story' && selectedCarId"
+        :cards="story.cards.value" :car-id="selectedCarId" :car-name="carName" :seen="seen"
+        @shown="onNewsShown" @act="onNewsAct" @dismiss="onNewsDismiss"
+        @collapsed="analytics.track('story_news_collapsed')" @expanded="analytics.track('story_news_expanded')" @list="analytics.track('story_news_list_opened')" />
       <LogFormModal
         v-if="addCharge"
         :car-id="selectedCarId"

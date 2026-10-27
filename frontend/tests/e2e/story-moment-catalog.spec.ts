@@ -2,10 +2,11 @@ import { test, expect, type Page } from '@playwright/test';
 import { calmMonth, openStory, log, trip, point, stats, NOW_MID, NOW_MONTH_START, HOUR, DAY, iso, isoDate, type StoryData } from './fixtures/story';
 
 /**
- * Katalog aller Hero-Zustände der Story: je Zustand feste Daten, Prüfung von Satz und Handlung,
- * dazu ein Bild der ganzen Seite im Bericht (`npx playwright show-report`) zum Durchblättern.
- * Lokal vergleicht jeder Test die erste Box mit dem freigegebenen Bild; in CI nicht, die
- * Vergleichsbilder entstehen auf macOS und weichen unter Linux in der Schrift ab.
+ * Katalog aller Zustände der Story: je Zustand feste Daten, Prüfung von Satz und Handlung (Seite
+ * oder Karte von unten), dazu ein Bild der ganzen Seite im Bericht (`npx playwright show-report`)
+ * zum Durchblättern. Lokal vergleicht jeder Test den ersten Bildschirm (390 x 844, mit Karte) mit
+ * dem freigegebenen Bild; in CI nicht, die Vergleichsbilder entstehen auf macOS und weichen unter
+ * Linux in der Schrift ab.
  *
  * Bilder neu freigeben nach gewollter Änderung: `npx playwright test story-moment-catalog --update-snapshots`.
  */
@@ -15,16 +16,20 @@ interface Case {
   name: string
   data: () => StoryData
   check: (page: Page) => Promise<void>
+  /** Rückblick oder Ranglisten-Abschluss des Vormonats sehen wollen (sonst gelten sie als erledigt). */
+  keep?: Array<'month_change' | 'rank'>
 }
 
-const sentence = (page: Page, kind: string) => page.getByTestId(`story-moment-${kind}`).getByTestId('story-moment-sentence');
+const card = (page: Page, kind: string) => page.getByTestId(`story-news-${kind}`);
+const sentence = (page: Page, kind: string) => card(page, kind).getByTestId('story-news-sentence');
 
 const CASES: Case[] = [
   {
     name: 'monat',
     data: () => calmMonth(),
     check: async (page) => {
-      await expect(page.locator('[data-testid^="story-moment-"]:not([data-testid="story-moment-show-month"])')).toHaveCount(0);
+      await expect(page.getByTestId('story-news')).toHaveCount(0);
+      await expect(page.getByTestId('story-news-tab')).toHaveCount(0);
       await expect(page.getByTestId('story-hero-value')).toContainText(/Oktober: 274\skm für 33\s€\./);
       // 52 kWh bisher, September 95 kWh: Prognose statt "weniger als im Vormonat"
       await expect(page.getByTestId('story-hero-box')).toContainText(/Prognose ~60\s€, Vormonat 61\s€/);
@@ -47,8 +52,13 @@ const CASES: Case[] = [
     name: 'gerade-geladen',
     data: () => ({ ...calmMonth(), logs: [log(NOW_MID, { loggedAt: iso(NOW_MID - 40 * 60_000), createdAt: iso(NOW_MID - 40 * 60_000), kwhAtVehicle: 28.5, kwhCharged: 30, socBeforeChargePercent: 35, socAfterChargePercent: 80, costEur: null })] }),
     check: async (page) => {
-      await expect(sentence(page, 'just_charged')).toContainText(/28,5\skWh, 35 → 80\s%\. Reicht für etwa \d+\skm\./);
-      await expect(page.getByTestId('story-moment-just_charged').getByRole('link', { name: 'Preis nachtragen' })).toHaveAttribute('href', /nachtragen=preis/);
+      // Keine Karte: die Zuletzt-Karte ist "Heute geladen" und bietet den Preis an.
+      const today = page.getByTestId('story-latest-today');
+      await expect(today).toContainText(/Heute geladen/);
+      await expect(today).toContainText(/Akku jetzt 80\s%/);
+      await expect(today).toContainText(/28,5\skWh ab 35\s%/);
+      await expect(today.getByRole('button', { name: 'Preis eintragen' })).toBeVisible();
+      await expect(page.getByTestId('story-news')).toHaveCount(0);
     },
   },
   {
@@ -63,7 +73,7 @@ const CASES: Case[] = [
     }),
     check: async (page) => {
       await expect(sentence(page, 'expensive')).toContainText(/Gestern 79\sct\/kWh bei IONITY\. Andere Fahrer zahlen dort im Schnitt 52\sct\/kWh, mit einer Ladekarte ab 49\sct\/kWh\./);
-      await expect(page.getByTestId('story-moment-expensive').getByRole('button', { name: 'Preise anderer Fahrer ansehen' })).toBeVisible();
+      await expect(card(page, 'expensive').getByRole('button', { name: 'Preise anderer Fahrer ansehen' })).toBeVisible();
     },
   },
   {
@@ -96,7 +106,7 @@ const CASES: Case[] = [
     }),
     check: async (page) => {
       await expect(sentence(page, 'long_trip')).toContainText(/Gestern: 420\skm, 2\sLadestopps für 31\s€\./);
-      await expect(page.getByTestId('story-moment-long_trip').getByRole('link', { name: 'Fahrten ansehen' })).toBeVisible();
+      await expect(card(page, 'long_trip').getByRole('link', { name: 'Fahrten ansehen' })).toBeVisible();
     },
   },
   {
@@ -104,21 +114,22 @@ const CASES: Case[] = [
     data: () => ({ ...calmMonth(), trips: [trip(NOW_MID, { tripStartedAt: iso(NOW_MID - 10 * HOUR), tripEndedAt: iso(NOW_MID - 9.5 * HOUR), outsideTempCelsius: 3 })] }),
     check: async (page) => {
       await expect(sentence(page, 'first_frost')).toContainText(/Heute 3\s°C\. Im Winter kommst du mit einer Akkuladung etwa [\d.]+\skm weit, im Sommer [\d.]+\skm\./);
-      await expect(page.getByTestId('story-moment-first_frost').getByRole('button', { name: 'Winterwerte ansehen' })).toBeVisible();
+      await expect(card(page, 'first_frost').getByRole('button', { name: 'Winterwerte ansehen' })).toBeVisible();
     },
   },
   {
     name: 'monatsrueckblick',
+    keep: ['month_change'],
     data: () => ({
       ...calmMonth(NOW_MONTH_START),
       monthStats: stats({ totalCharges: 1, totalDistanceKm: 40, energyCostEur: 5, totalCostEur: 5, totalKwhCharged: 9, chargesOverTime: [point(new Date(2026, 9, 1, 12).getTime())] }),
       previousStats: stats({ totalDistanceKm: 512, energyCostEur: 61, totalCostEur: 61, totalCharges: 11, totalKwhCharged: 95 }),
     }),
     check: async (page) => {
-      const hero = page.getByTestId('story-moment-month_change');
-      await expect(hero.getByTestId('story-moment-sentence')).toContainText(/September: 512\skm für 61\s€\./);
-      await expect(hero).toContainText(/Mit Benzin wären es 67\s€\./);
-      await expect(hero.getByRole('button', { name: 'Teilen' })).toBeVisible();
+      const review = card(page, 'month_change');
+      await expect(sentence(page, 'month_change')).toContainText(/September: 512\skm für 61\s€\./);
+      await expect(review).toContainText(/Mit Benzin wären es 67\s€\./);
+      await expect(review.getByRole('button', { name: 'Rückblick teilen' })).toBeVisible();
     },
   },
   {
@@ -129,7 +140,8 @@ const CASES: Case[] = [
     }),
     check: async (page) => {
       await expect(sentence(page, 'milestone')).toContainText('100 Ladungen.');
-      await expect(page.getByTestId('story-moment-milestone').getByRole('button', { name: 'Teilen' })).toBeVisible();
+      await expect(card(page, 'milestone').getByRole('button', { name: 'Teilen' })).toBeVisible();
+      await expect(page.getByTestId('story-confetti')).toHaveCount(1);
     },
   },
   {
@@ -142,26 +154,28 @@ const CASES: Case[] = [
       ],
     }),
     check: async (page) => {
-      const hero = page.getByTestId('story-moment-battery');
-      await expect(hero.getByTestId('story-moment-sentence')).toContainText(/Dein Akku: ~92\s%\. Vor \d+\sMonaten: ~93\s%\./);
-      await expect(hero).toContainText('geschätzt');
+      await expect(sentence(page, 'battery')).toContainText(/Dein Akku: ~92\s%\. Vor \d+\sMonaten: ~93\s%\./);
+      await expect(card(page, 'battery')).toContainText('geschätzt');
     },
   },
   {
     name: 'rangliste',
-    data: () => ({ ...calmMonth(), ranks: { MONTHLY_DISTANCE: { rank: 2, value: 1234, unit: 'km' } } }),
+    keep: ['rank'],
+    data: () => ({ ...calmMonth(), ranks: { MONTHLY_DISTANCE: { rank: 2, value: 1234, unit: 'km' }, MONTHLY_KWH: { rank: 3, value: 310, unit: 'kWh' }, MONTHLY_CHARGES: { rank: 7, value: 9, unit: '' } } }),
     check: async (page) => {
-      await expect(page.getByTestId('story-moment-rank')).toContainText('Rangliste');
-      await expect(page.getByTestId('story-moment-rank').getByRole('link', { name: 'Rangliste ansehen' })).toHaveAttribute('href', '/leaderboard');
+      // Abschluss des Vormonats: alle Treppchenplätze in einer Karte, Platz 7 fehlt.
+      await expect(sentence(page, 'rank')).toContainText('Im September auf dem Treppchen.');
+      await expect(card(page, 'rank')).toContainText(/Platz 2 bei .+ · Platz 3 bei /);
+      await expect(card(page, 'rank')).not.toContainText('Platz 7');
+      await expect(card(page, 'rank').getByRole('link', { name: 'Rangliste ansehen' })).toHaveAttribute('href', '/leaderboard');
     },
   },
   {
     name: 'stille',
     data: () => ({ ...calmMonth(), logs: [log(NOW_MID, { loggedAt: iso(NOW_MID - 16 * DAY), createdAt: iso(NOW_MID - 16 * DAY), kwhAtVehicle: 28.5 })] }),
     check: async (page) => {
-      const hero = page.getByTestId('story-moment-silence');
-      await expect(hero.getByTestId('story-moment-sentence')).toContainText(/Letzte Ladung vor 16\sTagen: 28,5\skWh\./);
-      await expect(hero.getByRole('button', { name: 'Alles erfasst' })).toBeVisible();
+      await expect(sentence(page, 'silence')).toContainText(/Letzte Ladung vor 16\sTagen: 28,5\skWh\./);
+      await expect(card(page, 'silence').getByRole('button', { name: 'Alles erfasst' })).toBeVisible();
     },
   },
   {
@@ -171,9 +185,8 @@ const CASES: Case[] = [
       priceless: [log(NOW_MID, { id: '00000000-0000-0000-0000-0000000c0009', loggedAt: iso(NOW_MID - 2 * DAY), createdAt: iso(NOW_MID - 2 * DAY), kwhAtVehicle: 28.5, costEur: null, priceUnknown: false })],
     }),
     check: async (page) => {
-      const hero = page.getByTestId('story-moment-gap');
-      await expect(hero.getByTestId('story-moment-sentence')).toContainText(/Was haben die 28,5\skWh vom 12\.10\. gekostet\?/);
-      await expect(hero.getByRole('button', { name: 'Weiß ich nicht mehr' })).toBeVisible();
+      await expect(sentence(page, 'gap')).toContainText(/Was haben die 28,5\skWh vom 12\.10\. gekostet\?/);
+      await expect(card(page, 'gap').getByRole('button', { name: 'Weiß ich nicht mehr' })).toBeVisible();
     },
   },
 ];
@@ -184,7 +197,7 @@ test.describe('Story: Katalog der Hero-Zustände', () => {
       test(`${c.name} (${theme === 'light' ? 'hell' : 'dunkel'})`, async ({ page }, testInfo) => {
         const errors: string[] = [];
         page.on('pageerror', (err) => errors.push(err.message));
-        await openStory(page, c.data(), { theme });
+        await openStory(page, c.data(), { theme, keep: c.keep });
 
         await c.check(page);
         const box = page.getByTestId('story-hero-box');
@@ -193,7 +206,8 @@ test.describe('Story: Katalog der Hero-Zustände', () => {
 
         await testInfo.attach(`${c.name} ${theme}`, { body: await page.screenshot({ fullPage: true, animations: 'disabled' }), contentType: 'image/png' });
         if (!process.env.CI) {
-          await expect(box).toHaveScreenshot(`${c.name}-${theme}.png`, { animations: 'disabled', maxDiffPixels: 30, threshold: 0.05 });
+          // Der erste Bildschirm samt Karte von unten, nicht nur die Box: die Karte liegt fest über der Seite.
+          await expect(page).toHaveScreenshot(`${c.name}-${theme}.png`, { animations: 'disabled', maxDiffPixels: 30, threshold: 0.05 });
         }
         expect(errors).toEqual([]);
       });

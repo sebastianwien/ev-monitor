@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, bestRank, ranksFromStandings, buildLatest, sohIsEstimated, buildTripMonth,
+  temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, ranksFromStandings, buildLatest, sohIsEstimated, buildTripMonth,
   COLD_MAX_C, MILD_MIN_C, MIN_TRIPS_PER_SIDE,
 } from './storyInsights'
 import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
@@ -145,22 +145,6 @@ describe('countPricelessInMonth', () => {
   })
 })
 
-describe('bestRank', () => {
-  it('nimmt den besten eigenen Rang ueber alle Kategorien', () => {
-    const r = bestRank([
-      { category: 'MONTHLY_KWH', ownEntry: { rank: 7, value: 300, unit: 'kWh' } },
-      null,
-      { category: 'MONTHLY_NIGHT_OWL', ownEntry: { rank: 2, value: 9, unit: '' } },
-      { category: 'MONTHLY_DISTANCE', ownEntry: null },
-    ])
-    expect(r).toEqual({ category: 'MONTHLY_NIGHT_OWL', rank: 2, value: 9, unit: '' })
-  })
-
-  it('liefert null ohne eigenen Eintrag', () => {
-    expect(bestRank([null, { category: 'MONTHLY_KWH', ownEntry: null }])).toBeNull()
-  })
-})
-
 describe('ranksFromStandings', () => {
   /** Antwort von GET /public/leaderboard/standings/me, wie das Backend sie baut (MyLeaderboardStandingDTO). */
   const standings = [
@@ -176,12 +160,11 @@ describe('ranksFromStandings', () => {
       { category: 'MONTHLY_CHARGES', ownEntry: { rank: 14, value: 9, unit: '' } },
       { category: 'MONTHLY_DISTANCE', ownEntry: null },
     ])
-    expect(bestRank(r)).toEqual({ category: 'MONTHLY_KWH', rank: 2, value: 312.5, unit: 'kWh' })
   })
 
-  it('ohne Platzierung in allen Kategorien gibt es keinen Rang', () => {
-    expect(bestRank(ranksFromStandings([standings[2]]))).toBeNull()
-    expect(bestRank(ranksFromStandings([]))).toBeNull()
+  it('ohne Platzierung in allen Kategorien gibt es keinen Eintrag', () => {
+    expect(ranksFromStandings([standings[2]])[0].ownEntry).toBeNull()
+    expect(ranksFromStandings([])).toEqual([])
   })
 })
 
