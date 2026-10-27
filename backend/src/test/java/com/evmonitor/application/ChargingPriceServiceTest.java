@@ -116,7 +116,8 @@ class ChargingPriceServiceTest {
     }
 
     private static ChargingProviderTariff tariff(String emp, ChargingType type, String price, String monthlyFee) {
-        return new ChargingProviderTariff(java.util.UUID.randomUUID(), emp, "v", null, null, type, new BigDecimal(price),
-                BigDecimal.ZERO, new BigDecimal(monthlyFee), null, null, false, java.time.LocalDate.of(2025, 1, 1), null, null, null);
+        return ChargingProviderTariff.builder().id(java.util.UUID.randomUUID()).empName(emp).tariffVariant("v")
+                .chargingType(type).pricePerKwh(new BigDecimal(price)).sessionFeeEur(BigDecimal.ZERO)
+                .monthlyFeeEur(new BigDecimal(monthlyFee)).validFrom(java.time.LocalDate.of(2025, 1, 1)).build();
     }
 }

@@ -19,13 +19,15 @@ public final class AdminTariffResponses {
     public record Row(UUID id, String empName, String tariffVariant, String cpoName, String priceTier,
                       String chargingType, BigDecimal pricePerKwh, BigDecimal sessionFeeEur, BigDecimal monthlyFeeEur,
                       BigDecimal blockingFeePerMin, Integer blockingFeeAfterMin, boolean dynamicPricing,
-                      LocalDate validFrom, LocalDate validUntil, String sourceUrl, LocalDateTime lastVerifiedAt) {
+                      LocalDate validFrom, LocalDate validUntil, String sourceUrl, LocalDateTime lastVerifiedAt,
+                      boolean appliesElsewhere, Integer minPowerKw, BigDecimal blockingFeeCapEur) {
 
         public static Row of(ChargingProviderTariff t) {
             return new Row(t.getId(), t.getEmpName(), t.getTariffVariant(), t.getCpoName(), t.getPriceTier(),
                     t.getChargingType().name(), t.getPricePerKwh(), t.getSessionFeeEur(), t.getMonthlyFeeEur(),
                     t.getBlockingFeePerMin(), t.getBlockingFeeAfterMin(), t.isDynamicPricing(),
-                    t.getValidFrom(), t.getValidUntil(), t.getSourceUrl(), t.getLastVerifiedAt());
+                    t.getValidFrom(), t.getValidUntil(), t.getSourceUrl(), t.getLastVerifiedAt(),
+                    t.isAppliesElsewhere(), t.getMinPowerKw(), t.getBlockingFeeCapEur());
         }
     }
 

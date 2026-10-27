@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import com.evmonitor.application.CpoPriceBenchmark.CardOffer;
 import com.evmonitor.application.publicapi.CpoNameNormalizer;
+import com.evmonitor.application.tariff.TariffApplicability;
 import com.evmonitor.domain.ChargingProviderTariff;
 import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.domain.ChargingType;
@@ -109,29 +110,22 @@ public class CpoPriceBenchmarkService {
                 .toList();
     }
 
+    /**
+     * Je Anbieter und Variante die genaueste Zeile für diesen Betreiber (siehe
+     * {@link TariffApplicability}). Dynamische Preise nie: der gepflegte Wert wäre nur ein Beispiel.
+     */
     private List<CardOffer> curatedOffers(String operator, ChargingType type) {
         Map<String, Optional<String>> tierByEmp = new HashMap<>();
-        return tariffRepository.findValidOn(LocalDate.now()).stream()
-                .filter(t -> t.getChargingType() == type && t.getPricePerKwh() != null)
-                .filter(t -> appliesAt(t, operator, tierByEmp))
+        TariffApplicability.TierLookup tiers = (emp, cpo) ->
+                tierByEmp.computeIfAbsent(emp, e -> tariffRepository.findTierForCpo(e, cpo));
+        List<ChargingProviderTariff> valid = tariffRepository.findValidOn(LocalDate.now()).stream()
+                .filter(t -> !t.isDynamicPricing())
+                .toList();
+        return TariffApplicability.applicable(valid, new TariffApplicability.Charge(operator, type, null), tiers).stream()
                 .map(t -> new CardOffer(t.getEmpName(), t.getTariffVariant(), round(t.getPricePerKwh()), t.getMonthlyFeeEur(),
                         CardOffer.Source.CURATED, null,
                         t.getLastVerifiedAt() == null ? null : t.getLastVerifiedAt().toLocalDate()))
                 .toList();
-    }
-
-    /**
-     * Ein Tarif mit Betreiber gilt nur dort; mit Tier, wo das Mapping diesen Tier nennt (ohne
-     * Mapping nicht - das waere geraten); sonst nur im eigenen Netz.
-     */
-    private boolean appliesAt(ChargingProviderTariff t, String operator, Map<String, Optional<String>> tierByEmp) {
-        if (t.getCpoName() != null) return t.getCpoName().equals(operator);
-        if (t.getPriceTier() != null) {
-            return tierByEmp.computeIfAbsent(t.getEmpName(), emp -> tariffRepository.findTierForCpo(emp, operator))
-                    .map(t.getPriceTier()::equals)
-                    .orElse(false);
-        }
-        return t.getEmpName().equals(operator);
     }
 
     private static List<BigDecimal> driverMedians(List<PublicChargePrice> rows) {

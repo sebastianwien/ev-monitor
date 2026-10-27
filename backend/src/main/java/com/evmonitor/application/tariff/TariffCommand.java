@@ -33,5 +33,10 @@ public record TariffCommand(
         @NotNull(message = "Gültig ab ist Pflicht.") LocalDate validFrom,
         LocalDate validUntil,
         // Freiwillig, leer heisst keine Quelle. Sonst nur Web-Links: die Quelle wird im Admin-Tab als Link gezeigt.
-        @Size(max = 500) @Pattern(regexp = "(https?://\\S+)?", message = "Quelle muss ein http(s)-Link sein.") String sourceUrl) {
+        @Size(max = 500) @Pattern(regexp = "(https?://\\S+)?", message = "Quelle muss ein http(s)-Link sein.") String sourceUrl,
+        // Gilt an allen Betreibern ohne genaueren Preis des Anbieters (Roaming-Preis "andere Betreiber").
+        boolean appliesElsewhere,
+        // Nur DC: gilt für Ladungen mit mehr als so viel kW (Aral "über 50 kW"). Leer = ab 0 kW.
+        @Min(value = 1, message = "Leistungsgrenze ab 1 kW.") @Max(1000) Integer minPowerKw,
+        @DecimalMin("0") @DecimalMax("100") BigDecimal blockingFeeCapEur) {
 }

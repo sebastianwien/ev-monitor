@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
 
-/** Admin-Tab "Ladekarten": gepflegte Tarife ansehen, anlegen, ändern, beenden. */
+/** Admin-Tab "Ladekarten": gepflegte Tarife ansehen, anlegen, ändern, als geprüft markieren, beenden. */
 @RestController
 @RequestMapping("/api/admin/charging-tariffs")
 @PreAuthorize("hasRole('ADMIN')")
@@ -40,6 +40,11 @@ public class AdminChargingTariffController {
     @PutMapping("/{id}")
     public AdminTariffResponses.Row update(@PathVariable UUID id, @Valid @RequestBody TariffCommand cmd) {
         return service.update(id, cmd);
+    }
+
+    @PostMapping("/{id}/verify")
+    public AdminTariffResponses.Row verify(@PathVariable UUID id) {
+        return service.verify(id);
     }
 
     @PostMapping("/{id}/end")

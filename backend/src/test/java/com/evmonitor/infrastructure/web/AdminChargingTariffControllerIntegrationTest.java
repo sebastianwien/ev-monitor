@@ -93,6 +93,44 @@ class AdminChargingTariffControllerIntegrationTest extends AbstractIntegrationTe
     }
 
     @Test
+    void create_elsewhereWithPowerClassAndBlockingCap_roundTrips() {
+        Map<String, Object> c = with("cpoName", null);
+        c.put("appliesElsewhere", true);
+        c.put("minPowerKw", 50);
+        c.put("blockingFeeCapEur", 12);
+
+        ResponseEntity<Map> created = send(HttpMethod.POST, URL, c);
+
+        assertThat(created.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(created.getBody()).containsEntry("appliesElsewhere", true).containsEntry("minPowerKw", 50);
+        assertThat(((Number) created.getBody().get("blockingFeeCapEur")).doubleValue()).isEqualTo(12.0);
+    }
+
+    @Test
+    void invalidScopeOrPower_400() {
+        assertThat(send(HttpMethod.POST, URL, with("appliesElsewhere", true)).getStatusCode()).as("operator and elsewhere").isEqualTo(HttpStatus.BAD_REQUEST);
+        Map<String, Object> ac = with("chargingType", "AC");
+        ac.put("minPowerKw", 50);
+        assertThat(send(HttpMethod.POST, URL, ac).getStatusCode()).as("power class on AC").isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(send(HttpMethod.POST, URL, with("minPowerKw", 0)).getStatusCode()).as("zero kW").isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(send(HttpMethod.POST, URL, with("blockingFeeCapEur", -1)).getStatusCode()).as("negative cap").isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void verify_renewsOnlyTheDate() {
+        Map<?, ?> created = send(HttpMethod.POST, URL, command()).getBody();
+        String id = (String) created.get("id");
+
+        ResponseEntity<Map> verified = send(HttpMethod.POST, URL + "/" + id + "/verify", null);
+
+        assertThat(verified.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(verified.getBody()).containsEntry("pricePerKwh", created.get("pricePerKwh"))
+                .containsEntry("validFrom", created.get("validFrom"));
+        assertThat((String) verified.getBody().get("lastVerifiedAt")).isGreaterThanOrEqualTo((String) created.get("lastVerifiedAt"));
+        assertThat(send(HttpMethod.POST, URL + "/" + UUID.randomUUID() + "/verify", null).getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+    }
+
+    @Test
     void update_changesThePriceAndRenewsTheDate() {
         String id = (String) send(HttpMethod.POST, URL, command()).getBody().get("id");
 

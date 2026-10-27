@@ -73,6 +73,13 @@ public class AdminChargingTariffService {
         return AdminTariffResponses.Row.of(tariffRepository.save(existing.toBuilder().validUntil(validUntil).build()));
     }
 
+    /** Seite geprüft, Werte stimmen: nur der Stand wird heute. */
+    @Transactional
+    public AdminTariffResponses.Row verify(UUID id) {
+        ChargingProviderTariff existing = find(id);
+        return AdminTariffResponses.Row.of(tariffRepository.save(existing.toBuilder().lastVerifiedAt(LocalDateTime.now()).build()));
+    }
+
     private ChargingProviderTariff find(UUID id) {
         return tariffRepository.findById(id).orElseThrow(() -> new NotFoundException("Tarif nicht gefunden."));
     }
@@ -85,6 +92,12 @@ public class AdminChargingTariffService {
         String cpo = blankToNull(cmd.cpoName());
         if (cpo != null && cmd.priceTier() != null) {
             throw new ValidationException("Betreiber oder Tier, nicht beides.");
+        }
+        if (cpo != null && cmd.appliesElsewhere()) {
+            throw new ValidationException("Ein Tarif mit Betreiber gilt nur dort, nicht überall.");
+        }
+        if (cmd.minPowerKw() != null && cmd.chargingType() != ChargingType.DC) {
+            throw new ValidationException("Leistungsgrenze nur bei DC.");
         }
         return b.empName(empOrCreate(cmd.empName()))
                 .tariffVariant(blankToNull(cmd.tariffVariant()))
@@ -100,6 +113,9 @@ public class AdminChargingTariffService {
                 .validFrom(cmd.validFrom())
                 .validUntil(cmd.validUntil())
                 .sourceUrl(blankToNull(cmd.sourceUrl()))
+                .appliesElsewhere(cmd.appliesElsewhere())
+                .minPowerKw(cmd.minPowerKw())
+                .blockingFeeCapEur(cmd.blockingFeeCapEur())
                 .lastVerifiedAt(LocalDateTime.now())
                 .build();
     }

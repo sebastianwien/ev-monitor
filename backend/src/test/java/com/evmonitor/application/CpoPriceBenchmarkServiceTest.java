@@ -204,6 +204,24 @@ class CpoPriceBenchmarkServiceTest {
     }
 
     @Test
+    void elsewhereTariff_countsAtEveryOperatorWithoutAMoreSpecificPrice() {
+        drivers("ALDI Süd", ChargingType.DC, "0.47", "0.47", "0.47", "0.47", "0.47");
+        tariffs.add(tariff("ADAC e-Charge", "Standard", "EnBW", null, "0.55", "0"));
+        tariffs.add(tariff("ADAC e-Charge", "Standard", null, null, "0.75", "0").toBuilder().appliesElsewhere(true).build());
+
+        assertThat(service.benchmark("ALDI Süd", ChargingType.DC, ME).orElseThrow().cards())
+                .extracting(CardOffer::pricePerKwh).containsExactly(new BigDecimal("0.750"));
+    }
+
+    @Test
+    void dynamicTariff_isNeverOffered() {
+        drivers("EnBW", ChargingType.DC, "0.39", "0.43", "0.49", "0.59", "0.69");
+        tariffs.add(tariff("EnBW", "Tariff L", null, null, "0.39", "11.99").toBuilder().dynamicPricing(true).build());
+
+        assertThat(service.benchmark("EnBW", ChargingType.DC, ME).orElseThrow().cards()).isEmpty();
+    }
+
+    @Test
     void maintainedTariff_replacesTheDriverCardOfTheSameProvider() {
         drivers("EnBW", ChargingType.DC, "0.59", "0.69");
         IntStream.range(0, 3).forEach(i -> rows.add(card(UUID.randomUUID(), "EnBW", "EnBW", "0.39")));
@@ -242,8 +260,9 @@ class CpoPriceBenchmarkServiceTest {
     }
 
     private static ChargingProviderTariff tariff(String emp, String variant, String cpo, String tier, String price, String fee) {
-        return new ChargingProviderTariff(UUID.randomUUID(), emp, variant, cpo, tier, ChargingType.DC,
-                new BigDecimal(price), BigDecimal.ZERO, new BigDecimal(fee), null, null, false,
-                LocalDate.of(2025, 1, 1), null, null, VERIFIED);
+        return ChargingProviderTariff.builder().id(UUID.randomUUID()).empName(emp).tariffVariant(variant)
+                .cpoName(cpo).priceTier(tier).chargingType(ChargingType.DC).pricePerKwh(new BigDecimal(price))
+                .sessionFeeEur(BigDecimal.ZERO).monthlyFeeEur(new BigDecimal(fee))
+                .validFrom(LocalDate.of(2025, 1, 1)).lastVerifiedAt(VERIFIED).build();
     }
 }

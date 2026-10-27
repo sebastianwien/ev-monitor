@@ -60,6 +60,9 @@ public class PostgresChargingProviderTariffRepositoryImpl implements ChargingPro
         e.setValidUntil(t.getValidUntil());
         e.setSourceUrl(t.getSourceUrl());
         e.setLastVerifiedAt(t.getLastVerifiedAt());
+        e.setAppliesElsewhere(t.isAppliesElsewhere());
+        e.setMinPowerKw(t.getMinPowerKw());
+        e.setBlockingFeeCapEur(t.getBlockingFeeCapEur());
         return toDomain(jpaRepository.save(e));
     }
 
@@ -123,23 +126,26 @@ public class PostgresChargingProviderTariffRepositoryImpl implements ChargingPro
     }
 
     private ChargingProviderTariff toDomain(ChargingProviderTariffEntity e) {
-        return new ChargingProviderTariff(
-                e.getId(),
-                e.getEmpName(),
-                e.getTariffVariant(),
-                e.getCpoName(),
-                e.getPriceTier(),
-                ChargingType.valueOf(e.getChargingType()),
-                e.getPricePerKwh(),
-                e.getSessionFeeEur(),
-                e.getMonthlyFeeEur(),
-                e.getBlockingFeePerMin(),
-                e.getBlockingFeeAfterMin(),
-                e.isDynamicPricing(),
-                e.getValidFrom(),
-                e.getValidUntil(),
-                e.getSourceUrl(),
-                e.getLastVerifiedAt()
-        );
+        return ChargingProviderTariff.builder()
+                .id(e.getId())
+                .empName(e.getEmpName())
+                .tariffVariant(e.getTariffVariant())
+                .cpoName(e.getCpoName())
+                .priceTier(e.getPriceTier())
+                .chargingType(ChargingType.valueOf(e.getChargingType()))
+                .pricePerKwh(e.getPricePerKwh())
+                .sessionFeeEur(e.getSessionFeeEur())
+                .monthlyFeeEur(e.getMonthlyFeeEur())
+                .blockingFeePerMin(e.getBlockingFeePerMin())
+                .blockingFeeAfterMin(e.getBlockingFeeAfterMin())
+                .dynamicPricing(e.isDynamicPricing())
+                .validFrom(e.getValidFrom())
+                .validUntil(e.getValidUntil())
+                .sourceUrl(e.getSourceUrl())
+                .lastVerifiedAt(e.getLastVerifiedAt())
+                .appliesElsewhere(e.isAppliesElsewhere())
+                .minPowerKw(e.getMinPowerKw())
+                .blockingFeeCapEur(e.getBlockingFeeCapEur())
+                .build();
     }
 }
