@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.CpoPriceBenchmark;
 import com.evmonitor.application.CpoPriceBenchmarkService;
+import com.evmonitor.application.tariff.savings.CardSavingsService;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +12,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.UUID;
 
 /**
  * Was andere Fahrer bei einem Betreiber zahlen - fuer den Story-Moment "zu teuer geladen".
@@ -26,6 +29,7 @@ public class ChargingBenchmarkController {
     private static final int CPO_MAX = 100;
 
     private final CpoPriceBenchmarkService service;
+    private final CardSavingsService savings;
 
     @GetMapping
     public ResponseEntity<CpoPriceBenchmark> benchmark(@RequestParam String cpo,
@@ -36,6 +40,18 @@ public class ChargingBenchmarkController {
         }
         var requester = ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
         return service.benchmark(cpo, type, requester)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /**
+     * Was gepflegte Ladekarten bei einer eigenen Ladung gespart hätten. 204: nichts belegbar
+     * (Ausland, ohne Ort, ohne Säulen-kWh, unbekannter Betreiber, keine Karte spart einen Euro).
+     */
+    @GetMapping("/savings")
+    public ResponseEntity<CardSavingsService.CardSavings> savings(@RequestParam UUID logId, Authentication authentication) {
+        var requester = ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
+        return savings.forLog(logId, requester)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
