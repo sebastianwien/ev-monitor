@@ -119,10 +119,9 @@ export async function mockStory(page: Page, data: StoryData) {
     const limit = new URL(route.request().url()).searchParams.get('limit');
     return json(route, limit ? data.trips.slice(0, Number(limit)) : data.trips);
   });
-  await page.route(/\/api\/public\/leaderboard\/[A-Z_]+/, route => {
-    const category = new URL(route.request().url()).pathname.split('/').pop()!;
-    return json(route, { ownEntry: data.ranks[category] ?? null, entries: [] });
-  });
+  await page.route(/\/api\/public\/leaderboard\/standings\/me/, route =>
+    json(route, Object.entries(data.ranks).map(([category, r]) => ({ category, unit: r?.unit ?? '', rank: r?.rank ?? null, value: r?.value ?? null }))));
+  await page.route(/\/api\/public\/leaderboard\/[A-Z_]+/, route => json(route, { ownEntry: null, entries: [] }));
   await page.route(/\/api\/charging-benchmarks\?/, route => json(route, data.benchmark));
   await page.route(/\/api\/logs\/places\?/, route => route.fulfill({ json: data.places }));
   await page.route(/tile\.openstreetmap\.org/, route => route.fulfill({ contentType: 'image/png', body: EMPTY_PNG }));

@@ -95,7 +95,15 @@ public class LeaderboardService {
     }
 
     public List<MyLeaderboardStandingDTO> getMyStandings(UUID userId) {
-        LocalDate today = LocalDate.now();
+        return getMyStandings(userId, LocalDate.now());
+    }
+
+    /**
+     * Wie {@link #getMyStandings(UUID)}, aber mit frei wählbarem Referenzdatum: der letzte Tag des
+     * Vormonats liefert den Endstand jenes Monats (gleiche Fenster-Logik wie {@link #getLeaderboard}).
+     */
+    public List<MyLeaderboardStandingDTO> getMyStandings(UUID userId, LocalDate referenceDate) {
+        LocalDate today = referenceDate;
         LocalDateTime startOfMonth = today.withDayOfMonth(1).atStartOfDay();
         LocalDateTime endOfToday = today.plusDays(1).atStartOfDay();
         LocalDateTime endOfYesterday = today.atStartOfDay();

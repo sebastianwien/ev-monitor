@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, bestRank, buildLatest, sohIsEstimated, buildTripMonth,
+  temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, bestRank, ranksFromStandings, buildLatest, sohIsEstimated, buildTripMonth,
   COLD_MAX_C, MILD_MIN_C, MIN_TRIPS_PER_SIDE,
 } from './storyInsights'
 import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
@@ -158,6 +158,30 @@ describe('bestRank', () => {
 
   it('liefert null ohne eigenen Eintrag', () => {
     expect(bestRank([null, { category: 'MONTHLY_KWH', ownEntry: null }])).toBeNull()
+  })
+})
+
+describe('ranksFromStandings', () => {
+  /** Antwort von GET /public/leaderboard/standings/me, wie das Backend sie baut (MyLeaderboardStandingDTO). */
+  const standings = [
+    { category: 'MONTHLY_KWH', displayName: 'kWh', unit: 'kWh', lowerIsBetter: false, rank: 2, value: 312.5, rankDelta: 1, isNew: false, carLabel: 'Tesla Model 3' },
+    { category: 'MONTHLY_CHARGES', displayName: 'Ladungen', unit: '', lowerIsBetter: false, rank: 14, value: 9, rankDelta: null, isNew: false, carLabel: 'Tesla Model 3' },
+    { category: 'MONTHLY_DISTANCE', displayName: 'km', unit: 'km', lowerIsBetter: false, rank: null, value: null, rankDelta: null, isNew: false, carLabel: null },
+  ]
+
+  it('liest den eigenen Platz auch in den Top 10, den die Kategorie-Liste nicht als ownEntry nennt', () => {
+    const r = ranksFromStandings(standings)
+    expect(r).toEqual([
+      { category: 'MONTHLY_KWH', ownEntry: { rank: 2, value: 312.5, unit: 'kWh' } },
+      { category: 'MONTHLY_CHARGES', ownEntry: { rank: 14, value: 9, unit: '' } },
+      { category: 'MONTHLY_DISTANCE', ownEntry: null },
+    ])
+    expect(bestRank(r)).toEqual({ category: 'MONTHLY_KWH', rank: 2, value: 312.5, unit: 'kWh' })
+  })
+
+  it('ohne Platzierung in allen Kategorien gibt es keinen Rang', () => {
+    expect(bestRank(ranksFromStandings([standings[2]]))).toBeNull()
+    expect(bestRank(ranksFromStandings([]))).toBeNull()
   })
 })
 

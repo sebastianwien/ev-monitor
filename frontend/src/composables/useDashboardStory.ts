@@ -12,8 +12,8 @@ import {
 } from './storyModel'
 import { buildEnergyFlow, buildRange, costLayers, monthCosts, type MonthCosts } from './storyEnergy'
 import {
-  temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, bestRank,
-  type TripForTemperature, type RankEntry, buildLatest, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
+  temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, bestRank, ranksFromStandings,
+  type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
   detectLive, detectJustCharged, detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRank,
   detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickMoment, momentFeedItems, DAY,
@@ -117,11 +117,14 @@ async function fetchCharges(carId: string, start: string, end: string): Promise<
 
 type RankResponse = { category: string; ownEntry: RankEntry | null } | null
 
+/** Eigene Plätze aller Kategorien in einem Aufruf; die Top-10-Listen nennen den eigenen Platz nur ab Platz 11. */
 async function fetchRanks(monthsBack: number): Promise<RankResponse[]> {
-  const settled = await Promise.allSettled(LEADERBOARD_CATEGORIES.map(category =>
-    api.get<{ ownEntry: RankEntry | null }>(`/public/leaderboard/${category}`, { params: { monthsBack } })
-      .then(r => ({ category, ownEntry: r.data.ownEntry ?? null }))))
-  return settled.map(s => s.status === 'fulfilled' ? s.value : null)
+  try {
+    const r = await api.get<LeaderboardStanding[]>('/public/leaderboard/standings/me', { params: { monthsBack } })
+    return ranksFromStandings(Array.isArray(r.data) ? r.data : [])
+  } catch {
+    return []
+  }
 }
 
 /** Alles, was ein Monat an Antworten braucht, als Einheit im Cache. */

@@ -238,6 +238,25 @@ export interface RankResult extends RankEntry {
   category: string
 }
 
+/** Eine Zeile von GET /public/leaderboard/standings/me: Rang und Wert sind null ohne Platzierung. */
+export interface LeaderboardStanding {
+  category: string
+  unit: string
+  rank: number | null
+  value: number | null
+}
+
+/**
+ * Die eigenen Plätze aus standings/me in die Form der Rang-Auswertung. Die Liste je Kategorie
+ * nennt den eigenen Platz nur ab Platz 11 (davor steht er in den Top 10), standings/me immer.
+ */
+export function ranksFromStandings(standings: LeaderboardStanding[]): Array<{ category: string; ownEntry: RankEntry | null }> {
+  return standings.map(s => ({
+    category: s.category,
+    ownEntry: s.rank != null && s.value != null ? { rank: s.rank, value: s.value, unit: s.unit ?? '' } : null,
+  }))
+}
+
 /** Bester (kleinster) eigener Rang ueber alle Kategorien, bei Gleichstand der erste. */
 export function bestRank(results: Array<{ category: string; ownEntry: RankEntry | null } | null>): RankResult | null {
   let best: RankResult | null = null

@@ -66,7 +66,7 @@ test('Teurer als üblich: echter Vergleich mit anderen Fahrern, Satz und Sheet',
     localStorage.setItem('story_dashboard_opt_in', 'true');
     localStorage.setItem('story_moments_seen', JSON.stringify({ shown: {}, dismissed: { [key]: Date.now() + 10 * 86_400_000 } }));
   }, [keys, monthChangeKey] as const);
-  await page.route(/\/api\/public\/leaderboard\/[A-Z_]+/, route => route.fulfill({ json: { ownEntry: null, entries: [] } }));
+  await page.route(/\/api\/public\/leaderboard\/standings\/me/, route => route.fulfill({ json: [] }));
 
   const benchmark = page.waitForResponse(r => r.url().includes('/api/charging-benchmarks'), { timeout: 30_000 });
   await page.goto('/login');

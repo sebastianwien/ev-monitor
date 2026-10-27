@@ -30,7 +30,7 @@ describe('useDashboardStory - Monats-Cache', () => {
     getMock.mockImplementation((url: string) => {
       if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(getMock.mock.calls.length) })
       if (url.includes('/trips')) return Promise.resolve({ data: [] })
-      if (url.includes('/leaderboard')) return Promise.resolve({ data: { ownEntry: null } })
+      if (url.includes('/leaderboard')) return Promise.resolve({ data: [] })
       if (url.includes('/public/fuel-prices')) return Promise.resolve({ data: { petrolEurPerLitre: 2.13, dieselEurPerLitre: 2.25, updatedAt: '2026-10-02T06:00:00Z' } })
       return Promise.resolve({ data: [] })
     })
@@ -133,7 +133,7 @@ describe('useDashboardStory - Moment-Hero', () => {
     getMock.mockReset()
     getMock.mockImplementation((url: string) => {
       if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
-      if (url.includes('/leaderboard')) return Promise.resolve({ data: { ownEntry: null } })
+      if (url.includes('/leaderboard')) return Promise.resolve({ data: [] })
       if (url.startsWith('/logs?')) return Promise.resolve({ data: [fresh] })
       return Promise.resolve({ data: [] })
     })
