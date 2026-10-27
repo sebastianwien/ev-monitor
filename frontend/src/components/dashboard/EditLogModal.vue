@@ -3,6 +3,7 @@
     ref="sheet"
     :label="t('dashboard.edit_title')"
     testid="edit-log-modal"
+    edge
     panel-class="sm:max-w-xl"
     :stacked="stacked"
     @close="onClosed">

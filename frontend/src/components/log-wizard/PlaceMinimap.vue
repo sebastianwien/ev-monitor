@@ -15,7 +15,8 @@ const ready = ref(false)
 let map: L.Map | null = null
 let mark: L.CircleMarker | L.Rectangle | null = null
 const bounds = (a: MinimapArea): L.LatLngBoundsExpression => [[a.south, a.west], [a.north, a.east]]
-const ACCENT = '#4f46e5'
+/** Pins auf Karten tragen die Textfarbe der App-CI: gray-900, im Dunkelmodus (invertierte Karte) gray-100. */
+const pinColor = () => document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
 
 onMounted(() => {
   if (!container.value) return
@@ -35,8 +36,8 @@ const drawMark = () => {
   if (!map) return
   mark?.remove()
   mark = props.area
-    ? L.rectangle(bounds(props.area), { color: ACCENT, weight: 2, fillColor: ACCENT, fillOpacity: 0.15, interactive: false }).addTo(map)
-    : L.circleMarker([props.lat, props.lon], { radius: 7, color: '#ffffff', weight: 2, fillColor: ACCENT, fillOpacity: 1 }).addTo(map)
+    ? L.rectangle(bounds(props.area), { color: pinColor(), weight: 2, fillColor: pinColor(), fillOpacity: 0.15, interactive: false }).addTo(map)
+    : L.circleMarker([props.lat, props.lon], { radius: 7, color: '#ffffff', weight: 2, fillColor: pinColor(), fillOpacity: 1 }).addTo(map)
 }
 watch(() => [props.lat, props.lon, props.zoom, props.area], () => { map?.setView([props.lat, props.lon], props.zoom); drawMark() })
 onUnmounted(() => { map?.remove(); map = null })

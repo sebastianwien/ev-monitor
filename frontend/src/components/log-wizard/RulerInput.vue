@@ -181,18 +181,18 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
 </script>
 
 <template>
-  <div :data-testid="testid ? `${testid}-row` : undefined" :class="['rounded-sm border-2 px-3 py-2 transition cursor-pointer select-none',
-      active ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-900/20' : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800']"
+  <div :data-testid="testid ? `${testid}-row` : undefined" :class="['rounded-xl border-2 px-3 py-2 transition-colors cursor-pointer select-none bg-white dark:bg-gray-800',
+      active ? 'border-green-600 dark:border-green-500' : 'border-edge dark:border-gray-700']"
     v-haptic @click="onRowClick">
     <div :class="['grid items-baseline gap-x-2 min-h-9', prefix ? 'grid-cols-[1fr_auto_auto_auto]' : 'grid-cols-[1fr_auto_auto]']">
       <span class="text-sm text-gray-500 dark:text-gray-400 cursor-pointer py-2 -my-2" aria-hidden="true" @click.stop="toggleFromLabel">{{ label }}</span>
       <span v-if="prefix" class="text-xs tabular-nums whitespace-nowrap text-gray-400 dark:text-gray-500">{{ prefix }}</span>
       <input ref="input" :id="id" :data-testid="testid" type="number" :inputmode="inputmode" :step="step" :min="min" :max="max"
         :placeholder="placeholder" :value="shown" :aria-label="label" @input="onInput" @keydown="onInputKey" @focus="activate" @pointerdown="onInputPointerDown"
-        :class="['w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none transition-[font-size]',
+        :class="['w-[8ch] min-w-0 bg-transparent border-0 p-0 text-right font-bold tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none transition-[font-size]',
                  active ? 'text-3xl' : 'text-2xl']" />
       <span class="text-base text-gray-500 dark:text-gray-400">{{ unit }}</span>
-      <span v-if="sub" :class="['col-span-full text-right text-xs tabular-nums -mt-1', subTone === 'warn' ? 'text-red-500' : subTone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-400 dark:text-gray-500']">{{ sub }}</span>
+      <span v-if="sub" :class="['col-span-full text-right text-xs tabular-nums -mt-1', subTone === 'warn' ? 'font-semibold text-amber-700 dark:text-amber-400' : subTone === 'notice' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400']">{{ sub }}</span>
     </div>
     <!-- Der Maßstab: Mittelmarke steht fest, der Streifen scrollt darunter durch. Für Tastatur und
          Screenreader trägt das Zahlenfeld Wert und Pfeiltasten, der Streifen ist reine Fingergeste. -->
@@ -203,7 +203,7 @@ const shown = computed(() => model.value == null ? '' : String(model.value))
       tabindex="-1" aria-hidden="true"
       @scroll.passive="onScroll" @keydown="onKey">
       <canvas ref="canvas" :class="['block h-10', nudging && 'ruler-nudge']" />
-      <i aria-hidden="true" class="absolute left-1/2 top-0 h-7 w-1 -ml-0.5 rounded-full bg-indigo-600 shadow-[0_0_0_2px_rgba(255,255,255,0.9)] dark:shadow-[0_0_0_2px_rgba(31,41,55,0.9)] pointer-events-none" />
+      <i aria-hidden="true" class="absolute left-1/2 top-0 h-7 w-1 -ml-0.5 rounded-full bg-gray-900 dark:bg-gray-100 shadow-[0_0_0_2px_rgba(255,255,255,0.9)] dark:shadow-[0_0_0_2px_rgba(31,41,55,0.9)] pointer-events-none" />
     </div>
     </Collapse>
     <!-- Schnellwahl (z. B. 80/90/100 %) gehört in die offene Box, nicht darunter -->

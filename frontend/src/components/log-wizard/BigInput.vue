@@ -8,10 +8,10 @@ const onInput = (e: Event) => {
 </script>
 
 <template>
-  <div class="flex items-baseline gap-2 border-b-2 border-gray-200 dark:border-gray-600 focus-within:border-indigo-600 py-1">
+  <div class="flex items-baseline gap-2 border-b-2 border-edge focus-within:border-green-600 py-1">
     <input :id="id" :data-testid="testid" :aria-label="label" type="number" :inputmode="inputmode ?? 'decimal'" :step="step ?? 'any'" :min="min" :max="max"
       :placeholder="placeholder" :value="model ?? ''" :autofocus="autofocus" @input="onInput"
-      class="flex-1 min-w-0 bg-transparent border-0 p-0 text-4xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
+      class="flex-1 min-w-0 bg-transparent border-0 p-0 text-4xl font-bold tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none" />
     <span class="text-base text-gray-500 dark:text-gray-400">{{ unit }}</span>
     <!-- Abgeleiteter Wert (z. B. Gesamtpreis bei Eingabe je kWh) hinter der Einheit -->
     <span v-if="hint" class="ml-2 text-base tabular-nums text-gray-400 dark:text-gray-500 whitespace-nowrap">{{ hint }}</span>

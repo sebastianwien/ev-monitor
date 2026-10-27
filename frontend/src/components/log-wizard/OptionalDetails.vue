@@ -20,7 +20,7 @@ const { timePick, pickTime, timeChips } = useTimePick(form)
 const routeChips = ROUTE_CHIPS.map(c => ({ ...c, label: t(c.key) }))
 const tireChips = TIRE_CHIPS.map(c => ({ ...c, label: t(c.key) }))
 
-const numField = 'w-full min-w-0 bg-transparent border-0 p-0 text-right text-xl font-medium tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none'
+const numField = 'w-full min-w-0 bg-transparent border-0 p-0 text-right text-xl font-bold tabular-nums text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:ring-0 focus:outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none'
 </script>
 
 <template>
@@ -35,7 +35,7 @@ const numField = 'w-full min-w-0 bg-transparent border-0 p-0 text-right text-xl 
         </button>
       </div>
       <input v-if="timePick === 'other'" id="wizard-time" v-model="form.loggedAt" type="datetime-local" :max="nowLocal()" :aria-label="t('logfields.timestamp')"
-        class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-transparent dark:text-gray-100 p-2 text-sm focus:border-indigo-600 focus:ring-0 focus:outline-none" />
+        class="min-h-12 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
     </div>
 
     <div class="space-y-1.5">
@@ -56,22 +56,22 @@ const numField = 'w-full min-w-0 bg-transparent border-0 p-0 text-right text-xl 
 
     <!-- Zahlen nebeneinander: Label oben, Wert groß, Einheit daneben - dieselbe Sprache wie die Rädchen-Zeilen -->
     <div class="grid grid-cols-3 gap-2">
-      <label class="block rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-2 focus-within:border-indigo-600">
-        <span :class="[LABEL, 'truncate !text-[10px] !tracking-tight']">{{ t('logwizard.d_soc_before_tile') }}</span>
+      <label class="block rounded-xl border-2 border-edge bg-white dark:border-gray-700 dark:bg-gray-800 px-2.5 py-2 focus-within:border-green-600">
+        <span :class="[LABEL, 'truncate !text-[11px] !tracking-tight']">{{ t('logwizard.d_soc_before_tile') }}</span>
         <span class="flex items-baseline gap-1">
           <input id="wizard-soc-before-detail" v-model.number="form.socBeforeChargePercent" type="number" inputmode="numeric" min="0" max="100" step="1" placeholder="–" :aria-label="t('logwizard.d_soc_before')" :class="numField" />
           <span class="text-xs text-gray-500 dark:text-gray-400">%</span>
         </span>
       </label>
-      <label class="block rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-2 focus-within:border-indigo-600">
-        <span :class="[LABEL, 'truncate !text-[10px] !tracking-tight']">{{ t('logwizard.d_duration') }}</span>
+      <label class="block rounded-xl border-2 border-edge bg-white dark:border-gray-700 dark:bg-gray-800 px-2.5 py-2 focus-within:border-green-600">
+        <span :class="[LABEL, 'truncate !text-[11px] !tracking-tight']">{{ t('logwizard.d_duration') }}</span>
         <span class="flex items-baseline gap-1">
           <input id="wizard-duration" v-model.number="form.chargeDurationMinutes" type="number" inputmode="numeric" min="0" placeholder="–" :aria-label="t('logwizard.d_duration')" :class="numField" />
           <span class="text-xs text-gray-500 dark:text-gray-400">min</span>
         </span>
       </label>
-      <label class="block rounded-sm border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-2.5 py-2 focus-within:border-indigo-600">
-        <span :class="[LABEL, 'truncate !text-[10px] !tracking-tight']">{{ t('logwizard.d_peak_tile') }}</span>
+      <label class="block rounded-xl border-2 border-edge bg-white dark:border-gray-700 dark:bg-gray-800 px-2.5 py-2 focus-within:border-green-600">
+        <span :class="[LABEL, 'truncate !text-[11px] !tracking-tight']">{{ t('logwizard.d_peak_tile') }}</span>
         <span class="flex items-baseline gap-1">
           <input id="wizard-power" v-model.number="form.maxChargingPowerKw" type="number" inputmode="decimal" min="0" step="0.1" placeholder="–" :aria-label="t('logwizard.d_peak')" :class="numField" />
           <span class="text-xs text-gray-500 dark:text-gray-400">kW</span>

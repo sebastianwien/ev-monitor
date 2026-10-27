@@ -521,10 +521,10 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
 <template>
   <div>
     <div v-if="hasCars === false" class="text-center py-10 px-4 space-y-4">
-      <TruckIcon class="h-14 w-14 mx-auto text-gray-300" />
-      <p class="text-gray-600 dark:text-gray-400 font-medium">{{ t('logform.no_car_title') }}</p>
-      <p class="text-sm text-gray-400 dark:text-gray-500">{{ t('logform.no_car_desc') }}</p>
-      <router-link to="/cars" class="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-sm text-sm font-medium">
+      <TruckIcon class="h-14 w-14 mx-auto text-gray-300 dark:text-gray-600" />
+      <p class="text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ t('logform.no_car_title') }}</p>
+      <p class="text-[14px] text-gray-500 dark:text-gray-400">{{ t('logform.no_car_desc') }}</p>
+      <router-link to="/cars" class="inline-flex items-center gap-2 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white px-5">
         <TruckIcon class="h-4 w-4" />{{ t('logform.no_car_btn') }}
       </router-link>
     </div>
@@ -563,7 +563,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
     </WizardShell>
 
     <div v-if="toast" class="fixed bottom-6 right-6 z-50 animate-slide-in">
-      <div class="bg-green-600 text-white px-5 py-3 rounded-sm shadow-[6px_6px_0_rgba(0,0,0,0.40)] flex items-center gap-2">
+      <div class="edge-box bg-green-600 text-white px-5 py-3 rounded-xl text-[15px] font-semibold flex items-center gap-2">
         <BoltIcon class="h-5 w-5" />{{ toast }}
       </div>
     </div>

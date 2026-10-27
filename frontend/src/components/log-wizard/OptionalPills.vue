@@ -59,12 +59,12 @@ const onTimePicked = () => { editing.value = null }
   <!-- Beide Lagen liegen in derselben Grid-Zelle: die Höhe ist die der Segmente (44 px), die Zeile wächst nie -->
   <div data-testid="optional-pills" class="grid overflow-hidden">
     <!-- Lage 1: drei Pillen, gleiten beim Öffnen nach links raus -->
-    <div :inert="!!editing" :class="['[grid-area:1/1] flex items-center justify-center gap-1.5 min-h-[46px] transition-[translate,opacity] duration-200 ease-out motion-reduce:transition-none',
+    <div :inert="!!editing" :class="['[grid-area:1/1] flex items-center justify-center gap-1.5 min-h-12 transition-[translate,opacity] duration-200 ease-out motion-reduce:transition-none',
              editing ? '-translate-x-6 opacity-0' : 'translate-x-0 opacity-100']">
       <!-- Tap-Ziel 44 px hoch, die sichtbare Pille bleibt 36 px: der Button trägt die Höhe, der Span das Aussehen -->
       <button v-for="p in pills" :key="p.field" type="button" :aria-label="p.label" :aria-expanded="editing === p.field"
         :data-testid="`pill-${p.field}`" @click="toggle(p.field)" class="inline-flex items-center min-h-11">
-        <span class="inline-flex items-center gap-1 min-h-9 rounded-full px-3 text-xs tabular-nums transition bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30">
+        <span class="inline-flex items-center gap-1 min-h-9 rounded-full px-3 text-xs tabular-nums transition bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-white/15">
           <component :is="p.icon" class="h-3.5 w-3.5" />{{ p.text }}
         </span>
       </button>
@@ -84,7 +84,7 @@ const onTimePicked = () => { editing.value = null }
         <button v-for="c in TIRE_CHIPS" :key="c.value" type="button" role="radio" :aria-checked="form.tireType === c.value" :class="segClass(form.tireType === c.value)"
           @click="pickTires(c.value)"><component :is="c.icon" class="h-4 w-4 flex-shrink-0" />{{ t(c.key) }}</button>
       </div>
-      <button type="button" :aria-label="t('common.close')" class="h-11 w-9 inline-flex items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700" @click="editing = null">
+      <button type="button" :aria-label="t('common.close')" class="h-11 w-11 shrink-0 inline-flex items-center justify-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10" @click="editing = null">
         <XMarkIcon class="h-4 w-4" />
       </button>
     </div>

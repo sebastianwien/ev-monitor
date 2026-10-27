@@ -41,8 +41,8 @@ const stepFor: Record<SummarySection, WizardStep> = { place: 1, energy: 2, vehic
       </VoiceTranscript>
       <HighwayQuestion v-if="askHighway" v-model="form" />
       <LogSummary :flagged="flagged" v-model="form" :place-label="placeLabel" hide-place details-numbers-only reveal :cost-metrics="costMetrics" @edit="s => emit('goto', stepFor[s])" />
-      <p v-if="error" class="text-sm text-red-500 dark:text-red-400 text-center">{{ error }}</p>
-      <p class="inline-flex items-center gap-1.5 text-xs text-green-700 dark:text-green-400"><BoltIcon class="h-4 w-4" />{{ t('logwizard.watt_hint') }}</p>
+      <p v-if="error" role="alert" class="rounded-xl bg-amber-50 px-3 py-2 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">{{ error }}</p>
+      <p class="inline-flex items-center gap-1.5 text-[13px] text-gray-500 dark:text-gray-400"><BoltIcon class="h-4 w-4 text-green-700 dark:text-green-400" aria-hidden="true" />{{ t('logwizard.watt_hint') }}</p>
     </div>
   </div>
 </template>

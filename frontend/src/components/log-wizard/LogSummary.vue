@@ -6,6 +6,7 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { type RequiredField } from './wizardLogic'
 import OptionalPanel from './OptionalPanel.vue'
 import type { CostMetric } from './costMetrics'
+import { CARD, CARD_EDGE, CARD_SURFACE, CARD_MISSING } from './chipClass'
 
 export type SummarySection = 'place' | 'energy' | 'vehicle' | 'cost' | 'time'
 
@@ -65,18 +66,18 @@ const tiles = computed<Tile[]>(() => [
       <button v-for="(tile, i) in tiles" :key="tile.testid" type="button" :data-testid="tile.testid" @click="emit('edit', tile.section)"
         :style="reveal ? { animationDelay: `${i * 40}ms` } : undefined"
         :data-flagged="isFlagged(tile) || undefined"
-        :class="['btn-3d text-left p-3 rounded-sm transition', reveal && 'tile-rise', isFlagged(tile) && 'ring-2 ring-inset ring-amber-400 dark:ring-amber-600', tile.value == null ? 'bg-amber-50 dark:bg-amber-900/20 ring-1 ring-inset ring-amber-300 dark:ring-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/40' : 'bg-gray-100 dark:bg-gray-700/60 hover:bg-gray-200 dark:hover:bg-gray-700']">
-        <span class="block truncate text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ tile.label }}</span>
+        :class="[CARD, 'p-3', reveal && 'tile-rise', isFlagged(tile) ? 'border-amber-500 dark:border-amber-400' : CARD_EDGE, tile.value == null ? CARD_MISSING : CARD_SURFACE]">
+        <span class="block truncate text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ tile.label }}</span>
         <!-- Gleicher Aufbau wie alle Kacheln: Label, Wert, eine graue Zeile. Kosten: der Preis je kWh steht leise neben dem Betrag. -->
         <span v-if="tile.value != null" class="flex items-baseline gap-1.5 min-w-0">
-          <b class="text-base font-semibold tabular-nums text-gray-800 dark:text-gray-100 truncate">{{ tile.value }}</b>
+          <b class="text-[17px] font-bold tabular-nums text-gray-900 dark:text-gray-50 truncate">{{ tile.value }}</b>
           <span v-if="tile.section === 'cost' && perKwh" class="flex-shrink-0 text-xs tabular-nums text-gray-500 dark:text-gray-400">{{ perKwh.value }} {{ perKwh.unit }}</span>
         </span>
-        <b v-else class="block text-base font-semibold text-amber-700 dark:text-amber-300">{{ t('logwizard.open') }}</b>
+        <b v-else class="block text-[17px] font-bold text-amber-800 dark:text-amber-300">{{ t('logwizard.open') }}</b>
         <!-- Kosten: dritte Zeile zeigt die Kennzahlen, Wert dunkel und Einheit grau, Trenner als Punkt; Tippen ändert wie bei allen Kacheln -->
         <!-- Statt "Ändern" (die ganze Kachel ist der Button) die eine passende Kennzahl, einzeilig wie die übrigen Kacheln -->
-        <span v-if="metricFor(tile.section)" :class="['block truncate text-xs tabular-nums', metricFor(tile.section)!.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400']">{{ metricFor(tile.section)!.value }} {{ metricFor(tile.section)!.unit }}</span>
-        <span v-else class="text-xs text-indigo-600 dark:text-indigo-300">{{ t('logwizard.change') }}</span>
+        <span v-if="metricFor(tile.section)" :class="['block truncate text-xs tabular-nums', metricFor(tile.section)!.tone === 'notice' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-500 dark:text-gray-400']">{{ metricFor(tile.section)!.value }} {{ metricFor(tile.section)!.unit }}</span>
+        <span v-else class="text-xs text-gray-500 dark:text-gray-400">{{ t('logwizard.change') }}</span>
       </button>
     </div>
 

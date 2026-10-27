@@ -23,7 +23,7 @@ const { t } = useI18n()
 
 <template>
     <!-- Klickbar (Prüfung: Tipp springt zum Ort) auch per Tastatur: role, tabindex und Enter/Leertaste -->
-    <div data-testid="numbers-context" :class="['relative', clickable && 'cursor-pointer']" @click="emit('click')" class=" -mx-4 md:mx-0 md:rounded-sm overflow-hidden"
+    <div data-testid="numbers-context" :class="['relative', clickable && 'cursor-pointer']" @click="emit('click')" class=" -mx-4 md:mx-0 md:rounded-xl overflow-hidden"
       :role="clickable ? 'button' : undefined" :tabindex="clickable ? 0 : undefined" @keydown.enter.prevent="clickable && emit('click')" @keydown.space.prevent="clickable && emit('click')"
       :style="hasMap ? { height: `${height}px` } : undefined">
       <!-- Die Karte ist immer so hoch wie der größte Kopf und mittig verankert: der Rahmen wächst und schrumpft animiert,
@@ -33,11 +33,11 @@ const { t } = useI18n()
       <div :class="hasMap ? 'absolute inset-x-0 bottom-0 z-[500] px-4 pb-3 pt-14 bg-gradient-to-t from-white via-white/70 to-transparent dark:from-gray-900 dark:via-gray-900/70' : 'px-4'">
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
-            <p class="flex items-center gap-1.5 text-sm font-semibold text-gray-800 dark:text-gray-100 truncate"><MapPinIcon class="h-4 w-4 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />{{ context.title }}</p>
+            <p class="flex items-center gap-1.5 text-[15px] font-semibold text-gray-900 dark:text-gray-50 truncate"><MapPinIcon class="h-4 w-4 flex-shrink-0 text-gray-900 dark:text-gray-100" />{{ context.title }}</p>
             <p v-if="context.address" class="text-xs text-gray-500 dark:text-gray-400 truncate pl-[1.375rem]">{{ context.address }}</p>
             <p v-if="hasMap && context.area" data-testid="place-area-hint" class="text-xs text-gray-500 dark:text-gray-400 pl-[1.375rem]">{{ t('logwizard.place_area_hint') }}</p>
           </div>
-          <p v-if="context.card" class="flex items-center gap-1 flex-shrink-0 text-xs text-gray-600 dark:text-gray-300"><CreditCardIcon class="h-4 w-4" />{{ context.card }}</p>
+          <p v-if="context.card" class="flex items-center gap-1 flex-shrink-0 text-[13px] text-gray-600 dark:text-gray-300"><CreditCardIcon class="h-4 w-4" />{{ context.card }}</p>
         </div>
       </div>
     </div>

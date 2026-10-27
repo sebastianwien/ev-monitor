@@ -62,18 +62,18 @@ onMounted(() => {
       {{ t('carselector.loading') }}
     </div>
 
-    <div v-else-if="error" class="text-sm text-red-600 p-2">
+    <div v-else-if="error" role="alert" class="rounded-xl bg-amber-50 px-3 py-2 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
       {{ error }}
     </div>
 
     <div v-else-if="cars.length === 0" class="space-y-2">
-      <p class="text-sm text-gray-600 dark:text-gray-400 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-sm">
+      <p class="rounded-xl bg-amber-50 px-3 py-2 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
         {{ t('carselector.no_cars') }}
       </p>
       <button
         @click="goToCarManagement"
         type="button"
-        class="w-full bg-indigo-100 text-indigo-700 px-4 py-2 rounded-sm text-sm font-medium hover:bg-indigo-200 transition">
+        class="btn-3d min-h-11 w-full rounded-xl border-2 border-edge bg-white px-4 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">
         {{ t('carselector.go_to_cars') }}
       </button>
     </div>
@@ -82,7 +82,7 @@ onMounted(() => {
       v-else
       v-model="selectedCarId"
       required
-      class="w-full rounded-sm border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
+      class="min-h-12 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[15px] font-semibold outline-none focus:border-green-600 focus:ring-0 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
       <option :value="null" disabled>{{ t('carselector.select') }}</option>
       <option v-for="car in cars" :key="car.id" :value="car.id">
         {{ carLabel(car) }}

@@ -41,7 +41,7 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
     <div v-if="!props.compact" class="space-y-3">
       <p class="text-sm text-gray-500 dark:text-gray-400">{{ mode === 'charger' ? t('logfields.kwh_hint') : t('logfields.kwh_at_vehicle_hint') }}</p>
       <button type="button" @click="showOcr = !showOcr"
-        class="btn-3d inline-flex items-center gap-2 min-h-11 px-4 py-2 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700">
+        class="btn-3d inline-flex items-center gap-2 min-h-11 px-4 rounded-xl border-2 border-edge bg-white dark:bg-white/10 text-[14px] font-semibold text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/15">
         <CameraIcon class="h-4 w-4" />{{ t('logwizard.ocr_cta') }}
       </button>
       <OcrPhotoCapture v-if="showOcr" @dataExtracted="onOcr" @cancel="showOcr = false" />
@@ -52,17 +52,17 @@ const onOcr = (r: any) => { showOcr.value = false; mode.value = 'charger'; emit(
            (Säule DC, sonst AC), hier korrigierbar, weil sie die Ladeverluste bestimmt. -->
       <div class="flex items-center justify-between gap-2">
         <!-- Quelle der kWh als Icon-Paar: Säule (brutto) oder Auto (netto). Der Feldname darunter sagt die Wahl in Worten. -->
-        <div role="radiogroup" :aria-label="t('logfields.energy')" class="grid grid-cols-2 gap-1 h-11 w-[5.5rem] rounded-full bg-gray-200 dark:bg-gray-700 p-1">
+        <div role="radiogroup" :aria-label="t('logfields.energy')" class="grid grid-cols-2 gap-0.5 h-11 w-[5.5rem] rounded-full border-2 border-edge bg-white dark:bg-gray-900 p-0.5">
           <button v-for="m in modes" :key="m.value" type="button" role="radio" :aria-checked="mode === m.value" :aria-label="m.label" :title="m.label"
             :data-testid="m.testid" @click="switchMode(m.value)"
-            :class="['flex items-center justify-center rounded-full transition-colors', mode === m.value ? ['bg-white dark:bg-gray-500 shadow', m.value === 'charger' ? 'text-amber-600 dark:text-amber-300' : 'text-indigo-700 dark:text-white'] : 'text-gray-500 dark:text-gray-300']">
-            <component :is="m.icon" class="h-6 w-6" />
+            :class="['flex items-center justify-center rounded-full transition-colors', mode === m.value ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'text-gray-600 dark:text-gray-300']">
+            <component :is="m.icon" class="h-6 w-6" aria-hidden="true" />
           </button>
         </div>
         <!-- Seltene Aktion: Beleg fotografieren sitzt im Leerraum zwischen den Schaltern statt in eigener Zeile -->
         <button v-if="props.compact" type="button" @click="showOcr = !showOcr" :aria-label="t('logwizard.ocr_cta')" :title="t('logwizard.ocr_cta')"
-          :class="['flex items-center justify-center h-11 w-11 rounded-full transition-colors', showOcr ? 'bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300' : 'text-gray-500 dark:text-gray-400 hover:text-indigo-600']">
-          <CameraIcon class="h-6 w-6" />
+          :class="['flex items-center justify-center h-11 w-11 rounded-full transition-colors', showOcr ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10']">
+          <CameraIcon class="h-6 w-6" aria-hidden="true" />
         </button>
         <AcDcSwitch v-model="form.chargingType" />
       </div>

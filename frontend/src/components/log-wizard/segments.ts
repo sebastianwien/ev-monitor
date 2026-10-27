@@ -1,7 +1,10 @@
-/** Segmentgruppen der optionalen Angaben: gleich breite Zellen, 44 px hoch, geteilt von Details-Formular und Pillen-Editor. */
-export const SEG_GROUP = 'grid gap-px overflow-hidden rounded-sm border border-gray-300 dark:border-gray-600 bg-gray-300 dark:bg-gray-600'
-export const SEG_LABEL = 'block text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500'
+/**
+ * Segmentgruppen der optionalen Angaben, geteilt von Details-Formular und Pillen-Editor. App-CI: eine Kapsel
+ * mit Kante (48 px hoch), Segmente ohne eigene Kante, das gewählte als Fläche gray-900 (dunkel gray-100).
+ */
+export const SEG_GROUP = 'grid gap-0.5 rounded-full border-2 border-edge bg-white p-0.5 dark:bg-gray-900'
+export const SEG_LABEL = 'block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400'
 export const segClass = (on: boolean) => [
-  'min-h-11 inline-flex items-center justify-center gap-1.5 px-2 text-sm transition',
-  on ? 'bg-indigo-600 text-white' : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-indigo-50 dark:hover:bg-indigo-900/30',
+  'min-h-10 inline-flex min-w-0 items-center justify-center gap-1.5 rounded-full px-2 text-[14px] font-semibold transition-colors duration-300',
+  on ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10',
 ]

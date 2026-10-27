@@ -1,16 +1,16 @@
 <template>
-  <div class="flex min-h-0 flex-1 flex-col">
+  <div class="flex min-h-0 flex-1 flex-col bg-white dark:bg-gray-900">
     <!-- Header: in einer Unteransicht fuehrt der Pfeil zurueck zur Uebersicht -->
-    <div class="flex items-center gap-2 p-4 border-b border-gray-100 dark:border-gray-700 shrink-0">
+    <div class="flex items-center gap-1 px-4 py-2 border-b-2 border-gray-100 dark:border-gray-800 shrink-0">
       <button v-if="section || dismiss === 'back'" type="button" :aria-label="t('common.back')" data-testid="edit-back"
         @click="section ? section = null : emit('cancel')"
-        class="w-11 h-11 -ml-2 flex items-center justify-center rounded-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+        class="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
         <ChevronLeftIcon class="w-5 h-5" />
       </button>
-      <h2 class="flex-1 text-lg font-semibold text-gray-900 dark:text-gray-100">
+      <h2 class="flex-1 min-w-0 truncate text-[17px] font-bold text-gray-900 dark:text-gray-50">
         {{ section ? t(sectionTitles[section]) : t('dashboard.edit_title') }}
       </h2>
-      <button v-if="dismiss === 'close'" type="button" :aria-label="t('common.cancel')" @click="emit('cancel')" class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+      <button v-if="dismiss === 'close'" type="button" :aria-label="t('common.cancel')" @click="emit('cancel')" class="-mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
         <XMarkIcon class="w-5 h-5" />
       </button>
     </div>
@@ -20,12 +20,12 @@
       <template v-if="!section">
         <!-- Sprache: nur Handy, sagt nur, was sich ändert; danach Vorher/Nachher mit Rückgängig -->
         <VoiceCapture v-if="showVoice" entry="edit" variant="inline" :label="t('voicelog.edit_title')" :car-id="log.carId" @draft="onVoiceDraft" />
-        <div v-if="voiceChanges" class="rounded-sm bg-indigo-50 dark:bg-indigo-900/30 p-3 space-y-2" data-testid="edit-voice-changes" aria-live="polite">
+        <div v-if="voiceChanges" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2" data-testid="edit-voice-changes" aria-live="polite">
           <p v-if="voiceNothing" class="text-sm text-gray-700 dark:text-gray-200">{{ t('voicelog.edit_nothing') }}</p>
           <template v-if="voiceChanges.length">
             <div class="flex items-center justify-between gap-2">
-              <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('voicelog.edit_changed') }}</p>
-              <button type="button" data-testid="edit-voice-undo" @click="undoVoice" class="min-h-11 px-2 text-sm font-semibold text-indigo-600 dark:text-indigo-300">{{ t('voicelog.edit_undo') }}</button>
+              <p class="text-[14px] font-semibold text-gray-900 dark:text-gray-50">{{ t('voicelog.edit_changed') }}</p>
+              <button type="button" data-testid="edit-voice-undo" @click="undoVoice" class="min-h-11 rounded-full px-3 text-[14px] font-semibold text-gray-900 underline underline-offset-2 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-white/10">{{ t('voicelog.edit_undo') }}</button>
             </div>
             <ul class="space-y-1 text-sm">
               <li v-for="c in voiceChanges" :key="c.key" :data-testid="`edit-voice-change-${c.key}`" class="flex flex-wrap gap-x-2 text-gray-700 dark:text-gray-200">
@@ -37,22 +37,22 @@
         </div>
         <LogSummary v-model="formData" :place-label="placeLabel" :missing="missingAtOpen" show-time-tile @edit="s => section = s" />
 
-        <div v-if="missingAtOpen.length" class="rounded-sm border border-amber-300 dark:border-amber-700 p-3 space-y-4" data-testid="edit-missing">
-          <p class="text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('logwizard.still_open') }}</p>
+        <div v-if="missingAtOpen.length" class="rounded-xl bg-amber-50 dark:bg-amber-400/10 p-3 space-y-4" data-testid="edit-missing">
+          <p class="text-[14px] font-semibold text-amber-900 dark:text-amber-200">{{ t('logwizard.still_open') }}</p>
           <div v-if="missingAtOpen.includes('energy')">
-            <label for="wizard-kwh" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.energy') }}</label>
+            <label for="wizard-kwh" class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('logfields.energy') }}</label>
             <BigInput id="wizard-kwh" v-model="formData.kwhCharged" unit="kWh" :label="t('logfields.energy')" :placeholder="t('logfields.kwh_placeholder')" step="0.1" :min="0" />
           </div>
           <div v-if="missingAtOpen.includes('odometer')">
-            <label for="wizard-odometer" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.odometer') }}</label>
+            <label for="wizard-odometer" class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('logfields.odometer') }}</label>
             <BigInput id="wizard-odometer" v-model="odometerLocal" :unit="usesMiles ? t('logfields.unit_miles') : t('logfields.unit_km')" step="1" :min="0" inputmode="numeric" />
           </div>
           <div v-if="missingAtOpen.includes('soc')">
-            <label for="wizard-soc" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.soc_after') }}</label>
+            <label for="wizard-soc" class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('logfields.soc_after') }}</label>
             <BigInput id="wizard-soc" v-model="formData.socAfterChargePercent" unit="%" placeholder="80" step="1" :min="0" :max="100" inputmode="numeric" />
           </div>
           <div v-if="missingAtOpen.includes('cost')">
-            <label for="wizard-cost" class="text-[11px] uppercase tracking-wide text-gray-400">{{ t('logfields.cost_eur') }}</label>
+            <label for="wizard-cost" class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('logfields.cost_eur') }}</label>
             <BigInput id="wizard-cost" v-model="cost.costLocalTotal.value" :unit="currencySymbol" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" />
           </div>
         </div>
@@ -70,48 +70,48 @@
       <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />
       <StepCost v-else-if="section === 'cost'" v-model="formData" v-model:providers="providers" :cost="cost" />
       <div v-else-if="section === 'time'">
-        <label for="wizard-time" class="block text-xs text-gray-500 dark:text-gray-400 mb-1">{{ t('logfields.timestamp') }}</label>
+        <label for="wizard-time" class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('logfields.timestamp') }}</label>
         <input id="wizard-time" v-model="formData.loggedAt" type="datetime-local"
-          class="w-full rounded-sm border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 p-2 text-sm" />
+          class="min-h-12 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
       </div>
 
       <!-- Standort aendern: nur im Ort-Editor, ohne Live-Position (es gibt nur den Geohash) -->
       <div v-if="section === 'place'" class="pt-2">
-        <p v-if="formData.latitude == null && log.geohash" class="text-xs text-gray-400 dark:text-gray-500 mt-1">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
+        <p v-if="formData.latitude == null && log.geohash" class="text-xs text-gray-500 dark:text-gray-400 mt-1">{{ t('logfields.current_location', { geohash: log.geohash }) }}</p>
       </div>
 
-      <p v-if="errorMsg" class="text-sm text-red-600 bg-red-50 dark:bg-red-900/30 rounded-sm p-3">{{ errorMsg }}</p>
+      <p v-if="errorMsg" role="alert" class="rounded-xl bg-amber-50 px-3 py-2 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">{{ errorMsg }}</p>
     </div>
 
     <!-- Footer: in der Unteransicht "Fertig" (zurueck zur Uebersicht), sonst Speichern -->
-    <div class="flex items-center gap-3 p-4 border-t border-gray-100 dark:border-gray-700 shrink-0">
+    <div class="flex items-center gap-2 px-4 py-3 border-t-2 border-gray-100 dark:border-gray-800 shrink-0">
       <button v-if="section" type="button" data-testid="edit-done" @click="section = null" v-haptic
-        class="flex-1 bg-indigo-600 text-white p-3 rounded-sm btn-3d font-semibold hover:bg-indigo-700">
+        class="flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700">
         {{ t('logwizard.done') }}
       </button>
       <!-- Loeschen: zweistufig im Sheet statt window.confirm (in der App unzuverlaessig) -->
       <template v-else-if="confirmingDelete">
-        <span class="flex-1 text-sm text-gray-700 dark:text-gray-200">{{ t('logform.delete_confirm') }}</span>
+        <span class="flex-1 text-[14px] font-semibold text-gray-900 dark:text-gray-100">{{ t('logform.delete_confirm') }}</span>
         <button type="button" data-testid="edit-delete-cancel" @click="confirmingDelete = false" v-haptic
-          class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+          class="min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
           {{ t('common.cancel') }}
         </button>
         <button type="button" data-testid="edit-delete-confirm" @click="deleteLog" v-haptic :disabled="loading"
-          class="px-4 py-3 rounded-sm btn-3d font-semibold bg-red-600 text-white hover:bg-red-700 disabled:opacity-40 flex items-center gap-2">
+          class="btn-3d min-h-12 rounded-xl border-2 border-edge bg-red-600 px-4 text-[15px] font-semibold text-white hover:bg-red-700 disabled:opacity-40 flex items-center gap-2">
           <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           {{ t('dashboard.action_delete') }}
         </button>
       </template>
       <template v-else>
         <button type="button" data-testid="edit-delete" :aria-label="t('logform.delete_title')" @click="confirmingDelete = true" v-haptic
-          class="p-3 rounded-sm text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20">
+          class="-ml-1 grid h-12 w-12 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
           <TrashIcon class="w-5 h-5" />
         </button>
-        <button type="button" @click="emit('cancel')" v-haptic class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400">
+        <button type="button" @click="emit('cancel')" v-haptic class="min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
           {{ t('common.cancel') }}
         </button>
         <button type="button" @click="save" v-haptic :disabled="loading || !isFormValid"
-          class="flex-1 bg-indigo-600 text-white p-3 rounded-sm btn-3d font-semibold hover:bg-indigo-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+          class="flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
           <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
           {{ t('logfields.save') }}
         </button>

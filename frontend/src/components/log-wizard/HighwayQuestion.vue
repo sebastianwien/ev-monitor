@@ -18,8 +18,8 @@ const otherChips = ROUTE_CHIPS.filter(c => c.value !== 'HIGHWAY')
 </script>
 
 <template>
-  <div v-if="form.routeType == null" class="rounded-lg border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-900/20 p-3 space-y-3" data-testid="highway-question">
-    <p class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ t(declined ? 'logwizard.ask_highway_other' : 'logwizard.ask_highway') }}</p>
+  <div v-if="form.routeType == null" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-3" data-testid="highway-question">
+    <p class="text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ t(declined ? 'logwizard.ask_highway_other' : 'logwizard.ask_highway') }}</p>
     <div v-if="!declined" class="grid grid-cols-2 gap-2">
       <button type="button" :class="chipClass(false)" data-testid="highway-yes" @click="pick('HIGHWAY')">{{ t('logwizard.ask_highway_yes') }}</button>
       <button type="button" :class="chipClass(false)" data-testid="highway-no" @click="declined = true">{{ t('logwizard.ask_highway_no') }}</button>

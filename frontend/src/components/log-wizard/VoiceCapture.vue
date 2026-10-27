@@ -151,22 +151,22 @@ const status = computed(() => {
   <div v-if="variant === 'footer'" class="contents" data-testid="voice-capture" data-variant="footer">
     <Teleport defer to="#wizard-footer-note">
       <div aria-live="polite">
-        <!-- Sprechblase: gleiche Linie wie der Knopf (2 px Indigo, weißer Grund), die Spitze zeigt auf dessen Mitte - Blase und
+        <!-- Sprechblase: gleiche Linie wie der Knopf (2 px Kante, weißer Grund), die Spitze zeigt auf dessen Mitte - Blase und
              Mikrofon lesen sich als eine Einheit. Aufgebraucht gibt es keinen Knopf: dann ein Kasten ohne Spitze. -->
         <div v-if="note" data-testid="voice-note" :data-note="note"
-          :class="['relative mb-3 rounded-sm px-3 py-2.5 text-sm text-gray-700 dark:text-gray-200',
-                   tail ? 'border-2 border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800' : 'border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50 dark:bg-indigo-950/60']">
+          :class="['relative mb-3 rounded-xl px-3 py-2.5 text-[14px] text-gray-800 dark:text-gray-100',
+                   tail ? 'border-2 border-edge bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-white/10']">
           <p v-if="note === 'denied'" data-testid="voice-denied">{{ t('voicelog.denied') }}</p>
           <div v-else-if="note === 'consent'" data-testid="voice-consent" class="space-y-2">
             <!-- Kurz halten, Details in der DSE. Neuer Tab, damit die Eingaben im Wizard bleiben. -->
             <i18n-t keypath="voicelog.consent_text" tag="p">
               <template #privacy>
                 <a href="/datenschutz#spracheingabe" target="_blank" rel="noopener" data-testid="voice-consent-privacy"
-                  class="underline underline-offset-2 text-indigo-700 dark:text-indigo-300">{{ t('voicelog.consent_privacy') }}</a>
+                  class="underline underline-offset-2 font-semibold text-gray-900 dark:text-gray-100">{{ t('voicelog.consent_privacy') }}</a>
               </template>
             </i18n-t>
             <button type="button" data-testid="voice-consent-ok" @click="acceptConsent"
-              class="btn-3d min-h-11 px-4 rounded-sm bg-indigo-600 text-white font-semibold hover:bg-indigo-700">{{ t('voicelog.consent_ok') }}</button>
+              class="btn-3d min-h-11 px-4 rounded-xl border-2 border-gray-900 bg-gray-900 text-white font-semibold hover:bg-gray-800 dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white">{{ t('voicelog.consent_ok') }}</button>
           </div>
           <p v-else-if="note === 'status'" data-testid="voice-problem" class="text-amber-700 dark:text-amber-300">{{ status }}</p>
           <div v-else-if="notice?.kind === 'out'" data-testid="voice-quota-out">
@@ -176,21 +176,21 @@ const status = computed(() => {
               {{ notice.upsell ? t('voicelog.quota_out_upsell', { date: resetsOn(notice.resetsOn), price: supporterPrice }) : t('voicelog.quota_out_body', { date: resetsOn(notice.resetsOn) }) }}</p>
             <div v-if="notice.upsell" class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
               <router-link :to="{ name: 'supporter', query: { from: 'voice' } }" data-testid="voice-upsell" @click="onUpsell"
-                class="btn-3d inline-flex items-center min-h-11 px-4 rounded-sm bg-indigo-600 text-white font-semibold hover:bg-indigo-700">{{ t('voicelog.quota_cta') }}</router-link>
+                class="inline-flex items-center btn-3d min-h-11 px-4 rounded-xl border-2 border-gray-900 bg-gray-900 text-white font-semibold hover:bg-gray-800 dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white">{{ t('voicelog.quota_cta') }}</router-link>
               <span>{{ t('voicelog.quota_type_on') }}</span>
             </div>
           </div>
           <p v-else-if="notice?.kind === 'low'" data-testid="voice-quota-low">
             {{ t(notice.upsell ? 'voicelog.quota_low_free' : 'voicelog.quota_low_paid', { n: notice.remaining, limit: notice.limit, month }, notice.remaining) }}<template v-if="notice.upsell"> ·
               <router-link :to="{ name: 'supporter', query: { from: 'voice' } }" data-testid="voice-upsell" @click="onUpsell"
-                class="whitespace-nowrap font-semibold text-indigo-700 dark:text-indigo-300 underline underline-offset-2">{{ t('voicelog.quota_low_cta') }}</router-link></template>
+                class="whitespace-nowrap underline underline-offset-2 font-semibold text-gray-900 dark:text-gray-100">{{ t('voicelog.quota_low_cta') }}</router-link></template>
           </p>
           <!-- Ein kurzes Beispiel statt Bedienanleitung: ein lockerer Halbsatz reicht. Die volle Liste steht im Vollbild. -->
-          <p v-else-if="note === 'example'"><span class="font-semibold text-indigo-700 dark:text-indigo-300">{{ t('voicelog.title') }}</span> {{ t('voicelog.card_example') }}</p>
+          <p v-else-if="note === 'example'"><span class="font-semibold text-gray-900 dark:text-gray-50">{{ t('voicelog.title') }}</span> {{ t('voicelog.card_example') }}</p>
           <!-- Spitze: gedrehtes Quadrat mit Rand nur unten/rechts, deckt den unteren Rand der Blase ab.
                Mitte des Knopfs: neu die linke von zwei gleich breiten Spalten (gap-3), vertraut 48 px rund. -->
           <span v-if="tail" aria-hidden="true"
-            :class="['absolute -bottom-[7px] h-3 w-3 rotate-45 border-b-2 border-r-2 border-indigo-600 dark:border-indigo-400 bg-white dark:bg-gray-800',
+            :class="['absolute -bottom-[7px] h-3 w-3 rotate-45 border-b-2 border-r-2 border-edge bg-white dark:bg-gray-800',
                      stage === 'new' ? 'left-[calc((100%_-_0.75rem)/4_-_0.375rem)]' : 'left-[1.125rem]']" />
         </div>
       </div>
@@ -199,8 +199,8 @@ const status = computed(() => {
       <!-- Tippen startet, "Fertig" im Vollbild beendet; Halten nimmt auf, bis der Finger loslässt. Kein click-Handler, der würde doppelt auslösen.
            Neu mit Text, damit klar ist, was er tut; vertraut nur das Symbol, "Weiter" bekommt die Breite. -->
       <button v-if="!out && rec.state.value !== 'denied'" type="button" data-testid="voice-mic" :disabled="busy" :aria-label="t('voicelog.mic_label')"
-        :class="['flex-shrink-0 inline-flex items-center justify-center gap-2 h-12 border-2 border-indigo-600 dark:border-indigo-400 text-indigo-700 dark:text-indigo-200 bg-white dark:bg-gray-800 font-semibold hover:bg-indigo-50 dark:hover:bg-indigo-900/40 transition select-none touch-none [-webkit-touch-callout:none] disabled:opacity-70',
-                 stage === 'new' ? 'flex-1 px-3 rounded-sm' : 'w-12 rounded-full']"
+        :class="['flex-shrink-0 inline-flex items-center justify-center gap-2 h-12 btn-3d border-2 border-edge text-gray-900 dark:text-gray-100 bg-white dark:bg-white/10 text-[15px] font-semibold hover:bg-gray-50 dark:hover:bg-white/15 transition-colors select-none touch-none [-webkit-touch-callout:none] disabled:opacity-70',
+                 stage === 'new' ? 'flex-1 px-3 rounded-xl' : 'w-12 rounded-full']"
         @pointerdown.prevent="onPress" @pointerup="rec.release()" @pointercancel="rec.release()" @contextmenu.prevent
         @keydown.enter.prevent="onPress()" @keydown.space.prevent="onPress()">
         <ArrowPathIcon v-if="busy" class="h-6 w-6 shrink-0 animate-spin" />
@@ -215,7 +215,7 @@ const status = computed(() => {
     <p v-if="rec.state.value === 'denied'" data-testid="voice-denied" class="text-sm text-gray-700 dark:text-gray-200">{{ t('voicelog.denied') }}</p>
     <div v-else class="flex items-center gap-3">
       <button type="button" data-testid="voice-mic" :disabled="disabled" :aria-label="label ?? t('voicelog.again')"
-        :class="['relative flex-shrink-0 grid place-items-center h-11 w-11 rounded-full text-white bg-indigo-600 hover:bg-indigo-700 transition select-none touch-none [-webkit-touch-callout:none] disabled:opacity-70',
+        :class="['relative flex-shrink-0 grid place-items-center h-11 w-11 rounded-full text-white bg-gray-900 hover:bg-gray-800 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white transition-colors select-none touch-none [-webkit-touch-callout:none] disabled:opacity-70',
                  out ? '!bg-gray-400 dark:!bg-gray-600 !opacity-100' : '']"
         @pointerdown.prevent="onPress" @pointerup="rec.release()" @pointercancel="rec.release()" @contextmenu.prevent
         @keydown.enter.prevent="onPress()" @keydown.space.prevent="onPress()">
@@ -231,18 +231,18 @@ const status = computed(() => {
             {{ notice.upsell ? t('voicelog.quota_out_upsell', { date: resetsOn(notice.resetsOn), price: supporterPrice }) : t('voicelog.quota_out_body', { date: resetsOn(notice.resetsOn) }) }}</p>
           <div v-if="notice.upsell" class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2">
             <router-link :to="{ name: 'supporter', query: { from: 'voice' } }" data-testid="voice-upsell" @click="onUpsell"
-              class="btn-3d inline-flex items-center min-h-11 px-4 rounded-sm bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700">{{ t('voicelog.quota_cta') }}</router-link>
+              class="inline-flex items-center text-sm btn-3d min-h-11 px-4 rounded-xl border-2 border-gray-900 bg-gray-900 text-white font-semibold hover:bg-gray-800 dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white">{{ t('voicelog.quota_cta') }}</router-link>
             <span class="text-sm text-gray-600 dark:text-gray-300">{{ t('voicelog.quota_type_on') }}</span>
           </div>
         </div>
         <template v-else>
-          <p class="text-sm font-semibold text-indigo-700 dark:text-indigo-300">{{ label ?? t('voicelog.again') }}</p>
+          <p class="text-[14px] font-semibold text-gray-900 dark:text-gray-50">{{ label ?? t('voicelog.again') }}</p>
           <p class="text-xs text-gray-500 dark:text-gray-400">{{ t('voicelog.again_hint') }}</p>
         </template>
         <p v-if="notice?.kind === 'low' && !status" data-testid="voice-quota-low" class="text-xs text-gray-600 dark:text-gray-300 mt-1">
           {{ t(notice.upsell ? 'voicelog.quota_low_free' : 'voicelog.quota_low_paid', { n: notice.remaining, limit: notice.limit, month }, notice.remaining) }}<template v-if="notice.upsell"> ·
             <router-link :to="{ name: 'supporter', query: { from: 'voice' } }" data-testid="voice-upsell" @click="onUpsell"
-              class="whitespace-nowrap font-semibold text-indigo-700 dark:text-indigo-300 underline underline-offset-2">{{ t('voicelog.quota_low_cta') }}</router-link></template>
+              class="whitespace-nowrap underline underline-offset-2 font-semibold text-gray-900 dark:text-gray-100">{{ t('voicelog.quota_low_cta') }}</router-link></template>
         </p>
       </div>
     </div>
@@ -250,11 +250,11 @@ const status = computed(() => {
       <i18n-t keypath="voicelog.consent_text" tag="p">
         <template #privacy>
           <a href="/datenschutz#spracheingabe" target="_blank" rel="noopener" data-testid="voice-consent-privacy"
-            class="underline underline-offset-2 text-indigo-700 dark:text-indigo-300">{{ t('voicelog.consent_privacy') }}</a>
+            class="underline underline-offset-2 font-semibold text-gray-900 dark:text-gray-100">{{ t('voicelog.consent_privacy') }}</a>
         </template>
       </i18n-t>
       <button type="button" data-testid="voice-consent-ok" @click="acceptConsent"
-        class="btn-3d min-h-11 px-4 rounded-sm bg-indigo-600 text-white font-semibold hover:bg-indigo-700">{{ t('voicelog.consent_ok') }}</button>
+        class="btn-3d min-h-11 px-4 rounded-xl border-2 border-gray-900 bg-gray-900 text-white font-semibold hover:bg-gray-800 dark:border-gray-100 dark:bg-gray-100 dark:text-gray-900 dark:hover:bg-white">{{ t('voicelog.consent_ok') }}</button>
     </div>
     <VoiceSheet v-if="sheetOpen" :processing="rec.state.value === 'uploading'" :elapsed-ms="rec.elapsedMs.value" :level="rec.level.value"
       :entry="entry" @stop="rec.press()" @cancel="cancel" />

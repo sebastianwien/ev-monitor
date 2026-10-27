@@ -33,25 +33,25 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
 <template>
   <!-- Mobile: fest auf den Viewport gespannt - Kopf und Footer bleiben stehen, nur der Inhalt
        dazwischen scrollt. Die Seite selbst kann nicht mehr scrollen, der Balken laeuft nie raus. -->
-  <!-- Deutlicher Fokusring für alles im Wizard: der Browser-Standard (1 px blau) verschwindet auf Indigo und grauen Kacheln -->
-  <div :style="frameStyle" class="[&_:focus-visible]:outline-2 [&_:focus-visible]:outline-offset-2 [&_:focus-visible]:outline-indigo-500 fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-800 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0">
+  <!-- Deutlicher Fokusring für alles im Wizard, grün wie überall in der App-CI -->
+  <div :style="frameStyle" class="[&_:focus-visible]:outline-2 [&_:focus-visible]:outline-offset-2 [&_:focus-visible]:outline-green-600 fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0">
     <header class="px-4 pt-4 pb-3 md:px-6">
       <div class="flex items-center justify-between">
         <button v-if="step > 1" type="button" :aria-label="t('common.back')" @click="emit('back')"
-          class="w-8 h-8 -ml-2 flex items-center justify-center rounded-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
+          class="-ml-2 grid h-11 w-11 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
           <ChevronLeftIcon class="h-5 w-5" />
         </button>
-        <div v-else class="w-8" />
+        <div v-else class="w-11 -ml-2" />
         <!-- Die Frage steht in der Kopfzeile statt eines Zaehlers "Schritt x von y": der Balken zaehlt schon. -->
-        <h1 class="flex-1 min-w-0 px-2 text-base md:text-xl font-bold text-gray-800 dark:text-gray-100 text-center truncate">{{ question }}</h1>
+        <h1 class="flex-1 min-w-0 px-2 text-[17px] md:text-xl font-bold text-gray-900 dark:text-gray-50 text-center truncate">{{ question }}</h1>
         <button type="button" :aria-label="t('common.cancel')" @click="emit('cancel')"
-          class="w-8 h-8 -mr-2 flex items-center justify-center rounded-sm text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-200 dark:hover:bg-gray-700">
+          class="-mr-2 grid h-11 w-11 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
           <XMarkIcon class="h-5 w-5" />
         </button>
       </div>
       <!-- Zwei Eingabeschritte zaehlen; die Pruefseite danach ist eine Bestaetigung ohne Zaehler und Balken -->
       <div v-if="isInputStep" class="flex gap-1 mt-3" role="progressbar" :aria-valuenow="step" :aria-valuemin="1" :aria-valuemax="INPUT_STEPS">
-        <i v-for="i in INPUT_STEPS" :key="i" :class="['flex-1 h-1 rounded-sm', i <= step ? 'bg-indigo-600' : 'bg-gray-200 dark:bg-gray-700']" />
+        <i v-for="i in INPUT_STEPS" :key="i" :class="['flex-1 h-1 rounded-full transition-colors duration-300', i <= step ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-200 dark:bg-gray-700']" />
       </div>
       <!-- Immer im DOM, damit Screenreader den Hinweis vorlesen, sobald er erscheint -->
       <p role="status" aria-live="polite" :class="['text-sm text-center text-amber-700 dark:text-amber-400', hint && 'mt-2']">{{ hint }}</p>
@@ -65,7 +65,7 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
       </div>
     </div>
 
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3">
+    <footer class="bg-white dark:bg-gray-900 border-t-2 border-gray-100 dark:border-gray-800 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3">
       <!-- Ziele für Schritt-eigene Werkzeuge in Daumenreichweite (Schritt 1: Spracheingabe): note über der Knopfzeile
            (Sprechblase zum Mikrofon, gehört so sichtbar zum Footer), lead links neben der Hauptaktion. Leer bleiben sie unsichtbar. -->
       <div id="wizard-footer-note" />
@@ -75,12 +75,12 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
       <slot v-if="$slots.primary" name="primary" />
       <template v-else>
       <button v-if="step > 1" type="button" @click="emit('back')"
-        class="px-3 py-3 text-sm font-medium text-gray-500 dark:text-gray-400 inline-flex items-center gap-1 rounded-sm transition hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700">
+        class="min-h-12 px-3 text-[15px] font-semibold text-gray-600 dark:text-gray-300 inline-flex items-center gap-1 rounded-full transition-colors hover:bg-gray-100 dark:hover:bg-white/10">
         <ChevronLeftIcon class="h-4 w-4" />{{ t('common.back') }}
       </button>
       <button type="button" data-testid="wizard-next" :disabled="saving" :aria-disabled="!canProceed" @click="onPrimary"
-        :class="['flex-1 bg-indigo-600 text-white p-3 rounded-sm btn-3d font-semibold transition',
-                 !canProceed || saving ? 'opacity-40 cursor-not-allowed' : 'hover:bg-indigo-700']">
+        :class="['flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white transition-colors',
+                 !canProceed || saving ? 'opacity-40 cursor-not-allowed' : 'hover:bg-green-700']">
         {{ saving ? t('common.saving') : primaryLabel }}
       </button>
       </template>

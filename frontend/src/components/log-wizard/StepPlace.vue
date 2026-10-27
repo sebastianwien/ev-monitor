@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { CHIP_ROW, chipClass } from './chipClass'
+import { CHIP_ROW, chipClass, cardClass } from './chipClass'
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon } from '@heroicons/vue/24/outline'
@@ -98,20 +98,14 @@ const showSearchedStation = computed(() => {
 })
 
 /**
- * Icon-Box der Kacheln: Farbe sagt den Ortstyp (grün privat, gelb Säule - wie im Dashboard),
- * der indigo Rahmen sagt weiterhin allein "ausgewählt".
+ * Icon-Box der Kacheln: das Icon (Haus, Blitz) sagt den Ortstyp, Farbe trägt in der App-CI nur
+ * "gewählt" (gray-900, wie Rand und eingedrückte Kachel).
  */
-const iconBox = (kind: 'home' | 'station', on: boolean) => [
-  'w-9 h-9 rounded-sm grid place-items-center flex-shrink-0 transition-colors',
-  kind === 'home'
-    ? (on ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300')
-    : (on ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300'),
+const iconBox = (_kind: 'home' | 'station', on: boolean) => [
+  'w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 transition-colors',
+  on ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200',
 ]
-const tileClass = (on: boolean) => [
-  'btn-3d w-full flex items-center gap-3 text-left p-3 rounded-sm border-2 transition',
-  on ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/60 ring-1 ring-indigo-600 hover:bg-indigo-100 dark:hover:bg-indigo-900/70'
-     : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-indigo-300 hover:bg-gray-50 dark:hover:bg-gray-700',
-]
+const tileClass = (on: boolean) => [cardClass(on), 'w-full flex items-center gap-3 p-3']
 const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw'>) => stationSubBase(s, t)
 </script>
 
@@ -119,7 +113,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
   <div class="space-y-3">
     <!-- Leerzustand: keine Fehlermeldung, sondern die Frage, wo geladen wurde. Darunter Suche, privat hier, ganz unten öffentlich ohne Säule. -->
     <div v-if="noStationsFound" role="status" data-testid="wizard-no-stations"
-      class="p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60 text-sm text-gray-700 dark:text-gray-200 space-y-1">
+      class="p-3 rounded-xl bg-gray-100 dark:bg-white/10 text-[14px] text-gray-800 dark:text-gray-100 space-y-1">
       <p v-if="inaccurate" class="font-semibold">{{ t('logwizard.location_inaccurate', { r: dist(locationAccuracy!) }) }}</p>
       <p v-else class="font-semibold">{{ t('logwizard.no_stations_in_radius', { r: radiusLabel }) }}</p>
       <div class="flex items-center gap-2">
@@ -135,18 +129,18 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <!-- Standort: noch nie gefragt -> Hinweis-Card mit Button, Dialog erst beim Tap.
          Bereits erlaubt -> dieselbe Card zeigt waehrend der automatischen Ortung den Spinner. -->
     <div v-if="permission === 'prompt' || permission === 'unknown' || locationStatus === 'loading'"
-      class="flex items-center gap-3 p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60">
-      <MapPinIcon class="h-5 w-5 text-indigo-600 flex-shrink-0" />
-      <p class="flex-1 text-sm text-gray-700 dark:text-gray-200" aria-live="polite">{{ locationStatus === 'loading' ? loadingText : t('logwizard.location_offer') }}</p>
+      class="flex items-center gap-3 p-3 rounded-xl bg-gray-100 dark:bg-white/10">
+      <MapPinIcon class="h-5 w-5 text-gray-900 dark:text-gray-100 flex-shrink-0" aria-hidden="true" />
+      <p class="flex-1 text-[14px] text-gray-800 dark:text-gray-100" aria-live="polite">{{ locationStatus === 'loading' ? loadingText : t('logwizard.location_offer') }}</p>
       <button type="button" data-testid="wizard-location" :disabled="locationStatus === 'loading'" @click="emit('requestLocation')"
-        class="text-sm font-semibold text-indigo-600 dark:text-indigo-300 whitespace-nowrap hover:underline disabled:no-underline disabled:opacity-60">
+        class="btn-3d cta-shadow-sm min-h-11 rounded-full border-2 border-edge bg-white px-4 text-[14px] font-semibold text-gray-900 whitespace-nowrap hover:bg-gray-50 disabled:opacity-60 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">
         <ArrowPathIcon v-if="locationStatus === 'loading'" class="h-5 w-5 animate-spin" :aria-label="t('common.loading')" />
         <template v-else>{{ t('logwizard.location_cta') }}</template>
       </button>
     </div>
     <!-- Blockiert: Anleitung je Plattform, in der App der direkte Sprung in die Einstellungen -->
     <div v-else-if="permission === 'denied' || locationStatus === 'error'" data-testid="wizard-location-blocked"
-      class="p-3 rounded-sm bg-gray-100 dark:bg-gray-700/60 text-sm text-gray-700 dark:text-gray-200 space-y-2">
+      class="p-3 rounded-xl bg-gray-100 dark:bg-white/10 text-[14px] text-gray-800 dark:text-gray-100 space-y-2">
       <p class="font-semibold">{{ t('logwizard.location_blocked') }}</p>
       <p v-if="platform !== 'native'" class="text-gray-600 dark:text-gray-300">{{ t(`logwizard.location_steps_${platform}`) }}</p>
       <div :class="CHIP_ROW">
@@ -173,11 +167,11 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       @click="emit('choose', { kind: 'station', station: searchedStation, viaSearch: true })">
       <span :class="iconBox('station', true)"><BoltIcon class="h-5 w-5" /></span>
       <span class="flex-1 min-w-0">
-        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ searchedStation.name }}</b>
+        <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50 truncate">{{ searchedStation.name }}</b>
         <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(searchedStation) }}</small>
-        <small v-if="searchedStation.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ searchedStation.address }}</small>
+        <small v-if="searchedStation.address" class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ searchedStation.address }}</small>
       </span>
-      <CheckCircleIcon class="h-5 w-5 text-indigo-600" />
+      <CheckCircleIcon class="h-5 w-5 text-gray-900 dark:text-gray-100" aria-hidden="true" />
     </button>
 
     <!-- Privat hier und "Woanders" nebeneinander: kurze, feste Zeilen. Nur mit Ort (GPS, gewählte Adresse oder im
@@ -186,15 +180,15 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       <button type="button" data-testid="place-here" :class="[tileClass(place === 'home'), !showElsewhere && 'col-span-2']" @click="emit('choose', { kind: 'home' })">
         <span :class="iconBox('home', place === 'home')"><HomeIcon class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
-          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_here') : t('logwizard.place_private') }}</b>
+          <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ hasPosition ? t('logwizard.place_here') : t('logwizard.place_private') }}</b>
           <small class="block text-xs text-gray-500 dark:text-gray-400 truncate" :title="addressLabel ?? undefined">{{ hasPosition ? (addressLabel ?? t('logwizard.place_here_sub')) : t('logwizard.place_private_sub') }}</small>
         </span>
-        <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 flex-shrink-0 text-indigo-600" />
+        <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 flex-shrink-0 text-gray-900 dark:text-gray-100" aria-hidden="true" />
       </button>
       <button v-if="showElsewhere" type="button" data-testid="place-elsewhere" :class="tileClass(false)" @click="reopenSearch">
-        <span class="w-9 h-9 rounded-sm bg-gray-100 dark:bg-gray-700 grid place-items-center flex-shrink-0"><MagnifyingGlassIcon class="h-5 w-5" /></span>
+        <span :class="iconBox('station', false)"><MagnifyingGlassIcon class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
-          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ t('logwizard.place_elsewhere') }}</b>
+          <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ t('logwizard.place_elsewhere') }}</b>
           <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ t('logwizard.place_elsewhere_sub') }}</small>
         </span>
       </button>
@@ -203,12 +197,12 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <!-- Spinner nur bei der Ortssuche; bei der Live-Ortung dreht er in der Standort-Card, beim Erweitern unter der Liste -->
     <div v-if="stationsLoading && locationStatus !== 'loading' && stations.length === 0" role="status" data-testid="stations-loading"
       class="flex flex-col items-center gap-2 py-4 text-sm text-gray-500 dark:text-gray-400">
-      <ArrowPathIcon class="h-8 w-8 animate-spin text-indigo-600" aria-hidden="true" />
+      <ArrowPathIcon class="h-8 w-8 animate-spin text-gray-500 dark:text-gray-400" aria-hidden="true" />
       <span>{{ loadingText }}</span>
     </div>
     <Collapse :open="stations.length > 0">
     <div class="space-y-3">
-      <p class="flex items-baseline text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500 pt-1">
+      <p class="flex items-baseline text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 pt-1">
         {{ radiusMeters && radiusMeters > 250 ? t('logwizard.nearby_title_radius', { r: radiusLabel }) : t('logwizard.nearby_title') }}
       </p>
       <template v-for="s in stations" :key="s.name">
@@ -221,23 +215,23 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         @click="emit('choose', { kind: 'station', station: s })">
         <span :class="iconBox('station', isStation(s))"><BoltIcon class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
-          <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{{ s.name }}</b>
+          <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50 truncate">{{ s.name }}</b>
           <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
-          <small v-if="s.address" class="block text-xs text-gray-400 dark:text-gray-500 truncate">{{ s.address }}</small>
+          <small v-if="s.address" class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ s.address }}</small>
         </span>
-        <span class="text-xs tabular-nums text-gray-400 whitespace-nowrap">{{ dist(s.distanceMeters) }}</span>
-        <CheckCircleIcon v-if="isStation(s)" class="h-5 w-5 text-indigo-600" />
+        <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ dist(s.distanceMeters) }}</span>
+        <CheckCircleIcon v-if="isStation(s)" class="h-5 w-5 text-gray-900 dark:text-gray-100" aria-hidden="true" />
       </button>
       </template>
       <!-- "Nicht dabei?": die weite Suche ersetzt diese Liste, statt sie zu verlängern -->
       <!-- Beim Erweitern dreht der Spinner dort, wo der Knopf war: dort schaut der Nutzer hin -->
       <div v-if="stationsLoading" role="status" data-testid="stations-loading"
         class="min-h-11 flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-        <ArrowPathIcon class="h-5 w-5 animate-spin text-indigo-600" aria-hidden="true" />
+        <ArrowPathIcon class="h-5 w-5 animate-spin text-gray-500 dark:text-gray-400" aria-hidden="true" />
         <span>{{ t('logwizard.nearby_searching_radius', { r: radiusLabel }) }}</span>
       </div>
       <button v-else-if="canExpand" type="button" data-testid="expand-radius" @click="emit('expandRadius')"
-        class="btn-3d w-full min-h-11 rounded-sm border-2 border-dashed border-gray-300 dark:border-gray-600 text-sm font-semibold text-indigo-600 dark:text-indigo-300 hover:border-indigo-400 transition">
+        class="w-full min-h-11 rounded-xl border-2 border-dashed border-edge text-[14px] font-semibold text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors">
         {{ t('logwizard.expand_radius', { r: dist(nextRadius ?? RADIUS_STEPS[RADIUS_STEPS.length - 1]) }) }}
       </button>
     </div>
@@ -253,10 +247,10 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     <button type="button" data-testid="place-public" :class="tileClass(place === 'other')" @click="emit('choose', { kind: 'other', cpoName: null })">
       <span :class="iconBox('station', place === 'other')"><BoltIcon class="h-5 w-5" /></span>
       <span class="flex-1 min-w-0">
-        <b class="block text-sm font-semibold text-gray-800 dark:text-gray-100">{{ hasPosition ? t('logwizard.place_public_here') : t('logwizard.place_public') }}</b>
+        <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ hasPosition ? t('logwizard.place_public_here') : t('logwizard.place_public') }}</b>
         <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ place === 'other' && selectedCpo ? selectedCpo : t('logwizard.place_public_sub') }}</small>
       </span>
-      <CheckCircleIcon v-if="place === 'other'" class="h-5 w-5 text-indigo-600" />
+      <CheckCircleIcon v-if="place === 'other'" class="h-5 w-5 text-gray-900 dark:text-gray-100" aria-hidden="true" />
     </button>
     </template>
   </div>

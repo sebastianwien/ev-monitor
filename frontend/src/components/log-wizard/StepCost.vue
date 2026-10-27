@@ -142,8 +142,8 @@ const totalPlaceholder = computed(() => formatDecimal(12.5, 2))
 const perKwhPlaceholder = computed(() => isEurCountry.value ? '39' : formatDecimal(0.39, 2))
 /** Die Felder sind so breit wie ihr Inhalt, damit beide samt Einheit in eine Zeile passen */
 const fieldWidth = (v: number | null, placeholder: string) => `${Math.max(2, String(v ?? placeholder).length) + 0.5}ch`
-const costFieldClass = 'min-w-0 bg-transparent border-0 border-b-2 border-transparent rounded-none p-0 text-right text-2xl font-medium tabular-nums '
-  + 'text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:border-indigo-600 focus:ring-0 focus:outline-none '
+const costFieldClass = 'min-w-0 bg-transparent border-0 border-b-2 border-transparent rounded-none p-0 text-right text-2xl font-bold tabular-nums '
+  + 'text-gray-900 dark:text-gray-100 placeholder:text-gray-300 dark:placeholder:text-gray-600 focus:border-green-600 focus:ring-0 focus:outline-none '
   + '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none'
 const typed = (e: Event) => { const v = (e.target as HTMLInputElement).value; return v === '' ? null : Number(v) }
 const onTotalInput = (e: Event) => {
@@ -210,29 +210,27 @@ onMounted(async () => {
 <template>
   <!-- Kompakt (Schritt 2): Zeile wie die Rädchen, Chips darunter, Karte inline -->
   <div v-if="props.compact" class="space-y-2">
-    <!-- Preis steht schon (Karte aus Schritt 1 oder Gratis): eine grüne Zeile, "Anders" macht sie zur Eingabe -->
+    <!-- Preis steht schon (Karte aus Schritt 1 oder Gratis): eine Zeile mit grünem Haken, "Anders" macht sie zur Eingabe -->
     <div v-if="derived" data-testid="cost-derived"
-      class="rounded-sm border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20 px-3 py-2">
+      class="rounded-xl border-2 border-edge bg-white dark:border-gray-700 dark:bg-gray-800 px-3 py-2">
       <div class="flex items-center gap-3 min-h-9">
-        <CheckCircleIcon class="h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400" aria-hidden="true" />
-        <b class="flex-1 min-w-0 text-2xl leading-tight tabular-nums text-gray-900 dark:text-gray-100">{{ compactTotal != null ? `${formatDecimal(compactTotal, 2)} ${symbol}` : '–' }}</b>
+        <CheckCircleIcon class="h-5 w-5 flex-shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+        <b class="flex-1 min-w-0 text-2xl font-bold leading-tight tabular-nums text-gray-900 dark:text-gray-100">{{ compactTotal != null ? `${formatDecimal(compactTotal, 2)} ${symbol}` : '–' }}</b>
         <span v-if="derivedSub" class="text-xs text-gray-500 dark:text-gray-400">{{ derivedSub }}</span>
-        <button type="button" data-testid="cost-other" @click="manual = true" class="min-h-11 px-2 text-sm font-semibold text-green-700 dark:text-green-300">{{ t('logwizard.cost_other') }}</button>
+        <button type="button" data-testid="cost-other" @click="manual = true" class="min-h-11 rounded-full px-3 text-[14px] font-semibold text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-white/10">{{ t('logwizard.cost_other') }}</button>
       </div>
       <!-- Kennzahlen in einer Zeile: Wert fett, Einheit grau, feine Trenner -->
       <p v-if="derivedMetrics.length" class="mt-0.5 flex items-center gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums overflow-hidden">
         <span v-for="(m, i) in derivedMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-1 whitespace-nowrap', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
-          <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
+          <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-900 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
         </span>
       </p>
     </div>
     <template v-else>
     <!-- Eine Zeile, zwei Felder: Gesamtbetrag und Preis je kWh, gleich groß, durch einen Strich getrennt.
          Was zuletzt getippt wurde, gilt; das aktive Feld trägt die Linie. Darunter die Kennzahlen je 100 km. Gratis: 0 tippen. -->
-    <!-- Steht ein Betrag, bleibt die Box grün wie die Vorschlagszeile, auch beim Tippen -->
-    <div data-testid="cost-box" :class="['rounded-sm border-2 px-3 py-2', compactTotal != null
-      ? 'border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-900/20'
-      : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus-within:border-indigo-600']">
+    <!-- Gleiche Box wie die Rädchen-Zeilen: Kante, beim Tippen grüner Rand -->
+    <div data-testid="cost-box" class="rounded-xl border-2 border-edge bg-white px-3 py-2 transition-colors focus-within:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:focus-within:border-green-500">
       <div class="flex items-baseline gap-x-2.5 min-h-11">
         <label for="wizard-cost" class="flex-1 min-w-0 truncate text-sm text-gray-500 dark:text-gray-400">{{ t('logfields.cost_eur') }}</label>
         <!-- Feld plus Einheit als Tap-Bereich, 44 px hoch über -my -->
@@ -252,49 +250,49 @@ onMounted(async () => {
       </div>
       <div v-if="manualMetrics.length" data-testid="cost-metrics" class="mt-0.5 flex justify-end items-baseline gap-x-2 text-xs leading-tight text-gray-500 dark:text-gray-400 tabular-nums whitespace-nowrap">
         <span v-for="(m, i) in manualMetrics" :key="m.unit" :class="['inline-flex items-baseline gap-0.5', i > 0 && 'border-l border-gray-300 dark:border-gray-600 pl-2']">
-          <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-600 dark:text-amber-400' : 'text-gray-800 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
+          <b :class="['text-sm', m.tone === 'notice' ? 'text-amber-700 dark:text-amber-400' : 'text-gray-900 dark:text-gray-100']">{{ m.value }}</b>{{ m.unit }}
         </span>
       </div>
     </div>
     </template>
-      <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="rounded-sm border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 space-y-2.5">
-        <label class="block text-xs font-medium text-gray-600 dark:text-gray-300" for="inline-card-provider">
+      <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2.5">
+        <label class="block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400" for="inline-card-provider">
           {{ t(inlineCard.isEditing.value ? 'logfields.card_edit_title' : 'logfields.card_prompt_title') }}
         </label>
-        <p v-if="inlineCard.isEditing.value" class="rounded-sm bg-white dark:bg-gray-700 px-3 py-2 text-sm font-medium text-gray-800 dark:text-gray-100">{{ inlineCard.resolvedName.value }}</p>
+        <p v-if="inlineCard.isEditing.value" class="rounded-xl bg-gray-100 dark:bg-white/10 px-3 py-2.5 text-[15px] font-semibold text-gray-900 dark:text-gray-100">{{ inlineCard.resolvedName.value }}</p>
         <select v-else id="inline-card-provider" v-model="inlineCard.draft.value.providerName"
-          class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+          class="min-h-11 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[15px] outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
           <option value="">{{ t('logfields.card_select_placeholder') }}</option>
           <option v-for="emp in cardEmps" :key="emp" :value="emp">{{ emp }}</option>
           <option :value="CUSTOM_PROVIDER">{{ t('logfields.card_other_provider') }}</option>
         </select>
         <input v-if="!inlineCard.isEditing.value && inlineCard.isCustom.value" v-model="inlineCard.draft.value.customProviderName" type="text" maxlength="100"
           :placeholder="t('logfields.card_custom_name_placeholder')"
-          class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white px-3 py-2 text-sm" />
+          class="min-h-11 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[15px] outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
         <div class="grid grid-cols-2 gap-2">
           <label class="block">
-            <span class="mb-1 block text-[11px] text-gray-500 dark:text-gray-400">{{ t('logfields.card_ac_price', { unit: subunit }) }}</span>
+            <span class="mb-1 block text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ t('logfields.card_ac_price', { unit: subunit }) }}</span>
             <input v-model="inlineCard.draft.value.acPrice" type="number" inputmode="decimal" step="0.1" min="0"
-              class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white px-3 py-2 text-sm" />
+              class="min-h-11 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[15px] outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 font-semibold tabular-nums" />
           </label>
           <label class="block">
-            <span class="mb-1 block text-[11px] text-gray-500 dark:text-gray-400">{{ t('logfields.card_dc_price', { unit: subunit }) }}</span>
+            <span class="mb-1 block text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ t('logfields.card_dc_price', { unit: subunit }) }}</span>
             <input v-model="inlineCard.draft.value.dcPrice" type="number" inputmode="decimal" step="0.1" min="0"
-              class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white px-3 py-2 text-sm" />
+              class="min-h-11 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[15px] outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 font-semibold tabular-nums" />
           </label>
         </div>
-        <p v-if="inlineCard.failed.value" class="text-xs text-red-500">{{ t('logfields.card_save_failed') }}</p>
+        <p v-if="inlineCard.failed.value" role="alert" class="rounded-xl bg-amber-50 px-3 py-2 text-[13px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">{{ t('logfields.card_save_failed') }}</p>
         <div class="flex gap-2">
-          <button type="button" @click="inlineCard.cancel()" class="btn-3d flex-1 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">{{ t('common.cancel') }}</button>
+          <button type="button" @click="inlineCard.cancel()" class="btn-3d min-h-11 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">{{ t('common.cancel') }}</button>
           <button type="button" data-testid="charging-card-save" :disabled="!inlineCard.canSave.value" @click="saveCard"
-            class="btn-3d flex-1 rounded-sm bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600">
+            class="btn-3d min-h-11 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[14px] font-semibold text-white hover:bg-green-700 disabled:opacity-40 disabled:hover:bg-green-600">
             {{ inlineCard.saving.value ? t('common.saving') : t('logfields.card_save') }}
           </button>
         </div>
       </div>
 
     <label v-if="pricelessCount > 0 && form.chargingProviderId" class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-200">
-      <input v-model="form.applyTariffToLocation" type="checkbox" class="mt-0.5 rounded-sm border-gray-300 text-indigo-600" />
+      <input v-model="form.applyTariffToLocation" type="checkbox" class="mt-0.5 h-5 w-5 rounded border-2 border-edge text-gray-900 accent-gray-900 focus:ring-green-600 dark:bg-gray-800 dark:accent-gray-100" />
       <span>{{ t('logfields.apply_tariff_to_location', pricelessCount) }}</span>
     </label>
   </div>
@@ -306,7 +304,7 @@ onMounted(async () => {
     <div class="mt-auto space-y-4">
     <div>
       <div :class="[CHIP_ROW, 'items-center']">
-        <span class="mr-auto text-[11px] uppercase tracking-wide text-gray-400 dark:text-gray-500">{{ t('logwizard.price_suggestions') }}</span>
+        <span class="mr-auto text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('logwizard.price_suggestions') }}</span>
         <button v-for="s in suggestions" :key="s.key" type="button" :aria-pressed="selectedKey === s.key" @click="pick(s)"
           :class="chipClass(selectedKey === s.key)">
           {{ priceLabel(s.eurPerKwh) }} · {{ s.label }}
@@ -331,37 +329,37 @@ onMounted(async () => {
         </button>
       </div>
 
-      <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="rounded-sm border border-dashed border-indigo-300 dark:border-indigo-700 bg-indigo-50/60 dark:bg-indigo-950/30 p-3 space-y-2.5">
-        <label class="block text-xs font-medium text-gray-600 dark:text-gray-300" for="inline-card-provider">
+      <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2.5">
+        <label class="block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400" for="inline-card-provider">
           {{ t(inlineCard.isEditing.value ? 'logfields.card_edit_title' : 'logfields.card_prompt_title') }}
         </label>
-        <p v-if="inlineCard.isEditing.value" class="rounded-sm bg-white dark:bg-gray-700 px-3 py-2 text-sm font-medium text-gray-800 dark:text-gray-100">{{ inlineCard.resolvedName.value }}</p>
+        <p v-if="inlineCard.isEditing.value" class="rounded-xl bg-gray-100 dark:bg-white/10 px-3 py-2.5 text-[15px] font-semibold text-gray-900 dark:text-gray-100">{{ inlineCard.resolvedName.value }}</p>
         <select v-else id="inline-card-provider" v-model="inlineCard.draft.value.providerName"
-          class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white px-3 py-2 text-sm">
+          class="min-h-11 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[15px] outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100">
           <option value="">{{ t('logfields.card_select_placeholder') }}</option>
           <option v-for="emp in cardEmps" :key="emp" :value="emp">{{ emp }}</option>
           <option :value="CUSTOM_PROVIDER">{{ t('logfields.card_other_provider') }}</option>
         </select>
         <input v-if="!inlineCard.isEditing.value && inlineCard.isCustom.value" v-model="inlineCard.draft.value.customProviderName" type="text" maxlength="100"
           :placeholder="t('logfields.card_custom_name_placeholder')"
-          class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white px-3 py-2 text-sm" />
+          class="min-h-11 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[15px] outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
         <div class="grid grid-cols-2 gap-2">
           <label class="block">
-            <span class="mb-1 block text-[11px] text-gray-500 dark:text-gray-400">{{ t('logfields.card_ac_price', { unit: subunit }) }}</span>
+            <span class="mb-1 block text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ t('logfields.card_ac_price', { unit: subunit }) }}</span>
             <input v-model="inlineCard.draft.value.acPrice" type="number" inputmode="decimal" step="0.1" min="0"
-              class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white px-3 py-2 text-sm" />
+              class="min-h-11 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[15px] outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 font-semibold tabular-nums" />
           </label>
           <label class="block">
-            <span class="mb-1 block text-[11px] text-gray-500 dark:text-gray-400">{{ t('logfields.card_dc_price', { unit: subunit }) }}</span>
+            <span class="mb-1 block text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ t('logfields.card_dc_price', { unit: subunit }) }}</span>
             <input v-model="inlineCard.draft.value.dcPrice" type="number" inputmode="decimal" step="0.1" min="0"
-              class="w-full rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white px-3 py-2 text-sm" />
+              class="min-h-11 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[15px] outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100 font-semibold tabular-nums" />
           </label>
         </div>
-        <p v-if="inlineCard.failed.value" class="text-xs text-red-500">{{ t('logfields.card_save_failed') }}</p>
+        <p v-if="inlineCard.failed.value" role="alert" class="rounded-xl bg-amber-50 px-3 py-2 text-[13px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">{{ t('logfields.card_save_failed') }}</p>
         <div class="flex gap-2">
-          <button type="button" @click="inlineCard.cancel()" class="btn-3d flex-1 rounded-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-xs font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600">{{ t('common.cancel') }}</button>
+          <button type="button" @click="inlineCard.cancel()" class="btn-3d min-h-11 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[14px] font-semibold text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">{{ t('common.cancel') }}</button>
           <button type="button" data-testid="charging-card-save" :disabled="!inlineCard.canSave.value" @click="saveCard"
-            class="btn-3d flex-1 rounded-sm bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700 disabled:opacity-50 disabled:hover:bg-indigo-600">
+            class="btn-3d min-h-11 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[14px] font-semibold text-white hover:bg-green-700 disabled:opacity-40 disabled:hover:bg-green-600">
             {{ inlineCard.saving.value ? t('common.saving') : t('logfields.card_save') }}
           </button>
         </div>
@@ -369,7 +367,7 @@ onMounted(async () => {
 
       <!-- Tarif auch auf die preislosen Ladungen an diesem Ort -->
       <label v-if="pricelessCount > 0 && form.chargingProviderId" class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-200 pt-1">
-        <input v-model="form.applyTariffToLocation" type="checkbox" class="mt-0.5 rounded-sm border-gray-300 text-indigo-600" />
+        <input v-model="form.applyTariffToLocation" type="checkbox" class="mt-0.5 h-5 w-5 rounded border-2 border-edge text-gray-900 accent-gray-900 focus:ring-green-600 dark:bg-gray-800 dark:accent-gray-100" />
         <span>{{ t('logfields.apply_tariff_to_location', pricelessCount) }}</span>
       </label>
     </div>

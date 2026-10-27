@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import type { Component } from 'vue'
 import { ROUTE_CHIPS, TIRE_CHIPS } from './optionalChips'
 import type { LogFormData } from '../log-form/logFormData'
@@ -69,13 +69,13 @@ const toggle = async () => {
   <div ref="panel" data-testid="optional-panel">
     <!-- Eine Zeile: Titel links, zugeklappt rechts die gesetzten Werte als Pillen mit Icon; was nicht passt, läuft weich aus -->
     <button type="button" :aria-expanded="open" aria-controls="optional-details" class="flex items-center gap-2 w-full min-h-11 text-left" @click="toggle">
-      <span class="flex items-center gap-1 flex-shrink-0 text-sm font-semibold text-gray-800 dark:text-gray-100">
-        <ChevronRightIcon :class="['h-4 w-4 text-gray-400 transition-transform duration-200', open && 'rotate-90']" />{{ t('logwizard.more_details') }}
+      <span class="flex items-center gap-1 flex-shrink-0 text-[15px] font-semibold text-gray-900 dark:text-gray-50">
+        <ChevronDownIcon :class="['h-4 w-4 text-gray-500 transition-transform duration-300', open ? 'rotate-180 ease-out' : 'ease-in']" />{{ t('logwizard.more_details') }}
       </span>
-      <span v-if="open" class="text-xs text-gray-400">· {{ t('logfields.optional') }}</span>
+      <span v-if="open" class="text-[13px] text-gray-500 dark:text-gray-400">· {{ t('logfields.optional') }}</span>
       <span v-else-if="facts.length" data-testid="summary-optional" class="flex flex-1 min-w-0 gap-1.5 overflow-hidden [mask-image:linear-gradient(to_right,black_88%,transparent)]">
         <span v-for="f in facts" :key="f.text" :class="['inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-1 text-[11px] tabular-nums',
-            f.empty ? 'border border-dashed border-gray-300 dark:border-gray-600 text-gray-400 dark:text-gray-500' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300']">
+            f.empty ? 'border border-dashed border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400' : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-gray-200']">
           <component :is="f.icon" v-if="f.icon" class="h-3.5 w-3.5 text-gray-500 dark:text-gray-400" />{{ f.text }}
         </span>
       </span>

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { CameraIcon, XMarkIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { CameraIcon, XMarkIcon, ArrowPathIcon, CheckIcon, CheckCircleIcon, ChevronDownIcon, ExclamationTriangleIcon, LightBulbIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
+import Collapse from '../shared/Collapse.vue'
 import Tesseract from 'tesseract.js'
 
 const { t } = useI18n()
@@ -25,6 +26,7 @@ const imagePreview = ref<string | null>(null)
 const isProcessing = ref(false)
 const ocrResults = ref<OcrResult | null>(null)
 const error = ref<string | null>(null)
+const showRaw = ref(false)
 
 // Open camera/file picker
 const openCamera = () => {
@@ -242,35 +244,33 @@ const cancel = () => {
 <template>
   <div class="ocr-capture">
     <!-- Header -->
-    <div class="flex justify-between items-center mb-6">
-      <h2 class="text-xl font-bold text-gray-800 flex items-center gap-2">
-        <CameraIcon class="h-6 w-6 text-indigo-600" />
+    <div class="mb-4 flex items-center justify-between">
+      <h2 class="flex items-center gap-2 text-[17px] font-bold text-gray-900 dark:text-gray-50">
+        <CameraIcon class="h-6 w-6 text-gray-900 dark:text-gray-100" aria-hidden="true" />
         {{ t('ocr.title') }}
       </h2>
-      <button @click="cancel" class="p-2 hover:bg-gray-100 rounded-sm transition">
-        <XMarkIcon class="h-6 w-6 text-gray-600" />
+      <button type="button" :aria-label="t('common.close')" @click="cancel" class="-mr-2 grid h-11 w-11 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+        <XMarkIcon class="h-6 w-6" />
       </button>
     </div>
 
     <!-- Error Message -->
-    <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm text-sm">
+    <p v-if="error" role="alert" class="mb-4 rounded-xl bg-amber-50 px-3 py-2 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">
       {{ error }}
-    </div>
+    </p>
 
     <!-- Step 1: Camera Button (No Image) -->
-    <div v-if="!imagePreview" class="text-center py-8">
-      <CameraIcon class="h-16 w-16 mx-auto mb-4 text-gray-400" />
-      <p class="text-gray-600 mb-6">{{ t('ocr.step1_prompt') }}</p>
+    <div v-if="!imagePreview" class="py-6 text-center">
+      <CameraIcon class="mx-auto mb-4 h-16 w-16 text-gray-300 dark:text-gray-600" aria-hidden="true" />
+      <p class="mb-6 text-[15px] text-gray-700 dark:text-gray-200">{{ t('ocr.step1_prompt') }}</p>
 
-      <button
-        @click="openCamera"
-        class="px-6 py-3 bg-indigo-600 text-white rounded-sm hover:bg-indigo-700 transition font-medium">
-        <CameraIcon class="h-5 w-5 inline mr-2" />
+      <button type="button" @click="openCamera" class="btn-3d inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-edge bg-green-600 px-5 text-[15px] font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40">
+        <CameraIcon class="h-5 w-5" aria-hidden="true" />
         {{ t('ocr.take_photo_btn') }}
       </button>
 
-      <p class="text-xs text-gray-500 mt-4">
-        💡 {{ t('ocr.tip') }}
+      <p class="mt-4 inline-flex items-start gap-1.5 text-[13px] text-gray-500 dark:text-gray-400">
+        <LightBulbIcon class="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />{{ t('ocr.tip') }}
       </p>
 
       <!-- Hidden File Input -->
@@ -286,140 +286,123 @@ const cancel = () => {
     <!-- Step 2: Image Preview + OCR Button -->
     <div v-if="imagePreview && !ocrResults">
       <div class="mb-4">
-        <img :src="imagePreview" alt="Preview" class="w-full rounded-sm border-2 border-gray-300" />
+        <img :src="imagePreview" alt="Preview" class="w-full rounded-xl border-2 border-edge" />
       </div>
 
-      <div class="flex gap-3">
-        <button
-          @click="startOcr"
-          :disabled="isProcessing"
-          class="flex-1 px-6 py-3 bg-green-600 text-white rounded-sm hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition font-medium">
-          <span v-if="!isProcessing">🔍 {{ t('ocr.start_ocr_btn') }}</span>
-          <span v-else class="flex items-center justify-center">
-            <ArrowPathIcon class="h-5 w-5 animate-spin mr-2" />
+      <div class="flex gap-2">
+        <button type="button" @click="startOcr" :disabled="isProcessing" class="flex-1 btn-3d inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-edge bg-green-600 px-5 text-[15px] font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40">
+          <template v-if="!isProcessing"><MagnifyingGlassIcon class="h-5 w-5" aria-hidden="true" />{{ t('ocr.start_ocr_btn') }}</template>
+          <template v-else>
+            <ArrowPathIcon class="h-5 w-5 animate-spin" aria-hidden="true" />
             {{ t('ocr.scanning') }}
-          </span>
+          </template>
         </button>
-        <button
-          @click="reset"
-          :disabled="isProcessing"
-          class="px-6 py-3 bg-gray-300 text-gray-700 rounded-sm hover:bg-gray-400 disabled:opacity-50 transition font-medium">
+        <button type="button" @click="reset" :disabled="isProcessing" class="btn-3d inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-edge bg-white px-5 text-[15px] font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">
           {{ t('ocr.retry_btn') }}
         </button>
       </div>
 
-      <p v-if="isProcessing" class="text-sm text-gray-600 mt-3 text-center">
-        ⏳ {{ t('ocr.wait_hint') }}
+      <p v-if="isProcessing" class="mt-3 text-center text-[13px] text-gray-500 dark:text-gray-400">
+        {{ t('ocr.wait_hint') }}
       </p>
     </div>
 
     <!-- Step 3: OCR Results -->
     <div v-if="ocrResults" class="space-y-4">
-      <!-- Confidence Indicator -->
-      <div class="p-3 rounded-sm" :class="{
-        'bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-700': ocrResults.confidence >= 66,
-        'bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700': ocrResults.confidence >= 33 && ocrResults.confidence < 66,
-        'bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700': ocrResults.confidence < 33
-      }">
-        <p class="text-sm font-medium" :class="{
-          'text-green-700 dark:text-green-300': ocrResults.confidence >= 66,
-          'text-yellow-700 dark:text-yellow-300': ocrResults.confidence >= 33 && ocrResults.confidence < 66,
-          'text-red-700 dark:text-red-300': ocrResults.confidence < 33
-        }">
-          <span v-if="ocrResults.confidence >= 66">✅ {{ t('ocr.confidence_high', { pct: ocrResults.confidence }) }}</span>
-          <span v-else-if="ocrResults.confidence >= 33">⚠️ {{ t('ocr.confidence_medium', { pct: ocrResults.confidence }) }}</span>
-          <span v-else>❌ {{ t('ocr.confidence_low', { pct: ocrResults.confidence }) }}</span>
-        </p>
-      </div>
+      <!-- Sicherheit der Erkennung: hoch mit grünem Haken, sonst amber "prüfen" -->
+      <p class="flex items-center gap-2 rounded-xl px-3 py-2 text-[14px] font-semibold"
+        :class="ocrResults.confidence >= 66 ? 'bg-gray-100 text-gray-900 dark:bg-white/10 dark:text-gray-100' : 'bg-amber-50 text-amber-900 dark:bg-amber-400/10 dark:text-amber-200'">
+        <CheckCircleIcon v-if="ocrResults.confidence >= 66" class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+        <ExclamationTriangleIcon v-else class="h-5 w-5 shrink-0" aria-hidden="true" />
+        <span v-if="ocrResults.confidence >= 66">{{ t('ocr.confidence_high', { pct: ocrResults.confidence }) }}</span>
+        <span v-else-if="ocrResults.confidence >= 33">{{ t('ocr.confidence_medium', { pct: ocrResults.confidence }) }}</span>
+        <span v-else>{{ t('ocr.confidence_low', { pct: ocrResults.confidence }) }}</span>
+      </p>
 
-      <h3 class="font-semibold text-gray-800">{{ t('ocr.detected_data') }}</h3>
+      <h3 class="text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ t('ocr.detected_data') }}</h3>
 
       <!-- kWh -->
       <div class="result-item">
-        <label class="text-sm text-gray-600 mb-1 block">{{ t('ocr.label_kwh') }}</label>
+        <label class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('ocr.label_kwh') }}</label>
         <div class="flex items-center gap-2">
           <input
             v-model.number="ocrResults.kwh"
             type="number"
             step="0.1"
             :placeholder="t('ocr.kwh_placeholder')"
-            class="flex-1 px-3 py-2 border rounded-sm focus:ring-indigo-500 focus:border-indigo-500"
-            :class="ocrResults.kwh ? 'border-green-500 bg-green-50' : 'border-gray-300'"
+            class="min-h-11 w-full min-w-0 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           />
-          <span v-if="ocrResults.kwh" class="text-green-600 font-medium">✓</span>
-          <span v-else class="text-gray-400">—</span>
+          <CheckIcon v-if="ocrResults.kwh" class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" :aria-label="t('ocr.detected_data')" />
+          <span v-else class="w-5 shrink-0 text-center text-gray-400" aria-hidden="true">-</span>
         </div>
       </div>
 
       <!-- Cost -->
       <div class="result-item">
-        <label class="text-sm text-gray-600 mb-1 block">{{ t('ocr.label_cost') }}</label>
+        <label class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('ocr.label_cost') }}</label>
         <div class="flex items-center gap-2">
           <input
             v-model.number="ocrResults.cost"
             type="number"
             step="0.01"
             :placeholder="t('ocr.cost_placeholder')"
-            class="flex-1 px-3 py-2 border rounded-sm focus:ring-indigo-500 focus:border-indigo-500"
-            :class="ocrResults.cost ? 'border-green-500 bg-green-50' : 'border-gray-300'"
+            class="min-h-11 w-full min-w-0 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           />
-          <span v-if="ocrResults.cost" class="text-green-600 font-medium">✓</span>
-          <span v-else class="text-gray-400">—</span>
+          <CheckIcon v-if="ocrResults.cost" class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" :aria-label="t('ocr.detected_data')" />
+          <span v-else class="w-5 shrink-0 text-center text-gray-400" aria-hidden="true">-</span>
         </div>
       </div>
 
       <!-- Duration -->
       <div class="result-item">
-        <label class="text-sm text-gray-600 mb-1 block">{{ t('ocr.label_duration') }}</label>
+        <label class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('ocr.label_duration') }}</label>
         <div class="flex items-center gap-2">
           <input
             v-model.number="ocrResults.durationMinutes"
             type="number"
             :placeholder="t('ocr.duration_placeholder')"
-            class="flex-1 px-3 py-2 border rounded-sm focus:ring-indigo-500 focus:border-indigo-500"
-            :class="ocrResults.durationMinutes ? 'border-green-500 bg-green-50' : 'border-gray-300'"
+            class="min-h-11 w-full min-w-0 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           />
-          <span v-if="ocrResults.durationMinutes" class="text-green-600 font-medium">✓</span>
-          <span v-else class="text-gray-400">—</span>
+          <CheckIcon v-if="ocrResults.durationMinutes" class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" :aria-label="t('ocr.detected_data')" />
+          <span v-else class="w-5 shrink-0 text-center text-gray-400" aria-hidden="true">-</span>
         </div>
       </div>
 
       <!-- Max Charging Power -->
       <div class="result-item">
-        <label class="text-sm text-gray-600 mb-1 block">{{ t('ocr.label_power') }}</label>
+        <label class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('ocr.label_power') }}</label>
         <div class="flex items-center gap-2">
           <input
             v-model.number="ocrResults.maxChargingPowerKw"
             type="number"
             step="0.1"
             :placeholder="t('ocr.power_placeholder')"
-            class="flex-1 px-3 py-2 border rounded-sm focus:ring-indigo-500 focus:border-indigo-500"
-            :class="ocrResults.maxChargingPowerKw ? 'border-green-500 bg-green-50' : 'border-gray-300'"
+            class="min-h-11 w-full min-w-0 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
           />
-          <span v-if="ocrResults.maxChargingPowerKw" class="text-green-600 font-medium">✓</span>
-          <span v-else class="text-gray-400">—</span>
+          <CheckIcon v-if="ocrResults.maxChargingPowerKw" class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" :aria-label="t('ocr.detected_data')" />
+          <span v-else class="w-5 shrink-0 text-center text-gray-400" aria-hidden="true">-</span>
         </div>
       </div>
 
       <!-- Action Buttons -->
-      <div class="flex gap-3 pt-4">
-        <button
-          @click="applyData"
-          class="flex-1 px-6 py-3 bg-green-600 text-white rounded-sm hover:bg-green-700 transition font-medium">
-          ✓ {{ t('ocr.apply_btn') }}
+      <div class="flex gap-2 pt-2">
+        <button type="button" @click="applyData" class="flex-1 btn-3d inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-edge bg-green-600 px-5 text-[15px] font-semibold text-white hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-40">
+          <CheckIcon class="h-5 w-5" aria-hidden="true" />{{ t('ocr.apply_btn') }}
         </button>
-        <button
-          @click="reset"
-          class="px-6 py-3 bg-gray-300 text-gray-700 rounded-sm hover:bg-gray-400 transition font-medium">
+        <button type="button" @click="reset" class="btn-3d inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-edge bg-white px-5 text-[15px] font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-40 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">
           {{ t('ocr.rescan_btn') }}
         </button>
       </div>
 
-      <!-- Debug: Raw Text (collapsible) -->
-      <details class="text-xs text-gray-500 mt-4">
-        <summary class="cursor-pointer hover:text-gray-700">🔍 {{ t('ocr.debug_toggle') }}</summary>
-        <pre class="mt-2 p-2 bg-gray-100 rounded overflow-x-auto whitespace-pre-wrap">{{ ocrResults.rawText }}</pre>
-      </details>
+      <!-- Erkannter Rohtext zum Nachprüfen, aufklappbar wie überall mit Collapse -->
+      <div class="text-xs text-gray-500 dark:text-gray-400">
+        <button type="button" :aria-expanded="showRaw" class="inline-flex min-h-11 items-center gap-1 font-semibold hover:text-gray-900 dark:hover:text-gray-100" @click="showRaw = !showRaw">
+          <ChevronDownIcon :class="['h-4 w-4 transition-transform duration-300', showRaw ? 'rotate-180 ease-out' : 'ease-in']" aria-hidden="true" />{{ t('ocr.debug_toggle') }}
+        </button>
+        <Collapse :open="showRaw">
+          <pre class="mt-1 overflow-x-auto whitespace-pre-wrap rounded-xl bg-gray-100 p-2 dark:bg-white/10">{{ ocrResults.rawText }}</pre>
+        </Collapse>
+      </div>
     </div>
   </div>
 </template>
