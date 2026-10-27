@@ -5,178 +5,141 @@ import { createPinia } from 'pinia'
 import { i18n } from '../../../i18n'
 import DataQualityLine from '../DataQualityLine.vue'
 import type { DayCoverage } from '../../../composables/storyModel'
-import type { DataQuality } from '../../../composables/storyInsights'
 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
 const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 
-/** Monat mit 31 Tagen: Daten an `withData`, Lücke `gap` (inklusive), Zukunft ab `today + 1`. */
-function days(withData: number[], gap: [number, number] | null, today = 31, tripDays: number[] = []): DayCoverage[] {
+/** Monat mit 31 Tagen: Ladungen an `withData`, Zukunft ab `today + 1`, Fahrten an `tripDays`. */
+function days(withData: number[], today = 31, tripDays: number[] = []): DayCoverage[] {
   return Array.from({ length: 31 }, (_, i) => {
     const day = i + 1
-    const hasData = withData.includes(day) || tripDays.includes(day)
     const charge = withData.includes(day)
     const trip = tripDays.includes(day)
-    return { day, hasData, inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today, charges: charge ? 1 : 0, kwh: charge ? 20 : 0, trips: trip ? 2 : 0, tripKm: trip ? 42 : 0 }
+    return { day, hasData: charge || trip, inLongestGap: false, future: day > today, charges: charge ? 1 : 0, kwh: charge ? 20 : 0, trips: trip ? 2 : 0, tripKm: trip ? 42 : 0 }
   })
 }
-const quality = (over: Partial<DataQuality> = {}): DataQuality =>
-  ({ estimated: 0, total: 12, estimatedShare: 0, priceless: 0, pricelessOpen: 0, severity: 'ok', ...over })
 
-function mount(d: DayCoverage[], q: DataQuality | null, onOpenDay?: (day: number) => void) {
+function mount(d: DayCoverage[], onOpenDay?: (day: number) => void) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(DataQualityLine, { days: d, quality: q, onOpenDay })
+  app = createApp(DataQualityLine, { days: d, onOpenDay })
   app.component('router-link', RouterLink)
   app.use(createPinia()).use(i18n)
   app.mount(host)
   return host
 }
-/** Nur der Satz unter der Leiste, ohne Achse. */
-const text = (el: Element | null) => el?.querySelector('p')?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+const text = (host: HTMLElement) => host.textContent!.replace(/\s+/g, ' ').trim()
+const tip = (host: HTMLElement) => host.querySelector('[data-testid="story-day-tip"]')?.textContent?.replace(/\s+/g, ' ').trim()
+const settle = async () => { for (let i = 0; i < 3; i++) await Promise.resolve() }
 
 describe('DataQualityLine', () => {
-  it('Tagesleiste: ein Feld je Tag, Daten grün, Amber nur für die genannte Lücke, sonst grau', () => {
-    const host = mount(days([1, 15], [2, 14], 25), quality())
+  it('beim Öffnen ist der letzte Ladetag gewählt, die Anzeige nennt ihn', async () => {
+    const host = mount(days([3, 15, 24], 28))
+    await settle()
+    expect(tip(host)).toBe('24.: 1 Ladung, 20,0 kWh')
+    expect(host.querySelectorAll('[data-role="day"]')[23].className).toContain('scale-y-[1.4]')
+  })
+
+  it('ohne Ladung im Monat keine Anzeige, keine Zeile über Tage oder Lücken', async () => {
+    const host = mount(days([], 14))
+    await settle()
+    expect(host.querySelector('[data-testid="story-day-tip"]')).toBeNull()
+    expect(text(host)).not.toContain('Tage')
+    expect(text(host)).not.toContain('nichts erfasst')
+  })
+
+  it('kein Gelb: leere Tage grau, Tage nach heute heller', () => {
+    const host = mount(days([1], 14))
     const cells = host.querySelectorAll('[data-role="day"]')
-    expect(cells).toHaveLength(31)
     expect(cells[0].className).toContain('bg-green-700')
-    expect(cells[1].className).toContain('bg-amber-400')
-    expect(cells[13].className).toContain('bg-amber-400')
-    expect(cells[17].className).toContain('bg-gray-200')
-    expect(cells[27].className).toContain('bg-gray-100')
-  })
-
-  it('kurze Lücke im laufenden Monat: kein Amber in der Leiste', () => {
-    const host = mount(days([1, 9], [2, 8], 14), quality())
-    expect(host.querySelectorAll('[data-role="day"].bg-amber-400')).toHaveLength(0)
-  })
-
-  it('ein Satz: Tage bis heute, Tage mit Daten, gemessene Ladungen', () => {
-    const host = mount(days([1, 3], null, 14), quality({ total: 2 }))
-    expect(text(host)).toBe('14 Tage, 2 mit Daten. 2 von 2 Ladungen gemessen.')
-  })
-
-  it('Lücke im laufenden Monat nur, wenn sie 7 Tage überschreitet', () => {
-    const short = mount(days([1, 9], [2, 8], 14), quality())
-    expect(text(short)).not.toContain('nichts erfasst')
-    app!.unmount(); app = null
-    const long = mount(days([1, 10], [2, 9], 14), quality())
-    expect(text(long)).toContain('Vom 2. bis 9. nichts erfasst.')
-  })
-
-  it('im abgeschlossenen Monat zählt jede Lücke ab 3 Tagen', () => {
-    const host = mount(days([1, 5, 20], [6, 19]), quality())
-    expect(text(host)).toContain('Vom 6. bis 19. nichts erfasst.')
-    app!.unmount(); app = null
-    const tiny = mount(days([1, 3, 5, 7], [1, 2]), quality())
-    expect(text(tiny)).not.toContain('nichts erfasst')
-  })
-
-  it('Ladungen ohne Preis mit Link zum Nachtragen, geschätzte nur als Zahl', () => {
-    const host = mount(days([1], null), quality({ total: 5, estimated: 1, priceless: 2, pricelessOpen: 1, severity: 'warn' }))
-    expect(text(host)).toContain('4 von 5 Ladungen gemessen, 1 geschätzt, 2 ohne Preis nachtragen')
-    expect(host.querySelector('a')?.getAttribute('href')).toBe('/logs')
+    expect(cells[5].className).toContain('bg-gray-200')
+    expect(cells[20].className).toContain('bg-gray-100')
+    expect(host.innerHTML).not.toContain('amber')
+    expect(text(host)).not.toContain('nichts erfasst')
   })
 
   it('Achse: Tage 1, 8, 15, 22 und 29 unter der Leiste', () => {
-    const host = mount(days([1], null), quality())
+    const host = mount(days([1]))
     expect([...host.querySelectorAll('[data-role="tick"]')].map(x => x.textContent)).toEqual(['1.', '8.', '15.', '22.', '29.'])
   })
 
-  it('Tagesanzeige per Tastatur: Pfeile wandern, Satz nennt Ladungen und kWh', async () => {
-    const host = mount(days([1, 15], [2, 14], 25), quality())
+  it('Tagesanzeige per Tastatur: Pfeile wandern, Satz nennt Ladungen und kWh; Blur kehrt zum Ladetag zurück', async () => {
+    const host = mount(days([1, 15], 25))
     const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement
     bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }))
-    await Promise.resolve()
-    const tip = () => host.querySelector('[data-testid="story-day-tip"]')?.textContent?.replace(/\s+/g, ' ').trim()
-    expect(tip()).toBe('1.: 1 Ladung, 20,0 kWh')
+    await settle()
+    expect(tip(host)).toBe('1.: 1 Ladung, 20,0 kWh')
     bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
-    await Promise.resolve()
-    expect(tip()).toBe('2.: nichts erfasst')
+    await settle()
+    expect(tip(host)).toBe('2.: nichts erfasst')
     bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }))
-    await Promise.resolve()
-    expect(tip()).toBe('25.: nichts erfasst')
+    await settle()
+    expect(tip(host)).toBe('25.: nichts erfasst')
+    bar.dispatchEvent(new Event('blur'))
+    await settle()
+    expect(tip(host)).toBe('15.: 1 Ladung, 20,0 kWh')
+  })
+
+  it('Enter öffnet den gewählten Tag, Tage nach heute nicht', async () => {
+    const opened: number[] = []
+    const host = mount(days([1, 15], 20), d => opened.push(d))
+    const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement
+    bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }))
+    for (let i = 0; i < 5; i++) bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
+    bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }))
+    await settle()
+    expect(opened).toEqual([15])
+    expect(tip(host)).toBe('25.: kommt noch')
   })
 
   it('Fahrtage als Säule nach km, Ladetage grün, Legende nennt nur, was vorkommt', () => {
-    const plain = mount(days([1, 15], null, 25), quality())
+    const plain = mount(days([1, 15], 25))
     expect(plain.querySelectorAll('[data-role="km"]')).toHaveLength(0)
     const legend = (h: HTMLElement) => [...h.querySelectorAll('[data-testid="story-days-legend"] > span')].map(x => x.textContent!.trim())
     expect(legend(plain)).toEqual(['geladen'])
     app!.unmount(); app = null
-    const host = mount(days([1, 15], [2, 14], 25, [16, 17]), quality())
+    const host = mount(days([1, 15], 25, [16, 17]))
     const km = host.querySelectorAll('[data-role="km"]')
     expect(km).toHaveLength(2)
     expect((km[0] as HTMLElement).style.height).toBe('100%')
-    expect(legend(host)).toEqual(['geladen', 'gefahren', 'nichts erfasst'])
+    expect(legend(host)).toEqual(['geladen', 'gefahren'])
+    expect(text(host)).toContain('Tag antippen für Details')
   })
 
-  it('Tagesanzeige bleibt am rechten und linken Rand in der Leiste', async () => {
+  it('Tagesanzeige nennt Fahrten mit km', async () => {
+    const host = mount(days([16], 25, [16]))
+    await settle()
+    expect(tip(host)).toBe('16.: 1 Ladung, 20,0 kWh · 2 Fahrten, 42 km')
+  })
+
+  it('Sprechblase bleibt am Rand in der Leiste, die Spitze zeigt auf den Tag', async () => {
     // jsdom misst nichts: Leiste 350 px, Anzeige 120 px gestellt.
     const widths: Record<string, number> = { 'story-days': 350, 'story-day-tip': 120 }
     const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
       const w = widths[this.dataset.testid ?? ''] ?? 0
       return { width: w, height: 10, left: 0, top: 0, right: w, bottom: 10, x: 0, y: 0, toJSON: () => ({}) } as DOMRect
     })
-    const host = mount(days([1], null, 28), quality())
+    const host = mount(days([1], 28))
     const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement
-    const tip = () => host.querySelector('[data-testid="story-day-tip"]') as HTMLElement
-    const settle = async () => { for (let i = 0; i < 3; i++) await Promise.resolve() }
-    bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }))
+    const tipEl = () => host.querySelector('[data-testid="story-day-tip"]') as HTMLElement
+    const arrow = () => host.querySelector('[data-role="tip-arrow"]') as HTMLElement
     await settle()
-    expect(tip().style.left).toBe('0px')
+    // Tag 1: Mitte bei 5,6 px, Blase am linken Rand, Spitze bei 6 px
+    expect(tipEl().style.left).toBe('0px')
+    expect(arrow().style.left).toBe('6px')
     for (let i = 0; i < 24; i++) bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
     await settle()
-    // Tag 25 von 31: Mitte bei 277 px, mittig wäre 217 px, der Rand erlaubt höchstens 230 px.
-    expect(tip().style.left).toBe('217px')
+    // Tag 25 von 31: Mitte bei 277 px, mittig wäre 217 px, die Spitze bleibt mittig in der Blase
+    expect(tipEl().style.left).toBe('217px')
+    expect(arrow().style.left).toBe('60px')
     bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }))
     await settle()
-    expect(tip().style.left).toBe('230px')
+    // Tag 28: Mitte bei 310 px, Blase höchstens bei 230 px, Spitze bei 80 px
+    expect(tipEl().style.left).toBe('230px')
+    expect(arrow().style.left).toBe('80px')
     spy.mockRestore()
-  })
-
-  it('Tagesanzeige nennt Fahrten mit km', async () => {
-    const host = mount(days([16], null, 25, [16]), quality())
-    const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement
-    for (let i = 0; i < 16; i++) bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }))
-    await Promise.resolve()
-    expect(host.querySelector('[data-testid="story-day-tip"]')!.textContent!.replace(/\s+/g, ' ').trim()).toBe('16.: 1 Ladung, 20,0 kWh · 2 Fahrten, 42 km')
-  })
-})
-
-describe('DataQualityLine - Tag öffnen', () => {
-  // 31 Felder auf 310 px: Feld i liegt bei 10*i bis 10*i+10
-  const bar = (host: Element) => {
-    const el = host.querySelector<HTMLElement>('[data-testid="story-days"]')!
-    el.getBoundingClientRect = () => ({ left: 0, width: 310, top: 0, height: 20, right: 310, bottom: 20, x: 0, y: 0, toJSON: () => ({}) })
-    return el
-  }
-  const click = (el: HTMLElement, x: number) => el.dispatchEvent(new MouseEvent('click', { clientX: x, bubbles: true }))
-
-  it('Klick auf einen vergangenen Tag öffnet ihn', () => {
-    const open = vi.fn()
-    const host = mount(days([2], null, 20), quality(), open)
-    click(bar(host), 15)
-    expect(open).toHaveBeenCalledWith(2)
-  })
-
-  it('Tage nach heute öffnen nichts', () => {
-    const open = vi.fn()
-    const host = mount(days([2], null, 20), quality(), open)
-    click(bar(host), 255)
-    expect(open).not.toHaveBeenCalled()
-  })
-
-  it('Enter öffnet den mit Pfeilen gewählten Tag', () => {
-    const open = vi.fn()
-    const host = mount(days([2], null, 20), quality(), open)
-    const el = bar(host)
-    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }))
-    el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
-    expect(open).toHaveBeenCalledWith(2)
   })
 })
