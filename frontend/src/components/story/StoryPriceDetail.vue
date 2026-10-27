@@ -2,21 +2,30 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import type { BenchmarkCard, ChargingBenchmark } from '../../api/chargingBenchmarkService'
+import type { BenchmarkCard, CardSavings, ChargingBenchmark } from '../../api/chargingBenchmarkService'
+import StoryCardSavings from './StoryCardSavings.vue'
 
 /**
  * Was andere Fahrer bei einem Betreiber zahlen, ohne Rahmen: steht im eigenen Sheet (Moment "zu teuer
  * geladen") und als Unteransicht der Ladekarte. Hier stehen die Kartennamen, im Hero nie. Jede Karte
  * nennt ihre Quelle: von Fahrern dort bezahlt oder gepflegter Tarif mit Stand.
+ *
+ * Mit Ersparnis (eine bestimmte Ladung) stehen die gepflegten Karten mit ihrem Euro-Betrag oben;
+ * die Liste darunter zeigt dann nur noch, was andere Fahrer hier bezahlt haben.
  */
 const props = defineProps<{
   benchmark: ChargingBenchmark
   /** Was der Nutzer gezahlt hat. */
   pricePerKwh: number | null
+  /** Ersparnis gepflegter Karten bei der Ladung, um die es geht; null ohne Ladung oder ohne Angebot. */
+  savings?: CardSavings | null
 }>()
 
 const { t, locale } = useI18n()
 const { formatCostPerKwh, formatCurrency } = useLocaleFormat()
+
+const hasSavings = computed(() => (props.savings?.offers.length ?? 0) > 0)
+const listed = computed(() => hasSavings.value ? props.benchmark.cards.filter(c => c.source === 'DRIVERS') : props.benchmark.cards)
 
 const typeLabel = computed(() => t(props.benchmark.chargingType === 'DC' ? 'story.sheet_prices_dc' : 'story.sheet_prices_ac'))
 
@@ -50,10 +59,12 @@ function cardDetail(c: BenchmarkCard): string {
       {{ t('story.sheet_prices_basis', { n: benchmark.drivers, type: typeLabel }) }}
     </p>
 
-    <template v-if="benchmark.cards.length">
-      <h4 class="mt-5 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ t('story.sheet_prices_cards', { cpo: benchmark.cpoName }) }}</h4>
+    <StoryCardSavings :savings="savings ?? null" />
+
+    <template v-if="listed.length">
+      <h4 class="mt-5 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{{ hasSavings ? t('story.sheet_prices_drivers_title') : t('story.sheet_prices_cards', { cpo: benchmark.cpoName }) }}</h4>
       <ul class="mt-1 divide-y divide-gray-200 dark:divide-gray-700">
-        <li v-for="c in benchmark.cards" :key="`${c.source}:${cardName(c)}`" data-testid="price-card" class="flex items-baseline justify-between gap-3 py-2.5">
+        <li v-for="c in listed" :key="`${c.source}:${cardName(c)}`" data-testid="price-card" class="flex items-baseline justify-between gap-3 py-2.5">
           <span class="min-w-0">
             <span class="block font-semibold text-gray-900 dark:text-gray-50">{{ cardName(c) }}</span>
             <span class="block text-xs text-gray-500 dark:text-gray-400">{{ cardDetail(c) }}</span>
