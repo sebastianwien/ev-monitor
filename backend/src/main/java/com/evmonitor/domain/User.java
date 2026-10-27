@@ -259,19 +259,6 @@ public class User {
     }
 
     /**
-     * Gate for the dashboard Live-Charging card (current power, SoC, ETA, history).
-     * Technical gate, not a paywall: open to every Tesla driver, because only Tesla Fleet
-     * Telemetry delivers live charging data. No tier or role opens it for other brands -
-     * the card would stay empty there.
-     *
-     * <p>Ownership ({@code car.userId == user.id}) is a separate concern enforced at the
-     * call site BEFORE this entitlement check.
-     */
-    public boolean canViewLiveCharging(CarBrand brand) {
-        return brand == CarBrand.TESLA;
-    }
-
-    /**
      * True if the user is allowed to see live-detected trips even for car models that
      * are NOT on the live-trip eligibility whitelist (see {@code TripDetectionEligibility}).
      * Granted to ADMIN + BETA_TESTER for data-quality audit via impersonation.
@@ -304,8 +291,7 @@ public class User {
      * Tesla connection streams the {@link TelemetryProfile#FULL} field set regardless of
      * tier or role. The paid AutoSync Live tier no longer gates <em>data ingestion</em> -
      * it gates the <em>analytics views</em> (historical power curves, phantom drain,
-     * energy split), while the live-charging card is free for Tesla via
-     * {@link #canViewLiveCharging(CarBrand)}.
+     * energy split), while the live-charging card has no tier gate at all.
      */
     public TelemetryProfile preferredTelemetryProfile() {
         return TelemetryProfile.FULL;

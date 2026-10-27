@@ -113,26 +113,6 @@ class UserSubscriptionTierTest {
     }
 
     @Test
-    void canViewLiveCharging_teslaCar_freeForEveryone() {
-        // Live-charging card is part of the free Tesla tier: any owner of a Tesla car
-        // sees it regardless of subscription tier or role.
-        assertTrue(buildUser("USER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.TESLA));
-        assertTrue(buildUser("USER", SubscriptionTier.AUTOSYNC).canViewLiveCharging(CarBrand.TESLA));
-        assertTrue(buildUser("BETA_TESTER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.TESLA));
-    }
-
-    @Test
-    void canViewLiveCharging_nonTeslaCar_neverVisible_noLiveSource() {
-        // Only Tesla Fleet Telemetry delivers live charging data. For other brands the card
-        // would stay empty, so no tier or role unlocks it.
-        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging(CarBrand.VW));
-        assertFalse(buildUser("ADMIN", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
-        assertFalse(buildUser("BETA_TESTER", SubscriptionTier.AUTOSYNC).canViewLiveCharging(CarBrand.VW));
-        assertFalse(buildUser("USER", SubscriptionTier.NONE).canViewLiveCharging(CarBrand.VW));
-        assertFalse(buildUser("USER", SubscriptionTier.AUTOSYNC_LIVE).canViewLiveCharging(null));
-    }
-
-    @Test
     void canBypassEligibilityGate_onlyForAdminOrBetaTester() {
         // Audit privilege: ADMIN and BETA_TESTER see live trips even from car models
         // that are not on the eligibility whitelist (Polestar 3 etc.), so the data
@@ -173,7 +153,6 @@ class UserSubscriptionTierTest {
         assertFalse(supporter.canActivateTelemetry());
         assertFalse(supporter.isPremium());
         assertFalse(supporter.canUseTripPush());
-        assertFalse(supporter.canViewLiveCharging(CarBrand.VW));
         // canViewLiveTrips is coupled to canViewLiveAnalytics, so it is true for a supporter.
         // Harmless: without telemetry activation a non-Tesla supporter has no trips to show.
         assertTrue(supporter.canViewLiveTrips(CarBrand.VW));

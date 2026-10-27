@@ -72,7 +72,9 @@ class LiveControllerTest extends AbstractIntegrationTest {
                 null,                              // sessionEndedAt - aktive Session, kein Grace
                 new BigDecimal("40.0"),
                 80,
-                Instant.now());
+                Instant.now(),
+                null,
+                30);
         when(liveChargingService.getLiveCharging(liveCar.getId())).thenReturn(active);
 
         ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
@@ -142,49 +144,22 @@ class LiveControllerTest extends AbstractIntegrationTest {
         assertEquals(false, res.getBody().get("isActive"));
     }
 
-    // --- 403: AUTOSYNC (Tier 1) user, NON-Tesla car ---
+    // --- 200: NON-Tesla car - die Quelle (Polestar, Smartcar) entscheidet der Connector, kein Tier-Gate ---
 
     @Test
-    void getLiveCharging_tier1AutoSyncUser_nonTeslaCar_returns403() {
-        Car tier1Car = createAndSaveCar(tier1User.getId(), CarBrand.CarModel.ID_3);
-
-        ResponseEntity<String> res = restTemplate.exchange(
-                "/api/cars/" + tier1Car.getId() + "/live/charging",
-                HttpMethod.GET,
-                new HttpEntity<>(createAuthHeaders(tier1User.getId(), tier1User.getEmail())),
-                String.class);
-
-        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
-    }
-
-    // --- 403: AUTOSYNC_LIVE user, NON-Tesla car (no live source outside Tesla) ---
-
-    @Test
-    void getLiveCharging_autoSyncLiveUser_nonTeslaCar_returns403() {
-        Car vwCar = createAndSaveCar(liveUser.getId(), CarBrand.CarModel.ID_3);
-
-        ResponseEntity<String> res = restTemplate.exchange(
-                "/api/cars/" + vwCar.getId() + "/live/charging",
-                HttpMethod.GET,
-                new HttpEntity<>(createAuthHeaders(liveUser.getId(), liveUser.getEmail())),
-                String.class);
-
-        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
-    }
-
-    // --- 403: free user, NON-Tesla car ---
-
-    @Test
-    void getLiveCharging_freeUser_nonTeslaCar_returns403() {
+    void getLiveCharging_freeUser_nonTeslaCar_returns200() {
         Car freeCar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.ID_3);
+        when(liveChargingService.getLiveCharging(freeCar.getId()))
+                .thenReturn(LiveChargingResponse.inactive());
 
-        ResponseEntity<String> res = restTemplate.exchange(
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
                 "/api/cars/" + freeCar.getId() + "/live/charging",
                 HttpMethod.GET,
                 new HttpEntity<>(createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
-                String.class);
+                new ParameterizedTypeReference<>() {});
 
-        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertEquals(false, res.getBody().get("isActive"));
     }
 
     // --- 200: free user, Tesla car (live card is free for Tesla) ---
@@ -254,8 +229,8 @@ class LiveControllerTest extends AbstractIntegrationTest {
     @Test
     void getLiveChargingHistory_autoSyncLiveUser_returns200WithPoints() {
         LiveChargingHistoryResponse history = new LiveChargingHistoryResponse(List.of(
-                new LiveChargingHistoryResponse.Point(Instant.parse("2026-05-12T10:00:00Z"), 11.0),
-                new LiveChargingHistoryResponse.Point(Instant.parse("2026-05-12T10:00:05Z"), 150.0)));
+                new LiveChargingHistoryResponse.Point(Instant.parse("2026-05-12T10:00:00Z"), 11.0, null),
+                new LiveChargingHistoryResponse.Point(Instant.parse("2026-05-12T10:00:05Z"), 150.0, null)));
         when(liveChargingService.getLiveChargingHistory(eq(liveCar.getId()), anyString(), anyString()))
                 .thenReturn(history);
 
@@ -274,8 +249,10 @@ class LiveControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
-    void getLiveChargingHistory_tier1AutoSyncUser_nonTeslaCar_returns403() {
+    void getLiveChargingHistory_tier1AutoSyncUser_nonTeslaCar_returns200() {
         Car tier1Car = createAndSaveCar(tier1User.getId(), CarBrand.CarModel.ID_3);
+        when(liveChargingService.getLiveChargingHistory(eq(tier1Car.getId()), anyString(), anyString()))
+                .thenReturn(LiveChargingHistoryResponse.empty());
 
         ResponseEntity<String> res = restTemplate.exchange(
                 "/api/cars/" + tier1Car.getId() + "/live/charging/history?from=2026-05-12T08:00:00Z&to=2026-05-12T10:30:00Z",
@@ -283,7 +260,7 @@ class LiveControllerTest extends AbstractIntegrationTest {
                 new HttpEntity<>(createAuthHeaders(tier1User.getId(), tier1User.getEmail())),
                 String.class);
 
-        assertEquals(HttpStatus.FORBIDDEN, res.getStatusCode());
+        assertEquals(HttpStatus.OK, res.getStatusCode());
     }
 
     @Test

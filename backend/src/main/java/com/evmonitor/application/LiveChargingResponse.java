@@ -5,8 +5,12 @@ import java.time.Instant;
 
 /**
  * Response DTO for the live charging endpoint.
- * All fields except {@code isActive} may be null when no session is active
- * or when the connectors-service cannot be reached.
+ * All fields except {@code isActive} may be null when no session is active,
+ * when the connectors-service cannot be reached, or when the source (Tesla,
+ * Polestar, Smartcar) does not deliver the value.
+ *
+ * <p>{@code updateIntervalSeconds} ist der Takt der Quelle; das Frontend leitet
+ * daraus ab, ab wann die Anzeige als veraltet gilt.
  *
  * <p>Zeitstempel sind {@link Instant} (UTC), damit Jackson sie mit Z-Suffix
  * serialisiert - sonst interpretiert das Frontend naked-LocalDateTime als
@@ -30,11 +34,14 @@ public record LiveChargingResponse(
         Instant sessionEndedAt,
         BigDecimal socAtSessionStart,
         Integer chargeLimitSoc,
-        Instant lastUpdatedAt
+        Instant lastUpdatedAt,
+        BigDecimal energyAddedKwh,
+        int updateIntervalSeconds
 ) {
 
     /** Inactive placeholder - returned when no session is running or connectors unreachable. */
     public static LiveChargingResponse inactive() {
-        return new LiveChargingResponse(false, null, null, null, null, null, null, null, null, null, null, null, null);
+        return new LiveChargingResponse(false, null, null, null, null, null, null, null, null, null, null, null, null,
+                null, 0);
     }
 }

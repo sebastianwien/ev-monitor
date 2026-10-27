@@ -12,12 +12,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.URI;
 import java.util.UUID;
 
 /**
  * Fetches the current live-charging state for a vehicle from the connectors-service.
- * The connectors-service owns the live telemetry data; this service proxies and maps it.
+ * The connectors-service owns the live data and picks the source per car (Tesla
+ * Telemetry, Polestar Data Portal, Smartcar); this service proxies it.
  *
  * <p>On any connectors error (timeout, 404, connection refused) we return
  * {@link LiveChargingResponse#inactive()} rather than propagating the exception -
@@ -65,7 +68,7 @@ public class LiveChargingService {
             headers.set("X-Internal-Token", internalToken);
 
             ResponseEntity<LiveChargingResponse> response = restTemplate.exchange(
-                    connectorsBaseUrl + "/api/internal/tesla/" + carId + "/live/charging",
+                    connectorsBaseUrl + "/api/internal/live/" + carId + "/charging",
                     HttpMethod.GET,
                     new HttpEntity<>(headers),
                     LiveChargingResponse.class);
@@ -79,7 +82,7 @@ public class LiveChargingService {
     }
 
     /**
-     * Returns a chronological power-over-time series for the given car between
+     * Returns a chronological series of the running charge for the given car between
      * {@code fromIso} and {@code toIso} (ISO-8601). Window is hard-capped at 24h
      * on the connectors side.
      *
@@ -90,13 +93,17 @@ public class LiveChargingService {
             HttpHeaders headers = new HttpHeaders();
             headers.set("X-Internal-Token", internalToken);
 
-            // URL-encode the timestamp strings so a maliciously crafted "to"-Param mit
-            // eingebauten Query-Trennern keine zusätzlichen Params an die Connectors-API
-            // injizieren kann (defense-in-depth, Connectors validiert eh).
-            String encFrom = java.net.URLEncoder.encode(fromIso, java.nio.charset.StandardCharsets.UTF_8);
-            String encTo = java.net.URLEncoder.encode(toIso, java.nio.charset.StandardCharsets.UTF_8);
-            String url = connectorsBaseUrl + "/api/internal/tesla/" + carId
-                    + "/live/charging/history?from=" + encFrom + "&to=" + encTo;
+            // Werte als URI-Variablen strikt kodieren: ein "to" mit eingebauten Query-Trennern
+            // kann keine zusaetzlichen Params an die Connectors-API injizieren. Als fertige URI
+            // uebergeben, sonst kodiert die RestTemplate das '%' ein zweites Mal (%253A) und
+            // der Connector kann den Zeitstempel nicht mehr lesen.
+            URI url = UriComponentsBuilder
+                    .fromUriString(connectorsBaseUrl + "/api/internal/live/{carId}/charging/history")
+                    .queryParam("from", "{from}")
+                    .queryParam("to", "{to}")
+                    .encode()
+                    .buildAndExpand(carId, fromIso, toIso)
+                    .toUri();
 
             ResponseEntity<LiveChargingHistoryResponse> response = restTemplate.exchange(
                     url,

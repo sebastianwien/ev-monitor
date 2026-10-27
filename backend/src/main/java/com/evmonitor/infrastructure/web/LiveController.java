@@ -27,13 +27,11 @@ import java.util.UUID;
  * <ol>
  *   <li>Caller must be authenticated (covered by SecurityConfig for all /api/**).</li>
  *   <li>Caller must own the car ({@code car.userId == user.id}).</li>
- *   <li>Caller must have the live-charging entitlement
- *       ({@link User#canViewLiveCharging(com.evmonitor.domain.CarBrand)}) - every
- *       Tesla car, no other brand (only Tesla Fleet Telemetry delivers live data).</li>
  * </ol>
  *
- * <p>Ownership is checked BEFORE the tier gate to avoid leaking car existence
- * to users who have the right tier but do not own the car.
+ * <p>Kein Tier-Gate: die Daten gehoeren zum eigenen Auto, und die technische
+ * Voraussetzung ist eine Verbindung (Tesla, Polestar, Smartcar). Ohne Verbindung
+ * liefert der Connector nichts und die Antwort ist {@code isActive=false}.
  */
 @RestController
 @RequestMapping("/api/cars/{carId}/live")
@@ -64,16 +62,12 @@ public class LiveController {
             throw ForbiddenException.notOwner("Car", carId);
         }
 
-        if (!user.canViewLiveCharging(car.getModel().getBrand())) {
-            throw new ForbiddenException("AutoSync Live entitlement required for live charging data");
-        }
-
         LiveChargingResponse response = liveChargingService.getLiveCharging(carId);
         return ResponseEntity.ok(response);
     }
 
     /**
-     * Returns a chronological power-over-time series for the live-charging sparkline
+     * Returns a chronological series (power and/or SoC) for the live-charging chart
      * between {@code from} and {@code to} (ISO-8601). Window must be <=24h, enforced
      * on the connectors side.
      *
@@ -97,10 +91,6 @@ public class LiveController {
 
         if (!car.isOwnedBy(user.getId())) {
             throw ForbiddenException.notOwner("Car", carId);
-        }
-
-        if (!user.canViewLiveCharging(car.getModel().getBrand())) {
-            throw new ForbiddenException("AutoSync Live entitlement required for live charging data");
         }
 
         LiveChargingHistoryResponse response = liveChargingService.getLiveChargingHistory(carId, fromIso, toIso);
