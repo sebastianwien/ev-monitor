@@ -50,7 +50,7 @@ const { t } = useI18n()
 
 const title = computed(() => props.tile.id === 'peer'
   ? t('story.sheet_peer_title', { count: props.tile.peerCount })
-  : t(`story.sheet_${props.tile.id}_title`))
+  : t(`story.sheet_${props.tile.id}_title`, { month: props.context.monthName }))
 </script>
 
 <template>

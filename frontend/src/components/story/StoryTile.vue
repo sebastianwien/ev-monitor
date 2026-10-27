@@ -38,7 +38,7 @@ const value = computed(() => {
     case 'trips': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'peer': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'battery': return { n: `${x.estimated ? '~' : ''}${formatDecimal(x.value, 0)}`, unit: t('story.battery_unit') }
-    case 'co2': return { n: formatDecimal(x.value, 0), unit: t('story.co2_unit') }
+    case 'co2': return { n: formatDecimal(Math.abs(co2Percent.value), 0), unit: t(co2Percent.value >= 0 ? 'story.co2_unit' : 'story.co2_unit_more') }
     // Ein Monat nur mit AC hiesse sonst "0 % schnell": dann der Anteil normal
     case 'charging': return x.charging && x.charging.dcKwh === 0
       ? { n: '100', unit: t('story.charging_unit_normal') }
@@ -115,7 +115,14 @@ const note = computed(() => {
       const state = t(`story.battery_${x.sentiment === 'good' ? 'good' : x.sentiment === 'warn' ? 'warn' : 'bad'}`)
       return x.odometerKm ? `${state} ${t('story.battery_km', { km: formatDistance(x.odometerKm) })}` : state
     }
-    case 'co2': return t('story.co2_note')
+    case 'co2': {
+      const kg = formatDecimal(Math.abs(x.value), 0)
+      if (x.value < 0) return t('story.co2_note_more', { kg })
+      const life = x.co2?.lifetime
+      return life
+        ? t('story.co2_note_since', { kg, year: new Date(life.since).getFullYear(), total: formatDecimal(life.kg, 0) })
+        : t('story.co2_note', { kg })
+    }
     case 'charging': {
       const c = x.charging
       if (c && c.dcKwh === 0) return c.acEurPerKwh != null ? t('story.charging_only_ac', { eur: formatCurrency(c.acEurPerKwh) }) : t('story.charging_only_ac_plain')
@@ -127,15 +134,16 @@ const note = computed(() => {
   return ''
 })
 
-// Kachel CO₂: Benziner gegen dein Auto in g/km, Benziner ist die volle Breite
-const co2Rows = computed(() => {
+// Kachel CO₂: dein Auto in Prozent eines Benziners; Benziner ist 100 % und die volle Breite
+const co2Share = computed(() => {
   const c = props.tile.co2
-  if (!c) return []
-  return [
-    { key: 'petrol', label: t('story.co2_petrol'), g: c.petrolGPerKm, cls: 'bg-gray-400 dark:bg-gray-500' },
-    { key: 'grid', label: t('story.co2_yours'), g: c.gridGPerKm, cls: 'bg-green-700 dark:bg-green-400' },
-  ]
+  return c && c.petrolGPerKm > 0 ? Math.round((c.gridGPerKm / c.petrolGPerKm) * 100) : 100
 })
+const co2Percent = computed(() => 100 - co2Share.value)
+const co2Rows = computed(() => [
+  { key: 'petrol', label: t('story.co2_petrol'), pct: 100, cls: 'bg-gray-400 dark:bg-gray-500' },
+  { key: 'grid', label: t('story.co2_yours'), pct: co2Share.value, cls: 'bg-green-700 dark:bg-green-400' },
+])
 // Kachel Laden: Normal grün, Schnell blau wie öffentliches Laden; ohne Art bekannte kWh zählen nicht mit
 const chargingSegments = computed(() => {
   const c = props.tile.charging
@@ -207,10 +215,10 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
         <span class="flex justify-between text-[11px] text-gray-500 tabular-nums dark:text-gray-400"><span>0 %</span><span>{{ t('story.battery_scale_new') }}</span></span>
       </span>
       <span v-else-if="tile.id === 'co2'" class="grid gap-1" data-testid="story-co2-bars">
-        <span v-for="r in co2Rows" :key="r.key" class="grid grid-cols-[5.5rem_1fr_auto] items-center gap-2 text-[11px] tabular-nums text-gray-500 dark:text-gray-400">
+        <span v-for="r in co2Rows" :key="r.key" class="grid grid-cols-[5.5rem_1fr_2.75rem] items-center gap-2 text-[11px] tabular-nums text-gray-500 dark:text-gray-400">
           <span class="truncate">{{ r.label }}</span>
-          <span class="block h-2 rounded-[3px] bg-gray-100 dark:bg-gray-800"><i class="block h-full rounded-[3px]" :class="r.cls" :style="{ width: `${Math.min(100, (r.g / co2Rows[0].g) * 100)}%` }" /></span>
-          <span>{{ formatDecimal(r.g, 0) }} g/km</span>
+          <span class="block h-2 rounded-[3px] bg-gray-100 dark:bg-gray-800"><i class="block h-full rounded-[3px]" :class="r.cls" :style="{ width: `${Math.min(100, r.pct)}%` }" /></span>
+          <span class="text-right">{{ r.pct }} %</span>
         </span>
       </span>
       <ShareBar v-else-if="tile.id === 'charging'" :segments="chargingSegments" />
