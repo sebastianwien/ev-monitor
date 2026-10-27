@@ -38,6 +38,7 @@ defineExpose({ requestClose: () => sheet.value?.requestClose() })
     ref="sheet"
     :label="t('dashboard.trip_edit')"
     testid="edit-trip-modal"
+    edge
     @close="emit('close')">
     <template #default="{ close }">
       <div class="flex-1 overflow-y-auto p-4">
