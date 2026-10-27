@@ -29,6 +29,8 @@ public class MistralProperties {
     private String extractModel = "voxtral-small-latest";
     /** Prüft Erfahrungstexte der Fahrzeugbewertung, nur auf Knopfdruck im Admin-Tab. */
     private String moderationModel = "mistral-small-latest";
+    /** Liest Tarife aus Preisseiten (Tarif-Crawler), strukturierte Ausgabe. */
+    private String tariffModel = "mistral-small-latest";
     /** Wartezeit vor dem ersten Retry nach 429, verdoppelt sich je Versuch. */
     private long rateLimitBackoffMs = 500;
     /** Preise je konfiguriertem Modellnamen, fuer {@code voice_draft.cost_usd}. */
