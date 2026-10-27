@@ -98,12 +98,14 @@ const showSearchedStation = computed(() => {
 })
 
 /**
- * Icon-Box der Kacheln: das Icon (Haus, Blitz) sagt den Ortstyp, Farbe trägt in der App-CI nur
- * "gewählt" (gray-900, wie Rand und eingedrückte Kachel).
+ * Icon-Box der Kacheln: Farbe sagt den Ortstyp (grün privat, gelb Säule), bewusst bunt (Ausnahme in
+ * docs/design/ci.md). "Ausgewählt" sagt die eingedrückte Kachel mit Rand gray-900.
  */
-const iconBox = (_kind: 'home' | 'station', on: boolean) => [
+const iconBox = (kind: 'home' | 'station', on: boolean) => [
   'w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 transition-colors',
-  on ? 'bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-200',
+  kind === 'home'
+    ? (on ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300')
+    : (on ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300'),
 ]
 const tileClass = (on: boolean) => [cardClass(on), 'w-full flex items-center gap-3 p-3']
 const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw'>) => stationSubBase(s, t)
@@ -186,7 +188,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 flex-shrink-0 text-gray-900 dark:text-gray-100" aria-hidden="true" />
       </button>
       <button v-if="showElsewhere" type="button" data-testid="place-elsewhere" :class="tileClass(false)" @click="reopenSearch">
-        <span :class="iconBox('station', false)"><MagnifyingGlassIcon class="h-5 w-5" /></span>
+        <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 grid place-items-center flex-shrink-0"><MagnifyingGlassIcon class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
           <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ t('logwizard.place_elsewhere') }}</b>
           <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ t('logwizard.place_elsewhere_sub') }}</small>
