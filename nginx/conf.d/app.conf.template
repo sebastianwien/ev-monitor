@@ -45,7 +45,7 @@ server {
 # HTTP - Redirect to HTTPS
 server {
     listen 80;
-    server_name ${DOMAIN};
+    server_name ${DOMAIN} vorschau.${DOMAIN};
     server_tokens off;
 
     location /.well-known/acme-challenge/ {
@@ -88,10 +88,22 @@ map $http_user_agent $is_bot {
     "~*semrushbot"              1;
 }
 
+# Vorschau der neuen Oberfläche auf vorschau.${DOMAIN}: gleicher Serverblock, gleiches Backend,
+# nur ein anderes Frontend-Release (Verweis "preview" statt "current", siehe deploy-release.sh preview)
+# und noindex. Das Zertifikat von ${DOMAIN} muss den Namen vorschau.${DOMAIN} enthalten (certbot --expand).
+map $host $frontend_root {
+    default              /srv/frontend/current;
+    "vorschau.${DOMAIN}" /srv/frontend/preview;
+}
+map $host $robots_tag {
+    default              "";
+    "vorschau.${DOMAIN}" "noindex, nofollow";
+}
+
 # HTTPS
 server {
     listen 443 ssl http2;
-    server_name ${DOMAIN};
+    server_name ${DOMAIN} vorschau.${DOMAIN};
     server_tokens off;
 
     client_max_body_size 5m;
@@ -112,9 +124,10 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Robots-Tag $robots_tag always;
 
     # Statische Upstream-Namen statt Variablen, damit die URI-Pfade in proxy_pass gelten.
-    # Frontend: /srv/frontend/current ist auf Prod ein Symlink auf das aktive Release.
+    # Frontend: /srv/frontend/current ist auf Prod ein Symlink auf das aktive Release, /srv/frontend/preview auf die Vorschau.
 
     # Tesla Fleet API public key (required for partner registration)
     location /.well-known/appspecific/ {
@@ -124,7 +137,7 @@ server {
 
     # Android TWA verification (Digital Asset Links)
     location = /.well-known/assetlinks.json {
-        root /srv/frontend/current;
+        root $frontend_root;
         add_header Content-Type application/json;
         add_header Access-Control-Allow-Origin "*";
     }
@@ -146,7 +159,7 @@ server {
             access_log /var/log/nginx/prerender.log prerender;
             proxy_pass $prerender_url;
         }
-        root /srv/frontend/current;
+        root $frontend_root;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
@@ -163,7 +176,7 @@ server {
             access_log /var/log/nginx/prerender.log prerender;
             proxy_pass $prerender_url;
         }
-        root /srv/frontend/current;
+        root $frontend_root;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
@@ -176,7 +189,7 @@ server {
     # index.html must never be cached - stale index.html references old asset hashes
     # that no longer exist after a deploy, causing "text/html is not valid JS MIME type"
     location = /index.html {
-        root /srv/frontend/current;
+        root $frontend_root;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         expires 0;
@@ -185,12 +198,13 @@ server {
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header X-Robots-Tag $robots_tag always;
     }
 
     # Service Worker - must never be cached so browsers always get the latest version
     # Stale sw.js can reference workbox files from old deployments that no longer exist
     location = /sw.js {
-        root /srv/frontend/current;
+        root $frontend_root;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         expires 0;
@@ -199,6 +213,7 @@ server {
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header X-Robots-Tag $robots_tag always;
     }
 
     location = /sitemap.xml {
@@ -212,7 +227,7 @@ server {
     # Partner-Kachel (ev-monitor-tile.js): ungehashter Dateiname auf fremden Seiten,
     # daher kurzer Cache, damit Korrekturen binnen einer Stunde ankommen. Kein index.html-Fallback.
     location /embed/ {
-        root /srv/frontend/current;
+        root $frontend_root;
         try_files $uri =404;
         add_header Cache-Control "public, max-age=3600";
         add_header X-Content-Type-Options "nosniff" always;
@@ -221,7 +236,7 @@ server {
     # Gehashte Assets: offene Tabs mit altem index.html laden nach einem Deploy noch
     # Chunks des vorherigen Releases nach. Fehlt die Datei auch dort: 404 statt index.html.
     location /assets/ {
-        root /srv/frontend/current;
+        root $frontend_root;
         try_files $uri @previous_assets;
     }
 
@@ -231,7 +246,7 @@ server {
     }
 
     location / {
-        root /srv/frontend/current;
+        root $frontend_root;
         index index.html;
         try_files $uri $uri/ /index.html;
     }

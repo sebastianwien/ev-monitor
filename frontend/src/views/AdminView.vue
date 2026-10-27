@@ -112,9 +112,24 @@ interface UserRow {
   referrerSource: string
   evlogCount: number
   dataSources: string
+  userId: string
+  uiPreview: boolean
 }
 
 const users = ref<UserRow[]>([])
+/** Vorschau der neuen Oberfläche: Einladung je Nutzer, wirkt mit dem nächsten Login. */
+const previewSaving = ref<string | null>(null)
+async function setUiPreview(u: UserRow, enabled: boolean) {
+  previewSaving.value = u.userId
+  try {
+    await api.post(`/admin/users/${u.userId}/ui-preview`, null, { params: { enabled } })
+    u.uiPreview = enabled
+  } catch {
+    usersError.value = 'Vorschau-Einladung konnte nicht gespeichert werden.'
+  } finally {
+    previewSaving.value = null
+  }
+}
 const usersLoading = ref(false)
 const usersError = ref('')
 const userSearch = ref('')
@@ -344,7 +359,7 @@ const formatDateTime = (iso: string | null) => {
 }
 
 // ── Resizable columns ─────────────────────────────────────────────────────────
-const colWidths = ref([220, 130, 155, 110, 60, 160, 110, 140])
+const colWidths = ref([220, 130, 155, 110, 60, 160, 110, 140, 90])
 const tableWidth = computed(() => colWidths.value.reduce((a, b) => a + b, 0) + 'px')
 
 let resizeState: { colIndex: number; startX: number; startWidth: number } | null = null
@@ -436,14 +451,14 @@ const onResizeUp = () => {
             <thead class="bg-gray-900 text-gray-400 uppercase text-xs">
               <tr>
                 <th
-                  v-for="(label, i) in ['Email', 'Username', 'Erstellt', 'Autos', 'Logs', 'Quellen', 'UTM', 'Referrer']"
+                  v-for="(label, i) in ['Email', 'Username', 'Erstellt', 'Autos', 'Logs', 'Quellen', 'UTM', 'Referrer', 'Vorschau']"
                   :key="label"
                   class="px-4 py-3 whitespace-nowrap select-none relative"
                   :class="{ 'text-right': label === 'Logs' }"
                 >
                   {{ label }}
                   <div
-                    v-if="i < 7"
+                    v-if="i < 8"
                     @mousedown="startResize(i, $event)"
                     class="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-indigo-500/50 transition-colors"
                   />
@@ -478,6 +493,12 @@ const onResizeUp = () => {
                 </td>
                 <td class="px-4 py-2.5 text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap" :title="u.utmSource">{{ u.utmSource || '-' }}</td>
                 <td class="px-4 py-2.5 text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap" :title="u.referrerSource">{{ u.referrerSource || '-' }}</td>
+                <td class="px-4 py-2.5">
+                  <label class="inline-flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                    <input type="checkbox" class="h-4 w-4 accent-green-500" :checked="u.uiPreview" :disabled="previewSaving === u.userId" :data-testid="`admin-ui-preview-${u.userId}`" @change="setUiPreview(u, ($event.target as HTMLInputElement).checked)" />
+                    {{ u.uiPreview ? 'eingeladen' : '-' }}
+                  </label>
+                </td>
               </tr>
             </tbody>
           </table>

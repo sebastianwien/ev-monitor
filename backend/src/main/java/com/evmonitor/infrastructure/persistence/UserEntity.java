@@ -92,6 +92,10 @@ public class UserEntity {
     @Column(name = "ticker_share_charges", nullable = false, updatable = false)
     private boolean tickerShareCharges = true;
 
+    // Vorschau der neuen Oberfläche: nur per Admin-Update gesetzt, gleiches Muster wie die Opt-outs.
+    @Column(name = "ui_preview", nullable = false, updatable = false)
+    private boolean uiPreview = false;
+
     // Rechner-Eingaben als JSON. Gleiches Muster wie die Opt-outs: toEntity() kennt das Feld nicht,
     // geschrieben wird nur per eigener Update-Query.
     @Column(name = "range_profile", insertable = false, updatable = false)

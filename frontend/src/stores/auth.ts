@@ -17,6 +17,8 @@ export interface JwtClaims {
     authProvider: string
     role: string
     premium: boolean
+    /** Eingeladen zur Vorschau der neuen Oberfläche (vorschau.ev-monitor.net). */
+    preview?: boolean
     subscriptionTier?: string  // 'NONE' | 'AUTOSYNC' | 'AUTOSYNC_LIVE' - present for tokens generated after 2026-05
     country?: string
     registeredAt?: string // ISO date YYYY-MM-DD, present for tokens generated after 2026-04

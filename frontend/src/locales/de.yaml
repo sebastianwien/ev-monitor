@@ -4351,6 +4351,7 @@ story:
   teaser_cta: "Ansehen"
   teaser_dismiss: "Ausblenden"
   back_to_dashboard: "Altes Dashboard"
+  back_to_main_app: "Zur gewohnten App"
   experiment_note: "Experiment. Alle Zahlen kommen aus deinen Logs. Oben steht zuerst, was gerade passiert ist; welche Hinweise du schon gesehen hast, merkt sich nur dieses Gerät. Zurück jederzeit über den Link unten."
   month_aria: "Monat wählen"
   month_older: "Älterer Monat"

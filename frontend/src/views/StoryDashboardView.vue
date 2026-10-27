@@ -20,6 +20,7 @@ import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
 import { connectionsOf } from '../api/smartcarService'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
+import { isPreviewHost, mainAppOrigin } from '../utils/previewHost'
 import { DAY, type Moment } from '../composables/storyMoments'
 import { useMomentSeen } from '../composables/useMomentSeen'
 import StoryNewsStack from '../components/story/StoryNewsStack.vue'
@@ -284,6 +285,10 @@ function dismissNote() {
   try { localStorage.setItem('story_note_seen', 'true') } catch { /* egal */ }
 }
 
+/** Vorschau-Adresse: der Rückweg zur gewohnten App (Hauptadresse), gut sichtbar neben dem alten Dashboard. */
+const previewHost = isPreviewHost()
+const mainAppUrl = previewHost ? `${mainAppOrigin()}/story` : ''
+
 function backToClassic() {
   setOptIn(false)
   router.push('/dashboard')
@@ -399,7 +404,10 @@ onUnmounted(() => unregisterReload?.())
         </div>
       </section>
 
-      <div class="px-4 md:px-0">
+      <div class="flex flex-wrap items-center gap-x-6 px-4 md:px-0">
+        <a v-if="previewHost" :href="mainAppUrl" class="inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100" data-testid="story-main-app">
+          <ArrowUturnLeftIcon class="h-4 w-4" />{{ t('story.back_to_main_app') }}
+        </a>
         <button type="button" class="inline-flex min-h-[44px] items-center gap-2 text-sm text-gray-500 underline underline-offset-2 dark:text-gray-400" data-testid="story-back" @click="backToClassic">
           <ArrowUturnLeftIcon class="h-4 w-4" />{{ t('story.back_to_dashboard') }}
         </button>

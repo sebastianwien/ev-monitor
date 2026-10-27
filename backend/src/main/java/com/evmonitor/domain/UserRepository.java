@@ -117,6 +117,11 @@ public interface UserRepository {
 
     void setLeaderboardVisible(UUID userId, boolean visible);
 
+    /** Vorschau der neuen Oberfläche (vorschau.ev-monitor.net): eingeladen oder nicht, im Admin gesetzt. */
+    boolean isUiPreview(UUID userId);
+
+    void setUiPreview(UUID userId, boolean enabled);
+
     /** Opt-out: dürfen öffentliche Ladungen anonym im "Heute"-Eintrag des Tickers erscheinen. */
     boolean isTickerShareCharges(UUID userId);
 

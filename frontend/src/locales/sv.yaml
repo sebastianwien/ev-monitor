@@ -4187,6 +4187,7 @@ story:
   teaser_cta: "Visa"
   teaser_dismiss: "Dölj"
   back_to_dashboard: "Klassisk instrumentpanel"
+  back_to_main_app: "Till den vanliga appen"
   experiment_note: "Experiment. Alla siffror kommer från dina loggar. Överst visas först det som just hänt; bara den här enheten minns vilka tips du har sett. Gå tillbaka när som helst via länken nedan."
   month_aria: "Välj månad"
   month_older: Tidigare månad

@@ -16,6 +16,8 @@ declare global {
   }
 }
 
+import { isPreviewHost } from '../utils/previewHost'
+
 class AnalyticsService {
   /**
    * Track a custom event
@@ -26,6 +28,8 @@ class AnalyticsService {
   track(event: string, props?: Record<string, string | number | boolean>): void {
     if (typeof window === 'undefined') return
 
+    // Vorschau-Adresse: jedes Ereignis trägt preview=true, damit sich beide Oberflächen vergleichen lassen.
+    if (isPreviewHost()) props = { ...(props ?? {}), preview: true }
     // Check if Plausible is loaded
     if (typeof window.plausible === 'function') {
       window.plausible(event, props ? { props } : undefined)

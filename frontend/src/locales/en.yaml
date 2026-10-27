@@ -4345,6 +4345,7 @@ story:
   teaser_cta: "Show me"
   teaser_dismiss: "Hide"
   back_to_dashboard: "Classic dashboard"
+  back_to_main_app: "Back to the usual app"
   experiment_note: "Experiment. Every number comes from your logs. The top shows what just happened first; only this device remembers which notes you have seen. Go back any time via the link below."
   month_aria: "Choose month"
   month_older: "Earlier month"

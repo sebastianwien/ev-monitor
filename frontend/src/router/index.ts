@@ -7,6 +7,7 @@ import { installPageTransitions, isModelsRoute, modelsScrollPosition } from './p
 import type { CountryCode } from '../config/unitSystems';
 import { isValidCountryCode } from '../config/unitSystems';
 import { purchasesAvailable } from '../utils/iapPolicy';
+import { previewRedirect } from '../utils/previewHost';
 
 declare module 'vue-router' {
     interface RouteMeta {
@@ -548,6 +549,15 @@ router.beforeEach(async (to, _from) => {
         }
         if (to.meta.requiresAdmin && !authStore.isAdmin) {
             return '/dashboard';
+        }
+        // Vorschau-Adresse: wer nicht eingeladen ist, landet auf derselben Seite der Hauptadresse.
+        const away = previewRedirect({
+            hostname: window.location.hostname, protocol: window.location.protocol,
+            authenticated: true, preview: authStore.user?.preview, path: to.fullPath,
+        });
+        if (away) {
+            window.location.replace(away);
+            return false;
         }
     } else if (to.meta.guestOnly && authStore.isAuthenticated() && !authStore.isExpired() && !authStore.isDemoAccount) {
         return '/dashboard';

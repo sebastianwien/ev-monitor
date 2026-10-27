@@ -4187,6 +4187,7 @@ story:
   teaser_cta: "Vis meg"
   teaser_dismiss: "Skjul"
   back_to_dashboard: "Klassisk dashbord"
+  back_to_main_app: "Til den vanlige appen"
   experiment_note: "Eksperiment. Alle tall kommer fra loggene dine. Øverst vises først det som nettopp skjedde; bare denne enheten husker hvilke hint du har sett. Gå tilbake når som helst via lenken nederst."
   month_aria: "Velg måned"
   month_older: Tidligere måned
