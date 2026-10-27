@@ -66,7 +66,8 @@ describe('LiveChargingCard', () => {
 
     expect(q('live-soc-chart')).not.toBeNull()
     expect(q('live-power-chart')).toBeNull()
-    expect(q('live-metric-energy')?.textContent).toContain('12,4')
+    // Zahlformat folgt der Laufzeit-Locale (toLocaleString), daher Komma oder Punkt
+    expect(q('live-metric-energy')?.textContent).toMatch(/12[.,]4/)
     expect(q('live-metric-duration')).not.toBeNull()
     expect(q('live-metric-time')).toBeNull()
     expect(q('live-metric-range')).toBeNull()
