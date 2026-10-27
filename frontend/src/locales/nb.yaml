@@ -3106,6 +3106,8 @@ live:
   target_label: "Mål"
   until_target: "Til {pct}%"
   seconds_ago: "{n} sek siden"
+  minutes_ago: "{n} min siden"
+  energy_added: "Ladet"
   loading_data: "Laster data..."
   live: "LIVE"
 insights:

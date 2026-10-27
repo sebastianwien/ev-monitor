@@ -4,7 +4,6 @@ import { useAuthStore, type JwtClaims } from '../auth'
 
 /**
  * Marken-aware entitlement gates - frontend mirror of the backend User gates.
- *   - canViewLiveCharging(brand): Tesla only (only Fleet Telemetry delivers live data)
  *   - canViewLiveAnalytics: paid analytics layer (power curves, phantom drain im
  *     Logfeed, Share), no Tesla-free path, kein Probemonat
  *   - canViewEnergySplit: die Energie-Split-Kachel = bezahlt ODER launch-verankerter
@@ -26,22 +25,6 @@ describe('auth store entitlement gates', () => {
         store.setPremium(premium)
         return store
     }
-
-    describe('canViewLiveCharging', () => {
-        it('is free for a Tesla car regardless of tier/role', () => {
-            const store = setUser('USER', 'NONE', false)
-            expect(store.canViewLiveCharging('tesla')).toBe(true)
-            expect(store.canViewLiveCharging('Tesla')).toBe(true)
-            expect(store.canViewLiveCharging('TESLA')).toBe(true)
-        })
-
-        it('is closed for non-Tesla brands regardless of tier/role (no live source)', () => {
-            expect(setUser('USER', 'AUTOSYNC_LIVE', true).canViewLiveCharging('vw')).toBe(false)
-            expect(setUser('ADMIN', 'NONE', false).canViewLiveCharging('vw')).toBe(false)
-            expect(setUser('USER', 'NONE', false).canViewLiveCharging('vw')).toBe(false)
-            expect(setUser('USER', 'AUTOSYNC_LIVE', true).canViewLiveCharging(null)).toBe(false)
-        })
-    })
 
     describe('canViewLiveAnalytics', () => {
         it('is the paid gate with no Tesla-free path (every paid tier incl. AUTOSYNC)', () => {

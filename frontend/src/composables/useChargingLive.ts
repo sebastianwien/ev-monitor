@@ -19,6 +19,8 @@ export interface LiveChargingData {
   socAtSessionStart: number | null
   chargeLimitSoc: number | null
   lastUpdatedAt: string | null
+  energyAddedKwh: number | null    // nur Quellen mit Energiezaehler (Smartcar je nach Marke)
+  updateIntervalSeconds: number    // Takt der Quelle: Tesla 30, Polestar 120, Smartcar 300
 }
 
 interface PowerHistoryPoint {
@@ -26,17 +28,31 @@ interface PowerHistoryPoint {
   kw: number
 }
 
+interface SocHistoryPoint {
+  ts: number
+  soc: number
+}
+
+interface HistoryResponse {
+  points: { timestamp: string, powerKw: number | null, socPercent: number | null }[]
+}
+
 // Defensiver Cap auf die Server-History (downsampled auf <=120 Bins). Server ist
 // Source of Truth; dieser slice schuetzt nur gegen eine unerwartet grosse Response.
 const HISTORY_MAX_POINTS = 120
-// Aktive Session: schnell, damit die Kurve fluessig waechst.
+// Aktive Session: ein Drittel des Quellen-Takts, zwischen 10 s (Tesla) und 60 s
+// (Smartcar), damit die Kurve fluessig waechst, ohne langsame Quellen zu hammern.
 // Idle (keine Session): seltener, weil >99% der Zeit nichts zu tun ist.
-const POLL_INTERVAL_ACTIVE_MS = 10_000
+const POLL_INTERVAL_ACTIVE_MIN_MS = 10_000
+const POLL_INTERVAL_ACTIVE_MAX_MS = 60_000
 const POLL_INTERVAL_IDLE_MS = 60_000
+// Server ohne Takt (aelterer Connector): Tesla-Takt annehmen.
+const DEFAULT_UPDATE_INTERVAL_S = 30
 
 export function useChargingLive(carId: Ref<string | null>) {
   const data = ref<LiveChargingData | null>(null)
   const powerHistory = ref<PowerHistoryPoint[]>([])
+  const socHistory = ref<SocHistoryPoint[]>([])
   // Letzter Polling-Fehler, exposed fuer UI-Telemetrie. catch{}-Bloecke
   // setzen den Wert statt zu schlucken, damit ein dauerhafter Backend-Outage
   // sichtbar gemacht werden kann (LiveChargingCard rendert dann z.B. eine
@@ -49,22 +65,29 @@ export function useChargingLive(carId: Ref<string | null>) {
     return typeof document === 'undefined' || document.visibilityState !== 'hidden'
   }
 
+  const updateIntervalSeconds = computed(() => data.value?.updateIntervalSeconds || DEFAULT_UPDATE_INTERVAL_S)
+
   function nextDelay(): number {
-    return data.value?.isActive ? POLL_INTERVAL_ACTIVE_MS : POLL_INTERVAL_IDLE_MS
+    if (!data.value?.isActive) return POLL_INTERVAL_IDLE_MS
+    const third = updateIntervalSeconds.value * 1000 / 3
+    return Math.min(POLL_INTERVAL_ACTIVE_MAX_MS, Math.max(POLL_INTERVAL_ACTIVE_MIN_MS, third))
   }
 
   async function fetchHistory(id: string, sessionStartIso: string, signal: AbortSignal) {
     try {
       const toIso = new Date().toISOString()
-      const res = await api.get<{ points: { timestamp: string, powerKw: number }[] }>(
+      const res = await api.get<HistoryResponse>(
         `/cars/${id}/live/charging/history?from=${encodeURIComponent(sessionStartIso)}&to=${encodeURIComponent(toIso)}`,
         { signal },
       )
       if (signal.aborted) return
-      powerHistory.value = res.data.points.map(p => ({
-        ts: new Date(p.timestamp).getTime(),
-        kw: p.powerKw,
-      })).slice(-HISTORY_MAX_POINTS)
+      const points = res.data.points.slice(-HISTORY_MAX_POINTS)
+      powerHistory.value = points
+        .filter(p => p.powerKw != null)
+        .map(p => ({ ts: new Date(p.timestamp).getTime(), kw: p.powerKw as number }))
+      socHistory.value = points
+        .filter(p => p.socPercent != null)
+        .map(p => ({ ts: new Date(p.timestamp).getTime(), soc: p.socPercent as number }))
       error.value = null
     } catch (e) {
       if (signal.aborted) return
@@ -88,13 +111,14 @@ export function useChargingLive(carId: Ref<string | null>) {
       const hasSession = !!res.data.sessionStartedAt
       if (hasSession && res.data.sessionStartedAt) {
         // Die volle Session-Kurve wird bei JEDEM Poll frisch vom Connector geholt
-        // (server-seitig auf <=120 Bins downgesampled, Quelle: vehicle_signal_events).
+        // (server-seitig begrenzt, Quelle je nach Auto: Tesla, Polestar oder Smartcar).
         // Bewusst KEIN clientseitiges Mitschreiben: ein lokaler Append-Buffer wuerde
         // nach ~20 Min den Session-Start aus dem 120-Punkte-Fenster rotieren - bei DC
         // genau die interessante Peak-Rampe. Server bleibt Source of Truth.
         fetchHistory(id, res.data.sessionStartedAt, signal)
       } else {
         powerHistory.value = []
+        socHistory.value = []
       }
       error.value = null
     } catch (e) {
@@ -145,6 +169,7 @@ export function useChargingLive(carId: Ref<string | null>) {
     activeController?.abort()
     clearTimeout(timeoutId)
     powerHistory.value = []
+    socHistory.value = []
     data.value = null
 
     const id = carId.value
@@ -171,5 +196,5 @@ export function useChargingLive(carId: Ref<string | null>) {
   // (Dashboard-Card und Story-Hero).
   const isLive = computed(() => !!data.value?.isActive)
 
-  return { data, isLive, powerHistory, error, refresh }
+  return { data, isLive, powerHistory, socHistory, updateIntervalSeconds, error, refresh }
 }

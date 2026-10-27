@@ -3228,6 +3228,8 @@ live:
   target_label: "Ziel"
   until_target: "Bis {pct}%"
   seconds_ago: "vor {n} Sek."
+  minutes_ago: "vor {n} Min."
+  energy_added: "Geladen"
   loading_data: "Daten werden geladen..."
   live: "LIVE"
 insights:

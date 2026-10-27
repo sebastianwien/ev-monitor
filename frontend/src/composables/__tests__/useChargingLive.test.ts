@@ -116,3 +116,55 @@ describe('useChargingLive isLive', () => {
     expect(isLive.value).toBe(false)
   })
 })
+
+describe('useChargingLive source cadence', () => {
+  function mockLive(payload: object, history: object = { points: [] }) {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+      if (isHistoryUrl(url)) return Promise.resolve({ data: history }) as never
+      return Promise.resolve({ data: payload }) as never
+    })
+  }
+  async function lastDelayFor(interval: number) {
+    mockLive({ ...activeData, updateIntervalSeconds: interval })
+    const { useChargingLive } = await import('../useChargingLive')
+    useChargingLive(ref('car-1'))
+    await flush()
+    return capturedTimers[capturedTimers.length - 1].delay
+  }
+
+  it('polls an active Tesla session every 10 s', async () => {
+    expect(await lastDelayFor(30)).toBe(10_000)
+  })
+
+  it('polls slower for Polestar (2 min cadence) and Smartcar (5 min cadence)', async () => {
+    expect(await lastDelayFor(120)).toBe(40_000)
+    expect(await lastDelayFor(300)).toBe(60_000)
+  })
+
+  it('exposes the source cadence, 30 s when the server sends none', async () => {
+    mockLive({ ...activeData, updateIntervalSeconds: 300 })
+    const { useChargingLive } = await import('../useChargingLive')
+    const { updateIntervalSeconds } = useChargingLive(ref('car-1'))
+    await flush()
+    expect(updateIntervalSeconds.value).toBe(300)
+
+    mockLive({ ...activeData })
+    const other = useChargingLive(ref('car-2'))
+    await flush()
+    expect(other.updateIntervalSeconds.value).toBe(30)
+  })
+
+  it('splits history into power and SoC series - Smartcar delivers only SoC', async () => {
+    mockLive({ ...activeData, chargingType: null, powerKw: null, updateIntervalSeconds: 300 }, {
+      points: [
+        { timestamp: '2026-06-04T16:40:00Z', powerKw: null, socPercent: 21 },
+        { timestamp: '2026-06-04T16:45:00Z', powerKw: null, socPercent: 23 },
+      ],
+    })
+    const { useChargingLive } = await import('../useChargingLive')
+    const { powerHistory, socHistory } = useChargingLive(ref('car-1'))
+    await flush()
+    expect(powerHistory.value).toEqual([])
+    expect(socHistory.value.map(p => p.soc)).toEqual([21, 23])
+  })
+})

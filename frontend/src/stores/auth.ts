@@ -174,10 +174,6 @@ export const useAuthStore = defineStore('auth', () => {
     // false server-side for SUPPORTER, so canActivateTelemetry excludes it automatically).
     const isSupporter = computed(() => user.value?.subscriptionTier === 'SUPPORTER');
 
-    // Tesla brand helper: data collection, the live-charging card and trip detection are
-    // free for Tesla drivers; other brands stay on the paid AutoSync model.
-    const isTeslaBrand = (brand?: string | null) => (brand ?? '').toLowerCase() === 'tesla';
-
     // Mirrors backend User.canActivateTelemetry(): the paid path (Smartcar). Tesla activation
     // is free and is decided per-brand in the pairing UI, not here. Server-side gate in
     // TeslaPairingService is the security boundary - this computed is purely UX.
@@ -213,15 +209,10 @@ export const useAuthStore = defineStore('auth', () => {
     const canViewSocCurve = computed(() =>
         user.value?.subscriptionTier === 'AUTOSYNC' || canViewLiveAnalytics.value);
 
-    // Mirrors backend User.canViewLiveCharging(CarBrand): the dashboard Live-Charging card
-    // is open to every Tesla driver - only Tesla Fleet Telemetry delivers live data, so no
-    // tier or role opens it for other brands. Server-side gate in LiveController.
-    const canViewLiveCharging = (brand?: string | null) => isTeslaBrand(brand);
-
     return {
         token, user, isDemoAccount, isPremium, isAdmin, isBetaTester, isTeslaFounder,
         isAutoSyncLive, isSupporter,
-        canActivateTelemetry, canViewLiveAnalytics, canViewSocCurve, canViewLiveCharging,
+        canActivateTelemetry, canViewLiveAnalytics, canViewSocCurve,
         canViewEnergySplit, energySplitViaTrial, energySplitTrialEndsAt,
         setToken, setPremium, logout, login, register, requestLoginCode, loginWithCode, loginWithGoogle,
         refreshToken, refreshPremiumStatus,

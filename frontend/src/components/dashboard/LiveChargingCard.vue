@@ -1,23 +1,23 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '../../stores/auth'
 import { useChargingLive } from '../../composables/useChargingLive'
+import { autoSyncProviderFor } from '../../composables/useCarAutoSyncProvider'
 import PowerCurveChart from '../charging/PowerCurveChart.vue'
+import SocCurveChart from '../charging/SocCurveChart.vue'
 import { BoltIcon, ArrowPathIcon, ChevronUpIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 
 const props = defineProps<{
   carId: string | null
   carDisplayName: string
   licensePlate: string | null
-  /** Car brand - drives the marken-aware live-charging gate (free for Tesla). */
+  /** Marke: nur Marken mit Live-Quelle (Tesla, Smartcar-Marken inkl. Polestar) werden abgefragt. */
   brand: string | null
   /** User-Avg-Verbrauch (kWh/100km) zur Berechnung der nachgeladenen Reichweite. */
   avgConsumptionKwhPer100km?: number | null
 }>()
 
 const { t } = useI18n()
-const authStore = useAuthStore()
 
 // Reaktiver Wall-Clock-Ticker fuer Dauer / "vor X Sek." / Stale-Detection
 const now = ref(Date.now())
@@ -25,8 +25,11 @@ let clockInterval: ReturnType<typeof setInterval>
 onMounted(() => { clockInterval = setInterval(() => { now.value = Date.now() }, 1000) })
 onUnmounted(() => clearInterval(clockInterval))
 
-const carIdRef = computed(() => authStore.canViewLiveCharging(props.brand) ? props.carId : null)
-const { data, isLive, powerHistory, refresh } = useChargingLive(carIdRef)
+// Technisches Gate: abgefragt wird nur, wenn die Marke eine Live-Quelle haben kann.
+// Ob wirklich eine Verbindung besteht und geladen wird, entscheidet der Connector.
+const hasLiveSource = computed(() => autoSyncProviderFor({ brand: props.brand ?? '' }) !== 'NONE')
+const carIdRef = computed(() => hasLiveSource.value ? props.carId : null)
+const { data, isLive, powerHistory, socHistory, updateIntervalSeconds, refresh } = useChargingLive(carIdRef)
 
 // Fallback wenn der User noch keinen Historie-Schnitt hat - sonst bliebe die
 // "nachgeladene Reichweite"-Linie unsichtbar bei Neukunden. 16 kWh/100km ist ein
@@ -37,8 +40,10 @@ const effectiveConsumption = computed(() =>
     ? props.avgConsumptionKwhPer100km
     : 16)
 
-// Sichtbarkeit: nur wenn entitled + aktiver DC-Ladevorgang (AC hat keine sinnvolle Leistungskurve)
-const visible = computed(() => authStore.canViewLiveCharging(props.brand) && isLive.value)
+const visible = computed(() => hasLiveSource.value && isLive.value)
+// Quellen ohne Leistungsmessung (Smartcar) zeigen den Ladestand-Verlauf statt der Leistungskurve.
+const hasPower = computed(() => powerHistory.value.length > 0 || data.value?.powerKw != null)
+const chartPointCount = computed(() => hasPower.value ? powerHistory.value.length : socHistory.value.length)
 
 // Collapse-State: persistiert pro (carId, sessionStartedAt) - jede neue Session
 // startet expanded. localStorage-Key wechselt mit Session-Start.
@@ -62,7 +67,11 @@ const curveWindowMinutes = computed(() => {
 })
 const socPct = computed(() => Math.max(0, Math.min(100, data.value?.socPercent ?? 0)))
 const socStart = computed(() => data.value?.socAtSessionStart ?? 0)
-const socTarget = computed(() => data.value?.chargeLimitSoc ?? 80)
+// Ziel nur, wenn die Quelle es kennt (Tesla). Kein erfundener Standardwert.
+const socTarget = computed(() => data.value?.chargeLimitSoc ?? null)
+const timeLabel = computed(() => socTarget.value != null
+  ? t('live.until_target', { pct: socTarget.value })
+  : t('live.eta'))
 const sessionStartTime = computed(() => {
   if (!data.value?.sessionStartedAt) return null
   return new Date(data.value.sessionStartedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
@@ -80,8 +89,22 @@ const secondsSinceUpdate = computed(() => {
   if (!data.value?.lastUpdatedAt) return null
   return Math.floor((now.value - new Date(data.value.lastUpdatedAt).getTime()) / 1000)
 })
-const dataIsStale = computed(() => (secondsSinceUpdate.value ?? 0) > 60)
-const dataIsVeryStale = computed(() => (secondsSinceUpdate.value ?? 0) > 120)
+// Veraltet ab dem Doppelten des Quellen-Takts, gedimmt ab dem Vierfachen.
+const dataIsStale = computed(() => (secondsSinceUpdate.value ?? 0) > 2 * updateIntervalSeconds.value)
+const dataIsVeryStale = computed(() => (secondsSinceUpdate.value ?? 0) > 4 * updateIntervalSeconds.value)
+const updatedAgoLabel = computed(() => {
+  const s = secondsSinceUpdate.value
+  if (s == null) return '-'
+  return s < 120 ? t('live.seconds_ago', { n: s }) : t('live.minutes_ago', { n: Math.floor(s / 60) })
+})
+
+// Kacheln nur mit Wert; die Dauer steht immer da.
+const metricCount = computed(() => 1 + [
+  data.value?.timeToFullMinutes, data.value?.estRangeKm, data.value?.chargeAmps, data.value?.energyAddedKwh,
+].filter(v => v != null).length)
+const METRIC_COLS: Record<number, string> = {
+  1: 'sm:grid-cols-1', 2: 'sm:grid-cols-2', 3: 'sm:grid-cols-3', 4: 'sm:grid-cols-4', 5: 'sm:grid-cols-5',
+}
 
 function formatNumber(val: number | null, decimals = 1): string {
   if (val === null || val === undefined) return '-'
@@ -104,7 +127,7 @@ function formatNumber(val: number | null, decimals = 1): string {
         <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 dark:bg-emerald-400 pulse-dot"></span>
       </span>
       <span class="text-[11px] font-semibold tracking-wider text-emerald-700 dark:text-emerald-300 uppercase shrink-0">{{ t('live.live') }}</span>
-      <span class="text-sm font-bold text-gray-900 dark:text-white tabular-nums shrink-0">
+      <span v-if="hasPower" class="text-sm font-bold text-gray-900 dark:text-white tabular-nums shrink-0">
         <template v-if="data?.powerKw != null">{{ formatNumber(data.powerKw) }} kW</template>
         <template v-else>-</template>
       </span>
@@ -116,7 +139,7 @@ function formatNumber(val: number | null, decimals = 1): string {
       </div>
       <span class="text-xs font-semibold text-gray-700 dark:text-gray-200 tabular-nums shrink-0">{{ Math.round(socPct) }}%</span>
       <span v-if="data?.timeToFullMinutes != null" class="hidden sm:inline text-[11px] text-gray-500 dark:text-gray-400 tabular-nums whitespace-nowrap shrink-0">
-        {{ t('live.until_target', { pct: socTarget }) }}: {{ data.timeToFullMinutes }} {{ t('live.minutes_short') }}
+        {{ timeLabel }}: {{ data.timeToFullMinutes }} {{ t('live.minutes_short') }}
       </span>
       <button
         @click="toggleCollapsed"
@@ -136,7 +159,7 @@ function formatNumber(val: number | null, decimals = 1): string {
           </div>
           <div class="min-w-0">
             <h2 class="text-sm font-semibold text-gray-900 dark:text-white leading-tight truncate">
-              {{ carDisplayName || 'Tesla Model 3' }}
+              {{ carDisplayName }}
             </h2>
             <p v-if="licensePlate" class="text-xs text-gray-500 dark:text-gray-400 leading-tight mt-0.5 tracking-wide truncate">
               {{ licensePlate }}
@@ -180,7 +203,7 @@ function formatNumber(val: number | null, decimals = 1): string {
 
       <!-- Curve -->
       <div class="relative px-4 sm:px-6 pt-3 pb-3" :class="{ 'opacity-50': dataIsVeryStale }">
-        <div class="relative">
+        <div v-if="hasPower" class="relative" data-testid="live-power-chart">
           <PowerCurveChart :points="powerHistory" :height="234" :height-desktop="281" :show-live-marker="true" :now-label="t('live.now_short')" :aria-label="t('live.power_curve')" :consumption-kwh-per100km="effectiveConsumption" />
           <!-- kW-Anzeige als Overlay rechts oben (Platz sparen) -->
           <div class="pointer-events-none absolute top-1 right-2 text-right">
@@ -196,67 +219,86 @@ function formatNumber(val: number | null, decimals = 1): string {
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400">kW</span>
             </div>
           </div>
-          <div v-if="powerHistory.length === 0" class="absolute inset-0 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+          <div v-if="chartPointCount === 0" class="absolute inset-0 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
+            {{ t('live.loading_data') }}
+          </div>
+        </div>
+        <!-- Ohne Leistungsmessung: gemessener Ladestand ueber die Zeit, Ladestand als Hauptzahl -->
+        <div v-else class="relative" data-testid="live-soc-chart">
+          <SocCurveChart :points="socHistory" :height="234" :height-desktop="281" :aria-label="t('live.soc')" />
+          <div class="pointer-events-none absolute top-1 right-2 text-right">
+            <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500 mb-0.5">{{ t('live.soc') }}</p>
+            <p class="text-3xl font-bold text-gray-900 dark:text-white tabular-nums leading-none">{{ Math.round(socPct) }}%</p>
+            <p v-if="socStart > 0" class="mt-1 text-[11px] text-gray-500 tabular-nums">← {{ Math.round(socStart) }}% {{ t('live.start_label') }}</p>
+          </div>
+          <div v-if="chartPointCount === 0" class="absolute inset-0 flex items-center justify-center text-xs text-gray-500 dark:text-gray-400">
             {{ t('live.loading_data') }}
           </div>
         </div>
       </div>
 
-      <!-- SoC -->
-      <div class="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700/70" :class="{ 'opacity-50': dataIsVeryStale }">
+      <!-- SoC (bei Quellen ohne Leistung steckt der Ladestand schon in der Kurve) -->
+      <div v-if="hasPower" class="px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-gray-700/70" :class="{ 'opacity-50': dataIsVeryStale }">
         <div class="flex items-end justify-between mb-2 gap-2">
           <div class="flex items-baseline gap-2 flex-wrap min-w-0">
             <span class="text-[10px] font-semibold tracking-[0.18em] uppercase text-gray-500">{{ t('live.soc') }}</span>
             <span class="text-xl font-bold text-gray-900 dark:text-white tabular-nums">{{ Math.round(socPct) }}%</span>
             <span v-if="socStart > 0" class="text-[11px] text-gray-500 tabular-nums whitespace-nowrap">← {{ Math.round(socStart) }}% {{ t('live.start_label') }}</span>
           </div>
-          <span class="text-[11px] text-amber-600 dark:text-amber-400 font-semibold tabular-nums whitespace-nowrap">{{ t('live.target_label') }} {{ socTarget }}%</span>
+          <span v-if="socTarget != null" class="text-[11px] text-amber-600 dark:text-amber-400 font-semibold tabular-nums whitespace-nowrap">{{ t('live.target_label') }} {{ socTarget }}%</span>
         </div>
         <div class="relative">
           <div class="relative h-3 bg-gray-200 dark:bg-gray-700/60 rounded-full overflow-hidden">
             <div class="absolute inset-y-0 left-0 wave-flow rounded-full" :style="`width: ${socPct}%;`"></div>
-            <div class="absolute top-0 bottom-0 w-px bg-amber-400/70" :style="`left: ${socTarget}%;`"></div>
+            <div v-if="socTarget != null" class="absolute top-0 bottom-0 w-px bg-amber-400/70" :style="`left: ${socTarget}%;`"></div>
           </div>
           <!-- Nadelkopf ragt aus dem Balken raus (ausserhalb des overflow-hidden) -->
-          <div class="absolute -top-1 w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] ring-2 ring-white dark:ring-gray-800"
+          <div v-if="socTarget != null" data-testid="live-soc-target"
+               class="absolute -top-1 w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)] ring-2 ring-white dark:ring-gray-800"
                :style="`left: calc(${socTarget}% - 5px);`"></div>
         </div>
       </div>
 
       <!-- Metrics -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 border-t border-gray-200 dark:border-gray-700/70 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700/70"
-           :class="{ 'opacity-50': dataIsVeryStale }">
-        <div class="px-4 py-4">
+      <div class="grid grid-cols-2 border-t border-gray-200 dark:border-gray-700/70 divide-x divide-y sm:divide-y-0 divide-gray-200 dark:divide-gray-700/70"
+           :class="[METRIC_COLS[metricCount], { 'opacity-50': dataIsVeryStale }]">
+        <div v-if="data?.timeToFullMinutes != null" class="px-4 py-4" data-testid="live-metric-time">
           <div class="flex items-center gap-1.5 mb-1">
             <svg class="w-3 h-3 text-amber-500 dark:text-amber-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-            <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ t('live.until_target', { pct: socTarget }) }}</p>
+            <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ timeLabel }}</p>
           </div>
           <p class="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
-            <template v-if="data?.timeToFullMinutes != null">{{ data.timeToFullMinutes }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">{{ t('live.minutes_short') }}</span></template>
-            <template v-else>-</template>
+            {{ data.timeToFullMinutes }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">{{ t('live.minutes_short') }}</span>
           </p>
         </div>
-        <div class="px-4 py-4">
+        <div v-if="data?.estRangeKm != null" class="px-4 py-4" data-testid="live-metric-range">
           <div class="flex items-center gap-1.5 mb-1">
             <svg class="w-3 h-3 text-sky-500 dark:text-sky-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
             <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ t('live.range') }}</p>
           </div>
           <p class="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
-            <template v-if="data?.estRangeKm != null">{{ formatNumber(data.estRangeKm, 0) }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">km</span></template>
-            <template v-else>-</template>
+            {{ formatNumber(data.estRangeKm, 0) }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">km</span>
           </p>
         </div>
-        <div class="px-4 py-4">
+        <div v-if="data?.chargeAmps != null" class="px-4 py-4" data-testid="live-metric-amps">
           <div class="flex items-center gap-1.5 mb-1">
             <svg class="w-3 h-3 text-emerald-500 dark:text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ t('live.amps') }}</p>
           </div>
           <p class="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
-            <template v-if="data?.chargeAmps != null">{{ formatNumber(data.chargeAmps, 0) }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">A</span></template>
-            <template v-else>-</template>
+            {{ formatNumber(data.chargeAmps, 0) }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">A</span>
           </p>
         </div>
-        <div class="px-4 py-4">
+        <div v-if="data?.energyAddedKwh != null" class="px-4 py-4" data-testid="live-metric-energy">
+          <div class="flex items-center gap-1.5 mb-1">
+            <BoltIcon class="w-3 h-3 text-emerald-500 dark:text-emerald-400" />
+            <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ t('live.energy_added') }}</p>
+          </div>
+          <p class="text-lg font-bold text-gray-900 dark:text-white tabular-nums">
+            {{ formatNumber(data.energyAddedKwh) }}<span class="text-xs text-gray-500 dark:text-gray-400 ml-1 font-medium">kWh</span>
+          </p>
+        </div>
+        <div class="px-4 py-4" data-testid="live-metric-duration">
           <div class="flex items-center gap-1.5 mb-1">
             <svg class="w-3 h-3 text-indigo-500 dark:text-indigo-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
             <p class="text-[10px] font-semibold tracking-[0.12em] uppercase text-gray-500">{{ t('live.duration') }}</p>
@@ -275,7 +317,7 @@ function formatNumber(val: number | null, decimals = 1): string {
           <div class="flex items-center gap-2" role="status" aria-live="polite">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 dark:bg-emerald-400 pulse-dot shrink-0" aria-hidden="true"></span>
             <p class="text-[11px] text-gray-500 dark:text-gray-400 tabular-nums">
-              {{ secondsSinceUpdate != null ? t('live.seconds_ago', { n: secondsSinceUpdate }) : '-' }}
+              {{ updatedAgoLabel }}
             </p>
           </div>
           <button @click="refresh()" :aria-label="t('live.refresh')"

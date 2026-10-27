@@ -549,9 +549,9 @@ onUnmounted(() => {
             <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
           </div>
 
-          <!-- Live-Ladevorgang: blendet sich automatisch ein wenn aktive Session und User AS Live -->
+          <!-- Live-Ladevorgang: blendet sich ein, sobald die Live-Quelle des Autos eine Ladung meldet -->
           <LiveChargingCard
-            v-if="selectedCarId && authStore.canViewLiveCharging(selectedCar?.brand ?? null)"
+            v-if="selectedCarId"
             :car-id="selectedCarId"
             :car-display-name="selectedCar ? [carDisplayName(selectedCar), selectedCar.trim].filter(Boolean).join(' ') : ''"
             :license-plate="selectedCar?.licensePlate ?? null"
