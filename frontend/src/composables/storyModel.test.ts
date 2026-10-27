@@ -454,6 +454,14 @@ describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
     expect(buildStoryTiles(input({ month: five })).map(t => t.id)).toContain('peer')
   })
 
+  it('Preis-Satz entfällt, wenn der Unterschied auf 0,0 ct rundet', () => {
+    const pb = stats().peerBenchmark!
+    const same = stats({ peerBenchmark: { ...pb, userPeriodCostPerKwh: 0.3004, peerAvgCostPerKwh: 0.30 } })
+    expect(buildStoryFeed(input({ month: same })).map(f => f.id)).not.toContain('peer_position')
+    const tiny = stats({ peerBenchmark: { ...pb, userPeriodCostPerKwh: 0.33, peerAvgCostPerKwh: 0.30 } })
+    expect(buildStoryFeed(input({ month: tiny })).map(f => f.id)).toContain('peer_position')
+  })
+
   it('Akku-Kachel trägt, ob der Wert geschätzt ist', () => {
     expect(buildStoryTiles(input({ sohEstimated: true })).find(t => t.id === 'battery')!.estimated).toBe(true)
     expect(buildStoryTiles(input({ sohEstimated: false })).find(t => t.id === 'battery')!.estimated).toBe(false)

@@ -498,7 +498,9 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
   }
 
   const pb = m.peerBenchmark
-  if (pb?.userPeriodCostPerKwh != null && pb.peerAvgCostPerKwh != null && pb.uniquePeerUsers >= MIN_PEERS) {
+  if (pb?.userPeriodCostPerKwh != null && pb.peerAvgCostPerKwh != null && pb.uniquePeerUsers >= MIN_PEERS
+    // "0,0 ct weniger" ist kein Satz: unter einem halben Zehntelcent gibt es keinen Unterschied zu nennen.
+    && Math.abs(pb.userPeriodCostPerKwh - pb.peerAvgCostPerKwh) * 100 >= 0.05) {
     const diff = pb.userPeriodCostPerKwh - pb.peerAvgCostPerKwh
     items.push({
       id: 'peer_position',
