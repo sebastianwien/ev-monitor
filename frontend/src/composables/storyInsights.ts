@@ -276,6 +276,11 @@ export interface LatestCharge {
   costEur: number | null
   cpoName?: string | null
   chargingType?: string | null
+  /** Ladestand vor und nach der Ladung, nur wenn beide stimmig sind. */
+  socFrom: number | null
+  socTo: number | null
+  /** Reichweite nach der Ladung, auf 10 km gerundet: Ladestand mal effektive Kapazität durch Verbrauch der letzten 4 Wochen. */
+  rangeKm: number | null
 }
 
 export interface LatestTrip {
@@ -300,6 +305,14 @@ export interface LatestLogSource {
   costEur?: number | null
   cpoName?: string | null
   chargingType?: string | null
+  socBeforeChargePercent?: number | null
+  socAfterChargePercent?: number | null
+}
+
+/** Verbrauch der letzten 4 Wochen und effektive Kapazität (SoH-bereinigt) für die Reichweite der letzten Ladung. */
+export interface LatestRangeBasis {
+  consumptionKwh100: number | null
+  effectiveCapacityKwh: number | null
 }
 
 export interface LatestTripSource {
@@ -311,12 +324,20 @@ export interface LatestTripSource {
 }
 
 /** Fahrzeug-kWh vor Saeulen-kWh (wie die Ladeliste), Fahrt nach ihrem Ende datiert. Null ohne beides. */
-export function buildLatest(log: LatestLogSource | null | undefined, trip: LatestTripSource | null | undefined): StoryLatest | null {
+export function buildLatest(log: LatestLogSource | null | undefined, trip: LatestTripSource | null | undefined,
+  basis: LatestRangeBasis = { consumptionKwh100: null, effectiveCapacityKwh: null }): StoryLatest | null {
+  const from = log?.socBeforeChargePercent ?? null
+  const to = log?.socAfterChargePercent ?? null
+  const socOk = from != null && to != null && to > from
+  const c = basis.consumptionKwh100
+  const cap = basis.effectiveCapacityKwh
+  const rangeKm = socOk && c != null && c > 0 && cap != null && cap > 0 ? Math.round((to / 100) * cap / c * 100 / 10) * 10 : null
   const charge: LatestCharge | null = log
     ? {
       id: log.id, at: log.loggedAt, kwh: log.kwhAtVehicle ?? log.kwhCharged ?? null, costEur: log.costEur ?? null,
       ...(log.cpoName ? { cpoName: log.cpoName } : {}),
       ...(log.chargingType ? { chargingType: log.chargingType } : {}),
+      socFrom: socOk ? from : null, socTo: socOk ? to : null, rangeKm,
     }
     : null
   const at = tripTimestamp(trip)

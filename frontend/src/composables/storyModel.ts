@@ -64,9 +64,8 @@ export interface StoryTile {
 }
 
 export type FeedId =
-  | 'consumption_trend' | 'home_savings' | 'most_expensive' | 'peer_position' | 'phantom_locked' | 'cost_trend' | 'distance_trend'
-  | 'model_peers' | 'community_rank' | 'data_quality' | 'temperature_effect' | 'temperature_locked' | 'moment'
-  | 'drive_vs_charge'
+  | 'autumn_forecast' | 'peer_cost_eur' | 'home_savings' | 'most_expensive' | 'cost_trend' | 'distance_trend'
+  | 'data_quality' | 'temperature_effect' | 'moment'
 
 export interface StoryFeedItem {
   id: FeedId
@@ -96,7 +95,6 @@ export interface StoryInput {
   odometerKm: number | null
   savingsEur: number | null
   amortisationYearsRemaining: number | null
-  energySplitLocked: boolean
   flow: EnergyFlow | null
   range: RangeEstimate | null
   /** Du gegen alle Fahrer deines Modells (alle Varianten, Lifetime); null ohne Vergleich. */
@@ -104,10 +102,14 @@ export interface StoryInput {
   rank: RankResult | null
   quality: DataQuality | null
   temperature: TemperatureEffect | null
-  /** True, wenn Fahrten-Analytik gesperrt ist und kein Temperatur-Effekt vorliegt. */
-  temperatureLocked: boolean
   /** Ladungen ohne Preis im Vormonat (die des Monats stehen in quality). */
   pricelessPrevious: number
+  /** Kalendermonat des gewaehlten Monats (1 bis 12), fuer die Herbst-Prognose. */
+  monthOfYear: number
+  /** Tage des Monats, die zaehlen: im laufenden Monat der heutige Tag, sonst die Monatslaenge. */
+  elapsedDays: number
+  /** Strecke der letzten Tage (eigene Statistik je Auto), Basis der Herbst-Prognose. */
+  recent: { distanceKm: number | null; days: number } | null
   /** Fahrzeugklasse des Autos (VehicleCategory), bestimmt den Benziner im Vergleich. */
   vehicleCategory: string | null
   /** Strecke und Verbrauch je Tag seit der ersten Ladung, für CO₂ gesamt. */
@@ -154,15 +156,20 @@ export const MIN_SOLID_CHARGES = 3
 const MIN_COST_DIFF_EUR = 1
 /** Ab 10 % mehr oder weniger Strecke als im Vormonat ist das eine Nachricht. */
 const MIN_DISTANCE_DIFF_SHARE = 0.1
-const MIN_CONSUMPTION_DIFF = 0.2
+/** Preisvergleich in Euro und Herbst-Prognose erst, wenn der Monat so viele Tage zaehlt. */
+const MIN_COMPARE_DAYS = 14
+/** Herbst-Prognose: in diesen Monaten, fuer den ersten Wintermonat. */
+const AUTUMN_MONTHS = [9, 10]
+const FIRST_WINTER_MONTH = 11
+/** Unter so vielen Euro Mehrkosten gibt es keine Prognose. */
+const MIN_FORECAST_EUR = 5
 /** Ladeverlust: bis 12 Prozent ueblich (AC-Pauschale 10), bis 20 auffaellig, darueber Problem. */
 const FLOW_LOSS_GOOD_PERCENT = 12
 const FLOW_LOSS_WARN_PERCENT = 20
-/** Darunter fährst du so günstig wie die anderen Fahrer deines Modells. */
-const MODEL_PEERS_SAME_PERCENT = 5
-const FEED_MAX = 5
-/** Ab diesem Verhältnis Verbrauch aus Ladungen zu Verbrauch beim Fahren lohnt der Abgleich als Satz. */
-const DRIVE_VS_CHARGE_RATIO = 1.2
+/** Hoechstens drei Zeilen unter "Diesen Monat": jede mit Vergleichsbasis im Satz. */
+const FEED_MAX = 3
+/** Feste Reihenfolge der Kacheln: Reichweite zuerst, Kosten zuletzt (der Hero nennt sie schon). */
+const TILE_ORDER: TileId[] = ['range', 'charging', 'trips', 'co2', 'battery', 'flow', 'peer', 'wltp', 'cost']
 /** Vergleiche gegen andere Fahrer erst ab so vielen Fahrern, darunter entfallen Satz und Kachel. */
 export const MIN_PEERS = 5
 
@@ -416,7 +423,7 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
   if (thin != null) {
     for (const t of tiles) if (t.id === 'cost' || t.id === 'wltp' || t.id === 'peer') t.thinCharges = thin
   }
-  return tiles
+  return tiles.sort((a, b) => TILE_ORDER.indexOf(a.id) - TILE_ORDER.indexOf(b.id))
 }
 
 /**
@@ -429,17 +436,6 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
   const items: StoryFeedItem[] = []
 
   const prev = input.previousMonth
-  if (prev?.avgConsumptionKwhPer100km != null && m.avgConsumptionKwhPer100km != null
-      && Math.abs(m.avgConsumptionKwhPer100km - prev.avgConsumptionKwhPer100km) >= MIN_CONSUMPTION_DIFF) {
-    const diff = m.avgConsumptionKwhPer100km - prev.avgConsumptionKwhPer100km
-    items.push({
-      id: 'consumption_trend',
-      question: 2,
-      relevance: Math.min(100, 40 + Math.abs(diff) * 30),
-      sentiment: diff <= 0 ? 'good' : 'warn',
-      params: { diff, current: m.avgConsumptionKwhPer100km, previous: prev.avgConsumptionKwhPer100km },
-    })
-  }
 
   // Strecke ohne Hochrechnung: km kommen bei Hand-Erfassern in Spruengen (km-Stand nur beim Laden).
   // "Mehr" steht fest, sobald es erreicht ist; "weniger" erst nach Monatsende, vorher waeren es nur weniger Tage.
@@ -497,46 +493,44 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
     })
   }
 
-  const pb = m.peerBenchmark
-  if (pb?.userPeriodCostPerKwh != null && pb.peerAvgCostPerKwh != null && pb.uniquePeerUsers >= MIN_PEERS
-    // "0,0 ct weniger" ist kein Satz: unter einem halben Zehntelcent gibt es keinen Unterschied zu nennen.
-    && Math.abs(pb.userPeriodCostPerKwh - pb.peerAvgCostPerKwh) * 100 >= 0.05) {
-    const diff = pb.userPeriodCostPerKwh - pb.peerAvgCostPerKwh
-    items.push({
-      id: 'peer_position',
-      question: 3,
-      relevance: 45 + Math.min(40, Math.abs(diff) * 400),
-      sentiment: diff <= 0 ? 'good' : 'warn',
-      params: { diffCt: diff * 100, peers: pb.uniquePeerUsers },
-    })
-  }
-
-  // Alle Varianten des Modells zusammen: der Unterschied kommt meist vom Ladepreis, nicht von der Variante.
+  // Preisvergleich in Euro: was die Fahrer des Modells (alle Varianten) fuer dieselbe Strommenge
+  // gezahlt haetten, mit ihrem Preis je kWh. Nur ohne Ladungen ohne Preis, sonst stimmt die Summe nicht.
   const mp = input.modelPeers
-  if (mp && mp.cars >= MIN_PEERS) {
-    const same = Math.abs(mp.deltaPercent) < MODEL_PEERS_SAME_PERCENT
-    items.push({
-      id: 'model_peers',
-      question: 3,
-      relevance: same ? 45 : 40 + Math.min(35, Math.abs(mp.deltaPercent)),
-      // Nie Amber: teurer als andere ist hier eine Auskunft, kein Fehler.
-      sentiment: !same && mp.deltaPercent > 0 ? 'good' : 'neutral',
-      params: {
-        deltaPercent: mp.deltaPercent, cars: mp.cars, same: same ? 1 : 0, reasonPrice: mp.reason === 'price' ? 1 : 0,
-        theirsPrice: mp.theirs.costPerKwh, minePrice: mp.mine.costPerKwh, theirsCons: mp.theirs.consumption, mineCons: mp.mine.consumption,
-      },
-    })
+  if (mp && mp.cars >= MIN_PEERS && m.totalKwhCharged > 0 && m.energyCostEur > 0 && m.totalCharges >= MIN_SOLID_CHARGES
+      && input.elapsedDays >= MIN_COMPARE_DAYS && (input.quality?.priceless ?? 0) === 0) {
+    const theirsEur = m.totalKwhCharged * mp.theirs.costPerKwh
+    const diff = m.energyCostEur - theirsEur
+    if (Math.abs(diff) >= MIN_COST_DIFF_EUR) {
+      items.push({
+        id: 'peer_cost_eur',
+        question: 3,
+        // Zeilen mit Vergleichsbasis stehen vor den einfachen Saetzen (teuerste Ladung, Trends).
+        relevance: 60 + Math.min(30, Math.abs(diff)),
+        // Teurer als andere ist eine Auskunft fuer die Planung, kein Fehler: nie Amber.
+        sentiment: diff < 0 ? 'good' : 'neutral',
+        params: { diffEur: diff, mineEur: m.energyCostEur, theirsEur, cars: mp.cars },
+      })
+    }
   }
 
-  if (input.rank) {
-    items.push({
-      id: 'community_rank',
-      question: 3,
-      relevance: Math.max(55, 90 - (input.rank.rank - 1) * 4),
-      sentiment: input.rank.rank <= 3 ? 'good' : 'neutral',
-      params: { rank: input.rank.rank, value: input.rank.value },
-      label: input.rank.category,
-    })
+  // Herbst-Prognose: Strecke der letzten Tage auf 30 Tage, mal Mehrverbrauch im Winter, mal eigener Preis.
+  // Verbrauch aus der Statistik (Sommer und Winter ueber alle Jahre, Winter notfalls von den Modellfahrern).
+  const r = input.range
+  const winter = r?.winter ?? r?.peerWinter ?? null
+  const rec = input.recent
+  if (input.runningMonth && AUTUMN_MONTHS.includes(input.monthOfYear) && r?.summer && winter && rec?.distanceKm != null && rec.distanceKm > 0 && rec.days > 0
+      && m.avgCostPerKwh > 0 && m.energyCostEur > 0 && input.elapsedDays >= MIN_COMPARE_DAYS && (input.quality?.priceless ?? 0) === 0) {
+    const km30 = rec.distanceKm / rec.days * 30
+    const deltaEur = km30 * (winter.consumption - r.summer.consumption) / 100 * m.avgCostPerKwh
+    if (deltaEur >= MIN_FORECAST_EUR) {
+      items.push({
+        id: 'autumn_forecast',
+        question: 1,
+        relevance: 75,
+        sentiment: 'neutral',
+        params: { deltaEur, currentEur: m.energyCostEur, nextEur: m.energyCostEur + deltaEur, nextMonth: FIRST_WINTER_MONTH, peerWinter: r.winter ? 0 : 1 },
+      })
+    }
   }
 
   const q = input.quality
@@ -561,32 +555,10 @@ export function buildStoryFeed(input: StoryInput, opts: { extra?: StoryFeedItem[
     })
   }
 
-  // Ladungen zeigen alles, was der Akku verliert; das Fahrzeug misst nur den Antrieb. Großer Abstand: Satz.
-  const drive = input.tripMonth?.driveKwhPer100km
-  const charged = m.avgConsumptionKwhPer100km
-  if (drive != null && drive > 0 && charged != null && charged / drive >= DRIVE_VS_CHARGE_RATIO) {
-    items.push({
-      id: 'drive_vs_charge',
-      question: 2,
-      relevance: 55 + Math.min(30, (charged / drive - 1) * 50),
-      sentiment: 'neutral',
-      params: { drive, charged },
-    })
-  }
-
   items.push(...(opts.extra ?? []))
   const omit = new Set(opts.omit ?? [])
   const ranked = items.filter(i => !omit.has(i.id)).sort((a, b) => b.relevance - a.relevance)
-  // Hoechstens ein gesperrter Eintrag, immer zuletzt: ein Upsell verdraengt nie echte Erkenntnisse.
-  const locked: StoryFeedItem | null = input.energySplitLocked
-    ? { id: 'phantom_locked', question: 4, relevance: 0, sentiment: 'neutral', locked: true, params: {} }
-    : input.temperatureLocked && !temp
-      ? { id: 'temperature_locked', question: 2, relevance: 0, sentiment: 'neutral', locked: true, params: {} }
-      : null
-  const max = opts.max ?? FEED_MAX
-  const slots = locked ? max - 1 : max
-  const shown = withOnePositive(ranked, slots)
-  return locked ? [...shown, locked] : shown
+  return withOnePositive(ranked, opts.max ?? FEED_MAX)
 }
 
 /** Die ersten n nach Relevanz; fehlt darin ein positiver Satz, ersetzt der beste positive den letzten Platz. */
@@ -604,20 +576,7 @@ export function monthWindow(year: number, month: number, offset = 0): { start: s
   return { start: iso(first), end: iso(last) }
 }
 
-const MIN_GAP_DAYS = 3
-const LONG_GAP_DAYS = 7
 
-/**
- * Die Lücke, die die Qualitätszeile nennt: die längste ab 3 Tagen, im laufenden Monat erst über
- * 7 Tage (vorher ist es nur eine Pause). Tage nach heute sind nie Lücke.
- */
-export function visibleGap(days: DayCoverage[]): { from: number; to: number } | null {
-  const g = days.filter(d => d.inLongestGap && !d.future)
-  if (g.length < MIN_GAP_DAYS) return null
-  const monthOver = days.length > 0 && !days.some(d => d.future)
-  if (!monthOver && g.length <= LONG_GAP_DAYS) return null
-  return { from: g[0].day, to: g[g.length - 1].day }
-}
 
 /** Tage des Monats: Ladungen und Fahrten je Tag, Tage nach heute, längste Strecke ohne beides. */
 export function buildDayCoverage(points: ChargeDataPoint[], year: number, month: number, now: number = Date.now(), trips: DayTrip[] = []): DayCoverage[] {

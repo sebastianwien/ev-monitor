@@ -2,7 +2,7 @@
 import { ref, computed, defineAsyncComponent, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowUturnLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
 import { useCarContext } from '../composables/useCarContext'
 import { useDashboardStory, type StoryMonth, type StoryCarContext } from '../composables/useDashboardStory'
 import { useStoryOptIn } from '../composables/useStoryOptIn'
@@ -15,21 +15,17 @@ import { useHaptic } from '../composables/useHaptic'
 import { useIsMobile } from '../composables/useIsMobile'
 import { analytics } from '../services/analytics'
 import { petrolCostEur, petrolLitersPer100km, type TileId } from '../composables/storyModel'
-import { DAY } from '../composables/storyMoments'
-import { useMomentSeen } from '../composables/useMomentSeen'
-import { useMomentView } from '../composables/useMomentView'
 import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
 import { connectionsOf } from '../api/smartcarService'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
 import StoryHero from '../components/story/StoryHero.vue'
-import StoryMomentHero from '../components/story/StoryMomentHero.vue'
 import StoryLatestCards from '../components/story/StoryLatestCards.vue'
 import StoryLiveHero from '../components/story/StoryLiveHero.vue'
 import StoryTileRow from '../components/story/StoryTileRow.vue'
 import StoryFeed from '../components/story/StoryFeed.vue'
 import DataQualityLine from '../components/story/DataQualityLine.vue'
-import StoryMonthSwitch from '../components/story/StoryMonthSwitch.vue'
+import StoryMonthStepper from '../components/story/StoryMonthStepper.vue'
 import CarSwitch from '../components/car/CarSwitch.vue'
 import api from '../api/axios'
 import { teaserParts, type PlacePeriod } from '../composables/storyPlaces'
@@ -82,14 +78,13 @@ const storyCtx = (): StoryCarContext => ({
   odometerKm: currentOdometerKm.value,
   vehicleCategory: selectedCar.value?.category ?? null,
   effectiveBatteryCapacityKwh: effectiveCapacity.value,
-  energySplitLocked: !authStore.canViewEnergySplit,
   canViewLiveAnalytics: authStore.canViewLiveAnalytics,
   liveActive: liveActive.value,
   autoSync: autoSyncOffer.value,
   alwaysMonth: alwaysMonth.value,
 })
 const story = useDashboardStory(selectedCarId, storyCtx)
-const { month, months, offset, tiles, feed, days, monthStats, hasCharges, loading, error, layers, quality, switching } = story
+const { month, offset, tiles, feed, days, monthStats, hasCharges, loading, error, layers, switching } = story
 
 
 const { isVehicleCharging } = useVehicleCharging(cars, smartcarStatus)
@@ -100,63 +95,21 @@ const monthLabelShort = (m: StoryMonth) => new Date(m.year, m.month - 1, 1).toLo
 const sixMonthLabels = computed(() => Array.from({ length: 6 }, (_, i) =>
   new Date(month.value.year, month.value.month - 1 - (5 - i), 1).toLocaleDateString(locale.value, { month: 'short' })))
 
-// Hero: Live vor Moment vor Monat. "Zum Monat" zeigt fuer diesen Besuch den Monat statt des Moments.
+// Hero: Live, solange geladen wird, sonst immer der Monat. Momente kommen als Karten (Phase 3).
 const moment = story.moment
-const showMonth = ref(false)
-watch(selectedCarId, () => { showMonth.value = false })
-const heroMode = computed<'live' | 'moment' | 'month'>(() => {
-  if (moment.value.kind === 'live') return live.value ? 'live' : 'month'
-  return moment.value.kind === 'month' || showMonth.value ? 'month' : 'moment'
-})
-const priceInHero = computed(() => heroMode.value === 'moment' && moment.value.kind === 'just_charged'
-  && moment.value.costEur == null && moment.value.logId === story.latest.value?.charge?.id)
+const heroMode = computed<'live' | 'month'>(() => moment.value.kind === 'live' && live.value ? 'live' : 'month')
 const carName = computed(() => selectedCar.value ? carDisplayName(selectedCar.value) : '')
 /** Modell ohne Variante für den Vergleich mit allen Fahrern des Modells. */
 const modelName = computed<string>(() => selectedCar.value?.modelDisplayName ?? '')
-const heroView = useMomentView({
-  get moment() { return moment.value },
-  get carId() { return selectedCarId.value },
-  get carName() { return carName.value },
-})
-
-const { markShown, dismiss } = useMomentSeen()
-watch(() => heroMode.value === 'moment' ? moment.value.key : null, (key) => {
-  if (!key) return
-  markShown(key)
-  analytics.track('story_moment_shown', { moment: moment.value.kind })
-}, { immediate: true })
-
 const shareStatus = ref<ShareOutcome | null>(null)
 async function share(title: string, text: string) {
   shareStatus.value = await shareOrCopy({ title, text, url: window.location.origin })
   if (shareStatus.value !== 'shared') setTimeout(() => { shareStatus.value = null }, 3000)
 }
-function shareMoment() {
-  const v = heroView.value
-  share(v.eyebrow, [v.sentence, v.sub].filter(Boolean).join(' '))
-}
 function shareMonth(text: string) {
   haptic()
   analytics.track('story_hero_shared')
   share(monthLabel(month.value), text)
-}
-
-function onMomentAct(id: string) {
-  haptic()
-  analytics.track('story_moment_tapped', { moment: moment.value.kind, action: id })
-  if (id === 'share') shareMoment()
-  else if (id === 'winter') openSheet('range')
-  else if (id === 'prices') openPrices.value = true
-  else if (id === 'price_unknown' && moment.value.kind === 'gap') story.markPriceUnknown(moment.value.logId)
-  else if (id === 'battery') {
-    // Ohne Akku-Kachel (kein SoH am Auto) fuehrt der Verlauf zur Fahrzeugseite.
-    if (tiles.value.some(x => x.id === 'battery')) openSheet('battery')
-    else router.push('/cars')
-  }
-}
-function onMomentDismiss() {
-  analytics.track('story_moment_dismissed', { moment: moment.value.kind })
-  dismiss(moment.value.key, Date.now(), 30 * DAY)
 }
 
 const petrolEur = computed(() => petrolCostEur(monthStats.value?.totalDistanceKm ?? null, story.petrol.value.eurPerLitre, petrolLitersPer100km(selectedCar.value?.category)))
@@ -339,7 +292,7 @@ onUnmounted(() => unregisterReload?.())
         <header class="flex items-center justify-between gap-2 lg:col-span-12">
           <CarSwitch v-if="selectedCar" v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
           <p v-else class="truncate text-[15px] font-bold text-gray-900 dark:text-gray-50">{{ t('story.title') }}</p>
-          <StoryMonthSwitch :months="months" :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" :data-months="story.dataMonths.value" @select="selectMonth" />
+          <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
         </header>
         <div ref="monthMain" class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7" :class="switching ? monthWaiting : ''">
 
@@ -374,17 +327,6 @@ onUnmounted(() => unregisterReload?.())
             <div @pointerdown="onPointerDown" @pointerup="onPointerUp">
               <Transition name="story-hero" mode="out-in">
                 <StoryLiveHero v-if="heroMode === 'live' && live" key="live" :live="live" />
-                <div v-else-if="heroMode === 'moment'" :key="moment.key" class="grid gap-3">
-                  <StoryMomentHero :moment="moment" :car-id="selectedCarId" :car-name="carName" @act="onMomentAct" @dismiss="onMomentDismiss" />
-                  <button
-                    v-if="hasCharges"
-                    type="button"
-                    data-testid="story-moment-show-month"
-                    class="inline-flex min-h-[44px] items-center gap-1 justify-self-start text-sm font-semibold text-gray-600 underline underline-offset-2 dark:text-gray-300"
-                    @click="showMonth = true">
-                    {{ t('story.moment_show_month', { month: monthLabel(month) }) }}<ChevronRightIcon class="h-4 w-4" aria-hidden="true" />
-                  </button>
-                </div>
                 <StoryHero
                   v-else
                   key="month"
@@ -401,11 +343,11 @@ onUnmounted(() => unregisterReload?.())
             <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
               {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
             </p>
-            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :days="days" :quality="quality" @open-day="onOpenDay" />
-            <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" :price-in-hero="priceInHero" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
+            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :days="days" @open-day="onOpenDay" />
+            <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
             <StoryFeed
               v-if="narrow && showFeed"
-              :feed="feed" :upsell-to="upsellTo" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
+              :feed="feed" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
               :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0"
               @open="openSheet" @map="openPlaces" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
@@ -413,7 +355,7 @@ onUnmounted(() => unregisterReload?.())
         </div>
         <div v-if="!narrow && showFeed" ref="monthSide" class="min-w-0 lg:col-span-5" :class="switching ? monthWaiting : ''">
           <StoryFeed
-            :feed="feed" :upsell-to="upsellTo" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
+            :feed="feed" :model-name="modelName" :car-id="selectedCarId" :car-name="carName" :sheets="sheetIds"
             :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0" map-preview
             @open="openSheet" @map="openPlaces" />
         </div>

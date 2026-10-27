@@ -191,13 +191,13 @@ describe('buildLatest', () => {
 
   it('nimmt Fahrzeug-kWh vor Saeulen-kWh und das Fahrtende als Zeitpunkt', () => {
     const l = buildLatest(log, trip)!
-    expect(l.charge).toEqual({ id: 'l1', at: '2026-10-01T18:00:00Z', kwh: 31.9, costEur: 12.4 })
+    expect(l.charge).toEqual({ id: 'l1', at: '2026-10-01T18:00:00Z', kwh: 31.9, costEur: 12.4, socFrom: null, socTo: null, rangeKm: null })
     expect(l.trip).toEqual({ id: 't1', at: '2026-10-02T07:40:00Z', km: 23.4 })
   })
 
   it('faellt auf Saeulen-kWh zurueck, Preis darf fehlen', () => {
     const l = buildLatest({ ...log, kwhAtVehicle: null, costEur: null }, null)!
-    expect(l.charge).toEqual({ id: 'l1', at: '2026-10-01T18:00:00Z', kwh: 34.2, costEur: null })
+    expect(l.charge).toEqual({ id: 'l1', at: '2026-10-01T18:00:00Z', kwh: 34.2, costEur: null, socFrom: null, socTo: null, rangeKm: null })
     expect(l.trip).toBeNull()
   })
 
@@ -205,6 +205,17 @@ describe('buildLatest', () => {
     const l = buildLatest({ ...log, cpoName: 'Tesla', chargingType: 'AC' }, { ...trip, routeType: 'CITY' })!
     expect(l.charge).toMatchObject({ cpoName: 'Tesla', chargingType: 'AC' })
     expect(l.trip).toMatchObject({ routeType: 'CITY' })
+  })
+
+  it('Ladestand vor und nach der Ladung, Reichweite aus Ladestand, Kapazität und Verbrauch auf 10 km gerundet', () => {
+    const withSoc = { ...log, socBeforeChargePercent: 35, socAfterChargePercent: 80 }
+    // 80 % von 75 kWh = 60 kWh, bei 16,5 kWh/100 km 363,6 km -> 360 km
+    const l = buildLatest(withSoc, null, { consumptionKwh100: 16.5, effectiveCapacityKwh: 75 })!
+    expect(l.charge).toMatchObject({ socFrom: 35, socTo: 80, rangeKm: 360 })
+    expect(buildLatest(withSoc, null)!.charge).toMatchObject({ socFrom: 35, socTo: 80, rangeKm: null })
+    // Unstimmiger Ladestand (nach <= vor) zählt nicht
+    expect(buildLatest({ ...log, socBeforeChargePercent: 80, socAfterChargePercent: 35 }, null, { consumptionKwh100: 16.5, effectiveCapacityKwh: 75 })!.charge)
+      .toMatchObject({ socFrom: null, socTo: null, rangeKm: null })
   })
 
   it('ist null ohne beides', () => {

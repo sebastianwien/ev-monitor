@@ -5,10 +5,13 @@ import PlacesTeaser from './places/PlacesTeaser.vue'
 import type { StoryFeedItem as Item, TileId } from '../../composables/storyModel'
 import type { PlaceRow, PlacesTeaser as Teaser } from '../../composables/storyPlaces'
 
-/** "Diesen Monat" bzw. "Im September": die Feed-Zeilen und darunter der Teaser zur Karte. Steht auf dem Handy unter "Zuletzt", ab lg rechts neben dem Hero. */
+/**
+ * "Diesen Monat" bzw. "Im September": Überschrift mit Linien links und rechts, darunter höchstens drei
+ * Insight-Zeilen mit Vergleichsbasis und der Teaser zur Karte. Steht auf dem Handy unter "Zuletzt",
+ * ab lg rechts neben dem Hero.
+ */
 withDefaults(defineProps<{
   feed: Item[]
-  upsellTo: string
   /** Modell ohne Variante für den Modellvergleich. */
   modelName: string
   carId: string | null
@@ -28,14 +31,18 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <section class="grid content-start" aria-labelledby="story-feed-title" data-testid="story-feed">
-    <h2 id="story-feed-title" class="pb-1 text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ runningMonth ? t('story.feed_title') : t('story.feed_title_past', { month: monthName }) }}</h2>
+  <section class="grid content-start gap-3" aria-labelledby="story-feed-title" data-testid="story-feed">
+    <div class="flex items-center gap-3">
+      <span class="h-0.5 flex-1 bg-gray-900 dark:bg-gray-100" aria-hidden="true" />
+      <h2 id="story-feed-title" class="text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">{{ runningMonth ? t('story.feed_title') : t('story.feed_title_past', { month: monthName }) }}</h2>
+      <span class="h-0.5 flex-1 bg-gray-900 dark:bg-gray-100" aria-hidden="true" />
+    </div>
     <StoryFeedItem
       v-for="item in feed"
       :key="item.moment?.key ?? item.id"
       :item="item"
-      :upsell-to="upsellTo"
       :model-name="modelName"
+      :month-name="monthName"
       :car-id="carId"
       :car-name="carName"
       :sheets="sheets"

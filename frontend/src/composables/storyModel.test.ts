@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest'
 import {
-  visibleGap,
   buildStoryTiles,
   buildStoryFeed,
   buildDayCoverage,
@@ -59,15 +58,16 @@ function input(over: Partial<StoryInput> = {}): StoryInput {
     odometerKm: 41000,
     savingsEur: 212,
     amortisationYearsRemaining: 1.2,
-    energySplitLocked: true,
     flow: null,
     range: null,
     modelPeers: null,
     rank: null,
     quality: null,
     temperature: null,
-    temperatureLocked: false,
     pricelessPrevious: 0,
+    monthOfYear: 5,
+    elapsedDays: 31,
+    recent: { distanceKm: 840, days: 28 },
     vehicleCategory: null,
     lifetimeSeries: [],
     ...over,
@@ -75,9 +75,9 @@ function input(over: Partial<StoryInput> = {}): StoryInput {
 }
 
 describe('buildStoryTiles', () => {
-  it('liefert die Kacheln, wenn alle Daten da sind, CO₂ zuletzt', () => {
+  it('liefert die Kacheln, wenn alle Daten da sind, Kosten zuletzt', () => {
     const tiles = buildStoryTiles(input())
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'peer', 'battery', 'co2'])
+    expect(tiles.map(t => t.id)).toEqual(['co2', 'battery', 'peer', 'wltp', 'cost'])
   })
 
   it('CO₂-Kachel: gesparte kg gegen Benziner, dazu g/km für Benziner, Strommix und Ökostrom', () => {
@@ -184,14 +184,14 @@ describe('buildStoryTiles', () => {
       month: stats({ peerBenchmark: null }),
     }))
     // CO₂ braucht nur Strecke und Verbrauch
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'co2'])
+    expect(tiles.map(t => t.id)).toEqual(['co2', 'cost'])
   })
 
   it('ohne Strecke gibt es weder WLTP noch CO2', () => {
     const tiles = buildStoryTiles(input({
       month: stats({ totalDistanceKm: null, avgConsumptionKwhPer100km: null }),
     }))
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'peer', 'battery'])
+    expect(tiles.map(t => t.id)).toEqual(['battery', 'peer', 'cost'])
   })
 
   it('Kosten-Kachel vergleicht Stromkosten, einmalige Fixkosten verzerren das Delta nicht', () => {
@@ -279,31 +279,26 @@ describe('buildStoryFeed', () => {
     expect(buildStoryFeed(input({ month, previousMonth, pricelessPrevious: 1 })).map(f => f.id)).not.toContain('cost_trend')
   })
 
-  it('sortiert nach Relevanz und begrenzt auf fünf', () => {
+  it('sortiert nach Relevanz und begrenzt auf drei', () => {
     const feed = buildStoryFeed(input())
-    expect(feed.length).toBeLessThanOrEqual(5)
+    expect(feed.length).toBeLessThanOrEqual(3)
     for (let i = 1; i < feed.length; i++) {
       expect(feed[i - 1].relevance).toBeGreaterThanOrEqual(feed[i].relevance)
     }
   })
 
-  it('enthält Verbrauchstrend, Ersparnis, teuerste Ladung und gesperrten Standverlust', () => {
-    const ids = buildStoryFeed(input()).map(f => f.id)
-    expect(ids).toContain('consumption_trend')
+  it('enthält Ersparnis und teuerste Ladung, keine gesperrten Sätze und keinen Verbrauchstrend', () => {
+    const feed = buildStoryFeed(input())
+    const ids = feed.map(f => f.id)
     expect(ids).toContain('home_savings')
     expect(ids).toContain('most_expensive')
-    expect(ids).toContain('phantom_locked')
-  })
-
-  it('gesperrter Eintrag fehlt, wenn Energy-Split freigeschaltet ist', () => {
-    const ids = buildStoryFeed(input({ energySplitLocked: false })).map(f => f.id)
-    expect(ids).not.toContain('phantom_locked')
+    expect(feed.every(f => !f.locked)).toBe(true)
+    expect(ids).not.toContain('consumption_trend')
   })
 
   it('kein Trend-Satz, wenn sich fast nichts geändert hat', () => {
     const ids = buildStoryFeed(input({ previousMonth: stats({ totalCostEur: 128.9, avgConsumptionKwhPer100km: 17.95 }) })).map(f => f.id)
     expect(ids).not.toContain('cost_trend')
-    expect(ids).not.toContain('consumption_trend')
   })
 
   it('Kosten-Kachel ist neutral bei Delta unter einem Euro', () => {
@@ -441,25 +436,16 @@ const flow = { gridKwh: 524, vehicleKwh: 472, lossKwh: 52, lossPercent: 10, acKw
 const range = { consumption: 21, km: 229, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 229 }], summer: null, winter: { consumption: 21, km: 229 }, peerWinter: null, emptyKm: 206 }
 
 describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
-  it('ordnet sechs Kacheln fest wie der Dummy: Kosten, Hersteller, Strom, Reichweite, andere, Akku', () => {
+  it('ordnet die Kacheln fest: Reichweite zuerst, Kosten zuletzt', () => {
     const tiles = buildStoryTiles(input({ flow, range }))
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'flow', 'range', 'peer', 'battery', 'co2'])
+    expect(tiles.map(t => t.id)).toEqual(['range', 'co2', 'battery', 'flow', 'peer', 'wltp', 'cost'])
   })
 
-  it('Vergleich mit anderen erst ab 5 Fahrern: Kachel und Preis-Satz entfallen darunter', () => {
+  it('Vergleich mit anderen erst ab 5 Fahrern: die Kachel entfällt darunter', () => {
     const few = stats({ peerBenchmark: { ...stats().peerBenchmark!, uniquePeerUsers: 4 } })
     expect(buildStoryTiles(input({ month: few })).map(t => t.id)).not.toContain('peer')
-    expect(buildStoryFeed(input({ month: few })).map(f => f.id)).not.toContain('peer_position')
     const five = stats({ peerBenchmark: { ...stats().peerBenchmark!, uniquePeerUsers: 5 } })
     expect(buildStoryTiles(input({ month: five })).map(t => t.id)).toContain('peer')
-  })
-
-  it('Preis-Satz entfällt, wenn der Unterschied auf 0,0 ct rundet', () => {
-    const pb = stats().peerBenchmark!
-    const same = stats({ peerBenchmark: { ...pb, userPeriodCostPerKwh: 0.3004, peerAvgCostPerKwh: 0.30 } })
-    expect(buildStoryFeed(input({ month: same })).map(f => f.id)).not.toContain('peer_position')
-    const tiny = stats({ peerBenchmark: { ...pb, userPeriodCostPerKwh: 0.33, peerAvgCostPerKwh: 0.30 } })
-    expect(buildStoryFeed(input({ month: tiny })).map(f => f.id)).toContain('peer_position')
   })
 
   it('Akku-Kachel trägt, ob der Wert geschätzt ist', () => {
@@ -469,22 +455,21 @@ describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
 })
 
 describe('buildStoryFeed: Testansicht ohne Grenze', () => {
-  it('max hebt die fünf Plätze auf, der gesperrte Satz bleibt zuletzt', () => {
+  it('max hebt die drei Plätze auf', () => {
     const neg = (id: string, relevance: number) => ({ id: 'moment', question: 1, relevance, sentiment: 'warn', params: {}, moment: { key: id } }) as never
     const extra = [neg('a', 99), neg('b', 98), neg('c', 97), neg('d', 96), neg('e', 95), neg('f', 94)]
-    const feed = buildStoryFeed(input({ energySplitLocked: true, savingsEur: 120 }), { extra, max: Infinity })
-    expect(feed.length).toBeGreaterThan(7)
-    expect(feed[feed.length - 1].locked).toBe(true)
+    const feed = buildStoryFeed(input({ savingsEur: 120 }), { extra, max: Infinity })
+    expect(feed.length).toBeGreaterThan(6)
   })
 })
 
 describe('buildStoryFeed: mindestens ein positiver Satz', () => {
-  it('holt den besten positiven Satz in die fünf Plätze, wenn keiner darin ist', () => {
+  it('holt den besten positiven Satz in die drei Plätze, wenn keiner darin ist', () => {
     const neg = (id: string, relevance: number) => ({ id: 'moment', question: 1, relevance, sentiment: 'warn', params: {}, moment: { key: id } }) as never
-    const feed = buildStoryFeed(input({ energySplitLocked: false, savingsEur: 120 }), {
-      extra: [neg('a', 99), neg('b', 98), neg('c', 97), neg('d', 96), neg('e', 95)],
+    const feed = buildStoryFeed(input({ savingsEur: 120 }), {
+      extra: [neg('a', 99), neg('b', 98), neg('c', 97)],
     })
-    expect(feed).toHaveLength(5)
+    expect(feed).toHaveLength(3)
     expect(feed.some(f => f.sentiment === 'good')).toBe(true)
     expect(feed[feed.length - 1].sentiment).toBe('good')
   })
@@ -506,79 +491,83 @@ describe('buildStoryFeed: mindestens ein positiver Satz', () => {
   })
 })
 
-describe('buildStoryFeed v2: neue Quellen konkurrieren um fuenf Plaetze', () => {
-  const peers = (deltaPercent: number, reason: 'price' | 'consumption', cars = 50) => ({
-    cars, deltaPercent, reason,
-    theirs: { costPerKwh: 0.24, consumption: 17.9, costPer100km: 4.3 },
-    mine: { costPerKwh: 0.31, consumption: 18.8, costPer100km: 5.83 },
+describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => {
+  const peers = (costPerKwh = 0.36, cars = 50) => ({
+    cars, deltaPercent: -20, reason: 'price' as const,
+    theirs: { costPerKwh, consumption: 17.9, costPer100km: costPerKwh * 17.9 },
+    mine: { costPerKwh: 0.245, consumption: 17.9, costPer100km: 4.39 },
     variants: [],
   })
-  const modelItem = (modelPeers: ReturnType<typeof peers>) =>
-    buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, modelPeers })).find(i => i.id === 'model_peers')
+  const ok = { estimated: 0, total: 14, estimatedShare: 0, priceless: 0, pricelessOpen: 0, severity: 'ok' as const }
 
-  it('Modellvergleich: alle Fahrer des Modells, Grund Preis oder Verbrauch, neutral wenn sie günstiger sind', () => {
-    const cheaper = modelItem(peers(-26, 'price'))!
-    expect(cheaper.question).toBe(3)
-    expect(cheaper.sentiment).toBe('neutral')
-    expect(cheaper.params).toMatchObject({ deltaPercent: -26, cars: 50, same: 0, reasonPrice: 1, theirsPrice: 0.24, minePrice: 0.31, theirsCons: 17.9, mineCons: 18.8 })
-    expect(modelItem(peers(-26, 'consumption'))!.params.reasonPrice).toBe(0)
+  it('Preisvergleich in Euro: Modellfahrer-Preis mal eigene kWh, gut wenn du weniger zahlst', () => {
+    const item = buildStoryFeed(input({ savingsEur: null, modelPeers: peers(), quality: ok })).find(i => i.id === 'peer_cost_eur')!
+    expect(item.question).toBe(3)
+    expect(item.sentiment).toBe('good')
+    expect(item.params.theirsEur).toBeCloseTo(524 * 0.36)
+    expect(item.params.diffEur).toBeCloseTo(128.4 - 524 * 0.36)
+    expect(item.params.cars).toBe(50)
+    const pricier = buildStoryFeed(input({ savingsEur: null, modelPeers: peers(0.2), quality: ok })).find(i => i.id === 'peer_cost_eur')!
+    expect(pricier.sentiment).toBe('neutral')
+    expect(pricier.params.diffEur).toBeGreaterThan(0)
   })
 
-  it('Modellvergleich: gut, wenn du günstiger fährst; unter 5 % Unterschied "so günstig wie"', () => {
-    expect(modelItem(peers(12, 'price'))!.sentiment).toBe('good')
-    const same = modelItem(peers(-4.9, 'price'))!
-    expect(same.params.same).toBe(1)
-    expect(same.sentiment).toBe('neutral')
+  it('Preisvergleich erst ab 5 Autos, 3 Ladungen, 14 Tagen und nur ohne preislose Ladungen', () => {
+    const find = (over: Partial<StoryInput>) => buildStoryFeed(input({ savingsEur: null, modelPeers: peers(), quality: ok, ...over })).find(i => i.id === 'peer_cost_eur')
+    expect(find({ modelPeers: peers(0.36, 4) })).toBeUndefined()
+    expect(find({ month: stats({ totalCharges: 2 }) })).toBeUndefined()
+    expect(find({ elapsedDays: 13 })).toBeUndefined()
+    expect(find({ quality: { ...ok, priceless: 1, severity: 'warn' } })).toBeUndefined()
+    expect(find({ month: stats({ energyCostEur: 524 * 0.36 + 0.5 }) })).toBeUndefined()
+    expect(find({})).toBeDefined()
   })
 
-  it('Modellvergleich erst ab 5 Autos aller Varianten', () => {
-    expect(modelItem(peers(-26, 'price', 4))).toBeUndefined()
-    expect(modelItem(peers(-26, 'price', 5))).toBeDefined()
-  })
-
-  it('Community-Rang: je besser der Platz, desto relevanter', () => {
-    const first = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, rank: { category: 'MONTHLY_NIGHT_OWL', rank: 1, value: 9, unit: '' } })).find(i => i.id === 'community_rank')!
-    const tenth = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, rank: { category: 'MONTHLY_KWH', rank: 10, value: 300, unit: 'kWh' } })).find(i => i.id === 'community_rank')!
-    expect(first.question).toBe(3)
-    expect(first.relevance).toBeGreaterThan(tenth.relevance)
-    expect(first.params.rank).toBe(1)
+  it('Herbst-Prognose im September und Oktober des laufenden Monats: km der letzten Tage mal Winter-Mehrverbrauch mal Preis', () => {
+    const range = { consumption: 17.9, windows: [], km: 300, summer: { consumption: 16, km: 320 }, winter: { consumption: 21, km: 250 }, peerWinter: null, emptyKm: 350 }
+    const base = { savingsEur: null, quality: ok, range, monthOfYear: 10, runningMonth: true, recent: { distanceKm: 840, days: 28 } }
+    const item = buildStoryFeed(input(base)).find(i => i.id === 'autumn_forecast')!
+    // 900 km in 30 Tagen x 5 kWh/100 km x 0,245 € = 11,03 €
+    expect(item.params.deltaEur).toBeCloseTo(900 * 5 / 100 * 0.245)
+    expect(item.params.nextEur).toBeCloseTo(128.4 + item.params.deltaEur)
+    expect(item.params.nextMonth).toBe(11)
+    expect(item.params.peerWinter).toBe(0)
+    expect(item.sentiment).toBe('neutral')
+    const find = (over: Partial<StoryInput>) => buildStoryFeed(input({ ...base, ...over })).find(i => i.id === 'autumn_forecast')
+    expect(find({ monthOfYear: 9 })).toBeDefined()
+    expect(find({ monthOfYear: 11 })).toBeUndefined()
+    expect(find({ runningMonth: false })).toBeUndefined()
+    expect(find({ range: { ...range, summer: null } })).toBeUndefined()
+    expect(find({ range: { ...range, winter: null, peerWinter: { consumption: 20, km: 260 } } })!.params.peerWinter).toBe(1)
+    expect(find({ range: { ...range, winter: null } })).toBeUndefined()
+    expect(find({ recent: { distanceKm: 100, days: 28 } })).toBeUndefined()
+    expect(find({ recent: null })).toBeUndefined()
   })
 
   it('Datenqualitaet: nur bei warn oder bad, bad ist relevanter', () => {
     const ok = buildStoryFeed(input({ quality: { estimated: 0, total: 14, estimatedShare: 0, priceless: 0, pricelessOpen: 0, severity: 'ok' } }))
     expect(ok.find(i => i.id === 'data_quality')).toBeUndefined()
-    const warn = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, quality: { estimated: 4, total: 14, estimatedShare: 0.29, priceless: 0, pricelessOpen: 0, severity: 'warn' } })).find(i => i.id === 'data_quality')!
-    const bad = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 2, pricelessOpen: 2, severity: 'bad' } })).find(i => i.id === 'data_quality')!
+    const warn = buildStoryFeed(input({ savingsEur: null, quality: { estimated: 4, total: 14, estimatedShare: 0.29, priceless: 0, pricelessOpen: 0, severity: 'warn' } })).find(i => i.id === 'data_quality')!
+    const bad = buildStoryFeed(input({ savingsEur: null, quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 2, pricelessOpen: 2, severity: 'bad' } })).find(i => i.id === 'data_quality')!
     expect(warn.question).toBe(1)
     expect(bad.relevance).toBeGreaterThan(warn.relevance)
     expect(bad.sentiment).toBe('bad')
   })
 
-  it('Temperatur: Satz nur mit Delta, gesperrt nur wenn Phantom nicht schon sperrt', () => {
-    const withDelta = buildStoryFeed(input({ energySplitLocked: false, savingsEur: null, temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 } })).find(i => i.id === 'temperature_effect')!
+  it('Temperatur: Satz nur mit Delta', () => {
+    const withDelta = buildStoryFeed(input({ savingsEur: null, temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 } })).find(i => i.id === 'temperature_effect')!
     expect(withDelta.question).toBe(2)
     expect(withDelta.params.deltaPercent).toBeCloseTo(43.75)
     const noDelta = buildStoryFeed(input({ temperature: { points: [], bins: [], coldKwh100: null, mildKwh100: null, deltaPercent: null } }))
     expect(noDelta.find(i => i.id === 'temperature_effect')).toBeUndefined()
-
-    const locked = buildStoryFeed(input({ energySplitLocked: false, temperatureLocked: true }))
-    expect(locked[locked.length - 1].id).toBe('temperature_locked')
-    expect(locked[locked.length - 1].locked).toBe(true)
-    const bothLocked = buildStoryFeed(input({ energySplitLocked: true, temperatureLocked: true }))
-    expect(bothLocked.filter(i => i.locked)).toHaveLength(1)
-    expect(bothLocked[bothLocked.length - 1].id).toBe('phantom_locked')
   })
 
-  it('bleibt bei fuenf Saetzen, auch wenn alle Quellen liefern', () => {
+  it('bleibt bei drei Saetzen, auch wenn alle Quellen liefern', () => {
     const all = buildStoryFeed(input({
-      energySplitLocked: false,
-      modelPeers: { cars: 40, deltaPercent: -18, reason: 'price', theirs: { costPerKwh: 0.24, consumption: 17.9, costPer100km: 4.3 }, mine: { costPerKwh: 0.31, consumption: 18.8, costPer100km: 5.83 }, variants: [] },
-      rank: { category: 'MONTHLY_KWH', rank: 3, value: 300, unit: 'kWh' },
-      quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 2, pricelessOpen: 2, severity: 'bad' },
+      modelPeers: peers(),
+      quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 0, pricelessOpen: 0, severity: 'bad' },
       temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 },
     }))
-    expect(all).toHaveLength(5)
-    expect(all.every(i => !i.locked)).toBe(true)
+    expect(all).toHaveLength(3)
   })
 })
 
@@ -588,36 +577,18 @@ describe('buildStoryFeed mit Momenten', () => {
       id: 'moment', question: 4, relevance: 99, sentiment: 'neutral', params: {},
       moment: { kind: 'battery', key: 'battery:s', at: 0, lifetimeMs: 1, actionable: false, dismissible: false, sohPercent: 92, estimated: true, previousSohPercent: null, previousAt: null },
     }
-    const feed = buildStoryFeed(input({ rank: { category: 'MONTHLY_KWH', rank: 2, value: 1, unit: 'kWh' } }), { extra: [extra], omit: ['community_rank'] })
+    const feed = buildStoryFeed(input(), { extra: [extra], omit: ['home_savings'] })
     expect(feed[0].id).toBe('moment')
-    expect(feed.some(f => f.id === 'community_rank')).toBe(false)
-  })
-})
-
-describe('visibleGap: welche Lücke der Satz nennt', () => {
-  const days = (withData: number[], gap: [number, number] | null, today = 31) => Array.from({ length: 31 }, (_, i) => {
-    const day = i + 1
-    return { day, hasData: withData.includes(day), inLongestGap: !!gap && day >= gap[0] && day <= gap[1], future: day > today, charges: 0, kwh: 0, trips: 0, tripKm: 0 }
-  })
-
-  it('abgeschlossener Monat: jede Lücke ab 3 Tagen', () => {
-    expect(visibleGap(days([1, 5], [2, 4]))).toEqual({ from: 2, to: 4 })
-    expect(visibleGap(days([1, 4], [2, 3]))).toBeNull()
-  })
-
-  it('laufender Monat: erst über 7 Tage, Tage nach heute zählen nicht', () => {
-    expect(visibleGap(days([1, 9], [2, 8], 14))).toBeNull()
-    expect(visibleGap(days([1, 10], [2, 9], 14))).toEqual({ from: 2, to: 9 })
-    expect(visibleGap(days([1], [2, 31], 5))).toBeNull()
+    expect(feed.some(f => f.id === 'home_savings')).toBe(false)
   })
 })
 
 describe('Fahrten-Kachel und Abgleich mit den Ladungen', () => {
   const tripMonth = { trips: 14, km: 151, avgKm: 10.8, lengthShares: [], driveKwhPer100km: 18.2, driveKwh: 27.5, routeShares: [{ key: 'CITY' as const, pct: 70 }, { key: 'HIGHWAY' as const, pct: 30 }], mainRoute: 'CITY' as const, longestKm: 42, tempMin: 6, tempMax: 14, standbyKwh: null, standbyLocked: true, standbyGaps: [], standbyEur: null }
 
-  it('steht nach "Stimmt, was der Hersteller verspricht?", Zahl ist der Antriebsverbrauch', () => {
+  it('steht nach der Reichweite, Zahl ist der Antriebsverbrauch', () => {
     const tiles = buildStoryTiles(input({ flow, range, tripMonth }))
-    expect(tiles.map(t => t.id)).toEqual(['cost', 'wltp', 'trips', 'flow', 'range', 'peer', 'battery', 'co2'])
+    expect(tiles.map(t => t.id)).toEqual(['range', 'trips', 'co2', 'battery', 'flow', 'peer', 'wltp', 'cost'])
     const t = tiles.find(x => x.id === 'trips')!
     expect(t.value).toBe(18.2)
     expect(t.tripMonth).toBe(tripMonth)
@@ -657,12 +628,5 @@ describe('Fahrten-Kachel und Abgleich mit den Ladungen', () => {
 
   it('ohne Antriebsverbrauch keine Kachel', () => {
     expect(buildStoryTiles(input({ tripMonth: { ...tripMonth, driveKwhPer100km: null } })).map(t => t.id)).not.toContain('trips')
-  })
-
-  it('Feed-Satz, wenn die Ladungen deutlich mehr zeigen als das Fahren', () => {
-    const month = stats({ avgConsumptionKwhPer100km: 26.9 })
-    const item = buildStoryFeed(input({ month, tripMonth })).find(f => f.id === 'drive_vs_charge')!
-    expect(item.params).toEqual({ drive: 18.2, charged: 26.9 })
-    expect(buildStoryFeed(input({ month: stats({ avgConsumptionKwhPer100km: 19.5 }), tripMonth })).map(f => f.id)).not.toContain('drive_vs_charge')
   })
 })

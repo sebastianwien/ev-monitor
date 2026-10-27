@@ -48,7 +48,6 @@ export interface StoryCarContext {
   /** Fahrzeugklasse (VehicleCategory) für den Benziner im Vergleich */
   vehicleCategory: string | null
   effectiveBatteryCapacityKwh: number | null
-  energySplitLocked: boolean
   canViewLiveAnalytics: boolean
   /** DC-Ladung laeuft und das Live-Gate ist offen. */
   liveActive: boolean
@@ -406,7 +405,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     benchmark.value = b.benchmark
     recentTrips.value = b.recentTrips
     lifetimeSeries.value = b.lifetimeSeries
-    latest.value = buildLatest(b.recentLogs[0] ?? null, b.latestTrip)
+    latest.value = buildLatest(b.recentLogs[0] ?? null, b.latestTrip,
+      { consumptionKwh100: b.recentStats?.avgConsumptionKwhPer100km ?? null, effectiveCapacityKwh: ctx().effectiveBatteryCapacityKwh })
   }
 
   /** Gecachter Stand sofort, frischer im Hintergrund (stale while revalidate). */
@@ -504,18 +504,19 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     odometerKm: ctx().odometerKm,
     savingsEur: savingsEur.value,
     amortisationYearsRemaining: amortisationYearsRemaining.value,
-    energySplitLocked: ctx().energySplitLocked,
     flow: flow.value,
     range: range.value,
     modelPeers: peers.value,
     rank: bestRank(ranks.value),
     quality: quality.value,
     temperature: temperature.value,
-    temperatureLocked: !ctx().canViewLiveAnalytics && temperature.value == null,
     pricelessPrevious: pricelessInPreviousMonth.value,
     vehicleCategory: ctx().vehicleCategory,
     lifetimeSeries: lifetimeSeries.value,
     runningMonth: month.value.offset === 0,
+    monthOfYear: month.value.month,
+    elapsedDays: month.value.offset === 0 ? new Date().getDate() : new Date(month.value.year, month.value.month, 0).getDate(),
+    recent: recentStats.value ? { distanceKm: recentStats.value.totalDistanceKm, days: RECENT_DAYS } : null,
     tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewLiveAnalytics,
       { charges: charges.value, avgCostPerKwh: monthStats.value?.avgCostPerKwh ?? null }),
   } : null)
@@ -566,8 +567,6 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const feed = computed<StoryFeedItem[]>(() => input.value
     ? buildStoryFeed(input.value, {
       extra: momentFeedItems(moments.value.rest),
-      // Was der Hero sagt, steht nicht noch einmal im Feed.
-      omit: moment.value.kind === 'rank' ? ['community_rank'] : [],
       max: allFeed ? Infinity : undefined,
     })
     : [])

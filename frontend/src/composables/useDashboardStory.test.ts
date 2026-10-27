@@ -19,7 +19,7 @@ const stats = (totalCostEur: number) => ({
   chargingTypeSplit: null, locationSplit: null, peerBenchmark: null, chargingEfficiencySplit: null,
 })
 
-const ctx = () => ({ wltpConsumption: null, sohPercent: null, odometerKm: null, vehicleCategory: null, effectiveBatteryCapacityKwh: null, energySplitLocked: false, canViewLiveAnalytics: false, liveActive: false, autoSync: false, alwaysMonth: false })
+const ctx = () => ({ wltpConsumption: null, sohPercent: null, odometerKm: null, vehicleCategory: null, effectiveBatteryCapacityKwh: null, canViewLiveAnalytics: false, liveActive: false, autoSync: false, alwaysMonth: false })
 
 const flush = async () => { for (let i = 0; i < 6; i++) await nextTick(); await new Promise(r => setTimeout(r, 0)) }
 
@@ -120,7 +120,7 @@ describe('useDashboardStory - Zuletzt-Zeile', () => {
     })
     const story = useDashboardStory(ref<string | null>('car-1'), ctx)
     await flush()
-    expect(story.latest.value).toEqual({ charge: { id: 'l9', at: '2026-10-01T18:00:00Z', kwh: 28.5, costEur: 9.9 }, trip: null })
+    expect(story.latest.value).toEqual({ charge: { id: 'l9', at: '2026-10-01T18:00:00Z', kwh: 28.5, costEur: 9.9, socFrom: null, socTo: null, rangeKm: null }, trip: null })
   })
 })
 

@@ -14,7 +14,7 @@ const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 function mount(item: Item, extra: Record<string, unknown> = {}) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(StoryFeedItem, { item, upsellTo: '/upgrade', carId: 'c1', carName: 'Tesla Model 3', ...extra })
+  app = createApp(StoryFeedItem, { item, carId: 'c1', carName: 'Tesla Model 3', modelName: 'Model 3', monthName: 'Oktober', ...extra })
   app.component('router-link', RouterLink)
   app.use(createPinia()).use(i18n)
   app.mount(host)
@@ -55,10 +55,10 @@ describe('StoryFeedItem Zahl rechts', () => {
     expect(host.querySelector('svg')).toBeNull()
   })
 
-  it('Verbrauch höher: Zahl in Amber, nie Rot', () => {
-    const host = mount({ id: 'consumption_trend', question: 2, relevance: 40, sentiment: 'bad', params: { diff: 8.7, current: 26.9, previous: 18.2 } })
+  it('Temperatur-Effekt: Zahl in Amber, nie Rot', () => {
+    const host = mount({ id: 'temperature_effect', question: 2, relevance: 40, sentiment: 'warn', params: { deltaPercent: 43.75, cold: 23, mild: 16 } })
     const n = host.querySelector('[data-testid="story-feed-number"]')!
-    expect(n.textContent!.replace(/\s/g, ' ')).toBe('26,9')
+    expect(n.textContent!.replace(/\s/g, ' ')).toBe('+44 %')
     expect(n.className).toContain('text-amber-700')
     expect(n.className).not.toContain('rose')
   })
@@ -71,13 +71,6 @@ describe('StoryFeedItem Zahl rechts', () => {
   it('die Zahl im Satz ist fett', () => {
     const host = mount({ id: 'cost_trend', question: 1, relevance: 40, sentiment: 'good', params: { diff: -3, current: 15.2, previous: 18.1 } })
     expect(host.querySelector('b')!.textContent!.replace(/\s/g, ' ')).toBe('3 €')
-  })
-
-  it('Rang: #Platz rechts, die Zeile führt zur Rangliste und trägt einen Pfeil', () => {
-    const host = mount({ id: 'community_rank', question: 3, relevance: 40, sentiment: 'neutral', params: { rank: 16, value: 1 }, label: 'kwh' } as Item)
-    expect(host.querySelector('[data-testid="story-feed-number"]')!.textContent).toBe('#16')
-    expect(host.querySelector('a')!.getAttribute('href')).toBe('/leaderboard')
-    expect(host.querySelector('[data-testid="story-feed-chevron"]')).not.toBeNull()
   })
 
   it('Zeile ohne Ziel: kein Pfeil, kein Knopf', () => {
@@ -98,39 +91,48 @@ describe('StoryFeedItem Zahl rechts', () => {
   })
 })
 
-describe('StoryFeedItem Abgleich Fahren und Laden', () => {
-  it('nennt beide Verbräuche, die Zeile führt zur Fahrten-Kachel', () => {
-    const opened: string[] = []
-    const host = mount({ id: 'drive_vs_charge', question: 2, relevance: 60, sentiment: 'neutral', params: { drive: 18.2, charged: 26.9 } }, { sheets: ['trips'], onOpen: (id: string) => opened.push(id) })
-    expect(host.textContent!.replace(/\s+/g, ' ')).toMatch(/Beim Fahren brauchst du 18,2\skWh\/100km, aus deinen Ladungen werden 26,9\skWh\/100km\. Der Unterschied entsteht im Stand\./)
-    host.querySelector('button')!.click()
-    expect(opened).toEqual(['trips'])
-  })
-})
+describe('StoryFeedItem Insights mit Vergleichsbasis und Balken', () => {
+  const text = (host: Element) => host.textContent!.replace(/\s+/g, ' ').trim()
+  const bars = (host: Element) => [...host.querySelectorAll('[data-testid="story-insight-bars"] > div')].map(x => [...x.querySelectorAll('span')].filter(s => s.textContent!.trim()).map(s => text(s)).join(' '))
 
-describe('StoryFeedItem Modellvergleich', () => {
-  const params = { deltaPercent: -26.3, cars: 50, same: 0, reasonPrice: 1, theirsPrice: 0.24, minePrice: 0.31, theirsCons: 17.9, mineCons: 18.8 }
-  const item = (p: Record<string, number>, sentiment: 'good' | 'neutral' = 'neutral'): Item => ({ id: 'model_peers', question: 3, relevance: 60, sentiment, params: { ...params, ...p } })
-  const text = (host: Element) => host.textContent!.replace(/\s+/g, ' ')
-
-  it('Fahrer aller Varianten zahlen weniger, Grund Ladepreis', () => {
-    const host = mount(item({}), { modelName: 'Model 3' })
-    expect(text(host)).toMatch(/Model 3-Fahrer zahlen 26 % weniger je 100\skm als du\. Sie laden für 24\sct\/kWh statt 31\sct\/kWh\./)
-    expect(text(host)).toContain('-26 %')
-    // "100 km" und "26 %" brechen nicht um
-    expect(host.textContent).toContain('100\u00a0km')
-    expect(host.textContent).toContain('26\u00a0%')
+  it('Herbst-Prognose: Satz mit Monat, Basis darunter, Balken Oktober gegen November mit "ca."', () => {
+    const host = mount({ id: 'autumn_forecast', question: 1, relevance: 65, sentiment: 'neutral', params: { deltaEur: 19.6, currentEur: 59.2, nextEur: 78.8, nextMonth: 11, peerWinter: 0 } }, { sheets: ['range'] })
+    expect(text(host)).toContain('Ab November rund 20 € mehr im Monat')
+    expect(text(host)).toContain('Es wird kälter, dein Auto braucht mehr Strom.')
+    expect(host.querySelector('[data-testid="story-feed-number"]')!.textContent!.replace(/\s/g, ' ')).toBe('+20 €')
+    expect(bars(host)).toEqual(['Oktober 59 €', 'November ca. 79 €'])
+    expect(host.querySelector('b')!.textContent!.replace(/\s/g, ' ')).toBe('20 €')
+    expect(host.querySelector('button')).not.toBeNull()
   })
 
-  it('du fährst günstiger, Grund Verbrauch', () => {
-    const host = mount(item({ deltaPercent: 12, reasonPrice: 0 }, 'good'), { modelName: 'Model 3' })
-    expect(text(host)).toMatch(/Model 3-Fahrer zahlen 12 % mehr je 100\skm als du\. Sie verbrauchen 17,9\skWh\/100km statt 18,8\skWh\/100km\./)
+  it('Herbst-Prognose mit Winterwert anderer Fahrer nennt die Quelle', () => {
+    const host = mount({ id: 'autumn_forecast', question: 1, relevance: 65, sentiment: 'neutral', params: { deltaEur: 19.6, currentEur: 59.2, nextEur: 78.8, nextMonth: 11, peerWinter: 1 } })
+    expect(text(host)).toContain('Winterwert von anderen Model 3-Fahrern.')
   })
 
-  it('unter 5 % Unterschied: so günstig wie andere, ohne Grund und ohne Zahl rechts', () => {
-    const host = mount(item({ deltaPercent: -3, same: 1 }), { modelName: 'Model 3' })
-    expect(text(host)).toContain('Du fährst so günstig wie andere Model 3-Fahrer.')
-    expect(text(host)).not.toContain('Sie laden')
-    expect(text(host)).not.toContain('%')
+  it('Preisvergleich in Euro: weniger als andere in Grün, Balken Du gegen Andere', () => {
+    const host = mount({ id: 'peer_cost_eur', question: 3, relevance: 60, sentiment: 'good', params: { diffEur: -35.4, mineEur: 59.2, theirsEur: 94.6, cars: 40 } }, { sheets: ['peer'] })
+    expect(text(host)).toContain('35 € weniger als andere Model 3-Fahrer')
+    expect(text(host)).toContain('Für dieselbe Menge Strom im Oktober.')
+    const n = host.querySelector('[data-testid="story-feed-number"]')!
+    expect(n.textContent!.replace(/\s/g, ' ')).toBe('-35 €')
+    expect(n.className).toContain('text-green-700')
+    expect(bars(host)).toEqual(['Du 59 €', 'Andere ca. 95 €'])
+  })
+
+  it('Preisvergleich: mehr als andere bleibt schwarz, kein Amber', () => {
+    const host = mount({ id: 'peer_cost_eur', question: 3, relevance: 60, sentiment: 'neutral', params: { diffEur: 12.2, mineEur: 59.2, theirsEur: 47, cars: 40 } })
+    expect(text(host)).toContain('12 € mehr als andere Model 3-Fahrer')
+    const n = host.querySelector('[data-testid="story-feed-number"]')!
+    expect(n.textContent!.replace(/\s/g, ' ')).toBe('+12 €')
+    expect(n.className).not.toContain('amber')
+  })
+
+  it('Heimlade-Ersparnis: Titel, Basis "12 Monate", Betrag rechts, keine Balken', () => {
+    const host = mount({ id: 'home_savings', question: 1, relevance: 70, sentiment: 'good', params: { eur: 747.3, monthsRemaining: 14 } })
+    expect(text(host)).toContain('Gespart, weil du meist zu Hause lädst')
+    expect(text(host)).toContain('In den letzten 12 Monaten, gegenüber öffentlichem Laden. Die Wallbox ist in 14 Monaten bezahlt.')
+    expect(host.querySelector('[data-testid="story-feed-number"]')!.textContent!.replace(/\s/g, ' ')).toBe('747 €')
+    expect(host.querySelector('[data-testid="story-insight-bars"]')).toBeNull()
   })
 })
