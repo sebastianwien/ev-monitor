@@ -33,7 +33,7 @@ const { t } = useI18n()
       <div :class="hasMap ? 'absolute inset-x-0 bottom-0 z-[500] px-4 pb-3 pt-14 bg-gradient-to-t from-white via-white/70 to-transparent dark:from-gray-900 dark:via-gray-900/70' : 'px-4'">
         <div class="flex items-end justify-between gap-3">
           <div class="min-w-0">
-            <p class="flex items-center gap-1.5 text-[15px] font-semibold text-gray-900 dark:text-gray-50 truncate"><MapPinIcon class="h-4 w-4 flex-shrink-0 text-gray-900 dark:text-gray-100" />{{ context.title }}</p>
+            <p class="flex items-center gap-1.5 text-[15px] font-semibold text-gray-900 dark:text-gray-50 truncate"><MapPinIcon class="h-4 w-4 flex-shrink-0 text-indigo-600 dark:text-indigo-400" />{{ context.title }}</p>
             <p v-if="context.address" class="text-xs text-gray-500 dark:text-gray-400 truncate pl-[1.375rem]">{{ context.address }}</p>
             <p v-if="hasMap && context.area" data-testid="place-area-hint" class="text-xs text-gray-500 dark:text-gray-400 pl-[1.375rem]">{{ t('logwizard.place_area_hint') }}</p>
           </div>

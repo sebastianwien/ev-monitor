@@ -110,7 +110,7 @@ const rowClass = 'w-full flex items-start gap-2 px-3 py-2.5 text-left text-[14px
         <!-- Säulen aus dem Register -->
         <li v-for="s in stations.matches.value" :key="s.name + s.geohash" role="option" data-testid="place-search-station"
           v-haptic :class="rowClass" @mousedown.prevent="chooseStation(s)">
-          <BoltIcon class="h-4 w-4 mt-0.5 text-gray-900 dark:text-gray-100 flex-shrink-0" />
+          <BoltIcon class="h-4 w-4 mt-0.5 text-indigo-600 flex-shrink-0" />
           <span class="min-w-0">
             <b class="block font-semibold text-gray-900 dark:text-gray-50 truncate">{{ s.name }}</b>
             <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s, t) }}</small>
