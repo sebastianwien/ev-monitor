@@ -26,7 +26,7 @@ onMounted(() => { clockInterval = setInterval(() => { now.value = Date.now() }, 
 onUnmounted(() => clearInterval(clockInterval))
 
 const carIdRef = computed(() => authStore.canViewLiveCharging(props.brand) ? props.carId : null)
-const { data, powerHistory, refresh } = useChargingLive(carIdRef)
+const { data, isLive, powerHistory, refresh } = useChargingLive(carIdRef)
 
 // Fallback wenn der User noch keinen Historie-Schnitt hat - sonst bliebe die
 // "nachgeladene Reichweite"-Linie unsichtbar bei Neukunden. 16 kWh/100km ist ein
@@ -38,7 +38,7 @@ const effectiveConsumption = computed(() =>
     : 16)
 
 // Sichtbarkeit: nur wenn entitled + aktiver DC-Ladevorgang (AC hat keine sinnvolle Leistungskurve)
-const visible = computed(() => authStore.canViewLiveCharging(props.brand) && !!data.value?.isActive && data.value?.chargingType === 'DC')
+const visible = computed(() => authStore.canViewLiveCharging(props.brand) && isLive.value)
 
 // Collapse-State: persistiert pro (carId, sessionStartedAt) - jede neue Session
 // startet expanded. localStorage-Key wechselt mit Session-Start.
