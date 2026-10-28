@@ -3,6 +3,10 @@ import vue from '@vitejs/plugin-vue'
 import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 import path from 'path'
 
+// Die Tests formatieren Uhrzeiten in der Zeitzone der Nutzer (Europe/Berlin). Ohne feste Zeitzone
+// laufen sie lokal grün und auf einem UTC-Runner (GitHub Actions) rot.
+process.env.TZ = 'Europe/Berlin'
+
 export default defineConfig({
     // Gleicher '@'-Alias wie in vite.config.ts - Stores wie wallbox.ts importieren darueber,
     // ohne den Alias bricht jeder Test, der so einen Store laedt.
