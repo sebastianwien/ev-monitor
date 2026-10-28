@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../../stores/auth'
 import { useChargingLive } from '../../composables/useChargingLive'
@@ -39,6 +39,10 @@ const effectiveConsumption = computed(() =>
 
 // Sichtbarkeit: nur wenn entitled + aktiver DC-Ladevorgang (AC hat keine sinnvolle Leistungskurve)
 const visible = computed(() => authStore.canViewLiveCharging(props.brand) && !!data.value?.isActive && data.value?.chargingType === 'DC')
+// Das Dashboard blendet waehrenddessen die Kachel "Letzte Ladung" aus.
+const emit = defineEmits<{ live: [active: boolean] }>()
+watch(visible, v => emit('live', v), { immediate: true })
+onBeforeUnmount(() => emit('live', false))
 
 // Collapse-State: persistiert pro (carId, sessionStartedAt) - jede neue Session
 // startet expanded. localStorage-Key wechselt mit Session-Start.

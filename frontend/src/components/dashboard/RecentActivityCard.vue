@@ -26,6 +26,8 @@ const props = defineProps<{
   effectiveBatteryCapacityKwh: number | null
   /** Source badge helper from the log list (icon + label + classes per dataSource). */
   sourceInfo: (ds?: string) => { label: string; icon: unknown; classes: string } | null
+  /** Laeuft ein Live-Ladevorgang, steht er darueber - die letzte Ladung waere dann doppelt. */
+  hideCharge?: boolean
 }>()
 
 /**
@@ -141,9 +143,10 @@ function clamp(v: number): number {
 }
 
 
+const showCharge = computed(() => !!ch.value && !props.hideCharge)
 const showTrip = computed(() => !!props.trip)
 /** Nur rund die Haelfte der Ladevorgaenge traegt einen Ort - ohne bleibt die Kachel schlicht. */
-const hasChargeLocation = computed(() => !!ch.value?.geohash)
+const hasChargeLocation = computed(() => showCharge.value && !!ch.value?.geohash)
 /** Backend fills the location data for the most recent trip only - older ones stay blank. */
 const hasTripLocation = computed(
   () =>
@@ -166,9 +169,10 @@ const mapCredit = computed<string | null>(() => {
 <template>
   <!-- Eine Zeile je Eintrag, Karte als randloses Vorschaubild neben dem Text statt Text
        auf der Karte. Ab md stehen die beiden Zeilen nebeneinander. -->
-  <div v-if="ch" class="mb-2.5 md:mb-3">
-    <div class="grid overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]" :class="{ 'md:grid-cols-2': showTrip }">
+  <div v-if="showCharge || showTrip" class="mb-2.5 md:mb-3">
+    <div class="grid overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]" :class="{ 'md:grid-cols-2': showCharge && showTrip }">
       <RecentActivityRow
+        v-if="showCharge && ch"
         tone="charge"
         data-testid="recent-charge-tile"
         :label="t('dashboard.recent_charge_short')"

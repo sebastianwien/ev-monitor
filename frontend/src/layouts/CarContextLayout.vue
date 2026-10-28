@@ -31,7 +31,7 @@ const LogsView = defineAsyncComponent(() => import('../views/LogsView.vue'))
 const TAB_PATHS: readonly string[] = CONTEXT_TABS.map(tab => tab.to)
 
 const {
-  selectedCarId, cars, carImageUrls, wltp, currentOdometerKm,
+  selectedCarId, cars, carImageUrls,
   teslaStatus, smartcarStatus,
   editingLog, priceAmendingLog, refreshLogsAndGroups, fetchPricelessCount,
 } = provideCarContext()
@@ -56,11 +56,8 @@ function shareFromHeader(car: Car) {
         v-model="selectedCarId"
         :cars="cars"
         :car-image-urls="carImageUrls"
-        :wltp="wltp"
-        :current-odometer-km="currentOdometerKm"
         :tesla-status="teslaStatus"
         :smartcar-status="smartcarStatus"
-        :show-inline-details="true"
         @share="shareFromHeader"
       />
     </div>

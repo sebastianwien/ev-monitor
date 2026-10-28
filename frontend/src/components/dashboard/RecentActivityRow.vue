@@ -23,7 +23,7 @@ defineProps<{
   >
     <!-- Feste Mindesthoehe: die Karte rechnet ihren Ausschnitt einmal beim Aufbau, eine
          spaeter wachsende Zeile soll den Ausschnitt nicht verschieben. -->
-    <div class="relative isolate w-24 md:w-28 min-h-24 md:min-h-28 shrink-0 overflow-hidden bg-gray-100 dark:bg-gray-700">
+    <div class="relative isolate w-20 md:w-28 min-h-20 md:min-h-28 shrink-0 overflow-hidden bg-gray-100 dark:bg-gray-700">
       <slot name="thumb" />
     </div>
     <div class="min-w-0 flex-1 self-center py-3">
