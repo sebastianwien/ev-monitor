@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, afterEach } from 'vitest'
+import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createApp, nextTick, ref, type App } from 'vue'
 import { i18n } from '../../../i18n'
 import StoryMonthSwitch from '../StoryMonthSwitch.vue'
@@ -83,7 +83,12 @@ describe('StoryMonthSwitch', () => {
     const firstYear = monthAt(-19).year
     while (Number(year()) > firstYear) { prev.click(); await nextTick() }
     expect(prev.disabled).toBe(true)
+    // Das Raster gleitet erst aus, dann das neue Jahr herein
+    await vi.waitFor(() => expect(panel.querySelector('[data-testid="story-month-pick--19"]')).not.toBeNull())
     expect(panel.querySelector<HTMLButtonElement>('[data-testid="story-month-pick--19"]')!.disabled).toBe(false)
+    // Der Fokus steht im hereingeglittenen Jahr, nicht auf einem entfernten Monat des alten
+    expect((document.activeElement as HTMLElement).hasAttribute('data-month-cell')).toBe(true)
+    expect(panel.contains(document.activeElement)).toBe(true)
   })
 
   it('ein älterer Monat steht im Kalender-Segment, und das ist aktiv', () => {

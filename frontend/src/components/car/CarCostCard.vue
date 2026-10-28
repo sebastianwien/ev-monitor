@@ -13,6 +13,7 @@ import { useThemeStore } from '../../stores/theme'
 import { KM_PER_MILE } from '../../utils/unitConversions'
 import BottomSheet from '../shared/BottomSheet.vue'
 import ToggleSwitch from '../shared/ToggleSwitch.vue'
+import YearSlide from '../shared/YearSlide.vue'
 import FixedCostForm from './FixedCostForm.vue'
 
 /**
@@ -96,7 +97,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-xl tex
 </script>
 
 <template>
-  <section class="rounded-xl bg-white edge-card p-4 md:p-5 dark:bg-gray-700/50" data-testid="car-cost-card">
+  <section class="rounded-xl bg-white edge-card p-4 md:p-5 dark:bg-gray-700/50" data-testid="car-cost-card" style="overflow-x: clip">
     <div class="flex items-center justify-between gap-3">
       <h2 class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('cars.costs.title') }}</h2>
       <!-- Kalenderjahr waehlen -->
@@ -114,7 +115,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-xl tex
     <p v-if="error" class="mt-3 text-sm text-red-600 dark:text-red-400">{{ t('common.error_load') }}</p>
     <div v-else-if="loading" class="mt-4 h-24 animate-pulse rounded-xl bg-gray-100 dark:bg-gray-600" aria-hidden="true" />
 
-    <template v-else>
+    <YearSlide v-else :year="year">
       <!-- Kopfzahl -->
       <div v-if="proRataSeries.length" class="mt-2">
         <p class="flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -190,7 +191,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-xl tex
           <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('cars.costs.add') }}
         </button>
       </div>
-    </template>
+    </YearSlide>
 
     <!-- Erfassen und Bearbeiten im Sheet -->
     <BottomSheet v-if="sheet" :label="sheet.edit ? t('cars.costs.edit_title') : t('cars.costs.add')" testid="fixed-cost-sheet" @close="sheet = null">

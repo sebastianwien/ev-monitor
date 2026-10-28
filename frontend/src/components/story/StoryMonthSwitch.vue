@@ -6,6 +6,7 @@ import { monthAt, type StoryMonth } from '../../composables/useDashboardStory'
 import { monthGrid } from '../../composables/storyMonthGrid'
 import type { PanelAnchor } from '../../utils/panelAnchor'
 import AnchoredPanel from '../shared/AnchoredPanel.vue'
+import YearSlide from '../shared/YearSlide.vue'
 import StoryMonthCapsule from './StoryMonthCapsule.vue'
 
 /**
@@ -90,9 +91,9 @@ function hide(returnFocus = true) {
 // Ein Monat aus dem Schalter, während das Raster zu ist: der Rand bleibt, wie er ist
 watch(() => props.offset, () => { if (!open.value) widened.value = false })
 
+/** Der Fokus springt ins neue Jahr, sobald es hereingleitet (YearSlide @enter). */
 function stepYear(dir: -1 | 1) {
   year.value += dir
-  nextTick(focusCell)
 }
 
 /**
@@ -151,7 +152,7 @@ function monthName(year: number, month: number): string {
       <StoryMonthCapsule :months="months" :offset="offset" :label-of="labelOf" :calendar="true" :expanded="true"
         :older-label="olderLabel" :older-aria="olderAria" :calendar-open="true" :testids="false" :framed="false"
         @select="choose" @calendar="hide()" />
-      <div ref="body" data-month-panel-body class="relative px-2 pb-2">
+      <div ref="body" data-month-panel-body class="relative px-2 pb-2" style="overflow-x: clip">
         <div class="flex items-center justify-between border-t border-gray-200 pt-1 dark:border-gray-700">
           <button type="button" data-testid="story-month-year-prev" :disabled="!canPrev" :aria-label="t('story.year_prev')"
             class="grid h-11 w-11 place-items-center rounded-full text-gray-600 transition-colors hover:bg-black/5 disabled:cursor-default disabled:text-gray-300 disabled:hover:bg-transparent dark:text-gray-300 dark:hover:bg-white/10 dark:disabled:text-gray-600"
@@ -165,6 +166,7 @@ function monthName(year: number, month: number): string {
             <ChevronRightIcon class="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
+        <YearSlide :year="shownYear.year" @enter="focusCell">
         <div class="grid grid-cols-4 gap-1">
           <button v-for="c in shownYear.months" :key="c.month" type="button" data-month-cell
             :data-testid="`story-month-pick-${c.offset}`"
@@ -180,6 +182,7 @@ function monthName(year: number, month: number): string {
             {{ monthName(c.year, c.month) }}
           </button>
         </div>
+        </YearSlide>
       </div>
     </div>
   </AnchoredPanel>

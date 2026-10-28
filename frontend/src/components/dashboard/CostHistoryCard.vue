@@ -10,6 +10,7 @@ import { useThemeStore } from '../../stores/theme'
 import { barScale, fitSegments, legendKeys, type MonthlyCostPoint } from '../../utils/carCostSummary'
 import { costColor } from '../../utils/costColors'
 import ToggleSwitch from '../shared/ToggleSwitch.vue'
+import YearSlide from '../shared/YearSlide.vue'
 
 /**
  * Kostenverlauf im Dashboard: ein Monat pro Zeile im Kalenderjahr, Strom in Indigo, Fixkosten
@@ -42,9 +43,6 @@ function parts(p: MonthlyCostPoint): { key: string; eur: number }[] {
 const open = ref<number | null>(null)
 const focus = ref<string | null>(null)
 watch([year, () => props.carId], () => { open.value = null })
-// Jahreswechsel: Inhalt gleitet in Richtung des Pfeils, die Balken kommen fertig gezeichnet mit.
-const slideNext = ref(true)
-watch(year, (y, prev) => { slideNext.value = y > prev })
 
 // Balken: positive Teile gestapelt. Ausreisser werden im groessten Teilstueck mit Achsenbruch
 // gekuerzt, der gekuerzte Teil belegt dabei mindestens 60 Prozent des Balkens.
@@ -88,10 +86,8 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm tex
     <div v-else-if="loading" class="mt-3 h-40 animate-pulse rounded-sm bg-gray-100 dark:bg-gray-600" aria-hidden="true" />
     <p v-else-if="!allSeries.length" class="py-6 text-center text-xs text-gray-500 dark:text-gray-400">{{ t('cost_history.empty') }}</p>
 
-    <Transition v-else mode="out-in"
-      enter-active-class="transition duration-200 ease-out motion-reduce:transition-none" leave-active-class="transition duration-150 ease-in motion-reduce:transition-none"
-      :enter-from-class="slideNext ? 'translate-x-8 opacity-0' : '-translate-x-8 opacity-0'" :leave-to-class="slideNext ? '-translate-x-8 opacity-0' : 'translate-x-8 opacity-0'">
-    <div :key="dataYear">
+    <!-- Jahreswechsel: Inhalt gleitet in Richtung des Pfeils, die Balken kommen fertig gezeichnet mit -->
+    <YearSlide v-else :year="dataYear">
       <ul class="mt-2" :aria-label="t('cars.costs.chart_aria', { year })" @pointerleave="focus = null">
         <li v-for="(r, i) in rows" :key="r.p.month" :class="open === i ? '-mx-2 rounded-sm bg-gray-50 px-2 dark:bg-gray-600/40' : ''">
           <button type="button" class="grid w-full grid-cols-[2.25rem_1fr_4.75rem] items-center gap-2 py-1.5 min-h-9 text-left text-sm" :aria-expanded="open === i" data-testid="cost-history-month" @click="open = open === i ? null : i">
@@ -143,7 +139,6 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm tex
           <ToggleSwitch v-model="spread" :label="t('cost_history.mode_spread_label')" />
         </label>
       </div>
-    </div>
-    </Transition>
+    </YearSlide>
   </section>
 </template>
