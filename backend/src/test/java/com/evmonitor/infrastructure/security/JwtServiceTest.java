@@ -35,6 +35,22 @@ class JwtServiceTest {
     }
 
     @Test
+    void previewClaim_followsUiPreviewFlag_andIsFalseWithoutRepository() {
+        UUID userId = UUID.randomUUID();
+        com.evmonitor.domain.User user = com.evmonitor.testutil.TestDataBuilder.createTestUserWithId(userId, "p@example.com", "dummy-hash");
+        UserDetails principal = UserPrincipal.create(user);
+
+        // Ohne Repository (reiner Unit-Test): kein Vorschau-Zugang
+        assertEquals(Boolean.FALSE, jwtService.extractClaim(jwtService.generateToken(principal), c -> c.get("preview", Boolean.class)));
+
+        com.evmonitor.domain.UserRepository repo = org.mockito.Mockito.mock(com.evmonitor.domain.UserRepository.class);
+        org.mockito.Mockito.when(repo.isUiPreview(userId)).thenReturn(true);
+        ReflectionTestUtils.setField(jwtService, "userRepository", repo);
+        assertEquals(Boolean.TRUE, jwtService.extractClaim(jwtService.generateToken(principal), c -> c.get("preview", Boolean.class)));
+        assertEquals(Boolean.TRUE, jwtService.extractClaim(jwtService.generateImpersonationToken(principal), c -> c.get("preview", Boolean.class)));
+    }
+
+    @Test
     void shouldGenerateValidToken() {
         // Given
         UUID userId = UUID.randomUUID();

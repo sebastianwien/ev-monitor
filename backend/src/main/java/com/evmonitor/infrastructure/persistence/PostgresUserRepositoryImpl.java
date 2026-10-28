@@ -172,6 +172,17 @@ public class PostgresUserRepositoryImpl implements UserRepository {
     }
 
     @Override
+    public boolean isUiPreview(UUID userId) {
+        return jpaUserRepository.isUiPreview(userId);
+    }
+
+    @Override
+    @Transactional
+    public void setUiPreview(UUID userId, boolean enabled) {
+        jpaUserRepository.setUiPreview(userId, enabled);
+    }
+
+    @Override
     public boolean isTickerShareCharges(UUID userId) {
         return jpaUserRepository.isTickerShareCharges(userId);
     }
