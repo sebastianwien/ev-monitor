@@ -78,6 +78,7 @@ class DemoAccountInterceptorTest {
         assertTrue(preHandle("GET", "/api/cars/123/soh", new MockHttpServletResponse()));
         assertTrue(preHandle("GET", "/api/users/me/stats", new MockHttpServletResponse()));
         assertTrue(preHandle("GET", "/api/public/leaderboard/ticker", new MockHttpServletResponse()));
+        assertTrue(preHandle("GET", "/api/weather/outlook", new MockHttpServletResponse()));
     }
 
     @Test
