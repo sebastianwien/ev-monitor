@@ -67,8 +67,10 @@ useHead({ meta: [{ name: 'robots', content: () => robotsForPath(route.path) }] }
 const isMobileViewport = useIsMobile()
 // Routen mit meta.mobileFullscreen (Wizard) laufen auf Mobile ohne Bottom-Nav, Ticker und Abstaende
 const mobileFullscreen = computed(() => !!route.meta.mobileFullscreen && isMobileViewport.value)
-// CI-Seiten (meta.plainBackground) zeigen auf dem Handy die ruhige Fläche bis unter Ticker-Lasche und Bottom-Nav
-const plainBackground = computed(() => !!route.meta.plainBackground && isMobileViewport.value)
+// CI-Seiten (meta.plainBackground) zeigen auf dem Handy die ruhige Fläche bis unter Ticker-Lasche und Bottom-Nav.
+// Vor der ersten aufgeloesten Route (matched leer) ebenso: sonst setzt der erste Render kurz
+// app-wallpaper, und der Browser laedt das Bild, obwohl die Zielseite es gar nicht zeigt.
+const plainBackground = computed(() => isMobileViewport.value && (!!route.meta.plainBackground || route.matched.length === 0))
 // Android Chrome (ab 108) verschiebt bei offener Tastatur nur den sichtbaren Ausschnitt - der
 // Wizard-Kopf waechst dann nach oben raus. resizes-content laesst stattdessen das Layout
 // schrumpfen: Kopf bleibt oben, Footer ueber der Tastatur. Nur im Wizard, sonst Standard.

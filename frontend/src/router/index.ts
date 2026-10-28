@@ -97,7 +97,8 @@ const router = createRouter({
             path: '/dashboard',
             name: 'statistics',
             component: CarContextLayout,
-            meta: { requiresAuth: true }
+            // Mobil ruhige Flaeche statt Wallpaper: das Bild wird dann gar nicht erst geladen
+            meta: { requiresAuth: true, plainBackground: true }
         },
         {
             path: '/story',
