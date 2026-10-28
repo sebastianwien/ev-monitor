@@ -44,7 +44,7 @@ defineProps<{
         <div class="relative flex-1 h-1 rounded-full bg-gray-200 dark:bg-gray-700" role="presentation">
           <div
           class="absolute inset-y-0 rounded-full"
-          :class="tone === 'charge' ? 'bg-amber-500' : 'bg-indigo-500'"
+          :class="tone === 'charge' ? 'bg-green-500' : 'bg-indigo-500'"
           :style="{ left: soc.from + '%', width: `max(3px, ${soc.to - soc.from}%)` }"
           ></div>
         </div>

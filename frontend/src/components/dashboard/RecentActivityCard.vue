@@ -10,11 +10,6 @@ import RecentActivityRow from './RecentActivityRow.vue'
 // Async: Leaflet stays out of the dashboard's initial chunk (same reasoning as the
 // heatmap) - the map only loads when a trip actually carries a location.
 const ActivityLocationMap = defineAsyncComponent(() => import('./ActivityLocationMap.vue'))
-import WattBadge from '../shared/WattBadge.vue'
-import { useCoinStore } from '../../stores/coins'
-import { wattPossibleForLog } from '../../utils/wattPreview'
-const coinStore = useCoinStore()
-coinStore.ensureCatalog()
 
 const props = defineProps<{
   /** Raw charge / Ladegruppe feed entry (mergedLogFeed), or null. */
@@ -64,12 +59,6 @@ const chargePriceless = computed(() => {
   if (!ch.value || chargeSource.value == null) return false
   if (props.charge?._isLadegruppe) return (props.charge._pricelessSubs?.length ?? 0) > 0
   return ch.value.costEur == null && !!props.charge?.id
-})
-/** Watt-Potenzial des Nachtrags: bei einer Ladegruppe die Summe ihrer preislosen Teilvorgaenge. */
-const pricelessWatt = computed<number>(() => {
-  const subs = props.charge?._pricelessSubs as any[] | undefined
-  if (subs?.length) return subs.reduce((sum, sub) => sum + wattPossibleForLog(coinStore.catalog, sub), 0)
-  return ch.value ? wattPossibleForLog(coinStore.catalog, ch.value) : 0
 })
 /**
  * Brutto ab Netz, sobald es zusaetzlich zur Netto-Menge gemessen wurde. Die grosse
@@ -194,10 +183,9 @@ const mapCredit = computed<string | null>(() => {
             @click.stop="emit('amend-charge')"
             @keydown.enter.stop.prevent="emit('amend-charge')"
             @keydown.space.stop.prevent="emit('amend-charge')"
-            class="self-center inline-flex items-center gap-1 px-2 py-1 rounded-sm text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer">
+            class="self-center inline-flex items-center gap-1 px-2 py-1 whitespace-nowrap rounded-sm text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer">
             <ExclamationTriangleIcon class="w-3.5 h-3.5" aria-hidden="true" />
             {{ t('priceamend.chip') }}
-            <WattBadge :amount="pricelessWatt" up-to />
           </span>
         </template>
         <template #meta>
