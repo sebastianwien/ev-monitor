@@ -32,6 +32,8 @@ Eine Persona, eine Frage: **"Ich will ein E-Auto kaufen und suche das passende f
 | `/modelle` | Übersichtsseite mit Filter, Modell-Grid und Marken-Grid |
 | `/modelle/:brand` | Alle Modelle einer Marke mit WLTP-Daten |
 | `/modelle/:brand/:model` | Detailseite als Story in vier Kapiteln mit persönlichem Rechner |
+
+`:brand` ist der URL-Slug aus `CarBrand.getDisplayString()` ("Volkswagen"), die API liefert ihn als `brandSlug`. Angezeigt wird das Label `brandDisplayName` ("VW"). Links, Canonical, Sitemap und Vergleichs-Schlüssel bauen immer auf `brandSlug`, nie auf dem Label; der Modellname kommt fertig aus `CarModel.getFullDisplayName()` ("Polestar 3", nicht "Polestar Polestar 3").
 | `/rankings` | Community-Rankings (sparsamste Modelle) |
 
 ### Seitenwechsel
