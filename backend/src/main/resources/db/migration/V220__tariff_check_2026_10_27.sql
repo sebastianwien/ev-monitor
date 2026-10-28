@@ -1,5 +1,5 @@
 -- Einmalige Tarifprüfung vom 27.10.2026 gegen die Seiten der Anbieter, danach hält der Tarif-Crawler
--- (V218) die Daten aktuell. Belege: ~/private/app-ci/ladekarten/pruefung-2026-10-27.md (nicht im Repo).
+-- (V219) die Daten aktuell. Belege: ~/private/app-ci/ladekarten/pruefung-2026-10-27.md (nicht im Repo).
 -- Preisänderungen beenden die alte Zeile am 26.10. und legen eine neue ab 27.10. an, damit vergangene
 -- Ladungen ihren damaligen Preis behalten. Korrekturen von Seed-Fehlern (falsches Feld, fehlender
 -- Betreiber) ändern die Zeile direkt. Aktionspreise sind nicht erfasst.
