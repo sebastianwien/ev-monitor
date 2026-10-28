@@ -41,6 +41,8 @@ spring:
       - chargingPublicPriceByYear
       # Referenzpreise der Modellseite und des Rechners (Community, Kraftstoff, Schnellladen ohne Abo)
       - chargingReferencePrices
+      # Wetter-Ausblick der Story je Heimladeort (Open-Meteo, 4 h reichen fuer Tagesmittel)
+      - weatherOutlook
       # nearbyCpos hat eine eigene Regel (30 Tage) in CpoRegistryConfig - der Registerbestand
       # der Bundesnetzagentur wird nur monatlich aktualisiert.
 

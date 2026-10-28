@@ -141,4 +141,26 @@ class TemperatureServiceTest {
         assertThat(service.getTemperature(48.2, 16.4, null)).isEmpty();
         verifyNoInteractions(restTemplate);
     }
+
+    /** Ausblick fuer die Story: Tagesmittel der letzten Tage und der Vorhersage in einem Aufruf, Ortszeit. */
+    @Test
+    void tagesmittelHolenVergangenheitUndVorhersageInEinemAufruf() {
+        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(
+                Map.of("daily", Collections.singletonMap("temperature_2m_mean", java.util.Arrays.asList(12.1, 11.0, null, 8.4))));
+
+        assertThat(service.getDailyMeans(52.53, 13.46, 7, 14)).containsExactly(12.1, 11.0, null, 8.4);
+        verify(restTemplate).getForObject(argThat((String url) ->
+                url.startsWith("https://api.open-meteo.com/v1/forecast")
+                && url.contains("daily=temperature_2m_mean")
+                && url.contains("past_days=7")
+                && url.contains("forecast_days=14")
+                && url.contains("timezone=auto")
+        ), eq(Map.class));
+    }
+
+    @Test
+    void tagesmittelOhneDailyBlockIstLeer() {
+        when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(Map.of());
+        assertThat(service.getDailyMeans(52.53, 13.46, 7, 14)).isEmpty();
+    }
 }

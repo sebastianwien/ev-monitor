@@ -98,6 +98,31 @@ public class TemperatureService {
         return temperatures.stream().map(n -> n == null ? null : n.doubleValue()).toList();
     }
 
+    /**
+     * Tagesmittel in Ortszeit: {@code pastDays} zurueck und {@code forecastDays} voraus in einem
+     * Aufruf, Index 0 ist der aelteste Tag. Fuer den Wetter-Ausblick der Story. Wie
+     * {@link #getHourlyForUtcDay} faengt die Methode nichts ab, der Aufrufer entscheidet.
+     */
+    @SuppressWarnings("unchecked")
+    public List<Double> getDailyMeans(double latitude, double longitude, int pastDays, int forecastDays) {
+        String url = UriComponentsBuilder.fromHttpUrl(FORECAST_URL)
+                .queryParam("latitude", latitude)
+                .queryParam("longitude", longitude)
+                .queryParam("daily", "temperature_2m_mean")
+                .queryParam("past_days", pastDays)
+                .queryParam("forecast_days", forecastDays)
+                .queryParam("timezone", "auto")
+                .toUriString();
+
+        Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+        if (response == null) return List.of();
+        Map<String, Object> daily = (Map<String, Object>) response.get("daily");
+        if (daily == null) return List.of();
+        List<Number> means = (List<Number>) daily.get("temperature_2m_mean");
+        if (means == null) return List.of();
+        return means.stream().map(n -> n == null ? null : n.doubleValue()).toList();
+    }
+
     @SuppressWarnings("unchecked")
     private Optional<Double> fetchHour(String baseUrl, double latitude, double longitude, String hourUtc) {
         String url = UriComponentsBuilder.fromHttpUrl(baseUrl)
