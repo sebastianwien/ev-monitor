@@ -64,7 +64,10 @@ const sentence = computed(() => {
 const sub = computed<string>(() => {
   const p = props.item.params
   switch (props.item.id) {
-    case 'autumn_forecast': return t(p.peerWinter ? 'story.feed_autumn_sub_peer' : 'story.feed_autumn_sub', { model: props.modelName })
+    case 'autumn_forecast': {
+      const weather = p.deltaC != null ? '_weather' : ''
+      return t(`story.feed_autumn_sub${weather}${p.peerWinter ? '_peer' : ''}`, { model: props.modelName, deg: Math.abs(p.deltaC ?? 0) })
+    }
     case 'peer_cost_eur': return t('story.feed_peer_eur_sub', { month: props.monthName })
     case 'home_savings': {
       const base = t('story.feed_home_savings_sub')

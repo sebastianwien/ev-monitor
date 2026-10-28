@@ -4393,6 +4393,8 @@ story:
   feed_autumn_title: "From {month} about {eur} more per month"
   feed_autumn_sub: "It gets colder, your car needs more energy."
   feed_autumn_sub_peer: "It gets colder, your car needs more energy. Winter value from other {model} drivers."
+  feed_autumn_sub_weather: "The next two weeks will be about {deg} degrees colder, your car needs more energy."
+  feed_autumn_sub_weather_peer: "The next two weeks will be about {deg} degrees colder. Winter value from other {model} drivers."
   feed_peer_eur_less: "{eur} less than other {model} drivers"
   feed_peer_eur_more: "{eur} more than other {model} drivers"
   feed_peer_eur_sub: "For the same amount of energy in {month}."

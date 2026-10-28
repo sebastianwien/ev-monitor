@@ -4,6 +4,7 @@ import chargingSavingsService from '../api/chargingSavingsService'
 import { peerModelComparisonService, type PeerModelComparisonResponse } from '../api/peerModelComparisonService'
 import { carService, type BatterySohEntry } from '../api/carService'
 import { fuelPriceService, type FuelPrices } from '../api/fuelPriceService'
+import { weatherService, type WeatherOutlookResponse } from '../api/weatherService'
 import { chargingBenchmarkService, type ChargingBenchmark } from '../api/chargingBenchmarkService'
 import type { StatisticsData } from './useDashboardStats'
 import {
@@ -222,6 +223,13 @@ interface CarBundle {
   latestTrip: LatestTripSource | null
   /** Endstand des Vormonats je Kategorie, Basis der Ranglisten-Abschlusskarte. */
   previousRanks: RankResponse[]
+  /** Wetter-Ausblick am Heimladeort, nur im Oktober geholt (Herbst-Prognose). */
+  weather: WeatherOutlookResponse | null
+}
+
+/** Der Wetter-Ausblick wird nur im Monat der Herbst-Prognose geholt, sonst kein Open-Meteo-Aufruf. */
+export function wantsWeatherOutlook(now: Date): boolean {
+  return now.getMonth() === 9
 }
 
 /** Wie der Monats-Cache, nur je Auto: Hero und Zuletzt-Karten stehen beim naechsten Oeffnen sofort. */
@@ -245,7 +253,7 @@ async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<Lat
 
 async function fetchCarBundle(carId: string): Promise<CarBundle> {
   const tripsFrom = new Date(Date.now() - MOMENT_TRIP_DAYS * DAY).toISOString()
-  const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime, prevRanks] = await Promise.allSettled([
+  const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime, prevRanks, weather] = await Promise.allSettled([
     chargingSavingsService.get(),
     peerModelComparisonService.getPeerModelComparison(carId),
     api.get<MomentLog[]>(`/logs/priceless?carId=${carId}&includeUnknown=true`),
@@ -257,6 +265,7 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
     api.get<MomentTrip[]>(`/trips?carId=${carId}&from=${encodeURIComponent(tripsFrom)}&to=${encodeURIComponent(new Date().toISOString())}`),
     api.get<StatisticsData>(`/logs/statistics?carId=${carId}&groupBy=DAY`),
     fetchRanks(1),
+    wantsWeatherOutlook(new Date()) ? weatherService.getOutlook() : Promise.resolve(null),
   ])
   const prices = fuel.status === 'fulfilled' ? fuel.value : null
   return {
@@ -273,6 +282,7 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
     benchmark: lastLogs.status === 'fulfilled' ? lastLogs.value.benchmark : null,
     recentTrips: momentTrips.status === 'fulfilled' && Array.isArray(momentTrips.value.data) ? momentTrips.value.data : [],
     lifetimeSeries: lifetime.status === 'fulfilled' ? lifetime.value.data?.chargesOverTime ?? [] : [],
+    weather: weather.status === 'fulfilled' ? weather.value : null,
     // Fahrten liefert das Backend nur Berechtigten, ein Fehler heisst dann einfach: keine Fahrt.
     latestTrip: lastTrip.status === 'fulfilled' && Array.isArray(lastTrip.value.data) ? lastTrip.value.data[0] ?? null : null,
     previousRanks: prevRanks.status === 'fulfilled' ? prevRanks.value : [],
@@ -313,6 +323,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const sohHistory = ref<BatterySohEntry[]>([])
   /** Statistik der letzten 4 Wochen, Basis der Reichweiten-Kachel. */
   const recentStats = ref<StatisticsData | null>(null)
+  const weather = ref<WeatherOutlookResponse | null>(null)
   const petrol = ref<PetrolPrice>({ eurPerLitre: PETROL_EUR_PER_L_DE, live: false })
   const latest = ref<StoryLatest | null>(null)
   const recentLogs = ref<Array<LatestLogSource & MomentLog>>([])
@@ -397,6 +408,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     pricelessLogs.value = b.pricelessLogs
     sohHistory.value = b.sohHistory
     recentStats.value = b.recentStats
+    weather.value = b.weather
     recentLogs.value = b.recentLogs
     benchmark.value = b.benchmark
     recentTrips.value = b.recentTrips
@@ -513,6 +525,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     monthOfYear: month.value.month,
     elapsedDays: month.value.offset === 0 ? new Date().getDate() : new Date(month.value.year, month.value.month, 0).getDate(),
     recent: recentStats.value ? { distanceKm: recentStats.value.totalDistanceKm, days: RECENT_DAYS } : null,
+    weather: weather.value,
     tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewLiveAnalytics,
       { charges: charges.value, avgCostPerKwh: monthStats.value?.avgCostPerKwh ?? null }),
   } : null)

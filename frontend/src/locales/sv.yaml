@@ -4235,6 +4235,8 @@ story:
   feed_autumn_title: "Från {month} ungefär {eur} mer i månaden"
   feed_autumn_sub: "Det blir kallare, din bil behöver mer el."
   feed_autumn_sub_peer: "Det blir kallare, din bil behöver mer el. Vintervärde från andra {model}-förare."
+  feed_autumn_sub_weather: "De närmaste två veckorna blir ungefär {deg} grader kallare, din bil behöver mer el."
+  feed_autumn_sub_weather_peer: "De närmaste två veckorna blir ungefär {deg} grader kallare. Vintervärde från andra {model}-förare."
   feed_peer_eur_less: "{eur} mindre än andra {model}-förare"
   feed_peer_eur_more: "{eur} mer än andra {model}-förare"
   feed_peer_eur_sub: "För samma mängd el i {month}."

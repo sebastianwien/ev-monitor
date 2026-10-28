@@ -8,7 +8,7 @@ vi.mock('../api/chargingSavingsService', () => ({ default: { get: vi.fn().mockRe
 vi.mock('../api/peerModelComparisonService', () => ({ peerModelComparisonService: { getPeerModelComparison: vi.fn().mockResolvedValue({ modelComparisons: [] }) } }))
 vi.mock('../api/carService', () => ({ carService: { getSohHistory: vi.fn().mockResolvedValue([]) } }))
 
-import { useDashboardStory, clearStoryCache } from './useDashboardStory'
+import { useDashboardStory, clearStoryCache, wantsWeatherOutlook } from './useDashboardStory'
 import { PETROL_EUR_PER_L_DE, monthWindow } from './storyModel'
 
 const stats = (totalCostEur: number) => ({
@@ -348,5 +348,13 @@ describe('useDashboardStory - ältere Monate', () => {
     expect(story.month.value.offset).toBe(-7)
     story.setOffset(-8)
     expect(story.offset.value).toBe(-7)
+  })
+})
+
+describe('wantsWeatherOutlook', () => {
+  it('holt den Wetter-Ausblick nur im Oktober, dem Monat der Herbst-Prognose', () => {
+    expect(wantsWeatherOutlook(new Date(2026, 9, 15))).toBe(true)
+    expect(wantsWeatherOutlook(new Date(2026, 8, 30))).toBe(false)
+    expect(wantsWeatherOutlook(new Date(2026, 10, 1))).toBe(false)
   })
 })

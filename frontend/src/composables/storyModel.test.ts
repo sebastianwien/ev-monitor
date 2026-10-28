@@ -525,7 +525,7 @@ describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => 
     expect(find({})).toBeDefined()
   })
 
-  it('Herbst-Prognose im September und Oktober des laufenden Monats: km der letzten Tage mal Winter-Mehrverbrauch mal Preis', () => {
+  it('Herbst-Prognose nur im Oktober des laufenden Monats: km der letzten Tage mal Winter-Mehrverbrauch mal Preis', () => {
     const range = { consumption: 17.9, windows: [], km: 300, summer: { consumption: 16, km: 320 }, winter: { consumption: 21, km: 250 }, peerWinter: null, emptyKm: 350 }
     const base = { savingsEur: null, quality: ok, range, monthOfYear: 10, runningMonth: true, recent: { distanceKm: 840, days: 28 } }
     const item = buildStoryFeed(input(base)).find(i => i.id === 'autumn_forecast')!
@@ -536,13 +536,18 @@ describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => 
     expect(item.params.peerWinter).toBe(0)
     expect(item.sentiment).toBe('neutral')
     const find = (over: Partial<StoryInput>) => buildStoryFeed(input({ ...base, ...over })).find(i => i.id === 'autumn_forecast')
-    expect(find({ monthOfYear: 9 })).toBeDefined()
+    expect(find({ monthOfYear: 9 })).toBeUndefined()
     expect(find({ monthOfYear: 11 })).toBeUndefined()
     expect(find({ runningMonth: false })).toBeUndefined()
     expect(find({ range: { ...range, summer: null } })).toBeUndefined()
     expect(find({ range: { ...range, winter: null, peerWinter: { consumption: 20, km: 260 } } })!.params.peerWinter).toBe(1)
     expect(find({ range: { ...range, winter: null } })).toBeUndefined()
     expect(find({ recent: { distanceKm: 100, days: 28 } })).toBeUndefined()
+    // Wetter-Ausblick: nur wenn es spuerbar kaelter wird, steht der Grad-Wert im Satz
+    expect(find({ weather: { deltaC: -6.4, aheadDays: 14 } })!.params.deltaC).toBe(-6)
+    expect(find({ weather: { deltaC: -1.4, aheadDays: 14 } })!.params.deltaC).toBeUndefined()
+    expect(find({ weather: { deltaC: 3, aheadDays: 14 } })!.params.deltaC).toBeUndefined()
+    expect(find({ weather: null })!.params.deltaC).toBeUndefined()
     expect(find({ recent: null })).toBeUndefined()
   })
 

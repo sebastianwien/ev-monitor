@@ -79,6 +79,11 @@ export interface StoryFeedItem {
   label?: string
 }
 
+export interface WeatherOutlook {
+  deltaC: number
+  aheadDays: number
+}
+
 export interface StoryInput {
   month: StatisticsData
   previousMonth: StatisticsData | null
@@ -106,6 +111,8 @@ export interface StoryInput {
   elapsedDays: number
   /** Strecke der letzten Tage (eigene Statistik je Auto), Basis der Herbst-Prognose. */
   recent: { distanceKm: number | null; days: number } | null
+  /** Wetter am Heimladeort: Mittel der kommenden Tage gegen die letzte Woche, Grad Celsius. */
+  weather?: WeatherOutlook | null
   /** Fahrzeugklasse des Autos (VehicleCategory), bestimmt den Benziner im Vergleich. */
   vehicleCategory: string | null
   /** Strecke und Verbrauch je Tag seit der ersten Ladung, für CO₂ gesamt. */
@@ -154,11 +161,13 @@ const MIN_COST_DIFF_EUR = 1
 const MIN_DISTANCE_DIFF_SHARE = 0.1
 /** Preisvergleich in Euro und Herbst-Prognose erst, wenn der Monat so viele Tage zaehlt. */
 const MIN_COMPARE_DAYS = 14
-/** Herbst-Prognose: in diesen Monaten, fuer den ersten Wintermonat. */
-const AUTUMN_MONTHS = [9, 10]
+/** Herbst-Prognose: nur im Oktober, fuer den ersten Wintermonat. */
+const AUTUMN_MONTHS = [10]
 const FIRST_WINTER_MONTH = 11
 /** Unter so vielen Euro Mehrkosten gibt es keine Prognose. */
 const MIN_FORECAST_EUR = 5
+/** Ab so vielen Grad kaelter nennt die Prognose den Wetter-Ausblick. */
+const MIN_COLDER_C = 2
 /** Ladeverlust: bis 12 Prozent ueblich (AC-Pauschale 10), bis 20 auffaellig, darueber Problem. */
 const FLOW_LOSS_GOOD_PERCENT = 12
 const FLOW_LOSS_WARN_PERCENT = 20
@@ -524,7 +533,10 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
         question: 1,
         relevance: 75,
         sentiment: 'neutral',
-        params: { deltaEur, currentEur: m.energyCostEur, nextEur: m.energyCostEur + deltaEur, nextMonth: FIRST_WINTER_MONTH, peerWinter: r.winter ? 0 : 1 },
+        params: {
+          deltaEur, currentEur: m.energyCostEur, nextEur: m.energyCostEur + deltaEur, nextMonth: FIRST_WINTER_MONTH, peerWinter: r.winter ? 0 : 1,
+          ...(input.weather && input.weather.deltaC <= -MIN_COLDER_C ? { deltaC: Math.round(input.weather.deltaC) } : {}),
+        },
       })
     }
   }
