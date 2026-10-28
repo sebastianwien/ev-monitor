@@ -3,6 +3,8 @@ package com.evmonitor.infrastructure.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import com.evmonitor.domain.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,18 @@ public class JwtService {
 
     @Value("${jwt.expiration.ms}")
     private long jwtExpirationInMs;
+
+    /** Vorschau-Merkmal für den Claim "preview"; optional, damit der Dienst ohne Spring testbar bleibt. */
+    @Autowired(required = false)
+    private UserRepository userRepository;
+
+    private boolean uiPreview(UUID userId) {
+        try {
+            return userRepository != null && userRepository.isUiPreview(userId);
+        } catch (RuntimeException e) {
+            return false;
+        }
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -48,6 +62,7 @@ public class JwtService {
                 extraClaims.put("country", principal.getUser().getCountry());
             }
             extraClaims.put("registeredAt", principal.getUser().getCreatedAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
+            extraClaims.put("preview", uiPreview(principal.getUser().getId()));
         }
         return generateToken(extraClaims, userDetails);
     }
@@ -110,6 +125,7 @@ public class JwtService {
             claims.put("authProvider", principal.getUser().getAuthProvider().name());
             claims.put("role", principal.getUser().getRole());
             claims.put("subscriptionTier", principal.getUser().getSubscriptionTier().name());
+            claims.put("preview", uiPreview(principal.getUser().getId()));
         }
         claims.put("impersonatedBy", "admin");
         long oneHourMs = 3_600_000L;

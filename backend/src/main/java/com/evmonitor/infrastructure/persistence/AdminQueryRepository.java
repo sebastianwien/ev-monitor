@@ -28,11 +28,13 @@ public class AdminQueryRepository {
                        au.referrer_source,
                        (SELECT COUNT(*) FROM ev_log el JOIN car c2 ON el.car_id = c2.id AND c2.deleted_at IS NULL WHERE el.deleted_at IS NULL AND c2.user_id = au.id) AS evlog_count,
                        (SELECT STRING_AGG(DISTINCT el.data_source, ', ' ORDER BY el.data_source)
-                        FROM ev_log el JOIN car c2 ON el.car_id = c2.id AND c2.deleted_at IS NULL WHERE el.deleted_at IS NULL AND c2.user_id = au.id) AS data_sources
+                        FROM ev_log el JOIN car c2 ON el.car_id = c2.id AND c2.deleted_at IS NULL WHERE el.deleted_at IS NULL AND c2.user_id = au.id) AS data_sources,
+                       au.id::text,
+                       au.ui_preview
                 FROM app_user au
                 LEFT JOIN car c ON au.id = c.user_id AND c.deleted_at IS NULL
                 WHERE au.is_seed_data IS FALSE
-                GROUP BY au.id, au.email, au.created_at, au.username, au.email_verified, au.utm_source, au.referrer_source
+                GROUP BY au.id, au.email, au.created_at, au.username, au.email_verified, au.utm_source, au.referrer_source, au.ui_preview
                 ORDER BY au.created_at DESC
                 """).getResultList();
 
@@ -45,7 +47,9 @@ public class AdminQueryRepository {
                         (String) r[4],
                         (String) r[5],
                         r[6] != null ? ((Number) r[6]).longValue() : 0L,
-                        (String) r[7]
+                        (String) r[7],
+                        (String) r[8],
+                        r[9] != null && (Boolean) r[9]
                 ))
                 .toList();
     }

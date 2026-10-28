@@ -1,0 +1,89 @@
+name: Preview Frontend (preview.ev-monitor.net)
+
+# Baut nur das Frontend aus dem gewählten Branch und legt es auf dem Server als Vorschau ab:
+# releases/preview-<sha> plus Verweis "preview". Nie "current", kein Backend, kein nginx-Neubau.
+# Das Backend bleibt das von main; Branch-Backend-Teile müssen vorher additiv nach main.
+# Zugang nur für Nutzer mit ui_preview (Admin-Tab), alle anderen schickt die Vorschau zurück.
+on:
+  workflow_dispatch:
+
+env:
+  FRONTEND_IMAGE: ghcr.io/sebastianwien/ev-monitor-frontend
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install and test frontend
+        run: |
+          cd frontend
+          npm ci
+          npx vue-tsc --noEmit
+          npx vitest run
+
+      - name: Build frontend (Prod-Werte, gleiches Backend wie die Hauptadresse)
+        env:
+          VITE_API_BASE_URL: /api
+          VITE_REDDIT_PIXEL_ID: ${{ secrets.VITE_REDDIT_PIXEL_ID }}
+          VITE_GOOGLE_OAUTH_ENABLED: 'true'
+          VITE_GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+        run: |
+          cd frontend
+          npm run build
+
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push preview frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: nginx/Dockerfile
+          target: frontend
+          push: true
+          tags: ${{ env.FRONTEND_IMAGE }}:preview-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  deploy-preview:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    concurrency:
+      group: deploy-prod
+      cancel-in-progress: false
+    steps:
+      - name: Vorschau-Verweis auf dem Server setzen
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SHA: ${{ github.sha }}
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 2222
+          command_timeout: 20m
+          envs: GHCR_USER,GHCR_TOKEN,SHA
+          script: |
+            bash /opt/ev-monitor/ev-monitor-infra/scripts/deploy-release.sh preview "$SHA"

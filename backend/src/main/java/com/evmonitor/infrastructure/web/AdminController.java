@@ -21,6 +21,7 @@ import com.evmonitor.application.ingest.event.ImportStatsService;
 import com.evmonitor.domain.exception.ValidationException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -42,6 +43,7 @@ public class AdminController {
     private final ImportStatsService importStatsService;
     private final ConnectionHealthService connectionHealthService;
     private final RouteTypeBackfillJob routeTypeBackfillJob;
+    private final com.evmonitor.domain.UserRepository userRepository;
 
     /**
      * Triggers one-time temperature backfill for all logs with geohash but no temperature.
@@ -92,6 +94,18 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public RouteTypeBackfillJob.Status routeTypeBackfillStatus() {
         return routeTypeBackfillJob.status();
+    }
+
+    /**
+     * POST /api/admin/users/{userId}/ui-preview?enabled=true
+     * Lädt einen Nutzer zur Vorschau der neuen Oberfläche ein (oder zieht die Einladung zurück).
+     * Wirkt mit dem nächsten Login (Claim "preview" im JWT).
+     */
+    @PostMapping("/users/{userId}/ui-preview")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Void> setUiPreview(@PathVariable java.util.UUID userId, @RequestParam boolean enabled) {
+        userRepository.setUiPreview(userId, enabled);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/stats/users")

@@ -8,5 +8,7 @@ public record AdminUserRow(
         String utmSource,
         String referrerSource,
         long evlogCount,
-        String dataSources
+        String dataSources,
+        String userId,
+        boolean uiPreview
 ) {}
