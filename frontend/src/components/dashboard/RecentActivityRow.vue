@@ -34,7 +34,7 @@ defineProps<{
         </span>
         <span class="ml-auto text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ when }}</span>
       </div>
-      <div class="mt-0.5 flex items-baseline gap-1.5 flex-wrap tabular-nums text-gray-900 dark:text-gray-100">
+      <div :data-testid="`recent-${tone}-value`" class="mt-0.5 flex items-baseline gap-1.5 flex-wrap tabular-nums text-gray-900 dark:text-gray-100">
         <slot name="value" />
       </div>
       <div class="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 dark:text-gray-400">

@@ -7,7 +7,6 @@ import { normalizeCharge, relativeTimeParts, tripTimestamp, tripSpeedKeyAndArgs 
 import { tripConsumption } from '../../utils/tripCalculations'
 import { tripLine, isRoutedLine } from '../../utils/tripMap'
 import RecentActivityRow from './RecentActivityRow.vue'
-import TripClimateMarkers from '../TripClimateMarkers.vue'
 // Async: Leaflet stays out of the dashboard's initial chunk (same reasoning as the
 // heatmap) - the map only loads when a trip actually carries a location.
 const ActivityLocationMap = defineAsyncComponent(() => import('./ActivityLocationMap.vue'))
@@ -72,12 +71,6 @@ const pricelessWatt = computed<number>(() => {
   if (subs?.length) return subs.reduce((sum, sub) => sum + wattPossibleForLog(coinStore.catalog, sub), 0)
   return ch.value ? wattPossibleForLog(coinStore.catalog, ch.value) : 0
 })
-const chargeTypeLabel = computed(() => {
-  const type = ch.value?.chargingType
-  if (type === 'AC') return t('dashboard.charging_type_ac')
-  if (type === 'DC') return t('dashboard.charging_type_dc')
-  return null
-})
 /**
  * Brutto ab Netz, sobald es zusaetzlich zur Netto-Menge gemessen wurde. Die grosse
  * Zahl bleibt netto (wie im Log-Feed), der ct/kWh-Wert rechnet gegen brutto - der
@@ -96,7 +89,6 @@ const chargeMetrics = computed<string[]>(() => {
   // Nur zeigen, wenn der Preis die ganze Ladung/Ladegruppe abdeckt - eine Rate aus einem
   // Bruchteil der Energie waere ein falscher Vergleichswert.
   if (ch.value?.costPerKwh != null && ch.value.isFullyPriced) out.push(formatCostPerKwh(ch.value.costPerKwh))
-  if (ch.value?.maxPowerKw != null) out.push(`${Math.round(ch.value.maxPowerKw)} kW`)
   return out
 })
 /** SoC gain segment [before → after] as clamped percentages for the bar. */
@@ -155,7 +147,6 @@ const hasTripLocation = computed(
     !!props.trip?.tracePolyline,
 )
 
-const chargeMeta = computed<string[]>(() => [...(chargeTypeLabel.value ? [chargeTypeLabel.value] : []), ...chargeMetrics.value])
 const tripMeta = computed<string[]>(() => [...(tripRouteLabel.value ? [tripRouteLabel.value] : []), ...tripMetrics.value])
 
 /** Die Thumbnails tragen keine eigene Attribution - sie steht gesammelt unter der Liste. */
@@ -188,14 +179,14 @@ const mapCredit = computed<string | null>(() => {
         <template #value>
           <span class="text-xl font-bold leading-tight">{{ ch.kwh != null ? formatDecimal(ch.kwh, 1) : '–' }}</span>
           <span class="text-[13px] text-gray-500 dark:text-gray-400">kWh</span>
+          <!-- Kurzfassung: Energie und Preis in einer Zeile. Fehlt der Preis, steht an seiner
+               Stelle der Nachtrag. Quelle, Ladeart und Leistung stehen im Log-Feed. -->
           <template v-if="ch.costEur != null && ch.isFullyPriced">
             <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">&middot;</span>
             <span class="text-[15px] font-semibold">{{ formatCurrency(ch.costEur) }}</span>
           </template>
-        </template>
-        <template #meta>
           <span
-            v-if="chargePriceless"
+            v-else-if="chargePriceless"
             role="button"
             tabindex="0"
             data-testid="charge-price-chip"
@@ -203,16 +194,14 @@ const mapCredit = computed<string | null>(() => {
             @click.stop="emit('amend-charge')"
             @keydown.enter.stop.prevent="emit('amend-charge')"
             @keydown.space.stop.prevent="emit('amend-charge')"
-            class="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer">
+            class="self-center inline-flex items-center gap-1 px-2 py-1 rounded-sm text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer">
             <ExclamationTriangleIcon class="w-3.5 h-3.5" aria-hidden="true" />
             {{ t('priceamend.chip') }}
             <WattBadge :amount="pricelessWatt" up-to />
           </span>
-          <span v-if="chargeSource" :class="['inline-flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10px] font-medium', chargeSource.classes]">
-            <component :is="chargeSource.icon" class="w-3 h-3" aria-hidden="true" />
-            {{ chargeSource.label }}
-          </span>
-          <span v-for="m in chargeMeta" :key="'cmm' + m" class="tabular-nums whitespace-nowrap">{{ m }}</span>
+        </template>
+        <template #meta>
+          <span v-for="m in chargeMetrics" :key="'cmm' + m" class="tabular-nums whitespace-nowrap">{{ m }}</span>
         </template>
       </RecentActivityRow>
 
@@ -247,7 +236,6 @@ const mapCredit = computed<string | null>(() => {
         </template>
         <template #meta>
           <span v-for="m in tripMeta" :key="'tmm' + m" class="tabular-nums whitespace-nowrap">{{ m }}</span>
-          <TripClimateMarkers v-if="trip.climate" :climate="trip.climate" class="!justify-start !text-xs" />
         </template>
       </RecentActivityRow>
     </div>
