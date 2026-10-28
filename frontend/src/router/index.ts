@@ -17,6 +17,8 @@ declare module 'vue-router' {
         hideOnNative?: boolean
         locale?: string
         country?: CountryCode
+        /** Handy: ruhige CI-Fläche statt Wallpaper (Seiten im App-CI mit Boxen, docs/design/ci.md). */
+        plainBackground?: boolean
     }
 }
 import LandingPageView from '../views/LandingPageView.vue';
@@ -88,7 +90,8 @@ const router = createRouter({
             path: '/dashboard',
             name: 'statistics',
             component: CarContextLayout,
-            meta: { requiresAuth: true }
+            // Mobil ruhige Flaeche statt Wallpaper: das Bild wird dann gar nicht erst geladen
+            meta: { requiresAuth: true, plainBackground: true }
         },
         {
             path: '/logs',
