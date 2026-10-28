@@ -19,7 +19,7 @@ withDefaults(defineProps<{
   <div :class="card ? CI_CARD : ''">
     <h3 class="mb-3 text-[18px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('tesla.sync_info_title') }}</h3>
     <ul class="mb-3 grid gap-2">
-      <li v-for="i in 5" :key="i" class="flex items-start gap-2.5 text-[15px] text-gray-700 dark:text-gray-300">
+      <li v-for="i in 6" :key="i" class="flex items-start gap-2.5 text-[15px] text-gray-700 dark:text-gray-300">
         <CheckIcon class="mt-0.5 h-5 w-5 shrink-0 text-gray-400" aria-hidden="true" />{{ t(`tesla.sync_item${i}`) }}
       </li>
     </ul>

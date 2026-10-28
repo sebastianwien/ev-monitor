@@ -329,6 +329,7 @@ async function retryConnect() {
                 <li>{{ t('tesla.sync_item3') }}</li>
                 <li>{{ t('tesla.sync_item4') }}</li>
                 <li>{{ t('tesla.sync_item5') }}</li>
+                <li>{{ t('tesla.sync_item6') }}</li>
               </ul>
               <p class="mt-2 text-[13px] text-gray-500 dark:text-gray-400">{{ t('tesla.sync_note') }}</p>
             </div>
