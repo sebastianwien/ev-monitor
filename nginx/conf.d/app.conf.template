@@ -45,7 +45,7 @@ server {
 # HTTP - Redirect to HTTPS
 server {
     listen 80;
-    server_name ${DOMAIN} vorschau.${DOMAIN};
+    server_name ${DOMAIN};
     server_tokens off;
 
     location /.well-known/acme-challenge/ {
@@ -88,22 +88,10 @@ map $http_user_agent $is_bot {
     "~*semrushbot"              1;
 }
 
-# Vorschau der neuen Oberfläche auf vorschau.${DOMAIN}: gleicher Serverblock, gleiches Backend,
-# nur ein anderes Frontend-Release (Verweis "preview" statt "current", siehe deploy-release.sh preview)
-# und noindex. Das Zertifikat von ${DOMAIN} muss den Namen vorschau.${DOMAIN} enthalten (certbot --expand).
-map $host $frontend_root {
-    default              /srv/frontend/current;
-    "vorschau.${DOMAIN}" /srv/frontend/preview;
-}
-map $host $robots_tag {
-    default              "";
-    "vorschau.${DOMAIN}" "noindex, nofollow";
-}
-
 # HTTPS
 server {
     listen 443 ssl http2;
-    server_name ${DOMAIN} vorschau.${DOMAIN};
+    server_name ${DOMAIN};
     server_tokens off;
 
     client_max_body_size 5m;
@@ -124,10 +112,9 @@ server {
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-    add_header X-Robots-Tag $robots_tag always;
 
     # Statische Upstream-Namen statt Variablen, damit die URI-Pfade in proxy_pass gelten.
-    # Frontend: /srv/frontend/current ist auf Prod ein Symlink auf das aktive Release, /srv/frontend/preview auf die Vorschau.
+    # Frontend: /srv/frontend/current ist auf Prod ein Symlink auf das aktive Release.
 
     # Tesla Fleet API public key (required for partner registration)
     location /.well-known/appspecific/ {
@@ -137,7 +124,7 @@ server {
 
     # Android TWA verification (Digital Asset Links)
     location = /.well-known/assetlinks.json {
-        root $frontend_root;
+        root /srv/frontend/current;
         add_header Content-Type application/json;
         add_header Access-Control-Allow-Origin "*";
     }
@@ -159,7 +146,7 @@ server {
             access_log /var/log/nginx/prerender.log prerender;
             proxy_pass $prerender_url;
         }
-        root $frontend_root;
+        root /srv/frontend/current;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
@@ -176,7 +163,7 @@ server {
             access_log /var/log/nginx/prerender.log prerender;
             proxy_pass $prerender_url;
         }
-        root $frontend_root;
+        root /srv/frontend/current;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
@@ -189,7 +176,7 @@ server {
     # index.html must never be cached - stale index.html references old asset hashes
     # that no longer exist after a deploy, causing "text/html is not valid JS MIME type"
     location = /index.html {
-        root $frontend_root;
+        root /srv/frontend/current;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         expires 0;
@@ -198,13 +185,12 @@ server {
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-        add_header X-Robots-Tag $robots_tag always;
     }
 
     # Service Worker - must never be cached so browsers always get the latest version
     # Stale sw.js can reference workbox files from old deployments that no longer exist
     location = /sw.js {
-        root $frontend_root;
+        root /srv/frontend/current;
         add_header Cache-Control "no-cache, no-store, must-revalidate";
         add_header Pragma "no-cache";
         expires 0;
@@ -213,7 +199,6 @@ server {
         add_header X-Content-Type-Options "nosniff" always;
         add_header X-XSS-Protection "1; mode=block" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
-        add_header X-Robots-Tag $robots_tag always;
     }
 
     location = /sitemap.xml {
@@ -227,7 +212,7 @@ server {
     # Partner-Kachel (ev-monitor-tile.js): ungehashter Dateiname auf fremden Seiten,
     # daher kurzer Cache, damit Korrekturen binnen einer Stunde ankommen. Kein index.html-Fallback.
     location /embed/ {
-        root $frontend_root;
+        root /srv/frontend/current;
         try_files $uri =404;
         add_header Cache-Control "public, max-age=3600";
         add_header X-Content-Type-Options "nosniff" always;
@@ -236,7 +221,7 @@ server {
     # Gehashte Assets: offene Tabs mit altem index.html laden nach einem Deploy noch
     # Chunks des vorherigen Releases nach. Fehlt die Datei auch dort: 404 statt index.html.
     location /assets/ {
-        root $frontend_root;
+        root /srv/frontend/current;
         try_files $uri @previous_assets;
     }
 
@@ -246,7 +231,7 @@ server {
     }
 
     location / {
-        root $frontend_root;
+        root /srv/frontend/current;
         index index.html;
         try_files $uri $uri/ /index.html;
     }
@@ -412,6 +397,200 @@ server {
     }
 
     # Proxy OAuth2 requests to backend
+    location /oauth2/ {
+        proxy_pass http://backend_app/oauth2/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /login/oauth2/ {
+        proxy_pass http://backend_app/login/oauth2/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Vorschau der neuen Oberfläche auf preview.${DOMAIN}: eigener Serverblock mit eigenem Zertifikat,
+# gleiches Backend, nur ein anderes Frontend-Release (Verweis "preview", siehe deploy-release.sh preview).
+# Die Blöcke der Hauptadresse oben bleiben unberührt. Kein Prerender, keine Sitemap, noindex.
+# Vor dem ersten Vorschau-Deploy fehlt /srv/frontend/preview, dann antwortet die Adresse mit 404.
+server {
+    listen 443 ssl http2;
+    server_name preview.${DOMAIN};
+    server_tokens off;
+
+    client_max_body_size 5m;
+
+    ssl_certificate /etc/letsencrypt/live/preview.${DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/preview.${DOMAIN}/privkey.pem;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers 'ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384';
+    ssl_prefer_server_ciphers off;
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Frame-Options "DENY" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header X-XSS-Protection "1; mode=block" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    add_header X-Robots-Tag "noindex, nofollow" always;
+
+    root /srv/frontend/preview;
+    index index.html;
+
+    # Source-map-Scanner (URLs wie /assets/index.js:1:12345)
+    location ~ ":[0-9]" {
+        return 404;
+    }
+
+    # index.html und sw.js nie cachen (add_header vererbt nicht, deshalb alle Header wiederholt)
+    location = /index.html {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header X-Robots-Tag "noindex, nofollow" always;
+    }
+
+    location = /sw.js {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+        add_header Pragma "no-cache";
+        expires 0;
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options "DENY" always;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header X-XSS-Protection "1; mode=block" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header X-Robots-Tag "noindex, nofollow" always;
+    }
+
+    # Gehashte Assets: kein index.html-Fallback, kein vorheriges Release
+    location /assets/ {
+        try_files $uri =404;
+    }
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # API wie auf der Hauptadresse: Uploads mit großem Limit, Connectors, Wallbox, Backend, OAuth2
+    location /api/imports/xpeng/ {
+        client_max_body_size 100m;
+        proxy_pass http://backend_app/api/imports/xpeng/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 120s;
+    }
+
+    location /api/import/eu-data-act/ {
+        client_max_body_size 100m;
+        proxy_pass http://backend_app/api/import/eu-data-act/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_request_buffering off;
+        proxy_read_timeout 120s;
+    }
+
+    location ~ ^/api/eu-data-act/cars/[^/]+/connect$ {
+        proxy_pass http://backend_app;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+        proxy_read_timeout 120s;
+    }
+
+    location /api/eu-data-act/ {
+        proxy_pass http://connectors_app/api/eu-data-act/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
+    location /api/tesla/ {
+        proxy_pass http://connectors_app/api/tesla/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
+    location /api/smartcar/ {
+        proxy_pass http://connectors_app/api/smartcar/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
+    location /api/goe/ {
+        proxy_pass http://connectors_app/api/goe/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
+    location /api/polestar/ {
+        proxy_pass http://connectors_app/api/polestar/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
+    location /api/wallbox/ {
+        proxy_pass http://wallbox_app/api/wallbox/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
+    location /api/ {
+        proxy_pass http://backend_app/api/;
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_buffering off;
+    }
+
     location /oauth2/ {
         proxy_pass http://backend_app/oauth2/;
         proxy_set_header Host $http_host;

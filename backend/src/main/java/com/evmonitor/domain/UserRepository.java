@@ -117,7 +117,7 @@ public interface UserRepository {
 
     void setLeaderboardVisible(UUID userId, boolean visible);
 
-    /** Vorschau der neuen Oberfläche (vorschau.ev-monitor.net): eingeladen oder nicht, im Admin gesetzt. */
+    /** Vorschau der neuen Oberfläche (preview.ev-monitor.net): eingeladen oder nicht, im Admin gesetzt. */
     boolean isUiPreview(UUID userId);
 
     void setUiPreview(UUID userId, boolean enabled);

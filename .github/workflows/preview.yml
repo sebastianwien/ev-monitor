@@ -1,4 +1,4 @@
-name: Preview Frontend (vorschau.ev-monitor.net)
+name: Preview Frontend (preview.ev-monitor.net)
 
 # Baut nur das Frontend aus dem gewählten Branch und legt es auf dem Server als Vorschau ab:
 # releases/preview-<sha> plus Verweis "preview". Nie "current", kein Backend, kein nginx-Neubau.
