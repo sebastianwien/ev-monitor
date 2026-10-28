@@ -1,10 +1,10 @@
 /**
- * Vorschau der neuen Oberfläche auf einer eigenen Adresse (vorschau.ev-monitor.net), gleiches
+ * Vorschau der neuen Oberfläche auf einer eigenen Adresse (preview.ev-monitor.net), gleiches
  * Backend und gleiche Daten. Wer eingeladen ist, trägt im JWT den Claim "preview"; alle anderen
  * schickt die Vorschau nach dem Login auf die Hauptadresse. Login und localStorage sind je
  * Adresse getrennt, der Rückweg "Zur gewohnten App" steht auf der Seite.
  */
-export const PREVIEW_HOST_PREFIX = 'vorschau.'
+export const PREVIEW_HOST_PREFIX = 'preview.'
 
 export function isPreviewHost(hostname = typeof window === 'undefined' ? '' : window.location.hostname): boolean {
   return hostname.startsWith(PREVIEW_HOST_PREFIX)
@@ -18,9 +18,10 @@ export function mainAppOrigin(hostname = window.location.hostname, protocol = wi
 
 /**
  * Wohin die Vorschau einen Besucher schickt: null heißt bleiben. Nur Eingeloggte ohne Einladung
- * gehen auf dieselbe Seite der Hauptadresse; die Anmeldeseite bleibt erreichbar.
+ * gehen auf dieselbe Seite der Hauptadresse; die Anmeldeseite bleibt erreichbar. Admins bleiben
+ * immer, denn die Einladungen werden im Admin-Tab der Vorschau gesetzt.
  */
-export function previewRedirect(input: { hostname: string; protocol: string; authenticated: boolean; preview: boolean | undefined; path: string }): string | null {
-  if (!isPreviewHost(input.hostname) || !input.authenticated || input.preview) return null
+export function previewRedirect(input: { hostname: string; protocol: string; authenticated: boolean; preview: boolean | undefined; admin?: boolean; path: string }): string | null {
+  if (!isPreviewHost(input.hostname) || !input.authenticated || input.preview || input.admin) return null
   return `${mainAppOrigin(input.hostname, input.protocol)}${input.path}`
 }

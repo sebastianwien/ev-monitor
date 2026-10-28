@@ -553,7 +553,7 @@ router.beforeEach(async (to, _from) => {
         // Vorschau-Adresse: wer nicht eingeladen ist, landet auf derselben Seite der Hauptadresse.
         const away = previewRedirect({
             hostname: window.location.hostname, protocol: window.location.protocol,
-            authenticated: true, preview: authStore.user?.preview, path: to.fullPath,
+            authenticated: true, preview: authStore.user?.preview, admin: authStore.isAdmin, path: to.fullPath,
         });
         if (away) {
             window.location.replace(away);
