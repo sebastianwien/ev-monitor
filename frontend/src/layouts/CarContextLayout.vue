@@ -37,7 +37,7 @@ const { enabled: storyDesign } = useStoryOptIn()
 const tabPaths = computed(() => contextTabPaths(storyDesign.value))
 
 const {
-  selectedCarId, cars, carImageUrls, wltp, currentOdometerKm,
+  selectedCarId, cars, carImageUrls,
   teslaStatus, smartcarStatus,
   editingLog, priceAmendingLog, refreshLogsAndGroups, fetchPricelessCount,
 } = provideCarContext()
@@ -63,11 +63,8 @@ function shareFromHeader(car: Car) {
         v-model="selectedCarId"
         :cars="cars"
         :car-image-urls="carImageUrls"
-        :wltp="wltp"
-        :current-odometer-km="currentOdometerKm"
         :tesla-status="teslaStatus"
         :smartcar-status="smartcarStatus"
-        :show-inline-details="true"
         @share="shareFromHeader"
       />
     </div>

@@ -214,6 +214,8 @@ watch(stats, () => {
 // -- THG Banner (DE only) --
 const countryStore = useCountryStore()
 const authStore    = useAuthStore()
+/** Laeuft gerade ein Live-Ladevorgang (meldet LiveChargingCard)? */
+const liveCharging = ref(false)
 const isGerman     = computed(() => countryStore.country === 'DE')
 const thgDismissedAt = ref<number | null>(
   Number(localStorage.getItem('thg_banner_dismissed_at')) || null
@@ -531,8 +533,22 @@ onUnmounted(() => {
           <!-- Letzte Aktivität: letzter Ladevorgang + letzte Fahrt. Bewusst ÜBER dem
                Zeitraum-Filter - es ist eine filter-unabhängige Momentaufnahme des
                jüngsten Ereignisses, nicht Teil der gefilterten Auswertung darunter. -->
+          <!-- Live-Ladevorgang: blendet sich automatisch ein wenn aktive Session und User AS Live.
+               Steht ganz oben - laeuft gerade etwas, ist das die wichtigste Nachricht. -->
+          <LiveChargingCard
+            v-if="selectedCarId && authStore.canViewLiveCharging(selectedCar?.brand ?? null)"
+            :car-id="selectedCarId"
+            :car-display-name="selectedCar ? [carDisplayName(selectedCar), selectedCar.trim].filter(Boolean).join(' ') : ''"
+            :license-plate="selectedCar?.licensePlate ?? null"
+            :brand="selectedCar?.brand ?? null"
+            :avg-consumption-kwh-per100km="stats?.avgConsumptionKwhPer100km != null ? Number(stats.avgConsumptionKwhPer100km) : null"
+            class="mb-4"
+            @live="liveCharging = $event"
+          />
+
           <RecentActivityCard
             :charge="latestCharge"
+            :hide-charge="liveCharging"
             :trip="latestTrip"
             :effective-battery-capacity-kwh="selectedCar?.effectiveBatteryCapacityKwh ?? null"
             :source-info="sourceInfo"
@@ -550,17 +566,6 @@ onUnmounted(() => {
               v-model:custom-end="customEndDate" v-model:group-by="selectedGroupBy" />
             <div class="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
           </div>
-
-          <!-- Live-Ladevorgang: blendet sich automatisch ein wenn aktive Session und User AS Live -->
-          <LiveChargingCard
-            v-if="selectedCarId && authStore.canViewLiveCharging(selectedCar?.brand ?? null)"
-            :car-id="selectedCarId"
-            :car-display-name="selectedCar ? [carDisplayName(selectedCar), selectedCar.trim].filter(Boolean).join(' ') : ''"
-            :license-plate="selectedCar?.licensePlate ?? null"
-            :brand="selectedCar?.brand ?? null"
-            :avg-consumption-kwh-per100km="stats?.avgConsumptionKwhPer100km != null ? Number(stats.avgConsumptionKwhPer100km) : null"
-            class="mb-6"
-          />
 
           <div v-if="error" class="mb-4 p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 text-red-700 dark:text-red-300 rounded-sm">{{ error }}</div>
 
