@@ -3,7 +3,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, ChevronRightIcon, ChevronDownIcon, ArrowLeftIcon, ArrowTopRightOnSquareIcon, CheckCircleIcon, ExclamationCircleIcon } from '@heroicons/vue/24/outline'
 import LazyCollapse from '../shared/LazyCollapse.vue'
-import { CI_BTN_PRIMARY, CI_INPUT, CI_LABEL, CI_CARD, CI_NOTE } from '../../utils/ciClasses'
+import { CI_BTN_PRIMARY, CI_INPUT, CI_LABEL, CI_CARD, CI_NOTE, CI_BADGE_BETA } from '../../utils/ciClasses'
 import vwEudaSyncService, {
   eudaBrandOf,
   eudaErrorCode,
@@ -169,7 +169,7 @@ onMounted(load)
         <h3 class="text-[18px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('eu_data_act_sync.title') }}</h3>
         <p v-if="!connection" class="text-sm text-gray-600 dark:text-gray-400">{{ t('eu_data_act_sync.desc') }}</p>
       </div>
-      <span class="ml-auto shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11.5px] font-bold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">Beta</span>
+      <span class="ml-auto shrink-0" :class="CI_BADGE_BETA">Beta</span>
     </div>
 
       <CarSelectDropdown v-if="cars.length > 1" v-model="selectedCarId" :cars="cars" />

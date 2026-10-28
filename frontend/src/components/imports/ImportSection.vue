@@ -2,6 +2,7 @@
 import { useId, type Component } from 'vue'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import LazyCollapse from '../shared/LazyCollapse.vue'
+import { CI_BADGE_BETA } from '../../utils/ciClasses'
 
 /**
  * Eine Sektion auf /imports: Kopfzeile zum Auf- und Zuklappen, darunter der Weg (docs/design/ci.md, Collapse).
@@ -36,7 +37,7 @@ const bodyId = useId()
       <span class="min-w-0 flex-1">
         <span class="flex flex-wrap items-center gap-2">
           <span class="text-[15px] font-semibold text-gray-900 dark:text-gray-100">{{ title }}</span>
-          <span v-if="badge" class="rounded-full bg-gray-100 px-2 py-0.5 text-[11.5px] font-bold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">{{ badge }}</span>
+          <span v-if="badge" :class="CI_BADGE_BETA">{{ badge }}</span>
         </span>
         <span v-if="status" class="mt-0.5 block text-[13px] font-semibold text-green-700 dark:text-green-400">{{ status }}</span>
         <span v-else-if="subtitle" class="mt-0.5 block text-[13px] text-gray-500 dark:text-gray-400">{{ subtitle }}</span>

@@ -3,7 +3,7 @@ import UploadSampleNotice from './UploadSampleNotice.vue'
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowUpTrayIcon, ArrowPathIcon, CheckCircleIcon, ExclamationCircleIcon, BoltIcon } from '@heroicons/vue/24/outline'
-import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_LABEL, CI_CARD } from '../../utils/ciClasses'
+import { CI_BTN_PRIMARY, CI_BTN_SECONDARY, CI_LABEL, CI_CARD, CI_BADGE_BETA } from '../../utils/ciClasses'
 import { vwEudaImportService, type VwEudaPreviewResult, type VwEudaImportResult } from '../../api/vwEudaImportService'
 import CarSelectDropdown from '../car/CarSelectDropdown.vue'
 import type { Car } from '../../api/carService'
@@ -132,7 +132,7 @@ function formatKwh(v: number | null) {
         <p class="text-sm text-gray-500 dark:text-gray-400">
           {{ t('eu_data_act.preview_vin') }}: <span class="font-mono font-medium text-gray-800 dark:text-gray-200">{{ preview.vin }}</span>
         </p>
-        <span class="rounded-full bg-gray-100 px-2 py-0.5 text-[11.5px] font-bold uppercase tracking-wide text-gray-600 dark:bg-gray-800 dark:text-gray-300">
+        <span :class="CI_BADGE_BETA">
           Beta
         </span>
       </div>

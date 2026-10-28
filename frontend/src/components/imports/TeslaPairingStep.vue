@@ -33,11 +33,8 @@ const vehicleMissing = computed(() => isTeslaVehicleMissing(props.status))
 const authStore = useAuthStore()
 const unreliableOpen = ref(false)
 
-// Rollenabhaengige Kennzeichnung: Beta-Tester helfen bei der Trip-Erkennung,
 // Founder behalten Live-Sync dauerhaft gratis.
 const roleBadge = computed(() => {
-  if (authStore.isAdmin) return 'Beta · Admin'
-  if (authStore.isBetaTester) return 'Beta'
   if (authStore.isTeslaFounder) return t('tesla.pairing_founder_badge')
   return ''
 })
