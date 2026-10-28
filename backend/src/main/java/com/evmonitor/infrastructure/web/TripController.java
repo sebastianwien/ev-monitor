@@ -79,6 +79,19 @@ public class TripController {
         }
     }
 
+    @PostMapping("/{id}/restore")
+    public ResponseEntity<Void> restoreTrip(
+            @PathVariable UUID id,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            tripService.restoreTrip(id, principal.getUser());
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @PostMapping("/{id}/merge")
     public ResponseEntity<?> mergeTrip(
             @PathVariable UUID id,

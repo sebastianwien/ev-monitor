@@ -1,18 +1,22 @@
 package com.evmonitor.application.user;
 
+import com.evmonitor.infrastructure.persistence.JpaEmpAliasRepository;
 import com.evmonitor.infrastructure.persistence.JpaEmpRepository;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class EmpCatalogTest {
 
     private final JpaEmpRepository repository = mock(JpaEmpRepository.class);
-    private final EmpCatalog catalog = new EmpCatalog(repository);
+    private final JpaEmpAliasRepository aliases = mock(JpaEmpAliasRepository.class);
+    private final EmpCatalog catalog = new EmpCatalog(repository, aliases);
 
     @Test
     void findetDenKatalognamenUnabhaengigVonSchreibweiseUndLeerraum() {
@@ -23,10 +27,20 @@ class EmpCatalogTest {
     }
 
     @Test
+    void kartennameAusDerAppFindetDenAnbieterUeberDenAlias() {
+        when(repository.findAllNamesSorted()).thenReturn(List.of("EnBW", "IONITY"));
+        when(aliases.findEmpNameByAlias(anyString())).thenReturn(Optional.empty());
+        when(aliases.findEmpNameByAlias("enbw mobility+")).thenReturn(Optional.of("EnBW"));
+
+        assertThat(catalog.resolve(" EnBW mobility+ ")).contains("EnBW");
+    }
+
+    @Test
     void unbekannteOderLeereNamenBleibenOhneVerweis() {
         when(repository.findAllNamesSorted()).thenReturn(List.of("EnBW"));
+        when(aliases.findEmpNameByAlias(anyString())).thenReturn(Optional.empty());
 
-        assertThat(catalog.resolve("EnBW mobility+")).isEmpty();
+        assertThat(catalog.resolve("MeineKarte")).isEmpty();
         assertThat(catalog.resolve("")).isEmpty();
         assertThat(catalog.resolve(null)).isEmpty();
     }

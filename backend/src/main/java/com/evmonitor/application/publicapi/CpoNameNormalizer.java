@@ -1,6 +1,7 @@
 package com.evmonitor.application.publicapi;
 
 import com.evmonitor.domain.ChargingProviderTariffRepository;
+import com.evmonitor.domain.EvLog;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -44,5 +45,18 @@ public class CpoNameNormalizer {
         String trimmed = input.trim();
         String canonical = lookup.get(trimmed.toLowerCase());
         return canonical != null ? canonical : trimmed;
+    }
+
+    /**
+     * The catalog operator behind a logged name, or null when the name is no known operator
+     * ("Zuhause", "<invalid>", free text). Tesla's billing enrichment appends the site to the
+     * marker ("Tesla Supercharger Graz, Austria") - the operator is still the Supercharger.
+     */
+    public String canonicalOperator(String input) {
+        if (input == null || input.isBlank()) return null;
+        String key = input.trim().toLowerCase();
+        String tesla = EvLog.CPO_TESLA_SUPERCHARGER.toLowerCase();
+        if (key.startsWith(tesla + " ")) key = tesla;
+        return lookup.get(key);
     }
 }

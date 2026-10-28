@@ -44,6 +44,9 @@ public class EvLogEntity {
     @Column(name = "price_per_kwh", precision = 6, scale = 4)
     private BigDecimal pricePerKwh;
 
+    @Column(name = "price_unknown", nullable = false)
+    private boolean priceUnknown;
+
     @Column(name = "charge_duration_minutes")
     private Integer chargeDurationMinutes;
 

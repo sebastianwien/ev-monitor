@@ -22,6 +22,14 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
      */
     Optional<EvTrip> findByExternalId(UUID externalId);
 
+    /**
+     * Steckt die Fahrt in einer aktiven Fahrt desselben Autos? Zusammenführen schreibt die IDs
+     * nach raw_payload.merged_from, verschachtelt auch in "previous"/"current".
+     */
+    @Query(value = "SELECT EXISTS (SELECT 1 FROM ev_trip WHERE car_id = :carId AND deleted_at IS NULL "
+            + "AND raw_payload::text LIKE CONCAT('%', :tripId, '%'))", nativeQuery = true)
+    boolean isMergedIntoActiveTrip(@Param("carId") UUID carId, @Param("tripId") String tripId);
+
     /** Duplicate guard for user uploads: any live, non-deleted trip of this car starting at this instant. */
     /** Dedupe für Public API und Manual Import: sieht absichtlich auch soft-gelöschte Trips. */
     boolean existsByCarIdAndTripStartedAt(UUID carId, OffsetDateTime tripStartedAt);

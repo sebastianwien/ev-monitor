@@ -26,6 +26,8 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
     @Query("SELECT e FROM EvLogEntity e WHERE e.carId = :carId AND e.costEur IS NULL ORDER BY e.loggedAt DESC")
     List<EvLogEntity> findByCarIdAndCostEurIsNullOrderByLoggedAtDesc(@Param("carId") UUID carId);
 
+    List<EvLogEntity> findByCarIdAndCostEurIsNullAndPriceUnknownFalseOrderByLoggedAtDesc(@Param("carId") UUID carId);
+
     @Query("""
         SELECT e FROM EvLogEntity e
         WHERE e.carId = :carId
@@ -301,6 +303,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
         WHERE c.userId = :userId
           AND e.geohash = :geohash
           AND e.costEur IS NULL
+          AND e.priceUnknown = false
         ORDER BY e.loggedAt DESC
         """)
     List<EvLogEntity> findPricelessByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash);
@@ -313,6 +316,7 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
         SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
         WHERE c.userId = :userId
           AND e.costEur IS NULL
+          AND e.priceUnknown = false
           AND (e.publicCharging IS NULL OR e.publicCharging = false)
         ORDER BY e.loggedAt DESC
         """)

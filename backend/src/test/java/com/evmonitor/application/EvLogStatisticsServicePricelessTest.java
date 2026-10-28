@@ -49,9 +49,9 @@ class EvLogStatisticsServicePricelessTest {
         // Filtern (cost_eur IS NULL) + Sortierung uebernimmt der Repo-Query; der Service reicht durch.
         EvLog freeNew = log(null, LocalDateTime.parse("2026-03-01T10:00"));
         EvLog freeOld = log(null, LocalDateTime.parse("2026-02-01T10:00"));
-        when(evLogRepository.findPricelessByCarId(carId)).thenReturn(List.of(freeNew, freeOld));
+        when(evLogRepository.findPricelessByCarId(carId, false)).thenReturn(List.of(freeNew, freeOld));
 
-        List<EvLogResponse> res = service.getPricelessLogs(carId, userId);
+        List<EvLogResponse> res = service.getPricelessLogs(carId, userId, false);
 
         assertEquals(2, res.size());
         assertNull(res.get(0).costEur());
@@ -65,7 +65,7 @@ class EvLogStatisticsServicePricelessTest {
         when(car.isOwnedBy(userId)).thenReturn(false); // ein anderer User
         when(carRepository.findById(carId)).thenReturn(Optional.of(car));
 
-        assertThrows(NotFoundException.class, () -> service.getPricelessLogs(carId, userId));
+        assertThrows(NotFoundException.class, () -> service.getPricelessLogs(carId, userId, false));
     }
 
     private EvLog log(BigDecimal costEur, LocalDateTime loggedAt) {

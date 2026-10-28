@@ -51,7 +51,7 @@ public class EvLogStatisticsService {
 
     /**
      * Returns all logs for a car where the calculated consumption is implausible.
-     * Uses the same calculation logic as getStatistics() — no duplicate computation.
+     * Uses the same calculation logic as getStatistics() - no duplicate computation.
      */
     public List<EvLogResponse> getImplausibleLogs(UUID carId, UUID userId) {
         Car car = carRepository.findById(carId)
@@ -83,8 +83,9 @@ public class EvLogStatisticsService {
      * Server-side over ALL logs (not just the loaded feed page), so old cost-less charges - which
      * would otherwise sit invisible far down the paginated feed - stay findable for the "add price"
      * banner. Genuinely free charges (cost 0) are excluded; only truly missing prices show up.
+     * Charges the user declared "price unknown" only come with includeUnknown (data quality, not the banner).
      */
-    public List<EvLogResponse> getPricelessLogs(UUID carId, UUID userId) {
+    public List<EvLogResponse> getPricelessLogs(UUID carId, UUID userId, boolean includeUnknown) {
         Car car = carRepository.findById(carId)
                 .orElseThrow(() -> NotFoundException.forEntity("Car", carId));
         if (!car.isOwnedBy(userId)) {
@@ -93,7 +94,7 @@ public class EvLogStatisticsService {
 
         // Targeted query (cost_eur IS NULL, newest first) instead of loading every log into memory:
         // unlike getImplausibleLogs this needs no consumption context, so the DB does the filtering.
-        return evLogRepository.findPricelessByCarId(carId).stream()
+        return evLogRepository.findPricelessByCarId(carId, includeUnknown).stream()
                 .map(EvLogResponse::fromDomain)
                 .toList();
     }
@@ -135,7 +136,7 @@ public class EvLogStatisticsService {
                 .orElseThrow(() -> NotFoundException.forEntity("User", userId));
         boolean isSeedUser = user.isSeedData();
 
-        // Load all logs once, sorted — needed as full context for consumption calculations
+        // Load all logs once, sorted - needed as full context for consumption calculations
         List<EvLog> allLogsForCar = evLogRepository.findAllByCarId(carId).stream()
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .toList();
@@ -157,7 +158,7 @@ public class EvLogStatisticsService {
             return createEmptyStatisticsWithFixedCostAndDistance(fixedCosts, distanceFromTrips);
         }
 
-        // Compute per-log consumption once — used for both chart data and overall average
+        // Compute per-log consumption once - used for both chart data and overall average
         Map<UUID, ConsumptionResult> consumptionByLog = new LinkedHashMap<>(car.getNominalNetCapacityKwh() != null
                 ? calculationService.calculateConsumptionPerLog(allLogsForCar, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car))
                 : Map.of());
@@ -193,7 +194,7 @@ public class EvLogStatisticsService {
 
         BigDecimal totalCostEur = energyCostEur.add(fixedCosts.net());
 
-        // For avgCostPerKwh: normalize AT_VEHICLE logs to AT_CHARGER equivalent — because cost_eur
+        // For avgCostPerKwh: normalize AT_VEHICLE logs to AT_CHARGER equivalent - because cost_eur
         // reflects what was billed at the charger, not what entered the battery.
         // Skip logs without any energy data to avoid NPE in gridSideKwhEstimate.
         BigDecimal totalKwhForCost = logs.stream()
@@ -228,7 +229,7 @@ public class EvLogStatisticsService {
         List<EvLogStatisticsResponse.ChargeDataPoint> chargesOverTime =
                 groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", consumptionByLog);
 
-        // Total distance and avg consumption — SoC-based from pre-computed consumptionByLog
+        // Total distance and avg consumption - SoC-based from pre-computed consumptionByLog
         // Bug-fix: iterate consumptionByLog.entrySet() with isLoggedWithin filter so time-filtered
         // views don't include consumption data from outside the selected period.
         Map<UUID, EvLog> logById = allLogsForCar.stream()
@@ -269,10 +270,10 @@ public class EvLogStatisticsService {
             }
         }
 
-        // Seasonal consumption — uses ALL logs (not time-filtered) for best signal
+        // Seasonal consumption - uses ALL logs (not time-filtered) for best signal
         SeasonalConsumptionResult seasonal = calculateSeasonalConsumption(List.of(car), isSeedUser);
 
-        // Peer benchmark — only when car has a vehicle spec linked
+        // Peer benchmark - only when car has a vehicle spec linked
         EvLogStatisticsResponse.PeerBenchmark peerBenchmark = null;
         if (car.getVehicleSpecificationId() != null) {
             peerBenchmark = buildPeerBenchmark(car, allLogsForCar, logs, startDate, endDate);
@@ -284,8 +285,10 @@ public class EvLogStatisticsService {
         // Location split
         EvLogStatisticsResponse.LocationSplit locationSplit = buildLocationSplit(logs);
 
-        // Charging efficiency split — only logs with both kwhCharged and kwhAtVehicle
-        EvLogStatisticsResponse.ChargingEfficiencySplit efficiencySplit = buildChargingEfficiencySplit(logs);
+        // Charging efficiency split - Netz/Akku aus Ladungen mit beiden Werten, Ladeverlust aller Ladungen
+        VehicleSpecification spec = car.getVehicleSpecificationId() == null ? null
+                : vehicleSpecificationRepository.findById(car.getVehicleSpecificationId()).orElse(null);
+        EvLogStatisticsResponse.ChargingEfficiencySplit efficiencySplit = buildChargingEfficiencySplit(logs, spec);
 
         return new EvLogStatisticsResponse(
                 totalKwhCharged,
@@ -316,9 +319,9 @@ public class EvLogStatisticsService {
     }
 
     private EvLogStatisticsResponse createEmptyStatisticsWithFixedCostAndDistance(FixedCostTotals fixedCosts, BigDecimal distanceKm) {
-        var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        var emptyTypeSplit = new EvLogStatisticsResponse.ChargingTypeSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, null, null);
         var emptyLocSplit = new EvLogStatisticsResponse.LocationSplit(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
-        var emptyEffSplit = new EvLogStatisticsResponse.ChargingEfficiencySplit(BigDecimal.ZERO, BigDecimal.ZERO, 0, 0);
+        var emptyEffSplit = new EvLogStatisticsResponse.ChargingEfficiencySplit(BigDecimal.ZERO, BigDecimal.ZERO, 0, 0, BigDecimal.ZERO, 0);
         return new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, fixedCosts.cost(), fixedCosts.income(), fixedCosts.net(),
                 BigDecimal.ZERO,
@@ -815,7 +818,7 @@ public class EvLogStatisticsService {
 
                     LocalDateTime periodTimestamp = periodLogs.get(0).getLoggedAt();
                     return new EvLogStatisticsResponse.ChargeDataPoint(
-                            periodTimestamp, totalCost, totalKwh, periodDistance, periodConsumption
+                            periodTimestamp, totalCost, totalKwh, periodDistance, periodConsumption, periodLogs.size()
                     );
                 })
                 .toList();
@@ -874,17 +877,32 @@ public class EvLogStatisticsService {
         BigDecimal ac = BigDecimal.ZERO;
         BigDecimal dc = BigDecimal.ZERO;
         BigDecimal unknown = BigDecimal.ZERO;
+        // Preis je kWh nur aus Ladungen mit Preis: eine preislose Ladung wuerde den Schnitt sonst druecken
+        BigDecimal acCost = BigDecimal.ZERO, acPricedKwh = BigDecimal.ZERO;
+        BigDecimal dcCost = BigDecimal.ZERO, dcPricedKwh = BigDecimal.ZERO;
         for (EvLog log : logs) {
             BigDecimal kwh = log.getKwhCharged() != null ? log.getKwhCharged() : log.getKwhAtVehicle();
             if (kwh == null) continue;
             ChargingType type = log.getChargingType() != null ? log.getChargingType() : ChargingType.UNKNOWN;
+            boolean priced = log.getCostEur() != null && kwh.signum() > 0;
             switch (type) {
-                case AC -> ac = ac.add(kwh);
-                case DC -> dc = dc.add(kwh);
+                case AC -> {
+                    ac = ac.add(kwh);
+                    if (priced) { acCost = acCost.add(log.getCostEur()); acPricedKwh = acPricedKwh.add(kwh); }
+                }
+                case DC -> {
+                    dc = dc.add(kwh);
+                    if (priced) { dcCost = dcCost.add(log.getCostEur()); dcPricedKwh = dcPricedKwh.add(kwh); }
+                }
                 default -> unknown = unknown.add(kwh);
             }
         }
-        return new EvLogStatisticsResponse.ChargingTypeSplit(ac, dc, unknown);
+        return new EvLogStatisticsResponse.ChargingTypeSplit(ac, dc, unknown,
+                perKwh(acCost, acPricedKwh), perKwh(dcCost, dcPricedKwh));
+    }
+
+    private static BigDecimal perKwh(BigDecimal cost, BigDecimal kwh) {
+        return kwh.signum() > 0 ? cost.divide(kwh, 2, RoundingMode.HALF_UP) : null;
     }
 
     /**
@@ -910,23 +928,41 @@ public class EvLogStatisticsService {
         return new EvLogStatisticsResponse.LocationSplit(publicKwh, privateKwh, unknownKwh);
     }
 
-    private EvLogStatisticsResponse.ChargingEfficiencySplit buildChargingEfficiencySplit(List<EvLog> logs) {
+    /**
+     * Netz- und Akku-kWh der Ladungen mit beiden Werten, dazu der Ladeverlust aller Ladungen:
+     * gemessen als Netz minus Akku (negativ zählt als 0), sonst hochgerechnet mit dem Wirkungsgrad
+     * des Modells oder dem globalen Wert ({@link ConsumptionCalculationService#lossChargingEfficiency}).
+     */
+    private EvLogStatisticsResponse.ChargingEfficiencySplit buildChargingEfficiencySplit(List<EvLog> logs, VehicleSpecification spec) {
         BigDecimal gridKwh = BigDecimal.ZERO;
         BigDecimal vehicleKwh = BigDecimal.ZERO;
+        BigDecimal lossKwh = BigDecimal.ZERO;
         int covered = 0;
+        int estimated = 0;
         for (EvLog log : logs) {
-            if (log.getKwhCharged() != null && log.getKwhAtVehicle() != null) {
-                gridKwh = gridKwh.add(log.getKwhCharged());
-                vehicleKwh = vehicleKwh.add(log.getKwhAtVehicle());
+            BigDecimal grid = log.getKwhCharged();
+            BigDecimal vehicle = log.getKwhAtVehicle();
+            if (grid != null && vehicle != null) {
+                gridKwh = gridKwh.add(grid);
+                vehicleKwh = vehicleKwh.add(vehicle);
+                lossKwh = lossKwh.add(grid.subtract(vehicle).max(BigDecimal.ZERO));
                 covered++;
+            } else if (grid != null || vehicle != null) {
+                BigDecimal eff = BigDecimal.valueOf(calculationService.lossChargingEfficiency(log, spec));
+                BigDecimal loss = grid != null
+                        ? grid.multiply(BigDecimal.ONE.subtract(eff))
+                        : vehicle.divide(eff, 4, RoundingMode.HALF_UP).subtract(vehicle);
+                lossKwh = lossKwh.add(loss);
+                estimated++;
             }
         }
-        return new EvLogStatisticsResponse.ChargingEfficiencySplit(gridKwh, vehicleKwh, covered, logs.size());
+        return new EvLogStatisticsResponse.ChargingEfficiencySplit(
+                gridKwh, vehicleKwh, covered, logs.size(), lossKwh.setScale(2, RoundingMode.HALF_UP), estimated);
     }
 
     public PeerModelComparisonResponse getPeerModelComparison(Car userCar, User user) {
         if (userCar.getVehicleSpecificationId() == null) {
-            return new PeerModelComparisonResponse(List.of());
+            return new PeerModelComparisonResponse(List.of(), null, null);
         }
 
         VehicleSpecification userSpec = vehicleSpecificationRepository.findById(userCar.getVehicleSpecificationId())
@@ -937,6 +973,7 @@ public class EvLogStatisticsService {
                 .findByCarModelOrderByBatteryCapacityKwhAsc(userSpec.getCarModel());
 
         List<PeerModelComparisonItem> items = new ArrayList<>();
+        List<Car> allPeerCars = new ArrayList<>();
 
         // 2. Für jede spec: aggregiere logs
         for (VehicleSpecification spec : allSpecsOfModel) {
@@ -944,6 +981,7 @@ public class EvLogStatisticsService {
             List<Car> peerCars = carRepository.findAllByVehicleSpecificationId(spec.getId()).stream()
                     .filter(c -> !c.isOwnedBy(user.getId()))
                     .toList();
+            allPeerCars.addAll(peerCars);
 
             // Peer-Metriken
             BigDecimal peerConsumption = null;
@@ -1016,7 +1054,34 @@ public class EvLogStatisticsService {
             ));
         }
 
-        return new PeerModelComparisonResponse(items);
+        return new PeerModelComparisonResponse(items, allVariantsMetrics(allPeerCars), allVariantsWinter(allPeerCars));
+    }
+
+    /** Ab so vielen Winterladungen von so vielen Fahrern ersetzt ihr Winterwert im Story-Dashboard den fehlenden eigenen. */
+    private static final int MIN_PEER_WINTER_LOGS = 10;
+    private static final int MIN_PEER_WINTER_CARS = 5;
+
+    private BigDecimal allVariantsWinter(List<Car> peerCars) {
+        if (peerCars.size() < MIN_PEER_WINTER_CARS) return null;
+        // Wintermonate wie in calculateSeasonalConsumption
+        long winterCars = evLogRepository.findAllByCarIds(peerCars.stream().map(Car::getId).toList()).stream()
+                .filter(EvLog::isIncludeInStatistics)
+                .filter(l -> { int m = l.getLoggedAt().getMonthValue(); return m >= 11 || m <= 2; })
+                .map(EvLog::getCarId)
+                .distinct()
+                .count();
+        if (winterCars < MIN_PEER_WINTER_CARS) return null;
+        SeasonalConsumptionResult seasonal = calculateSeasonalConsumption(peerCars, false);
+        return seasonal.winterLogCount() >= MIN_PEER_WINTER_LOGS ? seasonal.winterConsumptionKwhPer100km() : null;
+    }
+
+    /** Dieselben Formeln wie je Variante, nur über die Autos aller Varianten des Modells. */
+    private PeerMetrics allVariantsMetrics(List<Car> peerCars) {
+        if (peerCars.isEmpty()) return new PeerMetrics(null, null, 0);
+        return new PeerMetrics(
+                calculateCommunityAvgConsumption(peerCars, false).value(),
+                calculateAvgCostPerKwhForCars(peerCars),
+                peerCars.size());
     }
 
     private BigDecimal calculateAvgCostPerKwhForCars(List<Car> cars) {

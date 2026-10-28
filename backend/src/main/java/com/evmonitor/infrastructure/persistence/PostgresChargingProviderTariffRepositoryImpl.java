@@ -6,10 +6,12 @@ import com.evmonitor.domain.ChargingType;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.TreeSet;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -22,6 +24,46 @@ public class PostgresChargingProviderTariffRepositoryImpl implements ChargingPro
     @Override
     public List<ChargingProviderTariff> findAllCurrentTariffs() {
         return jpaRepository.findAllCurrentTariffs().stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<ChargingProviderTariff> findValidOn(LocalDate day) {
+        return jpaRepository.findValidOn(day).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<ChargingProviderTariff> findAll() {
+        return jpaRepository.findAll().stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public Optional<ChargingProviderTariff> findById(UUID id) {
+        return jpaRepository.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public ChargingProviderTariff save(ChargingProviderTariff t) {
+        ChargingProviderTariffEntity e = new ChargingProviderTariffEntity();
+        e.setId(t.getId() != null ? t.getId() : UUID.randomUUID());
+        e.setEmpName(t.getEmpName());
+        e.setTariffVariant(t.getTariffVariant());
+        e.setCpoName(t.getCpoName());
+        e.setPriceTier(t.getPriceTier());
+        e.setChargingType(t.getChargingType().name());
+        e.setPricePerKwh(t.getPricePerKwh());
+        e.setSessionFeeEur(t.getSessionFeeEur());
+        e.setMonthlyFeeEur(t.getMonthlyFeeEur());
+        e.setBlockingFeePerMin(t.getBlockingFeePerMin());
+        e.setBlockingFeeAfterMin(t.getBlockingFeeAfterMin());
+        e.setDynamicPricing(t.isDynamicPricing());
+        e.setValidFrom(t.getValidFrom());
+        e.setValidUntil(t.getValidUntil());
+        e.setSourceUrl(t.getSourceUrl());
+        e.setLastVerifiedAt(t.getLastVerifiedAt());
+        e.setAppliesElsewhere(t.isAppliesElsewhere());
+        e.setMinPowerKw(t.getMinPowerKw());
+        e.setBlockingFeeCapEur(t.getBlockingFeeCapEur());
+        return toDomain(jpaRepository.save(e));
     }
 
     @Override
@@ -84,23 +126,26 @@ public class PostgresChargingProviderTariffRepositoryImpl implements ChargingPro
     }
 
     private ChargingProviderTariff toDomain(ChargingProviderTariffEntity e) {
-        return new ChargingProviderTariff(
-                e.getId(),
-                e.getEmpName(),
-                e.getTariffVariant(),
-                e.getCpoName(),
-                e.getPriceTier(),
-                ChargingType.valueOf(e.getChargingType()),
-                e.getPricePerKwh(),
-                e.getSessionFeeEur(),
-                e.getMonthlyFeeEur(),
-                e.getBlockingFeePerMin(),
-                e.getBlockingFeeAfterMin(),
-                e.isDynamicPricing(),
-                e.getValidFrom(),
-                e.getValidUntil(),
-                e.getSourceUrl(),
-                e.getLastVerifiedAt()
-        );
+        return ChargingProviderTariff.builder()
+                .id(e.getId())
+                .empName(e.getEmpName())
+                .tariffVariant(e.getTariffVariant())
+                .cpoName(e.getCpoName())
+                .priceTier(e.getPriceTier())
+                .chargingType(ChargingType.valueOf(e.getChargingType()))
+                .pricePerKwh(e.getPricePerKwh())
+                .sessionFeeEur(e.getSessionFeeEur())
+                .monthlyFeeEur(e.getMonthlyFeeEur())
+                .blockingFeePerMin(e.getBlockingFeePerMin())
+                .blockingFeeAfterMin(e.getBlockingFeeAfterMin())
+                .dynamicPricing(e.isDynamicPricing())
+                .validFrom(e.getValidFrom())
+                .validUntil(e.getValidUntil())
+                .sourceUrl(e.getSourceUrl())
+                .lastVerifiedAt(e.getLastVerifiedAt())
+                .appliesElsewhere(e.isAppliesElsewhere())
+                .minPowerKw(e.getMinPowerKw())
+                .blockingFeeCapEur(e.getBlockingFeeCapEur())
+                .build();
     }
 }

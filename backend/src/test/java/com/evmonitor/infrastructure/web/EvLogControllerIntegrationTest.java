@@ -353,6 +353,7 @@ class EvLogControllerIntegrationTest extends AbstractIntegrationTest {
                 "Heim-Lade-Periode soll distanceKm=0 zurueckgeben, nicht null");
         assertEquals(0, day1Period.distanceKm().intValue(),
                 "Periode mit identischem Odometer-Stand muss 0 km zeigen");
+        assertEquals(2, day1Period.charges(), "Ladungen je Periode, Basis der Meilensteine");
         assertNull(day1Period.consumptionKwhPer100km(),
                 "Ohne gefahrene Strecke ist kein Verbrauch berechenbar");
     }

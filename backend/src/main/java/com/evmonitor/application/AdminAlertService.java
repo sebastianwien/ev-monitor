@@ -243,4 +243,25 @@ public class AdminAlertService {
             case NONE -> "Kostenlos";
         };
     }
+
+    /**
+     * Tarif-Crawler: Vorschläge, die ein Admin entscheiden muss, und Quellen, die zweimal in Folge
+     * nicht lesbar waren. Geht an {@code app.alert.email}; leer = keine Mail. Wirft nie.
+     */
+    public void sendTariffCrawlAlert(java.util.List<String> lines) {
+        if (alertEmail == null || alertEmail.isBlank() || lines.isEmpty()) return;
+        try {
+            SimpleMailMessage msg = new SimpleMailMessage();
+            msg.setFrom(fromAddress);
+            msg.setTo(alertEmail);
+            msg.setSubject("EV Monitor - Ladekarten-Tarife: " + lines.size() + (lines.size() == 1 ? " Hinweis" : " Hinweise"));
+            msg.setText("Der Tarif-Crawler hat etwas gefunden, das eine Entscheidung braucht.\n\n"
+                    + String.join("\n", lines)
+                    + "\n\nAdmin-Tab: " + baseUrl + "/admin?tab=ladekarten");
+            mailSender.send(msg);
+            log.info("AdminAlert: Tarif-Crawler-Hinweis mit {} Zeilen gesendet", lines.size());
+        } catch (Exception e) {
+            log.error("AdminAlert: Tarif-Crawler-Mail konnte nicht gesendet werden", e);
+        }
+    }
 }
