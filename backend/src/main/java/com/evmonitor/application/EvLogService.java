@@ -296,6 +296,12 @@ public class EvLogService {
                 .count();
     }
 
+    /** Logs priced by a location batch, and the Watt it earned (capped per call, see BATCH_REWARD_CAP). */
+    public record TariffApplied(int priced, int coinsAwarded) {}
+
+    /** More than this many priced logs per batch earn nothing extra - keeps bulk backfills from becoming a Watt farm. */
+    static final int BATCH_REWARD_CAP = 20;
+
     /**
      * Retroactively prices every cost-less log of this user at this location with the given
      * charging card. Existing costs are never touched - the user's own numbers always win.
@@ -305,12 +311,6 @@ public class EvLogService {
      * previous log that already carries a providerId, and an import produces none.
      */
     @Transactional
-    /** Logs priced by a location batch, and the Watt it earned (capped per call, see BATCH_REWARD_CAP). */
-    public record TariffApplied(int priced, int coinsAwarded) {}
-
-    /** More than this many priced logs per batch earn nothing extra - keeps bulk backfills from becoming a Watt farm. */
-    static final int BATCH_REWARD_CAP = 20;
-
     public TariffApplied applyTariffAtLocation(UUID userId, String geohash, UUID providerId) {
         if (!chargingProviderRepository.existsByIdAndUserIdAndDeletedAtIsNull(providerId, userId)) {
             throw new ValidationException("CHARGING_PROVIDER_INVALID", "Ladekarte gehört nicht zu deinem Konto.");
@@ -744,6 +744,29 @@ public class EvLogService {
                 .map(log -> EvLogResponse.fromDomain(log, consumptionByLog.get(log.getId()), distanceByLogId.get(log.getId()),
                         perLog.absorbedLogIds().contains(log.getId()) ? Boolean.TRUE : null))
                 .toList();
+    }
+
+    /**
+     * "Weiß ich nicht mehr": der Nutzer erklärt den fehlenden Preis einer eigenen Ladung für
+     * unbekannt, danach fragt keine Stelle mehr danach. Ein späterer Preis hebt das wieder auf.
+     * Idempotent; 409, wenn die Ladung einen Preis hat.
+     */
+    @Transactional
+    public EvLogResponse markPriceUnknown(UUID id, UUID userId) {
+        EvLog log = evLogRepository.findById(id)
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
+        Car car = carRepository.findById(log.getCarId())
+                .orElseThrow(() -> NotFoundException.forEntity("EvLog", id));
+        if (!car.isOwnedBy(userId)) {
+            throw NotFoundException.forEntity("EvLog", id);
+        }
+        if (log.getCostEur() != null) {
+            throw new ConflictException("NO_PRICE_GAP", "Diese Ladung hat schon einen Preis.");
+        }
+        if (log.isPriceUnknown()) {
+            return EvLogResponse.fromDomain(log);
+        }
+        return EvLogResponse.fromDomain(evLogRepository.save(log.withPriceUnknown()));
     }
 
     /**

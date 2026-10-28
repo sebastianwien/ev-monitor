@@ -72,6 +72,15 @@ public class RestTemplateConfig {
             .build();
     }
 
+    /** Tarif-Crawler: ganze Preisseite im Prompt, strukturierte Antwort dauert länger als ein Sprachlog. */
+    @Bean("mistralTariffRestTemplate")
+    public RestTemplate mistralTariffRestTemplate(RestTemplateBuilder builder) {
+        return builder
+            .connectTimeout(Duration.ofSeconds(5))
+            .readTimeout(Duration.ofSeconds(90))
+            .build();
+    }
+
     @Bean("spritMonitorRestTemplate")
     public RestTemplate spritMonitorRestTemplate(
         RestTemplateBuilder builder,

@@ -4,6 +4,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,6 +13,9 @@ public interface JpaChargingProviderTariffRepository extends JpaRepository<Charg
 
     @Query("SELECT t FROM ChargingProviderTariffEntity t WHERE t.validUntil IS NULL ORDER BY t.empName, t.tariffVariant")
     List<ChargingProviderTariffEntity> findAllCurrentTariffs();
+
+    @Query("SELECT t FROM ChargingProviderTariffEntity t WHERE t.validFrom <= :day AND (t.validUntil IS NULL OR t.validUntil >= :day)")
+    List<ChargingProviderTariffEntity> findValidOn(@Param("day") LocalDate day);
 
     @Query("SELECT t FROM ChargingProviderTariffEntity t WHERE t.empName = :empName AND t.validUntil IS NULL")
     List<ChargingProviderTariffEntity> findCurrentByEmpName(@Param("empName") String empName);

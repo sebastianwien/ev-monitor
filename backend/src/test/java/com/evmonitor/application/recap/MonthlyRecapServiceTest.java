@@ -166,6 +166,20 @@ class MonthlyRecapServiceTest {
     }
 
     @Test
+    void unknownPrice_isNotAskedForAgainButStaysOutOfThePetrolComparison() {
+        addLog(ChargingType.DC, "20.00", 1);
+        addLog(ChargingType.DC, "20.00", 2);
+        logs.add(logAt(ChargingType.DC, null, 3).toBuilder().priceUnknown(true).build());
+        stats("90", "40", "1000", null, null);
+
+        MonthlyRecap recap = service.build(candidate(), AUGUST).orElseThrow();
+
+        assertThat(recap.pricelessHint()).isNull();
+        // wie eine Ladung ohne Preis: 60 von 90 kWh mit Preis
+        assertThat(recap.fuelCostEur()).isEqualByComparingTo("88.67");
+    }
+
+    @Test
     void pricelessCharges_areLeftOutOfThePetrolComparison_byTheirKwhShare() {
         addLog(ChargingType.DC, "20.00", 1);
         addLog(ChargingType.DC, "20.00", 2);

@@ -20,8 +20,9 @@ public interface EvLogRepository {
 
     List<EvLog> findAllByCarId(UUID carId);
 
-    /** Logs of a car without a cost (cost_eur IS NULL), newest first - feeds the "add price" banner. */
-    List<EvLog> findPricelessByCarId(UUID carId);
+    /** Logs of a car without a cost (cost_eur IS NULL), newest first - feeds the "add price" banner.
+     *  includeUnknown=false laesst Ladungen weg, deren Preis der Nutzer fuer unbekannt erklaert hat. */
+    List<EvLog> findPricelessByCarId(UUID carId, boolean includeUnknown);
 
     List<EvLog> findRecentAtVehicleLogsWithSoc(UUID carId, int limit);
 

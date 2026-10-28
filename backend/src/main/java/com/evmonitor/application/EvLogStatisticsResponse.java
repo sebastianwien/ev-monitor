@@ -33,10 +33,10 @@ public record EvLogStatisticsResponse(
         // Location split (public/private kWh)
         LocationSplit locationSplit,
 
-        // Peer benchmark — null if no vehicle spec linked or zero peer cars
+        // Peer benchmark - null if no vehicle spec linked or zero peer cars
         PeerBenchmark peerBenchmark,
 
-        // Charging efficiency — only for logs with both kwhCharged and kwhAtVehicle
+        // Charging efficiency - only for logs with both kwhCharged and kwhAtVehicle
         ChargingEfficiencySplit chargingEfficiencySplit
 ) {
     public record ChargeDataPoint(
@@ -44,7 +44,8 @@ public record EvLogStatisticsResponse(
             BigDecimal costEur,                // null if no log in this period had cost_eur set; 0 means "really 0 €" (e.g. solar)
             BigDecimal kwhCharged,             // grid-side kWh; falls back to kwh_at_vehicle/efficiency for telemetry-only logs
             BigDecimal distanceKm,             // 0 if logs exist but no plausible distance (e.g. home-only charging)
-            BigDecimal consumptionKwhPer100km  // null if distance is 0 or no odometer data
+            BigDecimal consumptionKwhPer100km, // null if distance is 0 or no odometer data
+            int charges                        // logs in this period
     ) {}
 
     /**
@@ -64,7 +65,11 @@ public record EvLogStatisticsResponse(
     public record ChargingTypeSplit(
             BigDecimal acKwh,
             BigDecimal dcKwh,
-            BigDecimal unknownKwh
+            BigDecimal unknownKwh,
+            /** Euro je kWh aus den AC-Ladungen mit Preis; null ohne bepreiste AC-Ladung. */
+            BigDecimal acEurPerKwh,
+            /** Euro je kWh aus den DC-Ladungen mit Preis; null ohne bepreiste DC-Ladung. */
+            BigDecimal dcEurPerKwh
     ) {}
 
     public record LocationSplit(
@@ -77,7 +82,11 @@ public record EvLogStatisticsResponse(
             BigDecimal gridKwh,
             BigDecimal vehicleKwh,
             int coveredLogCount,
-            int totalLogCount
+            int totalLogCount,
+            /** Ladeverlust aller Ladungen: gemessen (Netz minus Akku) oder mit dem Wirkungsgrad hochgerechnet. */
+            BigDecimal lossKwh,
+            /** Ladungen, deren Verlust hochgerechnet statt gemessen ist. */
+            int estimatedLossLogCount
     ) {}
 
     public record PeerBenchmark(

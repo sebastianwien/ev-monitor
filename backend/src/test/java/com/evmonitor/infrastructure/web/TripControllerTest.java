@@ -247,6 +247,84 @@ class TripControllerTest extends AbstractIntegrationTest {
         assertNull(untouched.getDeletedAt());
     }
 
+    // --- POST /api/trips/{id}/restore ---
+
+    @Test
+    void restoreTrip_ownDeletedTrip_returns204AndTripIsVisibleAgain() {
+        EvTrip trip = saveTrip(user1.getId(), car1.getId(), false);
+        restTemplate.exchange("/api/trips/" + trip.getId(), HttpMethod.DELETE,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())), Void.class);
+
+        ResponseEntity<Void> res = restTemplate.exchange(
+                "/api/trips/" + trip.getId() + "/restore", HttpMethod.POST,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())), Void.class);
+
+        assertEquals(HttpStatus.NO_CONTENT, res.getStatusCode());
+        assertNull(tripRepository.findById(trip.getId()).orElseThrow().getDeletedAt());
+        ResponseEntity<Object[]> list = restTemplate.exchange(
+                "/api/trips?carId=" + car1.getId(), HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())), Object[].class);
+        assertNotNull(list.getBody());
+        assertEquals(1, list.getBody().length);
+    }
+
+    @Test
+    void restoreTrip_otherUsersDeletedTrip_returns404AndStaysDeleted() {
+        EvTrip trip = saveTrip(user2.getId(), car2.getId(), false);
+        trip.setDeletedAt(OffsetDateTime.now());
+        tripRepository.save(trip);
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + trip.getId() + "/restore", HttpMethod.POST,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())), String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+        assertNotNull(tripRepository.findById(trip.getId()).orElseThrow().getDeletedAt());
+    }
+
+    @Test
+    void restoreTrip_notDeleted_returns404() {
+        EvTrip trip = saveTrip(user1.getId(), car1.getId(), false);
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + trip.getId() + "/restore", HttpMethod.POST,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())), String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+    }
+
+    @Test
+    void restoreTrip_unauthenticated_returns401or403() {
+        EvTrip trip = saveTrip(user1.getId(), car1.getId(), false);
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + trip.getId() + "/restore", HttpMethod.POST,
+                new HttpEntity<>(null), String.class);
+
+        assertTrue(res.getStatusCode() == HttpStatus.UNAUTHORIZED || res.getStatusCode() == HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void restoreTrip_mergedAwayTrip_returns409() {
+        // Die Werte der weggemergten Fahrt stecken schon in der überlebenden, Wiederherstellen würde doppelt zählen
+        EvTrip previous = saveTripFull(user1.getId(), car1.getId(),
+                OffsetDateTime.now().minusHours(5), OffsetDateTime.now().minusHours(4),
+                new BigDecimal("80.0"), new BigDecimal("60.0"), new BigDecimal("20.0"), "HIGHWAY");
+        EvTrip active = saveTripFull(user1.getId(), car1.getId(),
+                OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
+                new BigDecimal("58.0"), new BigDecimal("40.0"), new BigDecimal("15.0"), "HIGHWAY");
+        restTemplate.exchange("/api/trips/" + active.getId() + "/merge", HttpMethod.POST,
+                new HttpEntity<>(Map.of("mergeWithTripId", previous.getId().toString()),
+                        createAuthHeaders(user1.getId(), user1.getEmail())), String.class);
+
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/" + previous.getId() + "/restore", HttpMethod.POST,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())), String.class);
+
+        assertEquals(HttpStatus.CONFLICT, res.getStatusCode());
+        assertNotNull(tripRepository.findById(previous.getId()).orElseThrow().getDeletedAt());
+    }
+
     // --- GET /api/trips?carId=X ---
 
     @Test

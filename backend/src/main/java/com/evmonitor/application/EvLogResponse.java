@@ -48,7 +48,8 @@ public record EvLogResponse(
         UUID chargingProviderId,
         UUID chargingSiteId,
         boolean hasPowerCurve,
-        boolean hasSocCurve) {
+        boolean hasSocCurve,
+        boolean priceUnknown) {             // "Weiß ich nicht mehr": nicht mehr nach dem Preis fragen
 
     public static EvLogResponse fromDomain(EvLog evLog) {
         return fromDomain(evLog, null, null);
@@ -102,6 +103,7 @@ public record EvLogResponse(
                 evLog.getChargingProviderId(),
                 evLog.getChargingSiteId(),
                 evLog.isHasPowerCurve(),
-                evLog.isHasSocCurve());
+                evLog.isHasSocCurve(),
+                evLog.isPriceUnknown());
     }
 }

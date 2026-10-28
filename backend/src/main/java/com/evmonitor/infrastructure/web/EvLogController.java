@@ -1,5 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.ChargingPlaceResponse;
+import com.evmonitor.application.ChargingPlacesService;
 import com.evmonitor.application.DeletedLogResponse;
 
 import ch.hsr.geohash.GeoHash;
@@ -18,6 +20,7 @@ import com.evmonitor.domain.User;
 import com.evmonitor.domain.Car;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -44,6 +47,7 @@ public class EvLogController {
     private final CarRepository carRepository;
     private final com.evmonitor.application.EvLogShareService evLogShareService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
+    private final ChargingPlacesService chargingPlacesService;
 
 
     @PostMapping
@@ -350,6 +354,17 @@ public class EvLogController {
 
     }
 
+    /** Ladeorte des eigenen Autos (Story-Karte), from/to inklusiv, beide fehlen = alles. Fremdes Auto 404. */
+    @GetMapping("/places")
+    public ResponseEntity<List<ChargingPlaceResponse>> getPlaces(
+            @RequestParam UUID carId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) java.time.LocalDate to,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        return ResponseEntity.ok(chargingPlacesService.getPlaces(carId, principal.getUser().getId(), from, to));
+    }
+
     @GetMapping("/implausible")
     public ResponseEntity<List<EvLogResponse>> getImplausibleLogs(
             @RequestParam UUID carId,
@@ -360,13 +375,17 @@ public class EvLogController {
 
     }
 
-    /** All cost-less logs of a car (newest first) - feeds the "add price" banner + modal. */
+    /**
+     * All cost-less logs of a car (newest first) - feeds the "add price" banner + modal.
+     * includeUnknown=true adds those the user declared "price unknown" (Story: is the month's cost complete?).
+     */
     @GetMapping("/priceless")
     public ResponseEntity<List<EvLogResponse>> getPricelessLogs(
             @RequestParam UUID carId,
+            @RequestParam(defaultValue = "false") boolean includeUnknown,
             Authentication authentication) {
         UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
-        List<EvLogResponse> logs = evLogStatisticsService.getPricelessLogs(carId, principal.getUser().getId());
+        List<EvLogResponse> logs = evLogStatisticsService.getPricelessLogs(carId, principal.getUser().getId(), includeUnknown);
         return ResponseEntity.ok(logs);
 
     }
@@ -384,6 +403,24 @@ public class EvLogController {
         EvLogResponse updated = evLogService.updateIncludeInStatistics(id, principal.getUser().getId(), include);
         return ResponseEntity.ok(updated);
 
+    }
+
+    /** Felder, deren Lücke der Nutzer als "Weiß ich nicht mehr" schließen kann. */
+    enum GapField { PRICE }
+
+    record GapRequest(@NotNull GapField field) {}
+
+    /** "Weiß ich nicht mehr" für ein fehlendes Feld einer eigenen Ladung. 404 fremd, 409 ohne Lücke. */
+    @PatchMapping("/{id}/gap")
+    public ResponseEntity<EvLogResponse> markGapUnknown(
+            @PathVariable UUID id,
+            @Valid @RequestBody GapRequest body,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        EvLogResponse updated = switch (body.field()) {
+            case PRICE -> evLogService.markPriceUnknown(id, principal.getUser().getId());
+        };
+        return ResponseEntity.ok(updated);
     }
 
     record MergeLogRequest(UUID sourceLogId, boolean preferSource) {}
