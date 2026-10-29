@@ -87,6 +87,11 @@ for (const [width, height, voice] of [[390, 844, true], [820, 1180, true], [1440
       const map = (await page.getByTestId('day-trip-map').locator('.activity-map').boundingBox())!;
       expect(map.height).toBeLessThanOrEqual(300);
       await expect(page.getByTestId('day-trip-form')).toBeVisible();
+      // Speichern sitzt in der Fußleiste außerhalb des Formulars und sendet es trotzdem ab
+      await expect(page.getByTestId('trip-start')).toHaveValue('09:00');
+      await page.getByTestId('day-trip-save').click();
+      await expect.poll(() => calls).toContain(`PATCH /api/trips/${T1}`);
+      await page.getByTestId('day-row-trip').first().click();
 
       // Fahrt löschen, dann Rückgängig im Toast
       await page.getByTestId('day-trip-delete').click();

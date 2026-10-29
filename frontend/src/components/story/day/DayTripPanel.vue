@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, defineAsyncComponent } from 'vue'
+import { ref, defineAsyncComponent, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import api from '../../../api/axios'
@@ -27,6 +27,8 @@ const form = ref<Record<string, any>>(props.trip ? tripFormFrom(props.trip) : ne
 const saving = ref(false)
 const error = ref<string | null>(null)
 const confirmingDelete = ref(false)
+// Speichern steht in der Fußleiste außerhalb des Formulars; eindeutig, falls beim Wechsel kurz zwei Panels im DOM sind
+const formId = useId()
 
 async function save() {
   const values = form.value as TripFormValues
@@ -72,29 +74,39 @@ async function remove() {
     </div>
     <div class="min-h-0 flex-1 overflow-y-auto p-4">
       <!-- Karte oben: auf dem Handy randlos über dem Formular, ab 1024 px oben in der rechten Spalte -->
-      <div v-if="trip && hasTripMap(trip)" class="relative -mx-4 -mt-4 mb-4 h-52 overflow-hidden border-b-2 border-gray-100 lg:mx-0 lg:mt-0 lg:h-72 lg:rounded-2xl lg:border-2 lg:border-gray-900 dark:border-gray-800"
+      <div v-if="trip && hasTripMap(trip)" class="relative -mx-4 -mt-4 mb-4 h-40 overflow-hidden border-b-2 border-gray-100 lg:mx-0 lg:mt-0 lg:h-72 lg:rounded-2xl lg:border-2 lg:border-gray-900 dark:border-gray-800"
         data-testid="day-trip-map">
         <ActivityLocationMap variant="panel" :label="t('dashboard.trip_map_alt')"
           :start-geohash="trip.locationStartGeohash" :end-geohash="trip.locationEndGeohash"
           :route-polyline="trip.routePolyline" :route-kind="trip.routeKind" :trace-polyline="trip.tracePolyline" />
       </div>
-      <DayTripForm v-model="form" :mode="trip ? 'edit' : 'add'" :error="error" :saving="saving" :distance-unit="distanceUnitLabel()"
-        @save="save" @cancel="emit('back')" />
-      <div v-if="trip" class="mt-6 border-t-2 border-gray-100 pt-4 dark:border-gray-800">
-        <div v-if="confirmingDelete" class="flex items-center gap-2">
-          <span class="flex-1 text-sm text-gray-700 dark:text-gray-200">{{ t('storyday.delete_trip_confirm') }}</span>
-          <button type="button" class="min-h-11 px-3 text-sm font-medium text-gray-500 dark:text-gray-400" @click="confirmingDelete = false">{{ t('common.cancel') }}</button>
-          <button type="button" data-testid="day-trip-delete-confirm" :disabled="saving"
-            class="btn-3d cta-shadow-sm min-h-11 rounded-xl border-2 border-edge bg-red-600 px-4 text-sm font-semibold text-white disabled:opacity-40" @click="remove">
-            {{ t('dashboard.action_delete') }}
-          </button>
-        </div>
-        <button v-else type="button" data-testid="day-trip-delete"
-          class="inline-flex min-h-11 items-center gap-2 rounded-xl px-2 text-sm font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
-          @click="confirmingDelete = true">
-          <TrashIcon class="h-5 w-5" aria-hidden="true" />{{ t('storyday.delete_trip') }}
-        </button>
-      </div>
+      <DayTripForm :id="formId" v-model="form" :mode="trip ? 'edit' : 'add'" :error="error" :saving="saving" :distance-unit="distanceUnitLabel()"
+        :actions="false" @save="save" />
     </div>
+    <!-- Fußleiste wie bei der Ladung: Löschen abgesetzt links, Speichern füllt. Abbrechen erst ab 640 px, auf dem Handy führt der Pfeil oben zurück. -->
+    <footer class="flex shrink-0 items-center gap-2 border-t-2 border-gray-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dark:border-gray-800">
+      <template v-if="confirmingDelete">
+        <span class="flex-1 text-[14px] font-semibold text-gray-900 dark:text-gray-100">{{ t('storyday.delete_trip_confirm') }}</span>
+        <button type="button" class="min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10" @click="confirmingDelete = false">{{ t('common.cancel') }}</button>
+        <button type="button" data-testid="day-trip-delete-confirm" :disabled="saving"
+          class="btn-3d min-h-12 rounded-xl border-2 border-edge bg-red-600 px-4 text-[15px] font-semibold text-white disabled:opacity-40" @click="remove">
+          {{ t('dashboard.action_delete') }}
+        </button>
+      </template>
+      <template v-else>
+        <button v-if="trip" type="button" data-testid="day-trip-delete" :aria-label="t('storyday.delete_trip')"
+          class="-ml-1 grid h-12 w-12 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
+          @click="confirmingDelete = true">
+          <TrashIcon class="h-5 w-5" aria-hidden="true" />
+        </button>
+        <button type="button" class="hidden min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 sm:inline-flex sm:items-center dark:text-gray-300 dark:hover:bg-white/10" @click="emit('back')">
+          {{ t('common.cancel') }}
+        </button>
+        <button type="submit" :form="formId" data-testid="day-trip-save" :disabled="saving"
+          class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-40">
+          {{ t('logfields.save') }}
+        </button>
+      </template>
+    </footer>
   </div>
 </template>

@@ -161,8 +161,9 @@ const selectedId = computed(() => detail.value?.kind === 'charge' ? detail.value
               class="grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 disabled:opacity-25 dark:text-gray-300 dark:hover:bg-white/10">
               <ChevronRightIcon class="h-5 w-5" />
             </button>
+            <!-- Schließen: auf dem Handy per Griff oder Tipp daneben, das X nur für Screenreader und Tastatur; ab 640 px ist das Blatt ein Fenster ohne Griff -->
             <button type="button" data-testid="day-close" :aria-label="t('story.sheet_close')" @click="sheet?.requestClose()"
-              class="btn-3d cta-shadow-sm -mr-1 ml-1 grid h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-edge bg-white dark:bg-gray-800">
+              class="btn-3d cta-shadow-sm -mr-1 ml-1 sr-only h-11 w-11 shrink-0 place-items-center rounded-full border-2 border-edge bg-white focus-visible:not-sr-only focus-visible:grid sm:not-sr-only sm:grid dark:bg-gray-800">
               <XMarkIcon class="h-5 w-5" />
             </button>
           </div>

@@ -28,12 +28,12 @@ function pick(b: BatteryBar) {
 
 <template>
   <div>
-    <div class="rounded-2xl bg-gray-50 pb-3 pl-12 pr-4 pt-6 dark:bg-white/5" data-testid="day-ribbon" aria-hidden="true">
-      <div class="relative mt-2 h-[112px]">
+    <div class="pl-10 pr-1 pt-2" data-testid="day-ribbon" aria-hidden="true">
+      <div class="relative h-[72px]">
         <!-- Raster hinter den Balken: waagrecht je 25 %, beschriftet bei 0, 50 und 100; senkrecht je 6 Stunden -->
         <div v-for="v in [100, 75, 50, 25, 0]" :key="`y${v}`" class="absolute inset-x-0 border-t"
           :class="v === 0 ? 'border-gray-300 dark:border-gray-600' : 'border-gray-200 dark:border-gray-700/70'" :style="{ top: `${100 - v}%` }">
-          <span v-if="v % 50 === 0" class="absolute -left-11 w-9 -translate-y-1/2 whitespace-nowrap text-right text-[10.5px] tabular-nums text-gray-400">{{ v }} %</span>
+          <span v-if="v % 50 === 0" class="absolute -left-10 w-8 -translate-y-1/2 whitespace-nowrap text-right text-[10.5px] tabular-nums text-gray-400">{{ v }} %</span>
         </div>
         <div v-for="i in [0, 1, 2, 3, 4]" :key="`x${i}`" class="absolute inset-y-0 border-l border-gray-200 dark:border-gray-700/70" :style="{ left: `${i * 25}%` }" />
         <div class="absolute inset-0 flex items-end gap-px">
@@ -50,7 +50,7 @@ function pick(b: BatteryBar) {
           :class="i === 0 ? '' : i === 4 ? '-translate-x-full' : '-translate-x-1/2'" :style="{ left: `${i * 25}%` }">{{ h }}</span>
       </div>
     </div>
-    <p v-if="caption" data-testid="day-ribbon-caption" class="mt-2 text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">
+    <p v-if="caption" data-testid="day-ribbon-caption" class="mt-1.5 text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">
       {{ t('storyday.caption', { first: pct(caption.first!), last: pct(caption.last!), min: pct(caption.min) }) }}
     </p>
   </div>

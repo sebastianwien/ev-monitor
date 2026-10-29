@@ -49,6 +49,21 @@ export function newTripFormAt(end: Date): TripFormValues {
   return { tripStartedAt: localInput(new Date(end.getTime() - 3_600_000)), tripEndedAt: localInput(end), distanceKm: '', routeType: '' }
 }
 
+type TripTimes = Pick<TripFormValues, 'tripStartedAt' | 'tripEndedAt'>
+
+/** Formular zeigt ein Datum und zwei Uhrzeiten: Datum = Starttag */
+export function splitTripTimes(f: TripTimes): { date: string; start: string; end: string } {
+  return { date: f.tripStartedAt.slice(0, 10) || f.tripEndedAt.slice(0, 10), start: f.tripStartedAt.slice(11, 16), end: f.tripEndedAt.slice(11, 16) }
+}
+
+/** Gegenstück zu splitTripTimes: liegt das Ende vor dem Start, endet die Fahrt am nächsten Tag */
+export function joinTripTimes(date: string, start: string, end: string): TripTimes {
+  if (!date) return { tripStartedAt: '', tripEndedAt: '' }
+  const [y, m, d] = date.split('-').map(Number)
+  const endDate = start && end && end < start ? localInput(new Date(y, m - 1, d + 1)).slice(0, 10) : date
+  return { tripStartedAt: start ? `${date}T${start}` : '', tripEndedAt: end ? `${endDate}T${end}` : '' }
+}
+
 /** i18n-Schlüssel des ersten Fehlers oder null */
 export function tripFormError(f: Pick<TripFormValues, 'tripStartedAt' | 'tripEndedAt'>): string | null {
   if (!f.tripStartedAt || !f.tripEndedAt) return 'dashboard.trip_err_times_required'
