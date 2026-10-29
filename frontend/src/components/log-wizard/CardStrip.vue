@@ -23,6 +23,8 @@ export type CardChoice =
 const props = defineProps<{
   providers: ChargingProvider[]
   isPublic: boolean
+  /** Bearbeiten-Dialog: alle Karten. Bei Importen ist "nicht öffentlich" oft nur unbekannt, nicht zu Hause. */
+  allCards?: boolean
   chargingType: 'AC' | 'DC'
   community: CommunityPrice | null
   /** Provider-ID, 'community' oder 'free' */
@@ -33,7 +35,7 @@ const emit = defineEmits<{ choose: [choice: CardChoice] }>()
 const { t } = useI18n()
 
 /** Öffentlich die Ladekarten, zuhause nur der Heimtarif - auch Karten ohne Tarif, die holen ihn sich beim Tap. */
-const strip = computed(() => props.providers.filter(p => props.isPublic ? !p.isPrivate : p.isPrivate))
+const strip = computed(() => props.allCards ? props.providers : props.providers.filter(p => props.isPublic ? !p.isPrivate : p.isPrivate))
 /** "Zuletzt hier" nur, wenn die Karte von damals nicht selbst im Streifen steht - sonst ist sie die Vorauswahl. */
 const communityTile = computed(() => props.community && !strip.value.some(p => p.id === props.community!.providerId) ? props.community : null)
 const price = (p: ChargingProvider) => providerPriceForType(p, props.chargingType)
@@ -66,7 +68,7 @@ const on = (key: string) => props.selected === key ? 'active outline outline-2 -
       <b class="block text-[11px] font-bold leading-tight text-gray-800 dark:text-gray-100">{{ t('logwizard.price_free') }}</b>
       <CheckCircleIcon v-if="selected === 'free'" class="absolute top-1 right-1 h-5 w-5 rounded-full bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100" aria-hidden="true" />
     </button>
-    <button v-if="isPublic" type="button" data-testid="charging-card-prompt-open" @click="emit('choose', { kind: 'new' })"
+    <button v-if="isPublic || allCards" type="button" data-testid="charging-card-prompt-open" @click="emit('choose', { kind: 'new' })"
       class="snap-start flex-shrink-0 w-20 h-[4.5rem] rounded-sm border-2 border-dashed border-edge p-2 flex flex-col items-start justify-between text-left text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-white/10">
       <PlusIcon class="h-4 w-4" />
       <span class="text-[11px] font-semibold leading-tight">{{ t('logwizard.card_add') }}</span>

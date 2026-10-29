@@ -64,4 +64,11 @@ describe('StepCost voll: Kartenstreifen', () => {
     expect(vi.mocked(api.get)).toHaveBeenCalledWith('/logs/price-suggestion', expect.objectContaining({ params: expect.objectContaining({ lat: expect.any(Number) }) }))
     expect(q('card-strip')!.textContent).toContain('Zuletzt hier')
   })
+
+  it('Ladung nicht als öffentlich markiert (oft Import): öffentliche Karte und "+ Karte" stehen trotzdem da', async () => {
+    const { form, q } = await mount([card('kaufland', 0.29)])
+    form.value.isPublicCharging = false; await nextTick()
+    expect(q('card-kaufland')).not.toBeNull()
+    expect(q('charging-card-prompt-open')).not.toBeNull()
+  })
 })

@@ -314,7 +314,7 @@ onMounted(async () => {
   <!-- Voll (Bearbeiten-Dialog): Lese-Zone oben, Bedien-Zone unten in Daumenreichweite (siehe StepEnergy) -->
   <div v-else class="flex-1 flex flex-col gap-4">
     <div class="mt-auto space-y-4">
-    <CardStrip :providers="providers" :is-public="form.isPublicCharging" :charging-type="form.chargingType"
+    <CardStrip :providers="providers" all-cards :is-public="form.isPublicCharging" :charging-type="form.chargingType"
       :community="community ? { eurPerKwh: community.eurPerKwh, providerId: community.providerId } : null"
       :selected="selectedKey" :price-label="priceLabel" @choose="onCardChoose" />
 
