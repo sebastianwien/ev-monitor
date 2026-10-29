@@ -11,6 +11,7 @@ import { CapacitorUpdater } from '@capgo/capacitor-updater'
 // Chrome feuert das Event einmal kurz nach dem Page-Load - ein Listener im Wizard, der
 // erst nach dem Login mountet, kaeme zu spaet und der Homescreen-Button bliebe aus.
 import './composables/usePwaInstall'
+import { onHapticClick } from './composables/useHaptic'
 
 // Markiert die native App (iOS/Android) am <html>, damit CSS nativ-spezifisch
 // straffen kann (z.B. kompaktere Navbar), ohne den mobilen Browser/PWA zu aendern.
@@ -47,37 +48,11 @@ if (Capacitor.isNativePlatform() && 'serviceWorker' in navigator) {
 
 const app = createApp(App)
 
-// Global haptic feedback for all buttons (vibration on Android, soft click sound on iOS)
-function triggerHaptic() {
-  if (navigator.vibrate) {
-    // Android: vor der ersten abgeschlossenen Berührung liefert vibrate() false (keine User-Activation).
-    // Dann den Tick einmalig beim pointerup derselben Berührung nachholen, sonst fehlt er beim ersten Tap.
-    if (!navigator.vibrate(10)) document.addEventListener('pointerup', () => navigator.vibrate?.(10), { once: true, passive: true })
-    return
-  }
-  try {
-    const ctx = new AudioContext()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.connect(gain)
-    gain.connect(ctx.destination)
-    osc.frequency.value = 440
-    gain.gain.value = 0.015
-    osc.start()
-    osc.stop(ctx.currentTime + 0.012)
-    osc.onended = () => ctx.close()
-  } catch { /* silent */ }
-}
-
-document.addEventListener('pointerdown', (e) => {
-  if ((e.target as Element).closest('button')) triggerHaptic()
-}, { passive: true })
-
-// Keep v-haptic directive for explicit use on non-button elements
+// Haptik beim Tippen auf Buttons, 3D-Knöpfe und v-haptic (Vibration auf Android, leiser Klick auf iOS).
+// Am click statt am pointerdown, damit Scrollen nicht tickt; Capture vor dem btn-3d-delay-Verzögerer in App.vue.
+document.addEventListener('click', onHapticClick, { capture: true, passive: true })
 app.directive('haptic', {
-  mounted(el) {
-    el.addEventListener('pointerdown', triggerHaptic, { passive: true })
-  }
+  mounted(el: HTMLElement) { el.dataset.haptic = '' }
 })
 
 app.use(createPinia())
