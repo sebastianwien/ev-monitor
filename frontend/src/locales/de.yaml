@@ -4718,3 +4718,5 @@ logbook:
   no_trip: "keine Fahrt"
   idle_range: "{from} bis {to}"
   per_100km: "{cost} pro 100 km"
+  max_power: "max {kw} kW"
+  efficiency: "{pct} % Effizienz"

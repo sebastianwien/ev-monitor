@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
+import { chargingEfficiencyPercent, chargePricePerKwh,
   computeChargingEfficiency,
   computeRealCostHint,
   isNettoOnlyCostLog,
@@ -307,5 +307,28 @@ describe('aggregateGroupCost - Preis-Abdeckung der Gruppe', () => {
     ])
     expect(pricelessSubCount).toBe(2)
     expect(isFullyPriced).toBe(false)
+  })
+})
+
+describe('chargingEfficiencyPercent', () => {
+  it('Anteil, der im Akku ankam, auf eine Nachkommastelle', () => {
+    expect(chargingEfficiencyPercent(42, 38.5)).toBe(91.7)
+  })
+  it('ohne beide Werte oder mit 0 kWh an der Säule nichts', () => {
+    expect(chargingEfficiencyPercent(null, 38.5)).toBeNull()
+    expect(chargingEfficiencyPercent(42, null)).toBeNull()
+    expect(chargingEfficiencyPercent(0, 10)).toBeNull()
+  })
+})
+
+describe('chargePricePerKwh', () => {
+  it('Betrag durch die Abrechnungsbasis, brutto vor netto', () => {
+    expect(chargePricePerKwh({ costEur: 9.8, kwhCharged: 21, kwhAtVehicle: 19.4 })).toBeCloseTo(0.4667, 4)
+    expect(chargePricePerKwh({ costEur: 9.7, kwhCharged: null, kwhAtVehicle: 19.4 })).toBeCloseTo(0.5, 4)
+  })
+  it('ohne Betrag oder ohne kWh nichts, 0 € ist ein Preis', () => {
+    expect(chargePricePerKwh({ costEur: null, kwhCharged: 21, kwhAtVehicle: null })).toBeNull()
+    expect(chargePricePerKwh({ costEur: 5, kwhCharged: null, kwhAtVehicle: null })).toBeNull()
+    expect(chargePricePerKwh({ costEur: 0, kwhCharged: 21, kwhAtVehicle: null })).toBe(0)
   })
 })

@@ -209,3 +209,15 @@ export function computeRealCostHint<T extends CostHintLog & EfficiencyInput>(
     sampleSize: eff.sampleSize,
   }
 }
+
+/** Ladeeffizienz einer Ladung: Anteil der Säulen-kWh, der im Akku ankam, in Prozent auf eine Stelle. */
+export function chargingEfficiencyPercent(kwhCharged: number | null, kwhAtVehicle: number | null): number | null {
+  if (!kwhCharged || !kwhAtVehicle || kwhCharged <= 0) return null
+  return Math.round((kwhAtVehicle / kwhCharged) * 1000) / 10
+}
+
+/** Preis je kWh einer Ladung auf ihrer Abrechnungsbasis (brutto vor netto); 0 € ist ein Preis. */
+export function chargePricePerKwh(log: { costEur: number | null; kwhCharged: number | null; kwhAtVehicle: number | null }): number | null {
+  const basis = costBasisKwh(log)
+  return log.costEur != null && basis ? log.costEur / basis : null
+}

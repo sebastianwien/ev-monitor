@@ -15,6 +15,7 @@ import { useIsMobile } from '../composables/useIsMobile'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import { usePricelessDeepLink } from '../composables/usePricelessDeepLink'
 import { useAutoOlder } from '../composables/useAutoOlder'
+import { useChargingProviderNames } from '../composables/useChargingProviderNames'
 import { formatOlderWindow } from '../composables/useFeedWindow'
 import type { DayEvent } from '../composables/storyDay'
 import { useAuthStore } from '../stores/auth'
@@ -61,6 +62,7 @@ const facts = computed(() => {
   const cap = selectedCar.value?.effectiveBatteryCapacityKwh ?? null
   return Object.fromEntries((trips.value as any[]).map(trip => [trip.id, tripFacts(trip, cpkMap.value.get(trip.id) ?? null, cap)]))
 })
+const cardNames = useChargingProviderNames()
 const months = computed(() => monthsOf(trips.value, logs.value, { drains: drains.value, costPer100km: per100 }))
 /** Die Minikarten tragen keinen eigenen Hinweis; er steht einmal am Ende (OSM: einer genügt für mehrere Karten). */
 const credit = computed(() => tripsCredit(trips.value))
@@ -148,7 +150,7 @@ onMounted(() => { dataFeedback.load() })
             {{ t('logs.empty_window') }}
           </p>
 
-          <LogbookMonth v-for="m in months" :key="m.key" :month="m" :unlock-to="unlockTo" :facts="facts"
+          <LogbookMonth v-for="m in months" :key="m.key" :month="m" :unlock-to="unlockTo" :facts="facts" :card-names="cardNames"
             :selected-id="selectedId" :merging="merging" :wide="wide" @select="select" @merge="merge" />
 
           <p v-if="credit" data-testid="logbook-map-credit" class="px-4 pt-3 text-right text-[10px] text-gray-400">{{ credit }}</p>
@@ -163,7 +165,8 @@ onMounted(() => { dataFeedback.load() })
         <DeletedLogsEntry class="mx-1 mt-4" />
       </div>
 
-      <LogbookDetail :selection="selection" :car-id="selectedCarId ?? ''" :wide="wide" @close="selection = null" @changed="changed" />
+      <LogbookDetail :selection="selection" :car-id="selectedCarId ?? ''" :wide="wide"
+        :trip-facts="selection?.kind === 'trip' ? facts[selection.trip.id] ?? null : null" @close="selection = null" @changed="changed" />
     </div>
 
     <ImplausibleLogsModal

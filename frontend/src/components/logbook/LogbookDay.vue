@@ -3,9 +3,9 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DayRibbon from '../story/day/DayRibbon.vue'
 import DayTimeline, { type StandingRow } from '../story/day/DayTimeline.vue'
-import type { Standing } from '../../utils/logbook'
+import { tripDetailKeys, chargeDetailKeys, type Standing } from '../../utils/logbook'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { daySummary, type DayEvent } from '../../composables/storyDay'
+import { daySummary, type DayEvent, type DayLog, type DayTrip } from '../../composables/storyDay'
 import { tripDayLabel } from '../../utils/tripTimeFormat'
 
 import type { TripFacts } from '../../utils/tripCalculations'
@@ -21,6 +21,8 @@ const props = defineProps<{
   standing: Record<string, Standing>
   unlockTo: string | null
   facts: Record<string, TripFacts>
+  /** Namen der eigenen Ladekarten je id */
+  cardNames: Map<string, string>
   /** € pro 100 km der Fahrten des Tages (utils/logbook, tripGroupCostPer100km) */
   costPer100km: number | null
   selectedId: string | null
@@ -37,6 +39,12 @@ const showRibbon = computed(() => {
   return socs.length > 0 && Math.max(...socs) > Math.min(...socs)
 })
 const stickyTop = { top: 'var(--content-top, var(--top-nav-h))' }
+/** Ab 768 px hinter Akku und Temperatur: Tempo, Streckentyp, Besonderheiten */
+const tripDetails = (trip: DayTrip) => tripDetailKeys(trip).map(k => t(k.key, k.params ?? {}))
+/** Ladekarte der Ladung, überall (auf dem Handy in eigener Zeile); der Preis je kWh steht rechts unter dem Betrag */
+const cardOf = (log: DayLog): string | null => log.chargingProviderId ? props.cardNames.get(log.chargingProviderId) ?? null : null
+/** Ladung, ab 768 px: höchste Ladeleistung und Effizienz (auf dem Handy im Detail) */
+const chargeMore = (log: DayLog) => chargeDetailKeys(log).map(k => t(k.key, k.params ?? {}))
 const costPer100 = (id: string) => `${formatCurrency(props.facts[id].eurPer100km!)}/100km`
 const consumption = (id: string) => `${props.facts[id].estimated ? '~' : ''}${formatConsumption(props.facts[id].kwhPer100km)}`
 const label = computed(() => tripDayLabel(props.dayKey, locale.value, new Date()))
@@ -75,14 +83,25 @@ const sum = computed(() => {
     <div class="mt-2">
       <DayTimeline :events="events" :selected-id="selectedId" :merging="merging" :standing="rows" newest-first no-credit
         @select="emit('select', $event)" @merge="(a, b) => emit('merge', a, b)">
+        <template #line2-end="{ event }">
+          <template v-if="event.kind === 'trip'">
+            <!-- Der Punkt hängt am Wert: bricht die Zeile um, steht keiner allein am Ende -->
+            <span v-for="text in tripDetails(event.trip)" :key="text" class="hidden whitespace-nowrap md:inline">· {{ text }}</span>
+          </template>
+          <template v-else>
+            <!-- Ladekarte: auf dem Handy eigene Zeile, ab 768 px weiter in der Zeile -->
+            <template v-if="cardOf(event.log)">
+              <span class="basis-full md:hidden" aria-hidden="true" />
+              <span class="whitespace-nowrap"><span class="hidden md:inline">· </span>{{ cardOf(event.log) }}</span>
+            </template>
+            <span v-for="text in chargeMore(event.log)" :key="text" class="hidden whitespace-nowrap md:inline">· {{ text }}</span>
+          </template>
+        </template>
         <!-- Handy: dritte Zeile; ab 768 px rechts neben der Karte -->
         <template #trip-extra="{ trip }">
-          <span v-if="facts[trip.id]?.eurPer100km != null || facts[trip.id]?.kwhPer100km != null"
-            class="flex flex-wrap items-center gap-x-1.5 text-[13px] tabular-nums text-gray-500 md:hidden dark:text-gray-400" data-testid="logbook-trip-facts">
-            <span v-if="facts[trip.id]?.eurPer100km != null" class="whitespace-nowrap">{{ costPer100(trip.id) }}</span>
-            <template v-if="facts[trip.id]?.eurPer100km != null && facts[trip.id]?.kwhPer100km != null">·</template>
-            <span v-if="facts[trip.id]?.kwhPer100km != null" class="whitespace-nowrap">{{ consumption(trip.id) }}</span>
-          </span>
+          <!-- Handy: Euro zuerst; Verbrauch je 100 km steht im Detail -->
+          <span v-if="facts[trip.id]?.eurPer100km != null"
+            class="block whitespace-nowrap text-[13px] tabular-nums text-gray-500 md:hidden dark:text-gray-400" data-testid="logbook-trip-facts">{{ costPer100(trip.id) }}</span>
         </template>
         <template #trip-side="{ trip }">
           <span class="block whitespace-nowrap text-[15px] font-bold leading-snug">{{ facts[trip.id]?.eurPer100km != null ? costPer100(trip.id) : '' }}</span>

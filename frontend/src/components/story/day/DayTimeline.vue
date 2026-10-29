@@ -4,10 +4,11 @@ import { useI18n } from 'vue-i18n'
 import { BoltIcon, MapIcon, ChevronRightIcon, LinkIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import {
-  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, type DayEvent,
+  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, type DayEvent, type DayLog,
 } from '../../../composables/storyDay'
 import { hasTripMap, tripsCredit } from '../../../utils/tripMap'
 import StandingText from './StandingText.vue'
+import { chargePricePerKwh } from '../../../composables/useChargingEfficiency'
 import { temperatureTone } from '../../../utils/tripClimate'
 import TripClimateMarkers from '../../TripClimateMarkers.vue'
 
@@ -34,7 +35,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent, later: DayEvent] }>()
 const { t } = useI18n()
-const { formatDecimal, formatDistance, formatCurrency } = useLocaleFormat()
+const { formatDecimal, formatDistance, formatCurrency, formatCostPerKwh } = useLocaleFormat()
 
 const hm = (min: number) => min >= 1440 ? '24:00' : `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
 function dur(min: number) {
@@ -50,6 +51,11 @@ function chargeSide(e: DayEvent & { kind: 'charge' }) {
   const k = chargeKwh(e.log)
   const type = e.log.chargingType && e.log.chargingType !== 'UNKNOWN' ? e.log.chargingType : null
   return [type, k != null ? `${formatDecimal(k, 1)} kWh` : null].filter(Boolean).join(' · ')
+}
+/** Preis je kWh einer Ladung, auf der Abrechnungsbasis wie in der alten Liste */
+function pricePerKwh(log: DayLog): string | null {
+  const p = chargePricePerKwh(log)
+  return p != null ? formatCostPerKwh(p) : null
 }
 /** Die Minikarten tragen keine eigene Attribution - sie steht einmal unter der Liste. */
 const credit = computed(() => props.noCredit ? null : tripsCredit(props.events.flatMap(e => e.kind === 'trip' ? [e.trip] : [])))
@@ -139,7 +145,7 @@ const items = computed<Item[]>(() => {
                 <template v-else>{{ placeName(e) }}</template>
               </span>
             </span>
-            <span v-if="e.socTo != null || (e.kind === 'trip' && e.trip.outsideTempCelsius != null)"
+            <span v-if="e.socTo != null || (e.kind === 'trip' && e.trip.outsideTempCelsius != null) || $slots['line2-end']"
               class="flex flex-wrap items-center gap-x-1.5 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">
               <template v-if="e.socFrom != null && e.socTo != null">
                 <span class="whitespace-nowrap text-gray-600 dark:text-gray-300" data-testid="day-soc"><span class="sr-only">{{ t('storyday.soc') }} </span>{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
@@ -151,6 +157,8 @@ const items = computed<Item[]>(() => {
                 <span class="whitespace-nowrap" :class="temperatureTone(e.trip.outsideTempCelsius)" data-testid="day-temp">{{ formatDecimal(e.trip.outsideTempCelsius, 0) }}&nbsp;°C</span>
               </template>
               <!-- Heizung, Klima, Akkuheizung als farbige Symbole, Last und Dauer im Tooltip -->
+              <!-- Logbuch: weitere Angaben (ab 768 px in der Zeile, auf dem Handy teils in eigener Zeile) -->
+              <slot name="line2-end" :event="e" />
               <TripClimateMarkers v-if="e.kind === 'trip'" :climate="e.trip.climate" align="start" compact />
             </span>
             <!-- Logbuch: Kosten, Verbrauch und Verbraucher einer Fahrt -->
@@ -172,6 +180,7 @@ const items = computed<Item[]>(() => {
           <span v-else-if="e.kind === 'charge'" class="shrink-0 pt-2 text-right tabular-nums">
             <span class="block text-[15px] font-bold leading-snug">{{ e.log.costEur != null ? formatCurrency(e.log.costEur) : '' }}</span>
             <span class="block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400">{{ chargeSide(e) }}</span>
+            <span v-if="pricePerKwh(e.log)" class="block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400" data-testid="day-price-kwh">{{ pricePerKwh(e.log) }}</span>
           </span>
           <ChevronRightIcon class="-ml-1 mt-2.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
         </button>

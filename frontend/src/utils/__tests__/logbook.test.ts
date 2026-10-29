@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { monthsOf, type LogbookItem } from '../logbook'
+import { monthsOf, tripDetailKeys, chargeDetailKeys, type LogbookItem } from '../logbook'
 import type { DayLog, DayTrip } from '../../composables/storyDay'
 
 // Ortszeit wie im Tagesblatt: Tagesgrenzen im Browser, nicht in UTC
@@ -92,5 +92,33 @@ describe('monthsOf', () => {
 
   it('ohne Einträge kein Monat', () => {
     expect(monthsOf([], [])).toEqual([])
+  })
+})
+
+describe('tripDetailKeys', () => {
+  it('Tempo, Streckentyp und Besonderheiten als Textbausteine, in dieser Reihenfolge', () => {
+    expect(tripDetailKeys({ avgSpeedKmh: 31.6, maxSpeedKmh: 71.2, routeType: 'CITY', loadExtras: ['TRAILER', 'FULL_LOAD'] })).toEqual([
+      { key: 'dashboard.trip_speed_summary', params: { avg: 32, max: 71 } },
+      { key: 'dashboard.trip_route_city' },
+      { key: 'storyday.form_extra_trailer' },
+      { key: 'storyday.form_extra_full_load' },
+    ])
+  })
+  it('Tempo wie in der Story: nur Ø, nur max oder nichts, nie "0 km/h" für einen fehlenden Wert', () => {
+    expect(tripDetailKeys({ avgSpeedKmh: 30, maxSpeedKmh: null })).toEqual([{ key: 'dashboard.trip_speed_avg_only', params: { avg: 30 } }])
+    expect(tripDetailKeys({ avgSpeedKmh: null, maxSpeedKmh: 71 })).toEqual([{ key: 'dashboard.trip_speed_max_only', params: { max: 71 } }])
+    expect(tripDetailKeys({})).toEqual([])
+  })
+})
+
+describe('chargeDetailKeys', () => {
+  it('höchste Ladeleistung und Effizienz, gerundet', () => {
+    expect(chargeDetailKeys({ maxChargingPowerKw: 131.6, kwhCharged: 42, kwhAtVehicle: 38.5 })).toEqual([
+      { key: 'logbook.max_power', params: { kw: 132 } },
+      { key: 'logbook.efficiency', params: { pct: 92 } },
+    ])
+  })
+  it('ohne Werte leer', () => {
+    expect(chargeDetailKeys({ maxChargingPowerKw: null, kwhCharged: 42, kwhAtVehicle: null })).toEqual([])
   })
 })

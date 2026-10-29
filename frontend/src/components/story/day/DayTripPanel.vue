@@ -80,6 +80,8 @@ async function remove() {
           :start-geohash="trip.locationStartGeohash" :end-geohash="trip.locationEndGeohash"
           :route-polyline="trip.routePolyline" :route-kind="trip.routeKind" :trace-polyline="trip.tracePolyline" />
       </div>
+      <!-- Ergänzung des Rahmens über dem Formular, z. B. Tempo im Logbuch -->
+      <slot name="facts" />
       <DayTripForm :id="formId" v-model="form" :mode="trip ? 'edit' : 'add'" :error="error" :saving="saving" :distance-unit="distanceUnitLabel()"
         :actions="false" @save="save">
         <!-- Ergänzungen des Rahmens, z. B. "Korrekt erkannt?" im Logbuch: neben den Besonderheiten bzw. darunter -->

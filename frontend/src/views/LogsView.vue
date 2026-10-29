@@ -50,6 +50,7 @@ import { buildPeriodGroups } from '../utils/tripPeriods'
 import { collapseAnchorScrollY, isGroupScrolledPast } from '../utils/stickyGroup'
 import { normalizeCharge } from '../utils/recentActivity'
 import { usePricelessDeepLink } from '../composables/usePricelessDeepLink'
+import { useChargingProviderNames } from '../composables/useChargingProviderNames'
 import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
 import FeedHintCard from '../components/dashboard/FeedHintCard.vue'
 import DeletedLogsEntry from '../components/dashboard/DeletedLogsEntry.vue'
@@ -87,6 +88,7 @@ import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
 import { carDisplayName } from '../utils/enumLabel'
 import {
   computeRealCostHint,
+  chargingEfficiencyPercent,
   isNettoOnlyCostLog,
   costBasisKwh,
   type RealCostHint,
@@ -514,10 +516,7 @@ function firstCurveTopUp(entry: any): any {
 }
 
 
-function chargingEfficiency(kwhCharged: number | null, kwhAtVehicle: number | null): number | null {
-  if (!kwhCharged || !kwhAtVehicle || kwhCharged <= 0) return null
-  return Math.round((kwhAtVehicle / kwhCharged) * 1000) / 10
-}
+const chargingEfficiency = chargingEfficiencyPercent
 
 // A log without kwhCharged carries only the netto-side cost (= tariff x kwhAtVehicle).
 // We hint the realistic grid-side cost in the expanded card - estimated from the user's
@@ -608,13 +607,7 @@ const communityBenchmark = computed<CommunityBenchmark | null>(() => {
 })
 
 // -- Ladekarten: einmal geladen, dann je Ladung im Feed als Name aufgeloest --
-const chargingProviderNames = ref<Map<string, string>>(new Map())
-onMounted(async () => {
-  try {
-    const res = await api.get<{ id: string; providerName: string; label: string | null }[]>('/users/me/charging-providers')
-    chargingProviderNames.value = new Map(res.data.map((p) => [p.id, p.label || p.providerName]))
-  } catch { /* Ohne Kartennamen zeigt die Ladezeile nur den Ort. */ }
-})
+const chargingProviderNames = useChargingProviderNames()
 
 function chargeCardName(entry: any): string | null {
   if (!entry.chargingProviderId) return null

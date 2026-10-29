@@ -14,6 +14,9 @@ import { usePowerCurve } from '../../composables/usePowerCurve'
 import { useAuthStore } from '../../stores/auth'
 import { useAnalyticsUpsellTarget } from '../../composables/useUpsellTarget'
 import type { DayTrip } from '../../composables/storyDay'
+import { useLocaleFormat } from '../../composables/useLocaleFormat'
+import { tripDetailKeys, chargeDetailKeys } from '../../utils/logbook'
+import type { TripFacts } from '../../utils/tripCalculations'
 
 /**
  * Der gewählte Eintrag des Logbuchs: Ladung bearbeiten (mit Ladekurve und "Korrekt erkannt?") oder Fahrt
@@ -23,7 +26,13 @@ export type LogbookSelection =
   | { kind: 'charge'; log: EvLogResponse & { hasPowerCurve?: boolean; hasSocCurve?: boolean } }
   | { kind: 'trip'; trip: DayTrip & { dataSource?: string | null } }
 
-const props = defineProps<{ selection: LogbookSelection | null; carId: string; wide: boolean }>()
+const props = defineProps<{
+  selection: LogbookSelection | null
+  carId: string
+  wide: boolean
+  /** Kosten und Verbrauch der gewählten Fahrt, wie in ihrer Zeile */
+  tripFacts?: TripFacts | null
+}>()
 const emit = defineEmits<{ close: []; changed: [] }>()
 const { t } = useI18n()
 const { stats, formatLogDate } = useCarContext()
@@ -44,6 +53,19 @@ function done() {
 const key = computed(() => props.selection?.kind === 'charge' ? props.selection.log.id : props.selection?.trip.id)
 const tripRateable = computed(() => props.selection?.kind === 'trip' && props.selection.trip.dataSource !== 'USER_CREATED')
 const stickyTop = { top: 'calc(var(--content-top, var(--top-nav-h)) + 1rem)' }
+const { formatConsumption } = useLocaleFormat()
+/** Tempo und Verbrauch der Fahrt, nur auf dem Handy (ab 768 px stehen sie in der Zeile); Streckentyp und Besonderheiten zeigt das Formular als Chips */
+const speed = computed(() => {
+  if (props.selection?.kind !== 'trip') return null
+  const k = tripDetailKeys(props.selection.trip).find(x => x.key.startsWith('dashboard.trip_speed'))
+  const f = props.tripFacts
+  return [k ? t(k.key, k.params ?? {}) : null, f?.kwhPer100km != null ? `${f.estimated ? '~' : ''}${formatConsumption(f.kwhPer100km)}` : null]
+    .filter(Boolean).join(' · ') || null
+})
+/** Höchste Ladeleistung und Effizienz einer Ladung, nur auf dem Handy (ab 768 px in der Zeile) */
+const chargeMore = computed(() => props.selection?.kind === 'charge'
+  ? chargeDetailKeys(props.selection.log).map(k => t(k.key, k.params ?? {})).join(' · ') || null
+  : null)
 </script>
 
 <template>
@@ -56,6 +78,7 @@ const stickyTop = { top: 'calc(var(--content-top, var(--top-nav-h)) + 1rem)' }
       <LogEditPanel v-if="selection.kind === 'charge'" :key="key" :log="selection.log" dismiss="close"
         @cancel="dismiss" @saved="done" @deleted="done">
         <template #extra>
+          <p v-if="chargeMore" class="text-[13px] tabular-nums md:hidden text-gray-600 dark:text-gray-300" data-testid="logbook-charge-more">{{ chargeMore }}</p>
           <div v-if="curve.available(selection.log) || isRateableLogSource(selection.log.dataSource)"
             class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-gray-500 dark:text-gray-400">
             <button v-if="curve.available(selection.log)" type="button" data-testid="logbook-curve" aria-haspopup="dialog"
@@ -75,6 +98,9 @@ const stickyTop = { top: 'calc(var(--content-top, var(--top-nav-h)) + 1rem)' }
       </LogEditPanel>
       <DayTripPanel v-else :key="key" :trip="selection.trip" :car-id="carId" :new-end="new Date()"
         @back="dismiss" @saved="done" @deleted="done">
+        <template #facts>
+          <p v-if="speed" class="mb-3 text-[13px] tabular-nums md:hidden text-gray-600 dark:text-gray-300" data-testid="logbook-trip-speed">{{ speed }}</p>
+        </template>
         <template #extras-end>
           <span v-if="tripRateable" role="group" :aria-label="t('dashboard.data_feedback_label')"
             class="ml-auto inline-flex items-center gap-0.5 self-center text-[13px] text-gray-500 dark:text-gray-400">

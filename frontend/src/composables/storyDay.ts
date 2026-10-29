@@ -24,6 +24,8 @@ export interface DayTrip {
   measured?: boolean
   outsideTempCelsius?: number | null
   climate?: ClimateSummary | null
+  avgSpeedKmh?: number | null
+  maxSpeedKmh?: number | null
 }
 
 /** Was das Tagesblatt von einer Ladung braucht (Auszug aus EvLogResponse). */
@@ -40,6 +42,8 @@ export interface DayLog {
   isPublicCharging: boolean | null
   cpoName: string | null
   chargingType: 'AC' | 'DC' | 'UNKNOWN' | null
+  chargingProviderId?: string | null
+  maxChargingPowerKw?: number | null
 }
 
 interface EventBase { id: string; from: number; to: number; socFrom: number | null; socTo: number | null }

@@ -1,6 +1,8 @@
 import {
   eventsOfDay, dayKeyOf, shiftDay, daySummary, type DayEvent, type DayLog, type DayTrip,
 } from '../composables/storyDay'
+import { chargingEfficiencyPercent } from '../composables/useChargingEfficiency'
+import { tripSpeedKeyAndArgs } from './recentActivity'
 
 /**
  * Logbuch auf /logs: der Monat ist ein Kapitel, darin ein Blatt je Tag mit Einträgen, neueste zuerst.
@@ -105,4 +107,31 @@ export function monthsOf(trips: DayTrip[], logs: DayLog[], opts: LogbookOptions 
     m.totals = { trips: sum.trips, km: sum.km, charges: sum.charges, eur: sum.eur, costPer100km: opts.costPer100km?.(monthTrips) ?? null }
   }
   return months
+}
+
+/** Textbaustein für i18n: Schlüssel plus Parameter. */
+export interface TextKey { key: string; params?: Record<string, number> }
+
+/**
+ * Weitere Angaben einer Fahrt wie im aufgeklappten Bereich der alten Liste: Tempo (Ø und max),
+ * Streckentyp, Besonderheiten. Im Logbuch ab 768 px in der Zeile, auf dem Handy im Detail.
+ */
+export function tripDetailKeys(trip: {
+  avgSpeedKmh?: number | null; maxSpeedKmh?: number | null; routeType?: string | null; loadExtras?: string[] | null
+}): TextKey[] {
+  const keys: TextKey[] = []
+  const speed = tripSpeedKeyAndArgs(trip.avgSpeedKmh, trip.maxSpeedKmh)
+  if (speed) keys.push({ key: speed.key, params: speed.args })
+  if (trip.routeType) keys.push({ key: `dashboard.trip_route_${trip.routeType.toLowerCase()}` })
+  for (const x of trip.loadExtras ?? []) keys.push({ key: `storyday.form_extra_${x.toLowerCase()}` })
+  return keys
+}
+
+/** Weitere Angaben einer Ladung: höchste Ladeleistung und Effizienz. Ab 768 px in der Zeile, auf dem Handy im Detail. */
+export function chargeDetailKeys(log: { maxChargingPowerKw?: number | null; kwhCharged: number | null; kwhAtVehicle: number | null }): TextKey[] {
+  const keys: TextKey[] = []
+  if (log.maxChargingPowerKw != null) keys.push({ key: 'logbook.max_power', params: { kw: Math.round(Number(log.maxChargingPowerKw)) } })
+  const eff = chargingEfficiencyPercent(log.kwhCharged, log.kwhAtVehicle)
+  if (eff != null) keys.push({ key: 'logbook.efficiency', params: { pct: Math.round(eff) } })
+  return keys
 }
