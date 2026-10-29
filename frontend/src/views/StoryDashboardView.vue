@@ -95,6 +95,9 @@ const charging = computed(() => selectedCar.value ? isVehicleCharging(selectedCa
 
 const monthLabel = (m: StoryMonth) => new Date(m.year, m.month - 1, 1).toLocaleDateString(locale.value, { month: 'long' })
 const monthLabelShort = (m: StoryMonth) => new Date(m.year, m.month - 1, 1).toLocaleDateString(locale.value, { month: 'short' })
+/** Der Hero-Satz nennt den Monat statt der Pfeile, daher bei einem anderen Jahr mit Jahreszahl ("März 2025:"). */
+const heroMonthLabel = (m: StoryMonth) => new Date(m.year, m.month - 1, 1).toLocaleDateString(locale.value,
+  m.year === new Date().getFullYear() ? { month: 'long' } : { month: 'long', year: 'numeric' })
 const sixMonthLabels = computed(() => Array.from({ length: 6 }, (_, i) =>
   new Date(month.value.year, month.value.month - 1 - (5 - i), 1).toLocaleDateString(locale.value, { month: 'short' })))
 
@@ -108,11 +111,6 @@ async function share(title: string, text: string) {
   shareStatus.value = await shareOrCopy({ title, text, url: window.location.origin })
   if (shareStatus.value !== 'shared') setTimeout(() => { shareStatus.value = null }, 3000)
 }
-function shareMonth(text: string) {
-  haptic()
-  analytics.track('story_hero_shared')
-  share(monthLabel(month.value), text)
-}
 
 const petrolEur = computed(() => petrolCostEur(monthStats.value?.totalDistanceKm ?? null, story.petrol.value.eurPerLitre, petrolLitersPer100km(selectedCar.value?.category)))
 
@@ -121,6 +119,8 @@ const narrow = useIsMobile('(max-width: 1023px)')
 const sheetIds = computed(() => tiles.value.map(x => x.id))
 // Steht, sobald ein Monat da ist, und bleibt beim Monatswechsel stehen (der neue kommt mit seinen Daten)
 const showFeed = computed(() => !!monthStats.value && !error.value && (hasCharges.value || liveActive.value))
+/** Steht der Monatssatz (StoryHero)? Dann sitzen die Monatspfeile in ihm, sonst als eigene Zeile darüber. */
+const monthHero = computed(() => !(loading.value && !monthStats.value) && !error.value && hasCharges.value && heroMode.value === 'month')
 
 
 // Monatswechsel: Segment-Schalter oder horizontaler Wisch auf dem Hero.
@@ -334,13 +334,15 @@ onUnmounted(() => unregisterReload?.())
     <main class="mx-auto grid max-w-6xl grid-cols-1 gap-4 pb-6 md:px-6 md:pb-12">
       <!-- Eine Box: oben Auto und Monat, darunter ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts der Feed. -->
       <section class="grid grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box">
-        <!-- Auto und Monat über beiden Spalten: der Monat steuert auch den Feed rechts -->
-        <header class="flex items-center justify-between gap-2 lg:col-span-12">
-          <CarSwitch v-if="selectedCar" v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
-          <p v-else class="truncate text-[15px] font-bold text-gray-900 dark:text-gray-50">{{ t('story.title') }}</p>
-          <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
+        <!-- Auto über beiden Spalten, nur bei mehreren Autos: mit einem gibt es nichts zu wählen -->
+        <header v-if="cars.length > 1" class="flex items-center lg:col-span-12">
+          <CarSwitch v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
         </header>
         <div ref="monthMain" class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7" :class="switching ? monthWaiting : ''">
+          <!-- Monatspfeile neben dem Monatssatz; ohne ihn (leer, Laden, Fehler, Live) als eigene Zeile mit Monat -->
+          <div v-if="!monthHero" class="flex justify-end">
+            <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
+          </div>
 
           <p v-if="charging && !liveActive" class="flex items-center gap-2 text-[13px] text-story-accent dark:text-story-accent-dark" data-testid="story-live">
             <span class="h-1.5 w-1.5 rounded-full bg-current motion-safe:animate-pulse" />{{ t('story.live_charging') }}
@@ -376,14 +378,17 @@ onUnmounted(() => unregisterReload?.())
                 <StoryHero
                   v-else
                   key="month"
-                  :month-label="monthLabel(month)"
+                  :month-label="heroMonthLabel(month)"
                   :distance-km="monthStats?.totalDistanceKm ?? null"
                   :energy-cost-eur="monthStats?.energyCostEur ?? null"
                   :charges="monthStats?.totalCharges ?? 0"
                   :petrol-eur="petrolEur"
                   :layers="layers"
-                  @share="shareMonth"
-                  @layers="(open) => open && analytics.track('story_layers_opened')" />
+                  @layers="(open) => open && analytics.track('story_layers_opened')">
+                  <template #nav>
+                    <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" :labelled="false" @select="selectMonth" />
+                  </template>
+                </StoryHero>
               </Transition>
             </div>
             <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">

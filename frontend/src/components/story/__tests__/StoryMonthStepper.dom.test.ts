@@ -11,11 +11,11 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.u
 
 const labelOf = (m: StoryMonth) => new Date(m.year, m.month - 1, 1).toLocaleDateString('de-DE', { month: 'short' }).replace('.', '')
 
-function mount(offset: number, minOffset: number, onSelect?: (o: number) => void) {
+function mount(offset: number, minOffset: number, onSelect?: (o: number) => void, extra: Record<string, unknown> = {}) {
   vi.useFakeTimers({ now: new Date(2026, 9, 27, 12), toFake: ['Date'] })
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(StoryMonthStepper, { offset, minOffset, labelOf, onSelect })
+  app = createApp(StoryMonthStepper, { offset, minOffset, labelOf, onSelect, ...extra })
   app.use(createPinia()).use(i18n)
   app.mount(host)
   return host
@@ -45,5 +45,21 @@ describe('StoryMonthStepper', () => {
     const host = mount(-10, -20)
     expect(label(host)).toBe('Dez 25')
     expect(host.querySelector('[data-testid="story-month-label"]')!.getAttribute('aria-label')).toBe('Dezember 2025')
+  })
+
+  it('neben dem Monatssatz nur Pfeile: der Monat bleibt für Screenreader und wird angesagt', () => {
+    const host = mount(0, -5, undefined, { labelled: false })
+    const el = host.querySelector('[data-testid="story-month-label"]')!
+    expect(el.className).toContain('sr-only')
+    // Angesagt wird der Text der Live-Region, nicht das aria-label des span
+    expect(el.textContent!.trim()).toBe('Oktober 2026')
+    expect(el.getAttribute('aria-live')).toBe('polite')
+    expect(el.getAttribute('aria-label')).toBe('Oktober 2026')
+    expect(prev(host).disabled).toBe(false)
+  })
+
+  it('ohne Angabe steht der Monat sichtbar zwischen den Pfeilen', () => {
+    const host = mount(0, -5)
+    expect(host.querySelector('[data-testid="story-month-label"]')!.className).not.toContain('sr-only')
   })
 })

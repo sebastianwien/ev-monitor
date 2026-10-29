@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest'
-import { createApp, nextTick, type App } from 'vue'
+import { createApp, h, nextTick, type App } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { useCountryStore } from '../../../stores/country'
 import { i18n } from '../../../i18n'
@@ -82,13 +82,23 @@ describe('StoryHero', () => {
     expect(text(rest)).toBe('274 km für 33 €.')
   })
 
-  it('Teilen-Knopf rechts meldet Satz und graue Zeile', () => {
-    const shared: string[] = []
-    const host = mount({ onShare: (x: string) => shared.push(x) })
-    const share = host.querySelector('[data-testid="story-hero-share"]') as HTMLButtonElement
-    expect(share.getAttribute('aria-label')).toBe('Teilen')
-    share.click()
-    expect(shared.map(x => x.replace(/\s/g, ' '))).toEqual(['Oktober: 274 km für 33 €. 12,19 € je 100 km · Ein Benziner hätte 51 € gekostet.'])
+  it('kein Teilen-Knopf: rechts neben dem Monat steht der Slot "nav", außerhalb der Überschrift', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    app = createApp({ render: () => h(StoryHero, base, { nav: () => h('span', { 'data-testid': 'nav-probe' }, '‹ ›') }) })
+    app.use(createPinia()).use(i18n)
+    app.mount(host)
+    expect(host.querySelector('[data-testid="story-hero-share"]')).toBeNull()
+    const probe = host.querySelector('[data-testid="nav-probe"]')!
+    expect(probe.closest('h1')).toBeNull()
+    // Schwebt rechts vor der Überschrift: nur die Monatszeile weicht aus, der Satz darunter hat die volle Breite.
+    expect(probe.parentElement!.className).toContain('float-right')
+    expect(probe.parentElement!.nextElementSibling?.tagName).toBe('H1')
+  })
+
+  it('ohne Slot kein leerer Platzhalter', () => {
+    const host = mount()
+    expect(host.querySelector('.float-right')).toBeNull()
   })
 
   it('Meilen: Kosten je 100 mi, passend zum Satz', () => {

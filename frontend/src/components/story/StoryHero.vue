@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ShareIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon } from '@heroicons/vue/24/outline'
 import CostLayers from './CostLayers.vue'
 import Collapse from '../shared/Collapse.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
@@ -12,8 +12,10 @@ import type { CostLayer } from '../../composables/storyEnergy'
 /**
  * Die Antwort zuerst, als ein Satz in Kilometern und Euro: "Oktober: 274 km für 33 €."
  * Darunter eine graue Zeile mit Euro je 100 km und, nur wenn Benzin teurer gewesen wäre, was
- * ein Benziner gekostet hätte. Rechts der Teilen-Knopf. Mit Fixkosten oder Einnahmen steht in der
- * grauen Zeile ein Knopf "Alle Kosten" mit der Summe, er klappt die Kostenschichten auf.
+ * ein Benziner gekostet hätte. Mit Fixkosten oder Einnahmen steht in der grauen Zeile ein Knopf
+ * "Alle Kosten" mit der Summe, er klappt die Kostenschichten auf.
+ * Slot "nav" (Monatspfeile) schwebt rechts neben der Monatszeile: die negativen Ränder halten seine
+ * Fläche auf der ersten Zeile, der Satz darunter behält die volle Breite.
  */
 const props = defineProps<{
   monthLabel: string
@@ -25,7 +27,7 @@ const props = defineProps<{
   petrolEur: number | null
   layers: CostLayer[] | null
 }>()
-const emit = defineEmits<{ layers: [open: boolean]; share: [text: string] }>()
+const emit = defineEmits<{ layers: [open: boolean] }>()
 
 const { t } = useI18n()
 const { formatCurrency, formatDistance, convertDistance, distanceUnitLabel } = useLocaleFormat()
@@ -73,40 +75,34 @@ watch(() => props.monthLabel, () => { layersOpen.value = false })
 </script>
 
 <template>
-  <div class="story-hero flex items-start justify-between gap-3">
-    <div class="grid min-w-0 gap-1.5">
+  <div class="story-hero grid min-w-0 gap-1.5">
+    <div>
+      <!-- 44 px Pfeile mittig auf der Monatszeile (26 px x 1,1, ab md 36 px x 1,1), Rand unten negativ: die Fläche endet vor Zeile 2 -->
+      <div v-if="$slots.nav" class="float-right -mb-2 -mt-2 ml-3 md:-mb-1 md:-mt-0.5"><slot name="nav" /></div>
       <h1 class="text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50">
         <span data-testid="story-hero-value" class="block">
           <template v-if="sentenceParts.month">{{ `${sentenceParts.month} ` }}</template><span class="whitespace-nowrap">{{ sentenceParts.rest }}</span>
         </span>
       </h1>
-      <!-- Passt der Knopf nicht mehr hinter die graue Zeile, bricht er in eine eigene Zeile um.
-           -my gleicht die 44 px Tap-Fläche aus, damit die Zeile nicht höher wird als der Text. -->
-      <div v-if="meta || layersTotal" class="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <p v-if="meta" data-testid="story-hero-meta" class="text-pretty text-[15px] font-semibold text-gray-600 tabular-nums md:text-[17px] dark:text-gray-300">{{ meta }}</p>
-        <button
-          v-if="layersTotal"
-          type="button"
-          data-testid="story-hero-layers"
-          :aria-expanded="layersOpen"
-          :aria-controls="layersId"
-          class="-my-2.5 inline-flex min-h-11 items-center gap-1 rounded-md text-[14px] font-bold text-gray-900 tabular-nums underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 md:text-[15px] dark:text-gray-50 dark:decoration-gray-600 dark:focus-visible:ring-gray-100"
-          @click="toggleLayers">
-          {{ layersTotal }}
-          <ChevronDownIcon class="h-4 w-4 shrink-0 transition-transform duration-300" :class="layersOpen ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
-        </button>
-      </div>
-      <Collapse v-if="layers" :open="layersOpen">
-        <div :id="layersId"><CostLayers :layers="layers" /></div>
-      </Collapse>
     </div>
-    <button
-      type="button"
-      data-testid="story-hero-share"
-      class="-mr-2 -mt-1 grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-      :aria-label="t('story.share_aria')"
-      @click="emit('share', [sentence, meta].filter(Boolean).join(' '))">
-      <ShareIcon class="h-6 w-6" aria-hidden="true" />
-    </button>
+    <!-- Passt der Knopf nicht mehr hinter die graue Zeile, bricht er in eine eigene Zeile um.
+         -my gleicht die 44 px Tap-Fläche aus, damit die Zeile nicht höher wird als der Text. -->
+    <div v-if="meta || layersTotal" class="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <p v-if="meta" data-testid="story-hero-meta" class="text-pretty text-[15px] font-semibold text-gray-600 tabular-nums md:text-[17px] dark:text-gray-300">{{ meta }}</p>
+      <button
+        v-if="layersTotal"
+        type="button"
+        data-testid="story-hero-layers"
+        :aria-expanded="layersOpen"
+        :aria-controls="layersId"
+        class="-my-2.5 inline-flex min-h-11 items-center gap-1 rounded-md text-[14px] font-bold text-gray-900 tabular-nums underline decoration-gray-300 underline-offset-4 hover:decoration-gray-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 md:text-[15px] dark:text-gray-50 dark:decoration-gray-600 dark:focus-visible:ring-gray-100"
+        @click="toggleLayers">
+        {{ layersTotal }}
+        <ChevronDownIcon class="h-4 w-4 shrink-0 transition-transform duration-300" :class="layersOpen ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
+      </button>
+    </div>
+    <Collapse v-if="layers" :open="layersOpen">
+      <div :id="layersId"><CostLayers :layers="layers" /></div>
+    </Collapse>
   </div>
 </template>
