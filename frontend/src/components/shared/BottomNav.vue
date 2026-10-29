@@ -95,7 +95,7 @@ function onMore() {
       <div class="relative w-20 flex justify-center">
         <button
           type="button"
-          class="btn-3d btn-3d-delay record-fab absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-green-600 text-white border-2 border-edge active:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 dark:focus-visible:outline-gray-100"
+          class="btn-3d absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-green-600 text-white border-2 border-edge active:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 dark:focus-visible:outline-gray-100"
           :aria-label="t('nav.bottom.record')"
           @click="onRecord"
         >
@@ -137,10 +137,3 @@ function onMore() {
     </div>
   </nav>
 </template>
-
-<style scoped>
-/* Druck sichtbar machen: langsamer als das globale btn-3d, btn-3d-delay hält die Navigation 150 ms zurück */
-.record-fab { transition-duration: 180ms; }
-.record-fab:active { transition-duration: 120ms; }
-@media (prefers-reduced-motion: reduce) { .record-fab, .record-fab:active { transition: none; } }
-</style>
