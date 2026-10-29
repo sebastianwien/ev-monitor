@@ -129,8 +129,35 @@ export function mapCredit(routed: boolean): string {
   return routed ? '© OpenStreetMap · Route © openrouteservice by HeiGIT' : '© OpenStreetMap'
 }
 
-/** Ein Hinweis für mehrere Minikarten (Tagesablauf, Logbuch): null, wenn keine Fahrt eine Karte hat. */
+/** Ein Hinweis für mehrere Minikarten (Tagesablauf, Logbuch): null, wenn keine Fahrt eine Minikarte zeigt. */
 export function tripsCredit(trips: readonly TripMapSource[]): string | null {
-  const mapped = trips.filter(hasTripMap)
+  const mapped = trips.filter(hasTripThumb)
   return mapped.length ? mapCredit(mapped.some(tr => isRoutedLine(tripLine(tr.tracePolyline, tr.routePolyline, tr.routeKind)))) : null
+}
+
+/** Unter dieser Ausdehnung zeigt eine Minikarte keine Bewegung, nur einen Punkt auf der Stelle. */
+const THUMB_MIN_MOVE_M = 100
+
+/** Abstand zweier Punkte in Metern, flach genähert (für ein paar Kilometer genau genug). */
+function meters(a: LatLon, b: LatLon): number {
+  const midLat = ((a.lat + b.lat) / 2) * (Math.PI / 180)
+  const dLat = (b.lat - a.lat) * (Math.PI / 180) * EARTH_RADIUS_M
+  const dLon = (b.lon - a.lon) * (Math.PI / 180) * EARTH_RADIUS_M * Math.cos(midLat)
+  return Math.sqrt(dLat * dLat + dLon * dLon)
+}
+
+/**
+ * Minikarte in einer Zeile nur, wenn darauf Bewegung zu sehen ist: die Linie reicht weiter als
+ * {@link THUMB_MIN_MOVE_M}, ohne Linie liegen Start und Ziel so weit auseinander. Eine Fahrt auf der
+ * Stelle (Rangieren, 0 km) bekommt keine. Die große Karte im Detail bleibt bei {@link hasTripMap}.
+ */
+export function hasTripThumb(trip: TripMapSource): boolean {
+  if (!hasTripMap(trip)) return false
+  const line = tripLine(trip.tracePolyline, trip.routePolyline, trip.routeKind)
+  if (line) {
+    const first = { lat: line.points[0][0], lon: line.points[0][1] }
+    return line.points.some(([lat, lon]) => meters(first, { lat, lon }) >= THUMB_MIN_MOVE_M)
+  }
+  const view = tripMapView(trip.locationStartGeohash, trip.locationEndGeohash)
+  return !!view?.start && !!view.end && meters(view.start, view.end) >= THUMB_MIN_MOVE_M
 }

@@ -32,11 +32,17 @@ async function mount(trips: DayTrip[]) {
 }
 
 describe('DayTimeline Minikarte', () => {
-  it('Fahrt mit Ort: Vorschaukarte, auch wenn Start gleich Ziel', async () => {
-    const host = await mount([trip({ locationStartGeohash: 'u33df5x8', locationEndGeohash: 'u33df5x8' })])
+  it('Fahrt mit Bewegung: Vorschaukarte', async () => {
+    const host = await mount([trip({ locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33dc0bc' })])
     const map = host.querySelector('[data-testid="day-trip-thumb"] [data-testid="map-stub"]')
     expect(map?.getAttribute('data-variant')).toBe('thumb')
-    expect(map?.getAttribute('data-start')).toBe('u33df5x8')
+    expect(map?.getAttribute('data-start')).toBe('u33df5ze')
+  })
+
+  it('Fahrt ohne sichtbare Bewegung (Start gleich Ziel): keine Vorschaukarte, kein Kartenhinweis', async () => {
+    const host = await mount([trip({ locationStartGeohash: 'u33df5x8', locationEndGeohash: 'u33df5x8' })])
+    expect(host.querySelector('[data-testid="day-trip-thumb"]')).toBeNull()
+    expect(host.querySelector('[data-testid="day-map-credit"]')).toBeNull()
   })
 
   it('Fahrt ohne Ort: keine Karte, kein Kartenhinweis', async () => {

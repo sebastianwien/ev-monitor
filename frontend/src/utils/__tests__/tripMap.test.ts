@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tripMapView, tripLine, hasTripMap, isRoutedLine, tripsCredit } from '../tripMap'
+import { tripMapView, tripLine, hasTripMap, isRoutedLine, tripsCredit, hasTripThumb } from '../tripMap'
 
 // u33d0k / u33d0m are neighbouring geohash-6 cells near Berlin.
 describe('tripMapView', () => {
@@ -125,5 +125,21 @@ describe('tripsCredit', () => {
   it('ohne Karte kein Hinweis', () => {
     expect(tripsCredit([{}])).toBeNull()
     expect(tripsCredit([])).toBeNull()
+  })
+})
+
+describe('hasTripThumb', () => {
+  it('Linie mit Strecke: Minikarte', () => {
+    expect(hasTripThumb({ locationStartGeohash: 'u33d0k', tracePolyline: '_p~iF~ps|U_ulLnnqC' })).toBe(true)
+  })
+  it('Start und Ziel weit auseinander, ohne Linie: Minikarte', () => {
+    expect(hasTripThumb({ locationStartGeohash: 'u33d0k', locationEndGeohash: 'u33dc0' })).toBe(true)
+  })
+  it('keine Bewegung zu sehen: keine Minikarte (gleiche Zelle, Linie auf der Stelle)', () => {
+    expect(hasTripThumb({ locationStartGeohash: 'u33df5x8', locationEndGeohash: 'u33df5x8' })).toBe(false)
+    expect(hasTripThumb({ locationStartGeohash: 'u33df5x8', locationEndGeohash: 'u33df5x8', tracePolyline: '????' })).toBe(false)
+  })
+  it('ohne Ort keine Minikarte', () => {
+    expect(hasTripThumb({})).toBe(false)
   })
 })

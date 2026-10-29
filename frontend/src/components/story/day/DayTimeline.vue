@@ -6,7 +6,7 @@ import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import {
   chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, type DayEvent, type DayLog,
 } from '../../../composables/storyDay'
-import { hasTripMap, tripsCredit } from '../../../utils/tripMap'
+import { hasTripThumb, tripsCredit } from '../../../utils/tripMap'
 import StandingText from './StandingText.vue'
 import { chargePricePerKwh } from '../../../composables/useChargingEfficiency'
 import { temperatureTone } from '../../../utils/tripClimate'
@@ -173,7 +173,7 @@ const items = computed<Item[]>(() => {
             <slot name="trip-side" :trip="e.trip" />
           </span>
           <!-- isolate: Leaflets Ebenen dürfen nicht über die Kopfzeile des Sheets ragen -->
-          <span v-if="e.kind === 'trip' && hasTripMap(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-[52px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-gray-100 md:h-14 md:w-24 dark:bg-white/5">
+          <span v-if="e.kind === 'trip' && hasTripThumb(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-[52px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-gray-100 md:h-14 md:w-24 dark:bg-white/5">
             <ActivityLocationMap variant="thumb" :start-geohash="e.trip.locationStartGeohash" :end-geohash="e.trip.locationEndGeohash"
               :route-polyline="e.trip.routePolyline" :route-kind="e.trip.routeKind" :trace-polyline="e.trip.tracePolyline" />
           </span>
