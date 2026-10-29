@@ -537,7 +537,7 @@ const handleBottomLogout = () => {
       @toggle-more="moreOpen = !moreOpen"
     />
     <MoreSheet
-      :open="moreOpen"
+      v-if="moreOpen"
       :feedback-mailto="feedbackMailto"
       :is-demo="authStore.isDemoAccount"
       :is-native="isNative"

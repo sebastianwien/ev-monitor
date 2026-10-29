@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   XMarkIcon, TruckIcon, ArrowsRightLeftIcon, ArrowDownTrayIcon,
@@ -9,10 +8,12 @@ import {
 import ThemeToggle from './ThemeToggle.vue'
 import LocaleSwitcher from './LocaleSwitcher.vue'
 import SupportPopover from '../settings/SupportPopover.vue'
+import BottomSheet from './BottomSheet.vue'
 import { useHaptic } from '../../composables/useHaptic'
+import { CI_MENU_ROW as ROW } from '../../utils/ciClasses'
 
+/** Mehr-Menü der Bottom-Nav. Der Aufrufer hängt es an ein v-if und hört auf close, das erst nach der Schließ-Animation kommt. */
 const props = defineProps<{
-  open: boolean
   feedbackMailto: string
   isDemo: boolean
   isNative: boolean
@@ -31,62 +32,12 @@ const items: NavItem[] = [
   { to: '/settings', label: 'nav.bottom.settings', icon: Cog6ToothIcon, demoHidden: true },
 ]
 
-// Pull-down-to-dismiss: das Sheet laesst sich nach unten wegziehen. Die Geste
-// startet nur, wenn der Scroll-Container ganz oben steht (sonst will der User
-// scrollen). Ueber der Schwelle schliesst es, sonst federt es zurueck.
-const DISMISS_THRESHOLD_PX = 120
-const sheetRef = ref<HTMLElement | null>(null)
-const dragY = ref(0)
-const dragging = ref(false)
-let startY = 0
-let active = false
+const ROW_ICON = 'h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400'
 
-// Beim Oeffnen den evtl. vom Schliessen stehengebliebenen Offset zuruecksetzen.
-watch(() => props.open, (open) => { if (open) dragY.value = 0 })
-
-const sheetStyle = computed(() => {
-  if (!dragging.value && dragY.value === 0) return undefined
-  return {
-    transform: `translateY(${dragY.value}px)`,
-    transition: dragging.value ? 'none' : 'transform 0.25s cubic-bezier(0.32, 0.72, 0, 1)',
-  }
-})
-
-function onTouchStart(e: TouchEvent) {
-  if (e.touches.length !== 1 || (sheetRef.value?.scrollTop ?? 0) > 0) return
-  startY = e.touches[0].clientY
-  active = true
-  dragging.value = true
-}
-function onTouchMove(e: TouchEvent) {
-  if (!active) return
-  const dy = e.touches[0].clientY - startY
-  if (dy > 0) {
-    dragY.value = dy
-    if (e.cancelable) e.preventDefault() // native Overscroll waehrend des Zugs unterdruecken
-  } else {
-    // nach oben -> Geste abbrechen, nativen Scroll wieder zulassen
-    active = false
-    dragging.value = false
-    dragY.value = 0
-  }
-}
-function onTouchEnd() {
-  if (!active) return
-  active = false
-  dragging.value = false
-  if (dragY.value > DISMISS_THRESHOLD_PX) {
-    haptic()
-    dragY.value = sheetRef.value?.offsetHeight ?? window.innerHeight // aus dem Bild ziehen
-    setTimeout(() => emit('close'), 250)
-  } else {
-    dragY.value = 0 // zurueckfedern (transition greift, da !dragging)
-  }
-}
-
-function go() {
+/** Link angetippt: Sheet über BottomSheet schließen, damit es wie beim X nach unten fährt. */
+function go(close: () => void) {
   haptic()
-  emit('close')
+  close()
 }
 
 function onLogout() {
@@ -96,109 +47,59 @@ function onLogout() {
 </script>
 
 <template>
-  <Transition name="more-sheet">
-    <div v-if="props.open" class="fixed inset-0 z-50 md:hidden" @click.self="emit('close')">
-      <!-- Backdrop -->
-      <div class="absolute inset-0 bg-black/50" @click="emit('close')" />
+  <BottomSheet edge :label="t('nav.bottom.more')" testid="more-sheet" panel-class="sm:max-w-md" @close="emit('close')">
+    <template #default="{ close }">
+      <div class="flex shrink-0 items-center justify-between pl-5 pr-2 pt-3 pb-1">
+        <h2 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ t('nav.bottom.more') }}</h2>
+        <button
+          type="button"
+          class="grid h-11 w-11 place-items-center rounded-full text-gray-600 hover:bg-black/10 dark:text-gray-300 dark:hover:bg-white/10 transition-colors"
+          :aria-label="t('common.close')"
+          @click="close"
+        >
+          <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+        </button>
+      </div>
 
-      <!-- Sheet -->
-      <div
-        ref="sheetRef"
-        class="more-sheet absolute bottom-0 left-0 right-0 bg-white dark:bg-gray-900 rounded-t-2xl shadow-[0_-4px_20px_rgba(0,0,0,0.25)] max-h-[80vh] overflow-y-auto pb-[env(safe-area-inset-bottom)]"
-        :style="sheetStyle"
-        role="dialog"
-        aria-modal="true"
-        :aria-label="t('nav.bottom.more')"
-        @touchstart.passive.stop="onTouchStart"
-        @touchmove.stop="onTouchMove"
-        @touchend.stop="onTouchEnd"
-        @touchcancel.stop="onTouchEnd"
-      >
-        <!-- Grabber + Header -->
-        <div class="sticky top-0 bg-white dark:bg-gray-900 pt-3 px-4 pb-2">
-          <div class="mx-auto mb-3 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-700" />
-          <div class="flex items-center justify-between">
-            <h2 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ t('nav.bottom.more') }}</h2>
-            <button
-              type="button"
-              class="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-              :aria-label="t('common.close')"
-              @click="emit('close')"
-            >
-              <XMarkIcon class="h-5 w-5 text-gray-500 dark:text-gray-400" />
-            </button>
-          </div>
-        </div>
-
-        <!-- Nav-Items -->
-        <nav class="px-2 py-1">
+      <div class="overflow-y-auto">
+        <nav class="px-2 pb-2">
           <template v-for="item in items" :key="item.to">
-            <router-link
-              v-if="!(item.demoHidden && props.isDemo)"
-              :to="item.to"
-              class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-              @click="go"
-            >
-              <component :is="item.icon" class="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0" />
-              <span class="text-sm font-medium">{{ t(item.label) }}</span>
+            <router-link v-if="!(item.demoHidden && props.isDemo)" :to="item.to" :class="ROW" @click="go(close)">
+              <component :is="item.icon" :class="ROW_ICON" aria-hidden="true" />
+              {{ t(item.label) }}
             </router-link>
           </template>
-
-          <a
-            :href="props.feedbackMailto"
-            class="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition"
-            @click="go"
-          >
-            <ChatBubbleLeftEllipsisIcon class="h-5 w-5 text-gray-500 dark:text-gray-400 shrink-0" />
-            <span class="text-sm font-medium">{{ t('nav.bottom.feedback') }}</span>
+          <a :href="props.feedbackMailto" :class="ROW" @click="go(close)">
+            <ChatBubbleLeftEllipsisIcon :class="ROW_ICON" aria-hidden="true" />
+            {{ t('nav.bottom.feedback') }}
           </a>
         </nav>
 
-        <!-- Utilities -->
-        <div class="border-t border-gray-200 dark:border-gray-800 mt-1 px-4 py-3 flex items-center gap-4">
+        <div class="border-t border-gray-200 dark:border-white/10 px-4 py-2 flex items-center gap-3 text-gray-900 dark:text-gray-100">
           <LocaleSwitcher variant="public" />
           <ThemeToggle v-if="!props.isDemo" />
           <button
             v-if="!props.isDemo"
             type="button"
-            class="ml-auto flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition"
+            class="ml-auto flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-medium text-gray-900 hover:bg-black/10 dark:text-gray-100 dark:hover:bg-white/10 transition-colors"
             @click="onLogout"
           >
-            <ArrowRightOnRectangleIcon class="h-5 w-5" />
+            <ArrowRightOnRectangleIcon :class="ROW_ICON" aria-hidden="true" />
             {{ t('nav.bottom.logout') }}
           </button>
         </div>
 
-        <!-- Footer: Unterstuetzen (nur Web, nativ verboten - siehe iapPolicy) + Rechtliches
+        <!-- Footer: Unterstützen (nur Web, nativ verboten - siehe iapPolicy) + Rechtliches
              (nur native App - im Web liegen die Legal-Links im Seiten-Footer). -->
-        <div class="border-t border-gray-200 dark:border-gray-800 px-4 py-3 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+        <div class="border-t border-gray-200 dark:border-white/10 px-4 py-3 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
           <SupportPopover variant="compact" />
           <template v-if="props.isNative">
-            <router-link to="/impressum" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.imprint') }}</router-link>
-            <router-link to="/datenschutz" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.privacy') }}</router-link>
-            <router-link to="/agb" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go">{{ t('footer.terms') }}</router-link>
+            <router-link to="/impressum" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go(close)">{{ t('footer.imprint') }}</router-link>
+            <router-link to="/datenschutz" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go(close)">{{ t('footer.privacy') }}</router-link>
+            <router-link to="/agb" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go(close)">{{ t('footer.terms') }}</router-link>
           </template>
         </div>
       </div>
-    </div>
-  </Transition>
+    </template>
+  </BottomSheet>
 </template>
-
-<style scoped>
-.more-sheet-enter-active,
-.more-sheet-leave-active {
-  transition: opacity 0.2s ease;
-}
-.more-sheet-enter-active .more-sheet,
-.more-sheet-leave-active .more-sheet {
-  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
-}
-.more-sheet-enter-from,
-.more-sheet-leave-to {
-  opacity: 0;
-}
-.more-sheet-enter-from .more-sheet,
-.more-sheet-leave-to .more-sheet {
-  transform: translateY(100%);
-}
-</style>
