@@ -39,7 +39,7 @@
             </ul>
           </template>
         </div>
-        <LogSummary v-model="formData" :place-label="placeLabel" :missing="missingAtOpen" show-time-tile hide-place @edit="s => section = s" />
+        <LogSummary v-model="formData" :place-label="placeLabel" :missing="missingNow" show-time-tile hide-place @edit="s => section = s" />
 
         <div v-if="missingAtOpen.length" class="rounded-xl bg-amber-50 dark:bg-amber-400/10 p-3 space-y-4" data-testid="edit-missing">
           <p class="text-[14px] font-semibold text-amber-900 dark:text-amber-200">{{ t('logwizard.still_open') }}</p>
@@ -269,6 +269,8 @@ const sectionTitles: Record<SummarySection, string> = {
 }
 // Einmal beim Oeffnen bestimmt: der Block "Noch offen" soll nicht unter den Fingern verschwinden.
 const missingAtOpen = ref<RequiredField[]>(missingRequired(formData.value))
+/** Für die Kacheln: was jetzt noch fehlt. Nachgetragenes zeigt dort seinen Wert, der Kasten "Noch offen" bleibt. */
+const missingNow = computed(() => missingAtOpen.value.filter(f => missingRequired(formData.value).includes(f)))
 
 const cost = useCostInput(formData, {
   isEurCountry: computed(() => EUR_ZONE_COUNTRIES.includes(countryStore.country)),
