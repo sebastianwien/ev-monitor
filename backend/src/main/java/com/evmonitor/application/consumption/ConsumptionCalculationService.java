@@ -40,7 +40,7 @@ public class ConsumptionCalculationService {
      * Returns the vehicle-side kWh for consumption calculations.
      *
      * Priority:
-     *   1. kwhAtVehicle when present — exact battery measurement, no correction needed.
+     *   1. kwhAtVehicle when present - exact battery measurement, no correction needed.
      *   2. kwhCharged - AT_CHARGER measurement, losses are removed here (factor by charging type and power class).
      */
     public BigDecimal effectiveKwhForConsumption(EvLog log) {
@@ -57,8 +57,8 @@ public class ConsumptionCalculationService {
      * grid, regardless of which side was actually measured.
      *
      * Priority:
-     *   1. kwhCharged when present — precise grid-side measurement, used as-is.
-     *   2. kwhAtVehicle — netto measurement, divided by efficiency to estimate grid equivalent.
+     *   1. kwhCharged when present - precise grid-side measurement, used as-is.
+     *   2. kwhAtVehicle - netto measurement, divided by efficiency to estimate grid equivalent.
      *
      * <b>NOT</b> the basis for cost_eur. cost_eur uses {@link EvLog#costBasisKwh()} so the
      * displayed ct/kWh always matches the tariff the user set. Use this method only for
@@ -83,10 +83,26 @@ public class ConsumptionCalculationService {
      * Einzige Stelle für den Faktor; Ladeliste, Dashboard, Community- und Saisonwerte rechnen damit gleich.
      */
     public double chargingEfficiency(EvLog log) {
-        boolean dc = log.getChargingType() == ChargingType.DC
-                || (log.getChargingType() != ChargingType.AC && log.isPublicChargingConfirmed());
-        if (dc) return plausibility.getDcChargingEfficiency();
+        if (isDcCharge(log)) return plausibility.getDcChargingEfficiency();
         return plausibility.acChargingEfficiencyForPowerKw(log.estimatedChargingPowerKw());
+    }
+
+    /**
+     * Wirkungsgrad für die Hochrechnung des Ladeverlusts: Modellwert der Spezifikation (AC oder DC),
+     * sonst {@link #chargingEfficiency(EvLog)}. Nur für die Verlust-Anzeige, die Verbrauchsrechnung
+     * bleibt beim globalen Wert.
+     */
+    public double lossChargingEfficiency(EvLog log, VehicleSpecification spec) {
+        if (spec != null) {
+            BigDecimal model = isDcCharge(log) ? spec.getChargingEfficiencyDc() : spec.getChargingEfficiencyAc();
+            if (model != null && model.signum() > 0) return model.doubleValue();
+        }
+        return chargingEfficiency(log);
+    }
+
+    private static boolean isDcCharge(EvLog log) {
+        return log.getChargingType() == ChargingType.DC
+                || (log.getChargingType() != ChargingType.AC && log.isPublicChargingConfirmed());
     }
 
     // -------------------------------------------------------------------------
@@ -135,8 +151,8 @@ public class ConsumptionCalculationService {
         // kWh-primary: when energy data is available (kwhAtVehicle or kwhCharged) it drives the
         // calculation directly via effectiveKwhForConsumption().
         // The SoC-delta term (socAfter_X - socAfter_Y) corrects for net battery level differences
-        // between sessions — it is zero when both sessions end at the same SoC.
-        // Fallback to pure SoC-delta only when no energy data is present (theoretical — isComplete()
+        // between sessions - it is zero when both sessions end at the same SoC.
+        // Fallback to pure SoC-delta only when no energy data is present (theoretical - isComplete()
         // requires hasEnergyData(), so this branch is unreachable via calculateConsumptionPerLog).
         final BigDecimal energyConsumedKwh;
         if (logY.hasEnergyData()) {
@@ -171,9 +187,9 @@ public class ConsumptionCalculationService {
      * Calculates per-log consumption (kWh/100km) for each complete log, with a plausibility verdict.
      *
      * Two-pass algorithm:
-     *   Pass 1 — compute raw consumption for every complete log (isComplete + previous log with odometer).
+     *   Pass 1 - compute raw consumption for every complete log (isComplete + previous log with odometer).
      *            Trips shorter than minTripDistanceKm are excluded (unreliable odometer data).
-     *   Pass 2 — check each value against the full distribution + WLTP reference via isConsumptionPlausible().
+     *   Pass 2 - check each value against the full distribution + WLTP reference via isConsumptionPlausible().
      *
      * @return map of logId (logY) → ConsumptionResult(value, plausible, distanceKm)
      */
@@ -191,14 +207,14 @@ public class ConsumptionCalculationService {
      * @param byLogId        logId (logY) → ConsumptionResult, see calculateConsumptionPerLog()
      * @param absorbedLogIds logs skipped as transparent intermediates whose kWh went into a
      *                       successfully computed window value (e.g. Spritmonitor partial
-     *                       charges without odometer) — the UI can explain why they have no
+     *                       charges without odometer) - the UI can explain why they have no
      *                       own consumption value
      */
     public record PerLogConsumptionResult(Map<UUID, ConsumptionResult> byLogId, Set<UUID> absorbedLogIds) {}
 
     public PerLogConsumptionResult calculateConsumptionPerLogDetailed(List<EvLog> allLogs,
             Function<LocalDate, BigDecimal> capacityForDate, BigDecimal wltpKwh) {
-        // Always sort — correctness must not depend on caller discipline
+        // Always sort - correctness must not depend on caller discipline
         List<EvLog> sorted = allLogs.stream()
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .toList();
@@ -226,7 +242,7 @@ public class ConsumptionCalculationService {
                     });
                 });
 
-        // Pass 2: plausibility check — absolute bounds + statistical/WLTP reference
+        // Pass 2: plausibility check - absolute bounds + statistical/WLTP reference
         Map<UUID, ConsumptionResult> result = new LinkedHashMap<>();
         for (int i = 0; i < ids.size(); i++) {
             boolean plausible = isConsumptionPlausible(values.get(i), values, wltpKwh);
@@ -243,12 +259,12 @@ public class ConsumptionCalculationService {
      * Checks whether a calculated consumption value is plausible for this car.
      *
      * Three layers:
-     *   Layer 1 — Absolute sanity bounds: [absoluteMin, absoluteMax] kWh/100km (always applied).
-     *   Layer 2a — Statistical check (≥ minTripsForStatistical trips):
+     *   Layer 1 - Absolute sanity bounds: [absoluteMin, absoluteMax] kWh/100km (always applied).
+     *   Layer 2a - Statistical check (≥ minTripsForStatistical trips):
      *              mean(history) ± sigmaMultiplier × stdDev(history).
-     *   Layer 2b — WLTP bootstrap (< minTripsForStatistical, WLTP available):
+     *   Layer 2b - WLTP bootstrap (< minTripsForStatistical, WLTP available):
      *              [WLTP × wltpLowerFactor, WLTP × wltpUpperFactor].
-     *   Layer 2c — Only absolute bounds apply (no history, no WLTP).
+     *   Layer 2c - Only absolute bounds apply (no history, no WLTP).
      *
      * Implausible values likely indicate a missing charging session between logX and logY.
      *
@@ -276,7 +292,7 @@ public class ConsumptionCalculationService {
                 return consumptionKwhPer100km.compareTo(mean.subtract(margin)) >= 0
                         && consumptionKwhPer100km.compareTo(mean.add(margin)) <= 0;
             }
-            // stdDev == 0: all values identical — accept only if within 10% of mean
+            // stdDev == 0: all values identical - accept only if within 10% of mean
             BigDecimal tolerance = mean.multiply(new BigDecimal("0.10"));
             return consumptionKwhPer100km.subtract(mean).abs().compareTo(tolerance) <= 0;
         }
@@ -400,11 +416,11 @@ public class ConsumptionCalculationService {
      * added to the SoC-delta energy in calculateConsumption(). Two transparency rules:
      *   - WALLBOX_GOE sub-sessions: always transparent, raw kWh (unchanged legacy behavior)
      *   - SPRITMONITOR_IMPORT without odometer: user-entered partial charges, vehicle-side
-     *     kWh (charging efficiency applied — consistent with effectiveKwh(logY) in the formula).
+     *     kWh (charging efficiency applied - consistent with effectiveKwh(logY) in the formula).
      *     Without kWh the energy is unknown and the chain breaks.
      *
      * Non-transparent logs that fail canBeUsedAsLogX() (e.g. a manual log without SoC)
-     * still break the chain — they represent a real data gap.
+     * still break the chain - they represent a real data gap.
      *
      * Callers must pass a list sorted ascending by loggedAt.
      * calculateConsumptionPerLogDetailed() guarantees this internally.

@@ -51,6 +51,16 @@ class HomeChargingSavingsServiceTest {
         lenient().when(repo.homeWeightedPrice(USER)).thenReturn(new WeightedPrice(eur("0.27"), 23));
     }
 
+    /** Heimpreis bekannt, aber kein Jahr mit Vergleichspreis: der Rechner liefert null,
+     *  und der Service reicht das als Leerzustand durch. */
+    @Test
+    void withoutComparableYears_returnsNull() {
+        when(repo.homeYearTotals(USER)).thenReturn(List.of());
+        when(repo.ownPublicPrices(USER)).thenReturn(List.of());
+
+        assertNull(service.calculate(USER));
+    }
+
     @Test
     void ownPublicLogs_beatRegionAndCountry() {
         when(repo.ownPublicPrices(USER)).thenReturn(

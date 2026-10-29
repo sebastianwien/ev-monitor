@@ -25,6 +25,8 @@ public class EvLog {
      *  charging card, location price-suggestion anchor). Null when only costEur is known -
      *  callers then derive price via costEur/costBasisKwh() and re-round each time. */
     private final BigDecimal pricePerKwh;
+    /** "Weiß ich nicht mehr": der Nutzer kennt den fehlenden Preis nicht. Nur ohne costEur gesetzt. */
+    private final boolean priceUnknown;
     private final Integer chargeDurationMinutes;
     private final String geohash; // 6-char geohash (~600m) for private charging, 7-char (~150m) for public chargers
     private final Integer odometerKm; // Optional: odometer reading in km
@@ -73,7 +75,7 @@ public class EvLog {
     // Applies normalisation of loggedAt, dataSource defaults, and charging-type inference.
     @Builder(toBuilder = true)
     private EvLog(UUID id, UUID carId, BigDecimal kwhCharged, BigDecimal kwhAtVehicle, BigDecimal costEur,
-            BigDecimal pricePerKwh,
+            BigDecimal pricePerKwh, boolean priceUnknown,
             Integer chargeDurationMinutes, String geohash, Integer odometerKm,
             BigDecimal maxChargingPowerKw, BigDecimal socAfterChargePercent, BigDecimal socBeforeChargePercent,
             LocalDateTime loggedAt, DataSource dataSource,
@@ -105,6 +107,8 @@ public class EvLog {
 
         this.costEur = costEur;
         this.pricePerKwh = pricePerKwh;
+        // Ein nachgetragener Preis beendet "unbekannt" - die Angabe des Nutzers gewinnt.
+        this.priceUnknown = costEur == null && priceUnknown;
         this.chargeDurationMinutes = chargeDurationMinutes;
         this.geohash = geohash;
         this.odometerKm = odometerKm;
@@ -402,6 +406,18 @@ public class EvLog {
         return toBuilder()
                 .geohash(null).rawImportData(null).chargingProviderId(null)
                 .loggedAt(loggedAt.toLocalDate().atStartOfDay().plusMinutes(sequenceInDay))
+                .updatedAt(LocalDateTime.now())
+                .build();
+    }
+
+    /** Der Preis fehlt und niemand hat ihn für unbekannt erklärt: danach darf gefragt werden. */
+    public boolean hasOpenPriceGap() {
+        return costEur == null && !priceUnknown;
+    }
+
+    public EvLog withPriceUnknown() {
+        return toBuilder()
+                .priceUnknown(true)
                 .updatedAt(LocalDateTime.now())
                 .build();
     }

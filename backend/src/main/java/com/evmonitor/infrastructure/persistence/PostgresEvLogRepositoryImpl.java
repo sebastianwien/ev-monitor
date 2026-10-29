@@ -68,8 +68,10 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
-    public List<EvLog> findPricelessByCarId(UUID carId) {
-        return jpaRepository.findByCarIdAndCostEurIsNullOrderByLoggedAtDesc(carId).stream()
+    public List<EvLog> findPricelessByCarId(UUID carId, boolean includeUnknown) {
+        return (includeUnknown
+                ? jpaRepository.findByCarIdAndCostEurIsNullOrderByLoggedAtDesc(carId)
+                : jpaRepository.findByCarIdAndCostEurIsNullAndPriceUnknownFalseOrderByLoggedAtDesc(carId)).stream()
                 .map(this::toDomain)
                 .toList();
     }
@@ -532,6 +534,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
         entity.setKwhAtVehicle(domain.getKwhAtVehicle());
         entity.setCostEur(domain.getCostEur());
         entity.setPricePerKwh(domain.getPricePerKwh());
+        entity.setPriceUnknown(domain.isPriceUnknown());
         entity.setChargeDurationMinutes(domain.getChargeDurationMinutes());
         entity.setGeohash(domain.getGeohash());
         entity.setOdometerKm(domain.getOdometerKm());
@@ -570,6 +573,7 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
                 .kwhAtVehicle(entity.getKwhAtVehicle())
                 .costEur(entity.getCostEur())
                 .pricePerKwh(entity.getPricePerKwh())
+                .priceUnknown(entity.isPriceUnknown())
                 .chargeDurationMinutes(entity.getChargeDurationMinutes())
                 .geohash(entity.getGeohash())
                 .odometerKm(entity.getOdometerKm())

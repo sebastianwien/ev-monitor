@@ -51,18 +51,25 @@ public class LeaderboardController {
     }
 
     /**
-     * GET /api/public/leaderboard/me
-     * Returns the authenticated user's rank and value across all categories for the current month.
-     * Requires JWT.
+     * GET /api/public/leaderboard/standings/me?monthsBack=0
+     * Returns the authenticated user's rank and value across all categories. monthsBack=0 (default)
+     * is the current month, monthsBack=1 the final standings of the previous month. Requires JWT.
      */
     @GetMapping("/standings/me")
     public ResponseEntity<List<MyLeaderboardStandingDTO>> getMyStandings(
+            @RequestParam(defaultValue = "0") int monthsBack,
             @AuthenticationPrincipal UserPrincipal principal) {
 
         if (principal == null) {
             return ResponseEntity.status(401).build();
         }
-        return ResponseEntity.ok(leaderboardService.getMyStandings(principal.getUser().getId()));
+        if (monthsBack < 0 || monthsBack > 1) {
+            return ResponseEntity.badRequest().build();
+        }
+        LocalDate referenceDate = monthsBack == 0
+                ? LocalDate.now()
+                : LocalDate.now().withDayOfMonth(1).minusDays(1);
+        return ResponseEntity.ok(leaderboardService.getMyStandings(principal.getUser().getId(), referenceDate));
     }
 
     /**

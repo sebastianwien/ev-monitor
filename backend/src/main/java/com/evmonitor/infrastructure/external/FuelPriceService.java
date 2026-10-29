@@ -14,7 +14,10 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import com.evmonitor.application.FuelPriceResponse;
+
 import java.time.Duration;
+import java.time.Instant;
 
 /**
  * Fetches current national average fuel prices from Tankerkoenig API (v4/stats).
@@ -41,6 +44,8 @@ public class FuelPriceService {
 
     private volatile double benzinPrice = FALLBACK_BENZIN;
     private volatile double dieselPrice = FALLBACK_DIESEL;
+    /** Zeitpunkt des letzten erfolgreichen Abrufs, null solange Fallback gilt. */
+    private volatile Instant updatedAt = null;
 
     public FuelPriceService(ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
@@ -83,6 +88,7 @@ public class FuelPriceService {
 
                     if (benzin > 0) benzinPrice = benzin;
                     if (diesel > 0) dieselPrice = diesel;
+                    updatedAt = Instant.now();
 
                     log.info("FuelPriceService: Benzin={} €/L, Diesel={} €/L (Tankerkoenig national avg)",
                             String.format("%.3f", benzinPrice), String.format("%.3f", dieselPrice));
@@ -103,5 +109,10 @@ public class FuelPriceService {
     }
 
     public double getBenzinPrice() { return benzinPrice; }
+
+    /** Momentaufnahme fuer die oeffentliche API. */
+    public FuelPriceResponse snapshot() {
+        return new FuelPriceResponse(benzinPrice, dieselPrice, updatedAt);
+    }
     public double getDieselPrice() { return dieselPrice; }
 }

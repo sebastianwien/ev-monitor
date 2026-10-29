@@ -65,7 +65,9 @@ public class DemoAccountInterceptor implements HandlerInterceptor {
             "/api/fixed-costs",
             "/api/coins",
             "/api/coins/**",
-            "/api/users/me/stats");
+            "/api/users/me/stats",
+            // Wetter-Ausblick der Story: nur Tagesmittel am Heimladeort, keine Nutzerdaten
+            "/api/weather/outlook");
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)

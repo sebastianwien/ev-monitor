@@ -7,15 +7,9 @@ import { normalizeCharge, relativeTimeParts, tripTimestamp, tripSpeedKeyAndArgs 
 import { tripConsumption } from '../../utils/tripCalculations'
 import { tripLine, isRoutedLine } from '../../utils/tripMap'
 import RecentActivityRow from './RecentActivityRow.vue'
-import TripClimateMarkers from '../TripClimateMarkers.vue'
 // Async: Leaflet stays out of the dashboard's initial chunk (same reasoning as the
 // heatmap) - the map only loads when a trip actually carries a location.
 const ActivityLocationMap = defineAsyncComponent(() => import('./ActivityLocationMap.vue'))
-import WattBadge from '../shared/WattBadge.vue'
-import { useCoinStore } from '../../stores/coins'
-import { wattPossibleForLog } from '../../utils/wattPreview'
-const coinStore = useCoinStore()
-coinStore.ensureCatalog()
 
 const props = defineProps<{
   /** Raw charge / Ladegruppe feed entry (mergedLogFeed), or null. */
@@ -26,6 +20,8 @@ const props = defineProps<{
   effectiveBatteryCapacityKwh: number | null
   /** Source badge helper from the log list (icon + label + classes per dataSource). */
   sourceInfo: (ds?: string) => { label: string; icon: unknown; classes: string } | null
+  /** Laeuft ein Live-Ladevorgang, steht er darueber - die letzte Ladung waere dann doppelt. */
+  hideCharge?: boolean
 }>()
 
 /**
@@ -64,18 +60,6 @@ const chargePriceless = computed(() => {
   if (props.charge?._isLadegruppe) return (props.charge._pricelessSubs?.length ?? 0) > 0
   return ch.value.costEur == null && !!props.charge?.id
 })
-/** Watt-Potenzial des Nachtrags: bei einer Ladegruppe die Summe ihrer preislosen Teilvorgaenge. */
-const pricelessWatt = computed<number>(() => {
-  const subs = props.charge?._pricelessSubs as any[] | undefined
-  if (subs?.length) return subs.reduce((sum, sub) => sum + wattPossibleForLog(coinStore.catalog, sub), 0)
-  return ch.value ? wattPossibleForLog(coinStore.catalog, ch.value) : 0
-})
-const chargeTypeLabel = computed(() => {
-  const type = ch.value?.chargingType
-  if (type === 'AC') return t('dashboard.charging_type_ac')
-  if (type === 'DC') return t('dashboard.charging_type_dc')
-  return null
-})
 /**
  * Brutto ab Netz, sobald es zusaetzlich zur Netto-Menge gemessen wurde. Die grosse
  * Zahl bleibt netto (wie im Log-Feed), der ct/kWh-Wert rechnet gegen brutto - der
@@ -94,7 +78,6 @@ const chargeMetrics = computed<string[]>(() => {
   // Nur zeigen, wenn der Preis die ganze Ladung/Ladegruppe abdeckt - eine Rate aus einem
   // Bruchteil der Energie waere ein falscher Vergleichswert.
   if (ch.value?.costPerKwh != null && ch.value.isFullyPriced) out.push(formatCostPerKwh(ch.value.costPerKwh))
-  if (ch.value?.maxPowerKw != null) out.push(`${Math.round(ch.value.maxPowerKw)} kW`)
   return out
 })
 /** SoC gain segment [before → after] as clamped percentages for the bar. */
@@ -141,9 +124,10 @@ function clamp(v: number): number {
 }
 
 
+const showCharge = computed(() => !!ch.value && !props.hideCharge)
 const showTrip = computed(() => !!props.trip)
 /** Nur rund die Haelfte der Ladevorgaenge traegt einen Ort - ohne bleibt die Kachel schlicht. */
-const hasChargeLocation = computed(() => !!ch.value?.geohash)
+const hasChargeLocation = computed(() => showCharge.value && !!ch.value?.geohash)
 /** Backend fills the location data for the most recent trip only - older ones stay blank. */
 const hasTripLocation = computed(
   () =>
@@ -152,7 +136,6 @@ const hasTripLocation = computed(
     !!props.trip?.tracePolyline,
 )
 
-const chargeMeta = computed<string[]>(() => [...(chargeTypeLabel.value ? [chargeTypeLabel.value] : []), ...chargeMetrics.value])
 const tripMeta = computed<string[]>(() => [...(tripRouteLabel.value ? [tripRouteLabel.value] : []), ...tripMetrics.value])
 
 /** Die Thumbnails tragen keine eigene Attribution - sie steht gesammelt unter der Liste. */
@@ -166,9 +149,10 @@ const mapCredit = computed<string | null>(() => {
 <template>
   <!-- Eine Zeile je Eintrag, Karte als randloses Vorschaubild neben dem Text statt Text
        auf der Karte. Ab md stehen die beiden Zeilen nebeneinander. -->
-  <div v-if="ch" class="mb-2.5 md:mb-3">
-    <div class="grid overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]" :class="{ 'md:grid-cols-2': showTrip }">
+  <div v-if="showCharge || showTrip" class="mb-2.5 md:mb-3">
+    <div class="grid overflow-hidden divide-y md:divide-y-0 md:divide-x divide-gray-200 dark:divide-gray-700 bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-sm shadow-[2px_2px_0_0_#d1d5db] dark:shadow-[2px_2px_0_0_#374151]" :class="{ 'md:grid-cols-2': showCharge && showTrip }">
       <RecentActivityRow
+        v-if="showCharge && ch"
         tone="charge"
         data-testid="recent-charge-tile"
         :label="t('dashboard.recent_charge_short')"
@@ -184,14 +168,14 @@ const mapCredit = computed<string | null>(() => {
         <template #value>
           <span class="text-xl font-bold leading-tight">{{ ch.kwh != null ? formatDecimal(ch.kwh, 1) : '–' }}</span>
           <span class="text-[13px] text-gray-500 dark:text-gray-400">kWh</span>
+          <!-- Kurzfassung: Energie und Preis in einer Zeile. Fehlt der Preis, steht an seiner
+               Stelle der Nachtrag. Quelle, Ladeart und Leistung stehen im Log-Feed. -->
           <template v-if="ch.costEur != null && ch.isFullyPriced">
             <span class="text-gray-300 dark:text-gray-600" aria-hidden="true">&middot;</span>
             <span class="text-[15px] font-semibold">{{ formatCurrency(ch.costEur) }}</span>
           </template>
-        </template>
-        <template #meta>
           <span
-            v-if="chargePriceless"
+            v-else-if="chargePriceless"
             role="button"
             tabindex="0"
             data-testid="charge-price-chip"
@@ -199,16 +183,13 @@ const mapCredit = computed<string | null>(() => {
             @click.stop="emit('amend-charge')"
             @keydown.enter.stop.prevent="emit('amend-charge')"
             @keydown.space.stop.prevent="emit('amend-charge')"
-            class="inline-flex items-center gap-1 px-2 py-1 rounded-sm text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer">
+            class="self-center inline-flex items-center gap-1 px-2 py-1 whitespace-nowrap rounded-sm text-[11px] font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 cursor-pointer">
             <ExclamationTriangleIcon class="w-3.5 h-3.5" aria-hidden="true" />
             {{ t('priceamend.chip') }}
-            <WattBadge :amount="pricelessWatt" up-to />
           </span>
-          <span v-if="chargeSource" :class="['inline-flex items-center gap-1 px-1 py-0.5 rounded-sm text-[10px] font-medium', chargeSource.classes]">
-            <component :is="chargeSource.icon" class="w-3 h-3" aria-hidden="true" />
-            {{ chargeSource.label }}
-          </span>
-          <span v-for="m in chargeMeta" :key="'cmm' + m" class="tabular-nums whitespace-nowrap">{{ m }}</span>
+        </template>
+        <template #meta>
+          <span v-for="m in chargeMetrics" :key="'cmm' + m" class="tabular-nums whitespace-nowrap">{{ m }}</span>
         </template>
       </RecentActivityRow>
 
@@ -243,7 +224,6 @@ const mapCredit = computed<string | null>(() => {
         </template>
         <template #meta>
           <span v-for="m in tripMeta" :key="'tmm' + m" class="tabular-nums whitespace-nowrap">{{ m }}</span>
-          <TripClimateMarkers v-if="trip.climate" :climate="trip.climate" class="!justify-start !text-xs" />
         </template>
       </RecentActivityRow>
     </div>

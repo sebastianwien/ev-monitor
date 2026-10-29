@@ -41,6 +41,8 @@ spring:
       - chargingPublicPriceByYear
       # Referenzpreise der Modellseite und des Rechners (Community, Kraftstoff, Schnellladen ohne Abo)
       - chargingReferencePrices
+      # Wetter-Ausblick der Story je Heimladeort (Open-Meteo, 4 h reichen fuer Tagesmittel)
+      - weatherOutlook
       # nearbyCpos hat eine eigene Regel (30 Tage) in CpoRegistryConfig - der Registerbestand
       # der Bundesnetzagentur wird nur monatlich aktualisiert.
 
@@ -304,6 +306,8 @@ mistral:
   transcribe-model: ${MISTRAL_TRANSCRIBE_MODEL:voxtral-mini-latest}
   extract-model: ${MISTRAL_EXTRACT_MODEL:voxtral-small-latest}
   moderation-model: ${MISTRAL_MODERATION_MODEL:mistral-small-latest}
+  # Liest Tarife aus Preisseiten der Ladekarten-Anbieter (Tarif-Crawler).
+  tariff-model: ${MISTRAL_TARIFF_MODEL:mistral-small-latest}
   pricing:
     "[voxtral-mini-latest]":
       usd-per-audio-minute: 0.003
@@ -313,6 +317,12 @@ mistral:
     "[mistral-small-latest]":
       usd-per-million-input-tokens: 0.10
       usd-per-million-output-tokens: 0.30
+
+# Tarif-Crawler: liest täglich um 05:40 die fälligen Preisseiten der Ladekarten-Anbieter (tariff_source).
+# Unverändert = Stand der Tarife auf heute; Preisänderungen nach zweitem gleichen Lauf automatisch, Rest im
+# Admin-Tab "Ladekarten". Ohne MISTRAL_API_KEY laufen nur Quellen im Modus WATCH. Hinweise per Mail an app.alert.email.
+tariff-crawl:
+  enabled: ${TARIFF_CRAWL_ENABLED:true}
 
 # Ladesaeulenregister der Bundesnetzagentur (offener ArcGIS-Dienst, CC BY 4.0).
 # Liefert die Vorauswahl der Ladenetze im Umkreis einer Ladung.

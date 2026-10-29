@@ -64,4 +64,13 @@ public class ChargingProviderTariffEntity {
 
     @Column(name = "last_verified_at", nullable = false)
     private LocalDateTime lastVerifiedAt;
+
+    @Column(name = "applies_elsewhere", nullable = false)
+    private boolean appliesElsewhere;
+
+    @Column(name = "min_power_kw")
+    private Integer minPowerKw;
+
+    @Column(name = "blocking_fee_cap_eur", precision = 6, scale = 2)
+    private BigDecimal blockingFeeCapEur;
 }

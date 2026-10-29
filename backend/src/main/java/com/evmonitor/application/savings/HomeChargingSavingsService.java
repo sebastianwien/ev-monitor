@@ -78,6 +78,9 @@ public class HomeChargingSavingsService {
                 profile.investmentEur(),
                 repository.monthsOfHomeCharging(userId));
 
+        // Kein Jahr mit Vergleichspreis: der Rechner liefert null, die Kachel bleibt leer.
+        if (result == null) return null;
+
         // Relevanz-Gate: unterhalb einer belegbaren Heimlademenge traegt die Aussage
         // nicht. Fuer Nutzer, die fast nur oeffentlich laden, ist die Kachel kein
         // Mehrwert, sondern Rauschen - dann gar nicht zeigen statt eine Zahl aus einer

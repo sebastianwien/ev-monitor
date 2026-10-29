@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, onBeforeUnmount, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useChargingLive } from '../../composables/useChargingLive'
 import { autoSyncProviderFor } from '../../composables/useCarAutoSyncProvider'
@@ -44,6 +44,10 @@ const visible = computed(() => hasLiveSource.value && isLive.value)
 // Quellen ohne Leistungsmessung (Smartcar) zeigen den Ladestand-Verlauf statt der Leistungskurve.
 const hasPower = computed(() => powerHistory.value.length > 0 || data.value?.powerKw != null)
 const chartPointCount = computed(() => hasPower.value ? powerHistory.value.length : socHistory.value.length)
+// Das Dashboard blendet waehrenddessen die Kachel "Letzte Ladung" aus.
+const emit = defineEmits<{ live: [active: boolean] }>()
+watch(visible, v => emit('live', v), { immediate: true })
+onBeforeUnmount(() => emit('live', false))
 
 // Collapse-State: persistiert pro (carId, sessionStartedAt) - jede neue Session
 // startet expanded. localStorage-Key wechselt mit Session-Start.

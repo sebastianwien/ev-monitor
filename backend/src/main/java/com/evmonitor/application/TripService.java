@@ -2,6 +2,7 @@ package com.evmonitor.application;
 
 import com.evmonitor.application.ingest.IngestGateway;
 import com.evmonitor.domain.*;
+import com.evmonitor.domain.exception.ConflictException;
 import com.evmonitor.domain.exception.ValidationException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -104,6 +105,22 @@ public class TripService {
                 .filter(t -> userCanSeeTrip(t, user))
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
         trip.setDeletedAt(OffsetDateTime.now());
+        tripRepository.save(trip);
+    }
+
+    /** Rückgängig nach dem Löschen. 404 für fremde, unsichtbare oder nicht gelöschte Fahrten. */
+    @Transactional
+    public void restoreTrip(UUID tripId, User user) {
+        EvTrip trip = tripRepository.findById(tripId)
+                .filter(t -> t.getUserId().equals(user.getId()))
+                .filter(t -> t.getDeletedAt() != null)
+                .filter(t -> userCanSeeTrip(t, user))
+                .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
+        if (tripRepository.isMergedIntoActiveTrip(trip.getCarId(), tripId.toString())) {
+            // Werte stecken schon in der überlebenden Fahrt, Wiederherstellen würde doppelt zählen
+            throw new ConflictException("TRIP_MERGED", "Diese Fahrt wurde zusammengeführt und kann nicht wiederhergestellt werden.");
+        }
+        trip.setDeletedAt(null);
         tripRepository.save(trip);
     }
 

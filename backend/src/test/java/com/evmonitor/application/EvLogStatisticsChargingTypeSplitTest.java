@@ -52,6 +52,38 @@ class EvLogStatisticsChargingTypeSplitTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void chargingTypeSplit_pricePerKwhPerType_onlyFromPricedLogs() {
+        // AC: 30 kWh fuer 9 € und 10 kWh ohne Preis -> 0,30 €/kWh (die preislose zaehlt nicht mit)
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("30.0"), new BigDecimal("9.00"),
+                60, "u33d1", null, new BigDecimal("11.0"), null,
+                LocalDateTime.now().minusDays(4), ChargingType.AC, null, null, false, null));
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("10.0"), null,
+                60, "u33d1", null, new BigDecimal("11.0"), null,
+                LocalDateTime.now().minusDays(3), ChargingType.AC, null, null, false, null));
+        // DC: 40 kWh fuer 26 € -> 0,65 €/kWh
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), new BigDecimal("26.00"),
+                30, "u33d2", null, new BigDecimal("150.0"), null,
+                LocalDateTime.now().minusDays(2), ChargingType.DC, null, null, true, null));
+
+        EvLogStatisticsResponse.ChargingTypeSplit split = evLogStatisticsService.getStatistics(carId, userId, null, null, null).chargingTypeSplit();
+
+        assertEquals(0, new BigDecimal("0.30").compareTo(split.acEurPerKwh()));
+        assertEquals(0, new BigDecimal("0.65").compareTo(split.dcEurPerKwh()));
+    }
+
+    @Test
+    void chargingTypeSplit_noPricedLogs_pricePerKwhIsNull() {
+        evLogRepository.save(EvLog.createNew(carId, new BigDecimal("30.0"), null,
+                60, "u33d1", null, new BigDecimal("11.0"), null,
+                LocalDateTime.now().minusDays(3), ChargingType.AC, null, null, false, null));
+
+        EvLogStatisticsResponse.ChargingTypeSplit split = evLogStatisticsService.getStatistics(carId, userId, null, null, null).chargingTypeSplit();
+
+        assertNull(split.acEurPerKwh());
+        assertNull(split.dcEurPerKwh());
+    }
+
+    @Test
     void locationSplit_shouldSumKwhByPublicAndPrivate() {
         evLogRepository.save(EvLog.createNew(carId, new BigDecimal("40.0"), null,
                 60, "u33d1", null, null, null,

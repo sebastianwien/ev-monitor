@@ -77,11 +77,13 @@ public class MonthlyRecapService {
         EvLogStatisticsResponse stats = statisticsService.getStatistics(
                 car.get().getId(), candidate.userId(), start, end, "MONTH");
 
+        boolean nonePriced = logs.stream().allMatch(l -> l.getCostEur() == null);
+        // Der Hinweis fragt nur nach Preisen, die der Nutzer nicht für unbekannt erklärt hat.
         List<EvLog> priceless = logs.stream()
-                .filter(l -> l.getCostEur() == null)
+                .filter(EvLog::hasOpenPriceGap)
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .toList();
-        BigDecimal cost = priceless.size() == logs.size() ? null : stats.energyCostEur();
+        BigDecimal cost = nonePriced ? null : stats.energyCostEur();
         BigDecimal distance = positiveOrNull(stats.totalDistanceKm());
         // Benziner der Fahrzeugklasse des Autos zum Benzinpreis, passend zur Zeile "gegenüber einem Benziner"
         BigDecimal fuelPrice = BigDecimal.valueOf(fuelPriceService.getBenzinPrice());

@@ -137,6 +137,23 @@ class LeaderboardServiceIntegrationTest {
                 eq(LocalDateTime.of(2026, 6, 1, 0, 0)));
     }
 
+    @Test
+    void getMyStandings_referenceDate_ranksTheWholePreviousMonth() {
+        stubAllRankingsEmpty();
+        when(queryRepository.getDistanceRanking(any(), any()))
+                .thenReturn(List.of(row(userB, "bob", "900.0"), row(userA, "anna", "800.0")));
+
+        var result = leaderboardService.getMyStandings(userA, LocalDate.of(2026, 9, 30));
+
+        var distance = result.stream().filter(s -> s.category() == LeaderboardCategory.MONTHLY_DISTANCE).findFirst().orElseThrow();
+        assertThat(distance.rank()).isEqualTo(2);
+        var kwh = result.stream().filter(s -> s.category() == LeaderboardCategory.MONTHLY_KWH).findFirst().orElseThrow();
+        assertThat(kwh.rank()).isNull();
+        verify(queryRepository, atLeastOnce()).getDistanceRanking(
+                eq(LocalDateTime.of(2026, 9, 1, 0, 0)),
+                eq(LocalDateTime.of(2026, 10, 1, 0, 0)));
+    }
+
     // ---- Own entry ----
 
     @Test
