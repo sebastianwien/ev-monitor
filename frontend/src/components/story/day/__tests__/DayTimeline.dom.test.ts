@@ -60,3 +60,40 @@ describe('DayTimeline Minikarte', () => {
     expect(host.querySelector('[data-testid="day-map-credit"]')?.textContent).toBe('© OpenStreetMap')
   })
 })
+
+async function mountWith(props: Record<string, unknown>) {
+  const host = document.createElement('div')
+  document.body.appendChild(host)
+  app = createApp(DayTimeline, { selectedId: null, merging: false, ...props })
+  app.use(createPinia()).use(i18n)
+  app.mount(host)
+  await nextTick()
+  return host
+}
+const rowsOf = (host: HTMLElement) => [...host.querySelectorAll('[data-testid="day-timeline"] > li')]
+  .map(li => li.getAttribute('data-testid') ?? li.querySelector('button')?.getAttribute('data-testid'))
+
+describe('DayTimeline Story und Logbuch', () => {
+  const charge = { id: 'l1', loggedAt: at(13), chargeDurationMinutes: 30, socBeforeChargePercent: 40, socAfterChargePercent: 80,
+    kwhCharged: 20, kwhAtVehicle: null, costEur: 6, isPublicCharging: false, cpoName: null, chargingType: 'AC' as const }
+  const day = () => eventsOfDay('2026-08-16', [trip(), trip({ id: 't2', tripStartedAt: at(17), tripEndedAt: at(17, 20) })], [charge])
+
+  it('Story: Standzeit aus dem Tag, zeitlich aufsteigend', async () => {
+    const host = await mountWith({ events: day() })
+    expect(rowsOf(host)).toEqual(['day-row-trip', 'day-standing', 'day-row-charge', 'day-standing', 'day-row-trip'])
+  })
+
+  it('Logbuch: neueste zuerst, Standzeit über Nacht unten', async () => {
+    const host = await mountWith({
+      events: day(), newestFirst: true,
+      standing: { t1: { minutes: 600, kwh: 0.24 }, t2: { minutes: 210, kwh: null } },
+    })
+    expect(rowsOf(host)).toEqual(['day-row-trip', 'day-standing', 'day-row-charge', 'day-row-trip', 'day-standing'])
+    const standings = host.querySelectorAll('[data-testid="day-standing"]')
+    expect(standings[0].textContent).not.toContain('kWh')
+    expect(standings[1].textContent).toContain('0,24 kWh')
+    // Mit Standverlust kurz, damit die Zeile auf dem Handy nicht umbricht: "10 h · 0,24 kWh Standverlust"
+    expect(standings[1].textContent).toMatch(/^\s*10 h\s*·/)
+    expect(standings[0].textContent).toContain('gestanden')
+  })
+})

@@ -18,6 +18,7 @@ import { useStoryOptIn } from '../composables/useStoryOptIn'
 import DashboardView from '../views/DashboardView.vue'
 
 const LogsView = defineAsyncComponent(() => import('../views/LogsView.vue'))
+const LogbookView = defineAsyncComponent(() => import('../views/LogbookView.vue'))
 const StoryDashboardView = defineAsyncComponent(() => import('../views/StoryDashboardView.vue'))
 
 /**
@@ -26,8 +27,9 @@ const StoryDashboardView = defineAsyncComponent(() => import('../views/StoryDash
  * State lebt hier einmal (provideCarContext).
  * Den horizontalen Wechsel zwischen beiden Bodies macht der SwipeTabPager.
  *
- * Neues Design (Story-Opt-in, einzige Weiche): links die Uebersicht, Kopf und Bereiche bringt das
- * Geruest WorkspaceFrame aus App.vue. Altes Design: Chrome aus App.vue, links das Dashboard.
+ * Neues Design (Story-Opt-in, einzige Weiche): links die Übersicht, rechts das Logbuch, Kopf und Bereiche
+ * bringt das Gerüst WorkspaceFrame aus App.vue. Altes Design: Chrome aus App.vue, links das Dashboard,
+ * rechts die Liste (LogsView).
  *
  * Mobile hat hier bewusst keine eigene Tab-Leiste: die Bottom-Nav (Start/Logs) fuehrt
  * schon zwischen genau diesen beiden Zielen, ein zweiter Umschalter im Header waere
@@ -40,7 +42,10 @@ const {
   selectedCarId, cars, carImageUrls,
   teslaStatus, smartcarStatus,
   editingLog, priceAmendingLog, refreshLogsAndGroups, fetchPricelessCount,
-} = provideCarContext()
+} = provideCarContext({
+  // Das Logbuch lädt monatsweise; die gespeicherte Ansicht der alten Liste bleibt unberührt
+  fixedFeedResolution: computed(() => storyDesign.value ? 'cycle' : null),
+})
 
 const activeIndex = useStickyTabIndex(tabPaths)
 const wattToast = ref<InstanceType<typeof WattToast> | null>(null)
@@ -82,7 +87,7 @@ function shareFromHeader(car: Car) {
          Tab-Wechsel stehen, waehrend der Inhalt darunter durchwischt. -->
     <SwipeTabPager :tabs="tabPaths" :active-index="activeIndex">
       <template #left><StoryDashboardView v-if="storyDesign" /><DashboardView v-else /></template>
-      <template #right><LogsView /></template>
+      <template #right><LogbookView v-if="storyDesign" /><LogsView v-else /></template>
     </SwipeTabPager>
 
     <!-- Der Log-Editor gehoert dem geteilten Context, nicht einem der beiden Bodies:

@@ -1,3 +1,4 @@
+import type { ClimateSummary } from '../utils/tripClimate'
 
 /**
  * Tagesblatt der Story: was an einem Tag war (Fahrten und Ladungen), als Ablauf und Tagesband.
@@ -21,6 +22,8 @@ export interface DayTrip {
   loadExtras?: string[]
   /** Vom Auto gemessen: Zeit, Strecke und Akku nicht änderbar */
   measured?: boolean
+  outsideTempCelsius?: number | null
+  climate?: ClimateSummary | null
 }
 
 /** Was das Tagesblatt von einer Ladung braucht (Auszug aus EvLogResponse). */

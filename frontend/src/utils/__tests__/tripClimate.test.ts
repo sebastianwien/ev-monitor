@@ -4,6 +4,7 @@ import {
   climateShare,
   hasActiveClimateLoads,
   climateDurationMinutes,
+  temperatureTone,
   type ClimateSummary,
 } from '../tripClimate'
 
@@ -67,5 +68,16 @@ describe('climateDurationMinutes', () => {
   it('rounds seconds to whole minutes', () => {
     expect(climateDurationMinutes(1240)).toBe(21)
     expect(climateDurationMinutes(90)).toBe(2)
+  })
+})
+
+describe('temperatureTone', () => {
+  it('unter 10 °C cyan (Heizen), ab 22 °C orange (Klima), dazwischen ohne Farbe', () => {
+    expect(temperatureTone(-3)).toContain('text-cyan-700')
+    expect(temperatureTone(9.6)).toContain('text-cyan-700')
+    expect(temperatureTone(10)).toBe('')
+    expect(temperatureTone(15)).toBe('')
+    expect(temperatureTone(21.9)).toBe('')
+    expect(temperatureTone(22)).toContain('text-orange-700')
   })
 })

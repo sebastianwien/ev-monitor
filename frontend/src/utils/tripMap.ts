@@ -128,3 +128,9 @@ export function isRoutedLine(line: TripLine | null): boolean {
 export function mapCredit(routed: boolean): string {
   return routed ? '© OpenStreetMap · Route © openrouteservice by HeiGIT' : '© OpenStreetMap'
 }
+
+/** Ein Hinweis für mehrere Minikarten (Tagesablauf, Logbuch): null, wenn keine Fahrt eine Karte hat. */
+export function tripsCredit(trips: readonly TripMapSource[]): string | null {
+  const mapped = trips.filter(hasTripMap)
+  return mapped.length ? mapCredit(mapped.some(tr => isRoutedLine(tripLine(tr.tracePolyline, tr.routePolyline, tr.routeKind)))) : null
+}

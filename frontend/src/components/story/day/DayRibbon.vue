@@ -29,7 +29,7 @@ function pick(b: BatteryBar) {
 <template>
   <div>
     <div class="pl-10 pr-1 pt-2" data-testid="day-ribbon" aria-hidden="true">
-      <div class="relative h-[72px]">
+      <div class="relative h-[72px] md:h-24">
         <!-- Raster hinter den Balken: waagrecht je 25 %, beschriftet bei 0, 50 und 100; senkrecht je 6 Stunden -->
         <div v-for="v in [100, 75, 50, 25, 0]" :key="`y${v}`" class="absolute inset-x-0 border-t"
           :class="v === 0 ? 'border-gray-300 dark:border-gray-600' : 'border-gray-200 dark:border-gray-700/70'" :style="{ top: `${100 - v}%` }">

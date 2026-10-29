@@ -4679,9 +4679,8 @@ storyday:
   dur_h: "{h} h"
   dur_m: "{m} min"
   standing: "parked {d}"
-  halt: "{d} stop"
   direct: "straight on"
-  merge: "Merge into one trip"
+  merge: "Merge trips"
   merge_confirm: "Both trips become one. This cannot be undone."
   merge_do: "Merge"
   merge_failed: "Merging did not work. Please try again."
@@ -4709,3 +4708,7 @@ storyday:
   form_time: "Time"
   form_distance_row: "Distance"
   form_soc: "Battery"
+logbook:
+  no_trip: "no trip"
+  idle_range: "{from} to {to}"
+  per_100km: "{cost} per 100 km"

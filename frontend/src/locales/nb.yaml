@@ -4521,9 +4521,8 @@ storyday:
   dur_h: "{h} t"
   dur_m: "{m} min"
   standing: "stod i {d}"
-  halt: "{d} stopp"
   direct: "rett videre"
-  merge: "Slå sammen til én tur"
+  merge: "Slå sammen turer"
   merge_confirm: "De to turene blir én. Dette kan ikke angres."
   merge_do: "Slå sammen"
   merge_failed: "Sammenslåingen mislyktes. Prøv igjen."
@@ -4551,3 +4550,7 @@ storyday:
   form_time: "Tid"
   form_distance_row: "Distanse"
   form_soc: "Batteri"
+logbook:
+  no_trip: "ingen tur"
+  idle_range: "{from} til {to}"
+  per_100km: "{cost} per 100 km"

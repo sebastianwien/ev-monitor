@@ -25,6 +25,9 @@ function data() {
   return d;
 }
 
+// Tagesblatt und Logbuch (Nachbar-Tab) teilen DayRibbon und DayTimeline: nur im Sheet suchen
+const inSheet = (page: Page) => page.getByTestId('story-day-sheet');
+
 async function mockDay(page: Page, d: ReturnType<typeof data>) {
   const calls: string[] = [];
   await page.route(/\/api\/logs\?carId=[^&]+&from=/, route => route.fulfill({ json: d.logs }));
@@ -43,7 +46,7 @@ async function openDay12(page: Page) {
   const box = (await bar.boundingBox())!;
   await page.mouse.click(box.x + box.width * (11.5 / 31), box.y + box.height - 4);
   await expect(page.getByTestId('story-day-sheet')).toBeVisible();
-  await expect(page.getByTestId('day-title')).toContainText('12');
+  await expect(inSheet(page).getByTestId('day-title')).toContainText('12');
 }
 
 for (const [width, height, voice] of [[390, 844, true], [820, 1180, true], [1440, 900, false]] as const) {
@@ -59,43 +62,43 @@ for (const [width, height, voice] of [[390, 844, true], [820, 1180, true], [1440
       await openDay12(page);
 
       // Ablauf: zwei Fahrten, eine Ladung mit fehlendem Preis
-      await expect(page.getByTestId('day-row-trip')).toHaveCount(2);
-      await expect(page.getByTestId('day-row-charge')).toContainText('Kaufland');
-      await expect(page.getByTestId('day-missing')).toBeVisible();
+      await expect(inSheet(page).getByTestId('day-row-trip')).toHaveCount(2);
+      await expect(inSheet(page).getByTestId('day-row-charge')).toContainText('Kaufland');
+      await expect(inSheet(page).getByTestId('day-missing')).toBeVisible();
       // Akku-Balken wie am Handy, Minimap je Fahrt (mit Spur durchgezogen, ohne Spur Luftlinie)
-      await expect(page.locator('[data-testid="day-bar"][data-kind="charge"]').first()).toBeVisible();
-      await expect(page.getByTestId('day-ribbon-caption')).toContainText('30 %');
-      await expect(page.getByTestId('day-trip-thumb')).toHaveCount(2);
+      await expect(inSheet(page).locator('[data-testid="day-bar"][data-kind="charge"]').first()).toBeVisible();
+      await expect(inSheet(page).getByTestId('day-ribbon-caption')).toContainText('30 %');
+      await expect(inSheet(page).getByTestId('day-trip-thumb')).toHaveCount(2);
 
       // Ladung öffnen: Spracheingabe nur unter 1024 px
-      await page.getByTestId('day-row-charge').click();
-      await expect(page.getByTestId('day-detail')).toBeVisible();
-      await expect(page.getByTestId('day-detail').getByText(/Ladung|Ladevorgang/).first()).toBeVisible();
-      await expect(page.getByTestId('day-detail').getByTestId('voice-capture')).toHaveCount(voice ? 1 : 0);
+      await inSheet(page).getByTestId('day-row-charge').click();
+      await expect(inSheet(page).getByTestId('day-detail')).toBeVisible();
+      await expect(inSheet(page).getByTestId('day-detail').getByText(/Ladung|Ladevorgang/).first()).toBeVisible();
+      await expect(inSheet(page).getByTestId('day-detail').getByTestId('voice-capture')).toHaveCount(voice ? 1 : 0);
       await page.getByTestId('edit-back').click();
-      await expect(page.getByTestId('day-detail')).toHaveCount(0);
+      await expect(inSheet(page).getByTestId('day-detail')).toHaveCount(0);
 
       // Zusammenführen: zweistufig
-      await page.getByTestId('day-merge').click();
-      await page.getByTestId('day-merge-confirm').click();
+      await inSheet(page).getByTestId('day-merge').click();
+      await inSheet(page).getByTestId('day-merge-confirm').click();
       await expect.poll(() => calls).toContain(`POST /api/trips/${T1}/merge`);
 
       // Fahrt öffnen: große Karte oben, Formular in der neuen CI
-      await page.getByTestId('day-row-trip').first().click();
-      await expect(page.getByTestId('day-trip-map')).toBeVisible();
+      await inSheet(page).getByTestId('day-row-trip').first().click();
+      await expect(inSheet(page).getByTestId('day-trip-map')).toBeVisible();
       // Die Karte bleibt in ihrem Rahmen, statt das ganze Blatt zu füllen
-      const map = (await page.getByTestId('day-trip-map').locator('.activity-map').boundingBox())!;
+      const map = (await inSheet(page).getByTestId('day-trip-map').locator('.activity-map').boundingBox())!;
       expect(map.height).toBeLessThanOrEqual(300);
-      await expect(page.getByTestId('day-trip-form')).toBeVisible();
+      await expect(inSheet(page).getByTestId('day-trip-form')).toBeVisible();
       // Speichern sitzt in der Fußleiste außerhalb des Formulars und sendet es trotzdem ab
       await expect(page.getByTestId('trip-start')).toHaveValue('09:00');
-      await page.getByTestId('day-trip-save').click();
+      await inSheet(page).getByTestId('day-trip-save').click();
       await expect.poll(() => calls).toContain(`PATCH /api/trips/${T1}`);
-      await page.getByTestId('day-row-trip').first().click();
+      await inSheet(page).getByTestId('day-row-trip').first().click();
 
       // Fahrt löschen, dann Rückgängig im Toast
-      await page.getByTestId('day-trip-delete').click();
-      await page.getByTestId('day-trip-delete-confirm').click();
+      await inSheet(page).getByTestId('day-trip-delete').click();
+      await inSheet(page).getByTestId('day-trip-delete-confirm').click();
       await expect.poll(() => calls).toContain(`DELETE /api/trips/${T1}`);
       await page.getByRole('button', { name: /Rückgängig|Undo/ }).click();
       await expect.poll(() => calls).toContain(`POST /api/trips/${T1}/restore`);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { tripMapView, tripLine, hasTripMap, isRoutedLine } from '../tripMap'
+import { tripMapView, tripLine, hasTripMap, isRoutedLine, tripsCredit } from '../tripMap'
 
 // u33d0k / u33d0m are neighbouring geohash-6 cells near Berlin.
 describe('tripMapView', () => {
@@ -111,5 +111,19 @@ describe('isRoutedLine', () => {
   it('die Fahrzeugspur und keine Linie nicht', () => {
     expect(isRoutedLine({ points: pts, source: 'trace' })).toBe(false)
     expect(isRoutedLine(null)).toBe(false)
+  })
+})
+
+describe('tripsCredit', () => {
+  it('einmal für alle Karten: OpenStreetMap, mit berechneter Strecke auch der Router', () => {
+    const plain = { locationStartGeohash: 'u33d0k', locationEndGeohash: 'u33d0m' }
+    expect(tripsCredit([plain])).toBe('© OpenStreetMap')
+    expect(tripsCredit([plain, { ...plain, routePolyline: '_p~iF~ps|U_ulLnnqC', routeKind: 'MATCHED' }]))
+      .toBe('© OpenStreetMap · Route © openrouteservice by HeiGIT')
+  })
+
+  it('ohne Karte kein Hinweis', () => {
+    expect(tripsCredit([{}])).toBeNull()
+    expect(tripsCredit([])).toBeNull()
   })
 })

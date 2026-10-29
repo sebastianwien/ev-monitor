@@ -20,6 +20,8 @@
       <template v-if="!section">
         <!-- Erst die Ladung sehen: der Ort als Kartenkopf wie auf der Prüfseite des Wizards, ein Tipp darauf bearbeitet ihn -->
         <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" clickable class="-mt-4" data-testid="summary-place" @click="section = 'place'" />
+        <!-- Ergänzungen des Rahmens zur Ladung, z. B. Ladekurve und "Korrekt erkannt?" im Logbuch -->
+        <slot name="extra" />
         <!-- Sprache: nur Handy, Knopf in der Fußleiste neben Speichern; danach Vorher/Nachher mit Rückgängig hier oben -->
         <VoiceCapture v-if="showVoice && !confirmingDelete" entry="edit" variant="footer" :host="footerId" :car-id="log.carId" @draft="onVoiceDraft" />
         <div v-if="voiceChanges" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2" data-testid="edit-voice-changes" aria-live="polite">

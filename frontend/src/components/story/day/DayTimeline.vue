@@ -6,17 +6,32 @@ import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import {
   chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, type DayEvent,
 } from '../../../composables/storyDay'
-import { hasTripMap, isRoutedLine, mapCredit, tripLine } from '../../../utils/tripMap'
+import { hasTripMap, tripsCredit } from '../../../utils/tripMap'
+import StandingText from './StandingText.vue'
+import { temperatureTone } from '../../../utils/tripClimate'
+import TripClimateMarkers from '../../TripClimateMarkers.vue'
 
 const ActivityLocationMap = defineAsyncComponent(() => import('../../dashboard/ActivityLocationMap.vue'))
 
 /**
  * Ablauf eines Tages: chronologische Liste mit senkrechter Leiste durch die Symbole. Zeilen mindestens 56 px,
- * hier wird auf dem Handy getippt. Erste Zeile Startzeit | km bzw. Ort, Unterzeile Dauer und Akku; Symbol, Text und
+ * hier wird auf dem Handy getippt. Erste Zeile "17:24 · 20 min | 9 km" (bzw. Ort), Unterzeile Akku und Temperatur; Symbol, Text und
  * Minikarte auf einer Achse. Halt- und Standzeile gleich hoch (44 px), damit die Abstände zwischen Fahrten gleich sind.
  * Zwischen zwei Fahrten mit kurzem Halt: Zusammenführen, zweistufig bestätigt.
+ *
+ * Das Logbuch auf /logs gibt mehr mit (die Story nicht): die Standzeit vor jedem Eintrag samt Standverlust,
+ * auch über Nacht vor dem ersten, die Reihenfolge neueste zuerst und je Fahrt eine Zeile mit Kosten (Slot `trip-extra`).
  */
-const props = defineProps<{ events: DayEvent[]; selectedId: string | null; merging: boolean }>()
+export interface StandingRow { minutes: number; kwh: number | null; eur?: number | null; unlockTo?: string | null }
+const props = defineProps<{
+  events: DayEvent[]
+  selectedId: string | null
+  merging: boolean
+  standing?: Record<string, StandingRow>
+  newestFirst?: boolean
+  /** Logbuch: der Kartenhinweis steht einmal am Ende der Seite statt unter jedem Tag. */
+  noCredit?: boolean
+}>()
 const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent, later: DayEvent] }>()
 const { t } = useI18n()
 const { formatDecimal, formatDistance, formatCurrency } = useLocaleFormat()
@@ -37,28 +52,55 @@ function chargeSide(e: DayEvent & { kind: 'charge' }) {
   return [type, k != null ? `${formatDecimal(k, 1)} kWh` : null].filter(Boolean).join(' · ')
 }
 /** Die Minikarten tragen keine eigene Attribution - sie steht einmal unter der Liste. */
-const credit = computed(() => {
-  const mapped = props.events.flatMap(e => e.kind === 'trip' && hasTripMap(e.trip) ? [e.trip] : [])
-  return mapped.length ? mapCredit(mapped.some(tr => isRoutedLine(tripLine(tr.tracePolyline, tr.routePolyline, tr.routeKind)))) : null
-})
-/** Änderung des Akkus als "+72 %" oder "−2 %" */
-const delta = (from: number, to: number) => { const d = Math.round(to - from); return d > 0 ? `+${d} %` : `−${-d} %` }
+const credit = computed(() => props.noCredit ? null : tripsCredit(props.events.flatMap(e => e.kind === 'trip' ? [e.trip] : [])))
 
 /** Zusammenführen: erst fragen, dann tun. Schlüssel = id der früheren Fahrt. */
 const confirming = ref<string | null>(null)
+
+/** Zeilen der Liste: je Eintrag davor Halt oder Standzeit. */
+interface Item { key: string; kind: 'merge' | 'standing' | 'event'; e: DayEvent; prev: DayEvent | null; s: StandingRow | null }
+function standingBefore(prev: DayEvent | null, e: DayEvent): StandingRow | null {
+  if (props.standing) return props.standing[e.id] ?? null
+  return prev && showStanding(prev, e) ? { minutes: gapMinutes(prev, e), kwh: null } : null
+}
+/**
+ * Senkrechte Linie durch die Symbole, je Zeile gezeichnet: sie beginnt in der Mitte des ersten Symbols und
+ * endet in der des letzten (Symbolmitte 26 px von oben: 8 px Abstand plus halbes Symbol). Eine Halt- oder
+ * Standzeile am Rand endet auf halber Höhe.
+ */
+const LINE = 'relative before:pointer-events-none before:absolute before:left-[25px] before:w-0.5 before:bg-gray-200 dark:before:bg-gray-800'
+function lineClass(i: number, isEvent: boolean): string {
+  const n = items.value.length
+  if (n < 2) return 'relative'
+  if (i === 0) return `${LINE} before:bottom-0 ${isEvent ? 'before:top-[26px]' : 'before:top-1/2'}`
+  if (i === n - 1) return `${LINE} before:top-0 ${isEvent ? 'before:h-[26px]' : 'before:h-1/2'}`
+  return `${LINE} before:inset-y-0`
+}
+const items = computed<Item[]>(() => {
+  const groups = props.events.map((e, i) => {
+    const prev = i ? props.events[i - 1] : null
+    const base = { e, prev, s: null }
+    const s = prev && canMerge(prev, e) ? null : standingBefore(prev, e)
+    const gap: Item[] = prev && canMerge(prev, e) ? [{ ...base, key: `m-${e.id}`, kind: 'merge' }]
+      : s ? [{ ...base, key: `s-${e.id}`, kind: 'standing', s }] : []
+    const row: Item = { ...base, key: e.id, kind: 'event' }
+    return props.newestFirst ? [row, ...gap] : [...gap, row]
+  })
+  return (props.newestFirst ? groups.reverse() : groups).flat()
+})
 </script>
 
 <template>
   <div>
   <ul class="relative -mx-2" data-testid="day-timeline">
-    <span class="pointer-events-none absolute bottom-6 left-[25px] top-6 w-0.5 bg-gray-200 dark:bg-gray-800" aria-hidden="true" />
-    <template v-for="(e, i) in events" :key="e.id">
+    <template v-for="({ key, kind, e, prev, s }, idx) in items" :key="key">
       <!-- Zwischen zwei Einträgen: Halt mit Zusammenführen oder längere Standzeit -->
-      <li v-if="i && canMerge(events[i - 1], e)" class="pl-14 text-[12.5px] text-gray-500 dark:text-gray-400" data-testid="day-merge-row">
-        <div v-if="confirming !== events[i - 1].id" class="flex min-h-11 flex-wrap items-center gap-x-2">
-          <span class="tabular-nums">{{ gapMinutes(events[i - 1], e) <= 0 ? t('storyday.direct') : t('storyday.halt', { d: dur(gapMinutes(events[i - 1], e)) }) }}</span>
-          <button type="button" data-testid="day-merge" class="inline-flex min-h-11 items-center gap-1 rounded-full px-2 font-semibold text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 dark:text-gray-100 dark:decoration-gray-600"
-            @click="confirming = events[i - 1].id">
+      <li v-if="kind === 'merge'" class="pl-14 text-[12.5px] text-gray-500 dark:text-gray-400" :class="lineClass(idx, false)" data-testid="day-merge-row">
+        <!-- Wie die Standzeile: Dauer, Punkt, dann was es damit auf sich hat -->
+        <div v-if="confirming !== prev!.id" class="flex min-h-11 flex-wrap items-center gap-x-1.5">
+          <span class="tabular-nums">{{ gapMinutes(prev!, e) <= 0 ? t('storyday.direct') : dur(gapMinutes(prev!, e)) }}</span>·
+          <button type="button" data-testid="day-merge" class="inline-flex min-h-11 items-center gap-1 rounded-full px-1 font-semibold text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 dark:text-gray-100 dark:decoration-gray-600"
+            @click="confirming = prev!.id">
             <LinkIcon class="h-4 w-4" aria-hidden="true" />{{ t('storyday.merge') }}
           </button>
         </div>
@@ -68,17 +110,17 @@ const confirming = ref<string | null>(null)
             <button type="button" class="min-h-11 flex-1 rounded-xl px-3 text-[14px] font-semibold text-gray-600 dark:text-gray-300" @click="confirming = null">{{ t('common.cancel') }}</button>
             <button type="button" data-testid="day-merge-confirm" :disabled="merging"
               class="btn-3d cta-shadow-sm min-h-11 flex-1 rounded-xl border-2 border-gray-900 bg-gray-900 dark:border-edge px-3 text-[14px] font-semibold text-white disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900"
-              @click="emit('merge', events[i - 1], e)">{{ t('storyday.merge_do') }}</button>
+              @click="emit('merge', prev!, e)">{{ t('storyday.merge_do') }}</button>
           </div>
         </div>
       </li>
-      <li v-else-if="i && showStanding(events[i - 1], e)" class="flex min-h-11 items-center pl-14 text-[12px] tabular-nums text-gray-500 dark:text-gray-400">
-        {{ t('storyday.standing', { d: dur(gapMinutes(events[i - 1], e)) }) }}
+      <li v-else-if="kind === 'standing'" class="flex min-h-11 flex-wrap items-center gap-x-1.5 pl-14 text-[12px] tabular-nums text-gray-500 dark:text-gray-400" :class="lineClass(idx, false)" data-testid="day-standing">
+        <StandingText v-bind="s!" />
       </li>
 
-      <li>
+      <li v-else :class="lineClass(idx, true)">
         <button type="button" :data-testid="`day-row-${e.kind}`" :aria-current="e.id === selectedId"
-          class="relative flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
+          class="relative flex min-h-14 w-full items-start gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
           :class="e.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : ''"
           @click="emit('select', e)">
           <span v-if="e.kind === 'trip'" class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-sky-600 dark:border-gray-200 dark:bg-gray-900 dark:text-sky-400">
@@ -87,9 +129,9 @@ const confirming = ref<string | null>(null)
           <span v-else class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
             <BoltIcon class="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
-          <span class="min-w-0 flex-1">
+          <span class="min-w-0 flex-1 pt-2">
             <span class="flex items-baseline gap-2 text-[15px] font-semibold leading-snug">
-              <span class="shrink-0 tabular-nums text-gray-500 dark:text-gray-400">{{ hm(e.from) }}</span>
+              <span class="shrink-0 whitespace-nowrap tabular-nums text-gray-500 dark:text-gray-400">{{ hm(e.from) }} · {{ dur(e.to - e.from) }}</span>
               <span class="h-3.5 w-px shrink-0 self-center bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
               <span class="truncate">
                 <template v-if="e.kind === 'trip' && e.trip.distanceKm != null"><span class="sr-only">{{ t('storyday.trip') }} </span><span class="tabular-nums">{{ formatDistance(e.trip.distanceKm) }}</span></template>
@@ -97,32 +139,41 @@ const confirming = ref<string | null>(null)
                 <template v-else>{{ placeName(e) }}</template>
               </span>
             </span>
-            <span class="flex flex-wrap items-center gap-x-1.5 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">
-              <span class="whitespace-nowrap">{{ dur(e.to - e.from) }}</span>
-              <template v-if="e.socFrom != null && e.socTo != null">·
+            <span v-if="e.socTo != null || (e.kind === 'trip' && e.trip.outsideTempCelsius != null)"
+              class="flex flex-wrap items-center gap-x-1.5 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">
+              <template v-if="e.socFrom != null && e.socTo != null">
                 <span class="whitespace-nowrap text-gray-600 dark:text-gray-300" data-testid="day-soc"><span class="sr-only">{{ t('storyday.soc') }} </span>{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
-                <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="whitespace-nowrap rounded-full px-1.5 text-[12px] font-semibold"
-                  :class="e.socTo > e.socFrom ? 'bg-green-50 text-green-800 dark:bg-green-400/10 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300'">{{ delta(e.socFrom, e.socTo) }}</span>
               </template>
-              <template v-else-if="e.socTo != null">·
+              <template v-else-if="e.socTo != null">
                 <span class="whitespace-nowrap text-gray-600 dark:text-gray-300">{{ t('storyday.soc_to', { to: Math.round(e.socTo) }) }}</span>
               </template>
+              <template v-if="e.kind === 'trip' && e.trip.outsideTempCelsius != null"><template v-if="e.socTo != null">·</template>
+                <span class="whitespace-nowrap" :class="temperatureTone(e.trip.outsideTempCelsius)" data-testid="day-temp">{{ formatDecimal(e.trip.outsideTempCelsius, 0) }}&nbsp;°C</span>
+              </template>
+              <!-- Heizung, Klima, Akkuheizung als farbige Symbole, Last und Dauer im Tooltip -->
+              <TripClimateMarkers v-if="e.kind === 'trip'" :climate="e.trip.climate" align="start" compact />
             </span>
+            <!-- Logbuch: Kosten, Verbrauch und Verbraucher einer Fahrt -->
+            <slot v-if="e.kind === 'trip'" name="trip-extra" :trip="e.trip" />
             <span v-if="e.kind === 'charge' && missingOf(e.log).length" class="mt-1 flex gap-1">
               <span v-for="m in missingOf(e.log)" :key="m" data-testid="day-missing"
                 class="rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{{ t(`storyday.missing_${m}`) }}</span>
             </span>
           </span>
+          <!-- Logbuch ab 768 px: Kosten und Verbrauch rechts wie der Preis einer Ladung -->
+          <span v-if="e.kind === 'trip' && $slots['trip-side']" class="hidden shrink-0 pt-2 text-right tabular-nums md:block">
+            <slot name="trip-side" :trip="e.trip" />
+          </span>
           <!-- isolate: Leaflets Ebenen dürfen nicht über die Kopfzeile des Sheets ragen -->
-          <span v-if="e.kind === 'trip' && hasTripMap(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-[52px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-white/5">
+          <span v-if="e.kind === 'trip' && hasTripMap(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-[52px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-gray-100 md:h-14 md:w-24 dark:bg-white/5">
             <ActivityLocationMap variant="thumb" :start-geohash="e.trip.locationStartGeohash" :end-geohash="e.trip.locationEndGeohash"
               :route-polyline="e.trip.routePolyline" :route-kind="e.trip.routeKind" :trace-polyline="e.trip.tracePolyline" />
           </span>
-          <span v-else-if="e.kind === 'charge'" class="shrink-0 text-right tabular-nums">
+          <span v-else-if="e.kind === 'charge'" class="shrink-0 pt-2 text-right tabular-nums">
             <span class="block text-[15px] font-bold leading-snug">{{ e.log.costEur != null ? formatCurrency(e.log.costEur) : '' }}</span>
             <span class="block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400">{{ chargeSide(e) }}</span>
           </span>
-          <ChevronRightIcon class="-ml-1 h-4 w-4 shrink-0 self-center text-gray-400" aria-hidden="true" />
+          <ChevronRightIcon class="-ml-1 mt-2.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
         </button>
       </li>
     </template>

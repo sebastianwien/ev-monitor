@@ -58,3 +58,17 @@ export function hasActiveClimateLoads(climate: ClimateSummary | null | undefined
 export function climateDurationMinutes(seconds: number): number {
   return Math.round(seconds / 60)
 }
+
+/** Unter 10 °C kostet Heizen spürbar Reichweite, ab 22 °C die Klimaanlage; dazwischen kein Mehrverbrauch. */
+const COLD_BELOW_C = 10
+const HOT_FROM_C = 22
+
+/**
+ * Farbe der Außentemperatur einer Fahrt, dieselben Töne wie die Verbraucher-Symbole (TripClimateMarkers):
+ * kalt cyan, heiß orange, dazwischen ohne Farbe. Textstufe 700 bzw. dunkel 400 für den Kontrast.
+ */
+export function temperatureTone(celsius: number): string {
+  if (celsius < COLD_BELOW_C) return 'text-cyan-700 dark:text-cyan-400'
+  if (celsius >= HOT_FROM_C) return 'text-orange-700 dark:text-orange-400'
+  return ''
+}

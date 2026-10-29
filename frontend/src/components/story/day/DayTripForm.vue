@@ -11,7 +11,8 @@ import { joinTripTimes, splitTripTimes, LOAD_EXTRAS, toggleLoadExtra } from '../
  * Eine Karte mit Zeilen, die Werte stehen rechts und werden direkt bearbeitet. Ein Datum, zwei Uhrzeiten:
  * liegt das Ende vor dem Start, endet die Fahrt am nächsten Tag.
  * `title` setzt eine Überschrift, wenn das Formular nicht in einem Sheet mit eigenem Titel steht;
- * der Slot `extra` nimmt Zusätze vor den Knöpfen auf (Bewerten, Zusammenführen im Feed).
+ * der Slot `extra` nimmt Zusätze vor den Knöpfen auf (Bewerten, Zusammenführen im Feed), `extras-end` steht
+ * rechtsbündig in der letzten Reihe der Besonderheiten (Bewerten im Logbuch).
  * `actions: false`, wenn der Aufrufer die Knöpfe in seine Fußleiste stellt (Absenden per `form`-Attribut auf die id).
  * Gemessene Fahrten (`form.measured`) zeigen Zeit, Strecke und Akku nur an; Routentyp und Besonderheiten bleiben wählbar.
  */
@@ -113,6 +114,7 @@ function toggleExtra(x: string) { form.value.loadExtras = toggleLoadExtra(extras
         <ChoiceChip v-for="x in LOAD_EXTRAS" :key="x" size="md" :active="extras.includes(x)" :data-testid="`trip-extra-${x}`" @click="toggleExtra(x)">
           {{ t(`storyday.form_extra_${x.toLowerCase()}`) }}
         </ChoiceChip>
+        <slot name="extras-end" />
       </div>
     </div>
     <slot name="extra" />

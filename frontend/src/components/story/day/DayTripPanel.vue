@@ -81,7 +81,11 @@ async function remove() {
           :route-polyline="trip.routePolyline" :route-kind="trip.routeKind" :trace-polyline="trip.tracePolyline" />
       </div>
       <DayTripForm :id="formId" v-model="form" :mode="trip ? 'edit' : 'add'" :error="error" :saving="saving" :distance-unit="distanceUnitLabel()"
-        :actions="false" @save="save" />
+        :actions="false" @save="save">
+        <!-- Ergänzungen des Rahmens, z. B. "Korrekt erkannt?" im Logbuch: neben den Besonderheiten bzw. darunter -->
+        <template #extras-end><slot name="extras-end" /></template>
+        <template #extra><slot name="extra" /></template>
+      </DayTripForm>
     </div>
     <!-- Fußleiste wie bei der Ladung: Löschen abgesetzt links, Speichern füllt. Abbrechen erst ab 640 px, auf dem Handy führt der Pfeil oben zurück. -->
     <footer class="flex shrink-0 items-center gap-2 border-t-2 border-gray-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dark:border-gray-800">
