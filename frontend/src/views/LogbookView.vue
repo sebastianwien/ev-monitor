@@ -8,6 +8,7 @@ import DeletedLogsEntry from '../components/dashboard/DeletedLogsEntry.vue'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import PricelessLogsModal from '../components/dashboard/PricelessLogsModal.vue'
 import LogbookMonth from '../components/logbook/LogbookMonth.vue'
+import ChargeBook from '../components/logbook/ChargeBook.vue'
 import LogbookDetail, { type LogbookSelection } from '../components/logbook/LogbookDetail.vue'
 import { useCarContext } from '../composables/useCarContext'
 import { useDataFeedback } from '../composables/useDataFeedback'
@@ -19,7 +20,7 @@ import { useChargingProviderNames } from '../composables/useChargingProviderName
 import { formatOlderWindow } from '../composables/useFeedWindow'
 import type { DayEvent } from '../composables/storyDay'
 import { useAuthStore } from '../stores/auth'
-import { monthsOf } from '../utils/logbook'
+import { monthsOf, chargeMonthsOf, type ChargeLog } from '../utils/logbook'
 import { phantomTeaserId, showsDrain, phantomEurFor } from '../utils/phantomDrain'
 import { tripsCredit } from '../utils/tripMap'
 import { buildTripCostPerKwhMap, tripGroupCostPer100km, tripFacts } from '../utils/tripCalculations'
@@ -38,7 +39,7 @@ const wide = useIsMobile('(min-width: 1024px)')
 const {
   selectedCarId, selectedCar, cars, carImageUrls, stats, setLogsSection,
   logs, trips, logsLoading, mergedLogFeed, hasAnyLogs,
-  feedNextOlder, loadOlderFeed, refreshLogsAndGroups, mergeTripEntry,
+  feedNextOlder, loadOlderFeed, refreshLogsAndGroups, mergeTripEntry, latestTrip, priceAmendingLog,
   fetchImplausibleCount, fetchStatistics, fetchPricelessCount,
 } = useCarContext()
 
@@ -63,6 +64,10 @@ const facts = computed(() => {
   return Object.fromEntries((trips.value as any[]).map(trip => [trip.id, tripFacts(trip, cpkMap.value.get(trip.id) ?? null, cap)]))
 })
 const cardNames = useChargingProviderNames()
+// Seitenart je Auto: hat es mindestens eine Fahrt, ein Blatt je Tag; sonst eine Zeile je Ladung mit der Strecke dazwischen
+const hasTrips = computed(() => latestTrip.value != null)
+const chargeMonths = computed(() => hasTrips.value ? [] : chargeMonthsOf(logs.value as ChargeLog[]))
+const bookEmpty = computed(() => hasTrips.value ? !months.value.length : !chargeMonths.value.length)
 const months = computed(() => monthsOf(trips.value, logs.value, { drains: drains.value, costPer100km: per100 }))
 /** Die Minikarten tragen keinen eigenen Hinweis; er steht einmal am Ende (OSM: einer genügt für mehrere Karten). */
 const credit = computed(() => tripsCredit(trips.value))
@@ -72,6 +77,12 @@ const selection = ref<LogbookSelection | null>(null)
 const selectedId = computed(() => selection.value?.kind === 'charge' ? selection.value.log.id : selection.value?.trip.id ?? null)
 function select(e: DayEvent) {
   selection.value = e.kind === 'charge' ? { kind: 'charge', log: e.log as any } : { kind: 'trip', trip: e.trip }
+}
+const selectCharge = (log: ChargeLog) => { selection.value = { kind: 'charge', log: log as any } }
+/** km-Stand nachtragen: die Ladung im Bearbeiten öffnen */
+function fixOdometer(logId: string) {
+  const log = (logs.value as ChargeLog[]).find(l => l.id === logId)
+  if (log) selectCharge(log)
 }
 watch(selectedCarId, () => { selection.value = null })
 function changed() {
@@ -146,12 +157,16 @@ onMounted(() => { dataFeedback.load() })
               <PlusIcon class="h-4 w-4" aria-hidden="true" />{{ t('logs.empty_cta') }}
             </router-link>
           </div>
-          <p v-else-if="!logsLoading && !months.length" class="mx-3 rounded-2xl bg-gray-50 px-6 py-8 text-center text-[14px] text-gray-600 dark:bg-white/5 dark:text-gray-300">
+          <p v-else-if="!logsLoading && bookEmpty" class="mx-3 rounded-2xl bg-gray-50 px-6 py-8 text-center text-[14px] text-gray-600 dark:bg-white/5 dark:text-gray-300">
             {{ t('logs.empty_window') }}
           </p>
 
-          <LogbookMonth v-for="m in months" :key="m.key" :month="m" :unlock-to="unlockTo" :facts="facts" :card-names="cardNames"
-            :selected-id="selectedId" :merging="merging" :wide="wide" @select="select" @merge="merge" />
+          <ChargeBook v-if="!hasTrips" :months="chargeMonths" :selected-id="selectedId"
+            @select="selectCharge" @amend="log => { priceAmendingLog = log }" @fix="fixOdometer" />
+          <template v-else>
+            <LogbookMonth v-for="m in months" :key="m.key" :month="m" :unlock-to="unlockTo" :facts="facts" :card-names="cardNames"
+              :selected-id="selectedId" :merging="merging" :wide="wide" @select="select" @merge="merge" />
+          </template>
 
           <p v-if="credit" data-testid="logbook-map-credit" class="px-4 pt-3 text-right text-[10px] text-gray-400">{{ credit }}</p>
           <div v-if="hasAnyLogs" ref="sentinel" class="flex justify-center px-4 pt-5">

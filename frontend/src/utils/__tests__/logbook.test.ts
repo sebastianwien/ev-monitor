@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { monthsOf, tripDetailKeys, chargeDetailKeys, type LogbookItem } from '../logbook'
+import { monthsOf, tripDetailKeys, chargeDetailKeys, chargeMonthsOf, type LogbookItem } from '../logbook'
 import type { DayLog, DayTrip } from '../../composables/storyDay'
 
 // Ortszeit wie im Tagesblatt: Tagesgrenzen im Browser, nicht in UTC
@@ -120,5 +120,71 @@ describe('chargeDetailKeys', () => {
   })
   it('ohne Werte leer', () => {
     expect(chargeDetailKeys({ maxChargingPowerKw: null, kwhCharged: 42, kwhAtVehicle: null })).toEqual([])
+  })
+})
+
+describe('chargeMonthsOf (Logbuch nur mit Ladungen)', () => {
+  // Ladung mit km-Stand und dem, was das Backend je Ladung liefert (EvLogService)
+  const charge = (id: string, d: string, h: number, over: Record<string, unknown> = {}) => ({
+    ...log(id, d, h), odometerKm: 1000, distanceSinceLastChargeKm: null, consumptionKwhPer100km: null, ...over,
+  })
+
+  it('neueste zuerst, dazwischen die Strecke der neueren Ladung mit Tagen, km, Verbrauch und € pro 100 km', () => {
+    const months = chargeMonthsOf([
+      charge('l1', '2026-10-21', 12),
+      charge('l2', '2026-10-26', 18, { distanceSinceLastChargeKm: 300, consumptionKwhPer100km: 16.9, costEur: 18 }),
+    ])
+    expect(months).toHaveLength(1)
+    expect(months[0].entries.map(e => e.kind)).toEqual(['charge', 'stretch', 'charge'])
+    expect(months[0].entries[1]).toEqual({ kind: 'stretch', key: 's-l2', days: 5, km: 300, kwhPer100km: 16.9, eurPer100km: 6, fix: null })
+  })
+
+  it('ohne km-Stand eine Strecke zum Nachtragen, an der Ladung ohne km-Stand', () => {
+    const months = chargeMonthsOf([charge('l1', '2026-10-21', 12, { odometerKm: null }), charge('l2', '2026-10-26', 18)])
+    expect(months[0].entries[1]).toMatchObject({ kind: 'stretch', km: null, fix: 'l1' })
+  })
+
+  it('fehlt der älteren Ladung der km-Stand, misst das Backend weiter zurück: dann keine km, sondern Nachtragen an der älteren', () => {
+    // l2 hat 300 km seit der letzten Ladung MIT km-Stand (l0), dazwischen l1 ohne km-Stand
+    const months = chargeMonthsOf([
+      charge('l0', '2026-10-20', 12),
+      charge('l1', '2026-10-22', 12, { odometerKm: null }),
+      charge('l2', '2026-10-23', 12, { distanceSinceLastChargeKm: 300, costEur: 5 }),
+    ])
+    expect(months[0].entries[1]).toMatchObject({ kind: 'stretch', key: 's-l2', km: null, eurPer100km: null, fix: 'l1' })
+  })
+
+  it('zwei Ladungen am selben Tag: Abstand 0, der Rhythmus nie unter einem Tag', () => {
+    const months = chargeMonthsOf([
+      charge('a', '2026-10-01', 8), charge('b', '2026-10-01', 15, { distanceSinceLastChargeKm: 40 }),
+      charge('c', '2026-10-01', 20, { distanceSinceLastChargeKm: 30 }),
+    ])
+    expect(months[0].entries.filter(e => e.kind === 'stretch').map(e => e.kind === 'stretch' && e.days)).toEqual([0, 0])
+    expect(months[0].rhythmDays).toBe(1)
+  })
+
+  it('Nachladen am selben km-Stand: keine Strecke; unter der ältesten geladenen Ladung keine', () => {
+    const months = chargeMonthsOf([
+      charge('l1', '2026-10-21', 12),
+      charge('l2', '2026-10-21', 14, { distanceSinceLastChargeKm: 0 }),
+    ])
+    expect(months[0].entries.map(e => e.kind)).toEqual(['charge', 'charge'])
+  })
+
+  it('Monate nach der Ladung, die Strecke bei der neueren; Summen je Monat', () => {
+    const months = chargeMonthsOf([
+      charge('l1', '2026-09-28', 12, { costEur: 10, kwhCharged: 30 }),
+      charge('l2', '2026-10-03', 18, { distanceSinceLastChargeKm: 200, costEur: 12, kwhCharged: 34 }),
+    ])
+    expect(months.map(m => m.key)).toEqual(['2026-10', '2026-09'])
+    expect(months[0].entries.map(e => e.kind)).toEqual(['charge', 'stretch'])
+    expect(months[0].totals).toEqual({ charges: 1, kwh: 34, eur: 12 })
+  })
+
+  it('Laderhythmus: Median der Abstände in ganzen Tagen, erst ab zwei Abständen', () => {
+    const three = chargeMonthsOf([charge('a', '2026-10-01', 12), charge('b', '2026-10-05', 12), charge('c', '2026-10-15', 12)])
+    expect(three[0].rhythmDays).toBe(7)
+    const two = chargeMonthsOf([charge('a', '2026-10-01', 12), charge('b', '2026-10-05', 12)])
+    expect(two[0].rhythmDays).toBeNull()
   })
 })

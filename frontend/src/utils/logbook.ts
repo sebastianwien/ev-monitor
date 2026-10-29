@@ -1,5 +1,5 @@
 import {
-  eventsOfDay, dayKeyOf, shiftDay, daySummary, type DayEvent, type DayLog, type DayTrip,
+  eventsOfDay, dayKeyOf, shiftDay, daySummary, chargeKwh, type DayEvent, type DayLog, type DayTrip,
 } from '../composables/storyDay'
 import { chargingEfficiencyPercent } from '../composables/useChargingEfficiency'
 import { tripSpeedKeyAndArgs } from './recentActivity'
@@ -134,4 +134,83 @@ export function chargeDetailKeys(log: { maxChargingPowerKw?: number | null; kwhC
   const eff = chargingEfficiencyPercent(log.kwhCharged, log.kwhAtVehicle)
   if (eff != null) keys.push({ key: 'logbook.efficiency', params: { pct: Math.round(eff) } })
   return keys
+}
+
+/** Ladung im Logbuch ohne Fahrten: dazu, was das Backend je Ladung rechnet (EvLogService). */
+export interface ChargeLog extends DayLog {
+  odometerKm?: number | null
+  distanceSinceLastChargeKm?: number | null
+  consumptionKwhPer100km?: number | null
+}
+export type ChargeEntry =
+  | { kind: 'charge'; key: string; log: ChargeLog }
+  /** Strecke zwischen zwei Ladungen, gehört zur neueren. `fix`: Ladung, der der km-Stand fehlt. */
+  | { kind: 'stretch'; key: string; days: number; km: number | null; kwhPer100km: number | null; eurPer100km: number | null; fix: string | null }
+export interface ChargeMonth {
+  key: string
+  entries: ChargeEntry[]
+  totals: { charges: number; kwh: number; eur: number }
+  /** Laderhythmus: Median der Abstände in ganzen Tagen, erst ab zwei Abständen */
+  rhythmDays: number | null
+}
+
+const DAY_MS = 86_400_000
+
+function median(values: number[]): number | null {
+  if (values.length < 2) return null
+  const v = [...values].sort((a, b) => a - b)
+  const mid = v.length / 2
+  // "etwa alle 0 Tage" gibt es nicht: mehrmals am Tag heißt "etwa jeden Tag"
+  return Math.max(1, Math.round(v.length % 2 ? v[Math.floor(mid)] : (v[mid - 1] + v[mid]) / 2))
+}
+
+/**
+ * Logbuch für Autos ohne Fahrten: eine Ladung je Zeile, neueste zuerst, dazwischen die Strecke aus den
+ * km-Ständen. Strecke und Verbrauch kommen aus dem Backend; € pro 100 km ist der Betrag der neueren Ladung
+ * geteilt durch die Strecke, keine Verbrauchsformel. Nachladen am selben km-Stand bekommt keine Strecke,
+ * unter der ältesten geladenen Ladung steht keine.
+ */
+export function chargeMonthsOf(logs: ChargeLog[]): ChargeMonth[] {
+  const sorted = [...logs].sort((a, b) => Date.parse(b.loggedAt) - Date.parse(a.loggedAt))
+  const months: ChargeMonth[] = []
+  const gaps = new Map<string, number[]>()
+  sorted.forEach((log, i) => {
+    const key = monthOf(dayKeyOf(log.loggedAt))
+    let month = months[months.length - 1]
+    if (month?.key !== key) {
+      month = { key, entries: [], totals: { charges: 0, kwh: 0, eur: 0 }, rhythmDays: null }
+      months.push(month)
+    }
+    month.entries.push({ kind: 'charge', key: log.id, log })
+    month.totals.charges++
+    month.totals.kwh += chargeKwh(log) ?? 0
+    month.totals.eur += log.costEur ?? 0
+
+    const older = sorted[i + 1]
+    const km = log.distanceSinceLastChargeKm ?? null
+    if (!older || km === 0) return
+    const days = Math.round((Date.parse(log.loggedAt) - Date.parse(older.loggedAt)) / DAY_MS)
+    if (!gaps.has(key)) gaps.set(key, [])
+    gaps.get(key)!.push(days)
+    // Das Backend misst die Strecke bis zur letzten Ladung MIT km-Stand. Fehlt er der älteren hier, reichte die
+    // Strecke weiter zurück als dieser Abstand: dann keine Zahlen, sondern den km-Stand dort nachtragen.
+    const direct = log.odometerKm != null && older.odometerKm != null
+    const shownKm = direct ? km : null
+    const fix = shownKm != null ? null : log.odometerKm == null ? log.id : older.odometerKm == null ? older.id : null
+    if (shownKm == null && !fix) return
+    month.entries.push({
+      kind: 'stretch', key: `s-${log.id}`, days, km: shownKm,
+      kwhPer100km: shownKm != null ? log.consumptionKwhPer100km ?? null : null,
+      eurPer100km: shownKm && log.costEur != null ? log.costEur / shownKm * 100 : null,
+      fix,
+    })
+  })
+  for (const month of months) month.rhythmDays = median(gaps.get(month.key) ?? [])
+  return months
+}
+
+/** "Oktober 2026" aus dem Monatsschlüssel "2026-10" */
+export function monthName(key: string, locale: string): string {
+  const [y, m] = key.split('-').map(Number)
+  return new Date(y, m - 1, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' })
 }

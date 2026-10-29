@@ -4,9 +4,10 @@ import { useI18n } from 'vue-i18n'
 import LogbookDay from './LogbookDay.vue'
 import type { TripFacts } from '../../utils/tripCalculations'
 import StandingText from '../story/day/StandingText.vue'
+import LogbookMonthHead from './LogbookMonthHead.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { DayEvent } from '../../composables/storyDay'
-import type { LogbookMonth } from '../../utils/logbook'
+import { monthName, type LogbookMonth } from '../../utils/logbook'
 import { tripDayLabel } from '../../utils/tripTimeFormat'
 
 /**
@@ -28,10 +29,7 @@ const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent,
 const { t, locale } = useI18n()
 const { formatDistance, formatCurrency } = useLocaleFormat()
 
-const name = computed(() => {
-  const [y, m] = props.month.key.split('-').map(Number)
-  return new Date(y, m - 1, 1).toLocaleDateString(locale.value, { month: 'long', year: 'numeric' })
-})
+const name = computed(() => monthName(props.month.key, locale.value))
 const line = computed(() => {
   const s = props.month.totals
   return [
@@ -49,15 +47,8 @@ const idleLabel = (from: string, to: string) => from === to
 
 <template>
   <section :aria-label="name" data-testid="logbook-month">
-    <header class="border-b border-gray-200 px-4 py-2.5 dark:border-gray-700" data-testid="logbook-month-head">
-      <div class="flex items-baseline justify-between gap-3">
-        <h2 class="text-[19px] font-bold tracking-tight">{{ name }}</h2>
-        <span v-if="month.totals.costPer100km != null" class="text-[13px] font-semibold tabular-nums">
-          {{ t('logbook.per_100km', { cost: formatCurrency(month.totals.costPer100km) }) }}
-        </span>
-      </div>
-      <p v-if="line" class="text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ line }}</p>
-    </header>
+    <LogbookMonthHead :month-key="month.key" :line="line"
+      :right="month.totals.costPer100km != null ? t('logbook.per_100km', { cost: formatCurrency(month.totals.costPer100km) }) : null" />
 
     <template v-for="item in month.items" :key="item.kind === 'day' ? item.key : `idle-${item.from}`">
       <LogbookDay v-if="item.kind === 'day'" :day-key="item.key" :events="item.events" :standing="item.standing" :unlock-to="unlockTo" :facts="facts" :card-names="cardNames" :cost-per100km="item.costPer100km"
