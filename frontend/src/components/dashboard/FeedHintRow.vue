@@ -6,8 +6,9 @@ import { ChevronRightIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 /**
  * Eine Zeile der Hinweis-Karte über dem Log-Feed: Symbol, Satz, Ziel, Schließen.
  * Aufgaben tragen Amber (etwas fehlt), Angebote und Tipps bleiben grau. Die ganze Zeile ist
- * das Ziel (Link oder Knopf), Schließen ist ein eigener Knopf daneben. `plain` ist eine reine
- * Info-Zeile, deren Link im Text steht.
+ * das Ziel (Link oder Knopf), Schließen ist ein eigener Knopf daneben. `open` kommt bei jedem Tipp
+ * auf die Zeile, auch bei einem Link (z. B. fürs Zählen). `plain` ist eine reine Info-Zeile,
+ * deren Link im Text steht.
  */
 const props = defineProps<{
   icon: Component
@@ -25,7 +26,7 @@ const tag = computed(() => (props.plain ? 'div' : props.to ? RouterLink : 'butto
     <component :is="tag" :to="to" :type="tag === 'button' ? 'button' : undefined"
       class="flex min-h-14 min-w-0 flex-1 items-center gap-3 py-2.5 pl-3 pr-1 text-left"
       :class="plain ? '' : 'group rounded-2xl transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-story-accent dark:hover:bg-white/5'"
-      @click="!plain && !to && emit('open')">
+      @click="!plain && emit('open')">
       <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full"
         :class="task ? 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300' : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300'">
         <component :is="icon" class="h-[18px] w-[18px]" aria-hidden="true" />

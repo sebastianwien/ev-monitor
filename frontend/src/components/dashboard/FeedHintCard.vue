@@ -16,6 +16,7 @@ import { feedHints, tripsHintVisible } from '../../utils/feedHints'
 import { hasFreeDataSource, isAutoSyncUnsupported, brandDeliversTrips, tripsComeByImport, normalizeBrand } from '../../composables/useCarAutoSyncProvider'
 import polestarService from '../../api/polestarService'
 import { subscriptionService, type SubscriptionTier } from '../../api/subscriptionService'
+import { analytics } from '../../services/analytics'
 
 /**
  * Hinweise über dem Log-Feed bzw. dem Logbuch, eine Karte statt eines Bannerstapels: erst Aufgaben,
@@ -191,7 +192,8 @@ onMounted(async () => {
       </FeedHintRow>
       <!-- Die Importseite öffnet für Tesla, Polestar und XPeng den passenden Abschnitt des aktiven Autos -->
       <FeedHintRow v-else-if="hint === 'trips'" data-testid="trips-hint" :icon="MapIcon" to="/imports"
-        :dismiss-label="t('logbook.trips_dismiss')" @dismiss="dismissTripsHint">
+        :dismiss-label="t('logbook.trips_dismiss')" @dismiss="dismissTripsHint"
+        @open="analytics.track('logbook_connect', { brand: normalizeBrand(selectedCar!) })">
         <i18n-t keypath="logbook.trips_hint" tag="span"><template #title><b class="font-semibold">{{ tripsByImport ? t('logbook.trips_title_import') : t('logbook.trips_title') }}</b></template></i18n-t>
         <template #sub>{{ tripsByImport ? t('logbook.trips_import') : t('logbook.trips_connect') }}</template>
       </FeedHintRow>

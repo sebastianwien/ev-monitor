@@ -20,6 +20,7 @@ import { useChargingProviderNames } from '../composables/useChargingProviderName
 import { formatOlderWindow } from '../composables/useFeedWindow'
 import type { DayEvent } from '../composables/storyDay'
 import { useAuthStore } from '../stores/auth'
+import { analytics } from '../services/analytics'
 import { monthsOf, chargeMonthsOf, type ChargeLog } from '../utils/logbook'
 import { phantomTeaserId, showsDrain, phantomEurFor } from '../utils/phantomDrain'
 import { tripsCredit } from '../utils/tripMap'
@@ -77,8 +78,12 @@ const selection = ref<LogbookSelection | null>(null)
 const selectedId = computed(() => selection.value?.kind === 'charge' ? selection.value.log.id : selection.value?.trip.id ?? null)
 function select(e: DayEvent) {
   selection.value = e.kind === 'charge' ? { kind: 'charge', log: e.log as any } : { kind: 'trip', trip: e.trip }
+  analytics.track('logbook_detail', { kind: e.kind === 'charge' ? 'ladung' : 'fahrt' })
 }
-const selectCharge = (log: ChargeLog) => { selection.value = { kind: 'charge', log: log as any } }
+const selectCharge = (log: ChargeLog) => {
+  selection.value = { kind: 'charge', log: log as any }
+  analytics.track('logbook_detail', { kind: 'ladung' })
+}
 /** km-Stand nachtragen: die Ladung im Bearbeiten öffnen */
 function fixOdometer(logId: string) {
   const log = (logs.value as ChargeLog[]).find(l => l.id === logId)
@@ -107,7 +112,7 @@ const { older, setVisible, reset: resetOlder } = useAutoOlder({
   loading: logsLoading,
   count: () => logs.value.length + trips.value.length,
   enabled: () => hasAnyLogs.value,
-  load: loadOlderFeed,
+  load: () => { analytics.track('logbook_older'); loadOlderFeed() },
 })
 watch(selectedCarId, resetOlder)
 const sentinel = ref<HTMLElement | null>(null)
@@ -122,6 +127,13 @@ watch(sentinel, (el, prev) => {
   if (el) observer?.observe(el)
 })
 onUnmounted(() => observer?.disconnect())
+// Einmal je Besuch, nach dem ersten Laden: welche Buchart der Nutzer sieht
+let opened = false
+watch(logsLoading, (busy) => {
+  if (busy || opened || !selectedCarId.value) return
+  opened = true
+  analytics.track('logbook_open', { book: hasTrips.value ? 'tage' : 'ladungen' })
+})
 const olderLabel = computed(() => formatOlderWindow(feedNextOlder.value, 'cycle', locale.value))
 
 // ── Hinweise und ihre Listen ────────────────────────────────────────────────

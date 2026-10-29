@@ -72,7 +72,7 @@ const chargeMore = computed(() => props.selection?.kind === 'charge'
   <component :is="wide ? 'aside' : BottomSheet" v-if="wide || selection" ref="sheet"
     v-bind="wide
       ? { class: 'sticky flex max-h-[calc(100dvh-var(--content-top,var(--top-nav-h))-2rem)] min-h-[28rem] flex-col overflow-hidden rounded-3xl bg-white edge-box dark:bg-gray-900', style: stickyTop }
-      : { edge: true, label: t('dashboard.edit_title'), panelClass: 'h-[88dvh] sm:max-w-xl' }"
+      : { edge: true, label: t('dashboard.edit_title'), panelClass: 'h-[88dvh] sm:max-w-xl', testid: 'logbook-detail' }"
     data-testid="logbook-detail" @close="emit('close')">
     <template v-if="selection">
       <LogEditPanel v-if="selection.kind === 'charge'" :key="key" :log="selection.log" dismiss="close"
