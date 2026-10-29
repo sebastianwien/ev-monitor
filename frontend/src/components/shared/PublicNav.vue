@@ -20,7 +20,7 @@
             <slot name="nav" />
           </div>
         </div>
-        <!-- Rechte Gruppe: ein Hover für alle (runde, leichte Fläche, 40 px hoch), das Zahnrad ist der grüne Knopf.
+        <!-- Rechte Gruppe: ein Hover für alle (runde, leichte Fläche, 40 px hoch), das Männchen ist der grüne Knopf.
              Die Hover-Flächen tragen den Abstand selbst, daher ab sm nur 4 px dazwischen. -->
         <div class="flex items-center gap-2 sm:gap-1" :class="home ? 'shrink-0' : 'min-w-0'">
           <LocaleSwitcher class="hidden sm:flex" />
@@ -36,17 +36,17 @@
                     :class="[navItem, 'hidden md:inline-flex w-10']">
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" aria-hidden="true" />
             </button>
-            <!-- Mobil führt das Zahnrad direkt zu den Einstellungen (Import und Vergleich trägt das Mehr-Sheet),
+            <!-- Mobil führt das Männchen direkt zu den Einstellungen (Import und Vergleich trägt das Mehr-Sheet),
                  ab md öffnet es die Konto-Zeile -->
             <router-link v-if="home" to="/settings" data-testid="public-nav-settings" :aria-label="t('nav.bottom.settings')"
                          :class="[profileButton, 'inline-flex bg-green-600 md:hidden']">
-              <Cog6ToothIcon class="h-5 w-5" aria-hidden="true" />
+              <UserIcon class="h-5 w-5" aria-hidden="true" />
             </router-link>
             <button v-if="home" ref="accountButton" type="button" data-testid="public-nav-account"
                     aria-controls="public-nav-account-row" :aria-expanded="accountOpen" :aria-label="t('nav.account')"
                     :class="[profileButton, 'relative hidden md:inline-flex', accountOpen ? 'bg-green-700' : 'bg-green-600']" @click="accountOpen = !accountOpen">
-              <!-- Zahnrad und X überblenden: offen zeigt der Knopf, wie man die Zeile wieder schließt -->
-              <Cog6ToothIcon class="h-5 w-5 transition duration-200 ease-out" :class="accountOpen ? 'rotate-90 scale-50 opacity-0' : ''" aria-hidden="true" />
+              <!-- Männchen und X überblenden: offen zeigt der Knopf, wie man die Zeile wieder schließt -->
+              <UserIcon class="h-5 w-5 transition duration-200 ease-out" :class="accountOpen ? 'scale-50 opacity-0' : ''" aria-hidden="true" />
               <XMarkIcon class="absolute h-5 w-5 transition duration-200 ease-out" :class="accountOpen ? '' : 'scale-50 opacity-0'" aria-hidden="true" />
             </button>
             <router-link v-else to="/dashboard" data-testid="public-nav-dashboard"
@@ -107,7 +107,7 @@ import { computed, inject, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import {
-  HomeIcon, BoltIcon, XMarkIcon, ChatBubbleLeftEllipsisIcon, Cog6ToothIcon, ArrowDownTrayIcon, ArrowsRightLeftIcon, ArrowRightOnRectangleIcon,
+  HomeIcon, BoltIcon, XMarkIcon, ChatBubbleLeftEllipsisIcon, Cog6ToothIcon, UserIcon, ArrowDownTrayIcon, ArrowsRightLeftIcon, ArrowRightOnRectangleIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../../stores/auth'
 import { useCoinStore } from '../../stores/coins'
