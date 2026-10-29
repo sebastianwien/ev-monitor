@@ -51,14 +51,14 @@ class HomeChargingSavingsServiceTest {
         lenient().when(repo.homeWeightedPrice(USER)).thenReturn(new WeightedPrice(eur("0.27"), 23));
     }
 
-    /** Heimpreis bekannt, aber kein Jahr mit Vergleichspreis: die Kachel bleibt leer,
-     *  statt dass der Endpunkt mit einem Nullzeiger abbricht (Prod, Nutzer ohne Daten). */
+    /** Heimpreis bekannt, aber kein Jahr mit Vergleichspreis: der Rechner liefert null,
+     *  und der Service reicht das als Leerzustand durch. */
     @Test
-    void withoutComparableYears_returnsNullInsteadOfThrowing() {
+    void withoutComparableYears_returnsNull() {
         when(repo.homeYearTotals(USER)).thenReturn(List.of());
         when(repo.ownPublicPrices(USER)).thenReturn(List.of());
 
-        assertNull(assertDoesNotThrow(() -> service.calculate(USER)));
+        assertNull(service.calculate(USER));
     }
 
     @Test
