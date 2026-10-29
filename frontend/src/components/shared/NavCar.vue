@@ -36,7 +36,7 @@ watch(car, el => {
 <template>
   <div ref="road" class="pointer-events-none absolute inset-x-0 bottom-0 h-7 overflow-hidden" aria-hidden="true">
     <svg v-if="driving" ref="car" data-testid="nav-car" viewBox="-16 0 80 29"
-         class="absolute bottom-0 left-0 h-[26px] w-auto text-gray-900 dark:text-gray-100"
+         class="absolute bottom-0 left-0 h-[18px] w-auto text-gray-900 dark:text-gray-100"
          fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
       <!-- Knubbel-Wagen -->
       <template v-if="model === 0">
