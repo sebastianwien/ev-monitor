@@ -1,5 +1,6 @@
 package com.evmonitor.application.ingest;
 
+import com.evmonitor.application.ChargingPlaceClassifier;
 import com.evmonitor.application.CoinLogService;
 import com.evmonitor.application.EvLogWriter;
 import com.evmonitor.application.InternalTripRequest;
@@ -61,6 +62,7 @@ public class IngestGateway {
     private final EvLogRepository evLogRepository;
     private final EvLogWriter evLogWriter;
     private final LocationPricing locationPricing;
+    private final ChargingPlaceClassifier chargingPlaceClassifier;
     private final CoinLogService coinLogService;
     private final ApplicationEventPublisher eventPublisher;
     private final EvTripRepository tripRepository;
@@ -163,6 +165,7 @@ public class IngestGateway {
         if (policy.inheritTireType()) {
             evLog = inheritTireType(evLog);
         }
+        evLog = classifyPlace(evLog, command.userId());
         evLog = locationPricing.enrich(evLog, command.userId());
 
         EvLog saved = evLogWriter.save(evLog);
@@ -201,6 +204,16 @@ public class IngestGateway {
         } catch (RuntimeException e) {
             log.warn("Streckentyp für Ladung {} nicht abgeleitet: {}", logId, e.getMessage());
         }
+    }
+
+    /** Unbekannter Ladeort: öffentlich oder privat aus der Historie des Nutzers, vor der Preisübernahme. */
+    private EvLog classifyPlace(EvLog log, UUID userId) {
+        ChargingPlaceClassifier.ChargingPlace place = chargingPlaceClassifier.classify(
+                userId, log.getGeohash(), log.getChargingType(), log.getPublicCharging());
+        if (Objects.equals(place.geohash(), log.getGeohash()) && Objects.equals(place.publicCharging(), log.getPublicCharging())) {
+            return log;
+        }
+        return log.toBuilder().geohash(place.geohash()).publicCharging(place.publicCharging()).build();
     }
 
     /** Ein Auto lädt nicht zweimal gleichzeitig: Zeitraum der neuen Ladung gegen alle Ladungen des Autos, Tombstones inklusive. */

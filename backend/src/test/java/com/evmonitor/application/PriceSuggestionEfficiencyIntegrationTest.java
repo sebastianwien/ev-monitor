@@ -74,13 +74,15 @@ class PriceSuggestionEfficiencyIntegrationTest extends AbstractIntegrationTest {
         provider.setActiveFrom(LocalDate.now().minusDays(30));
         UserChargingProviderEntity savedProvider = chargingProviderRepository.save(provider);
 
+        // Heimladung: ausdrücklich privat, 6 Stellen. Die neue Ladung (7 Stellen, Ort unbekannt)
+        // stuft das Gateway über dieses Feld als privat ein.
         String geohash = "u1r4nt7";
         EvLog previousLog = EvLog.createFromInternal(
-                testCar.getId(), new BigDecimal("12.0"), 120, geohash,
+                testCar.getId(), new BigDecimal("12.0"), 120, geohash.substring(0, 6),
                 LocalDateTime.now().minusDays(2), null, null,
                 DataSource.SMARTCAR_LIVE, new BigDecimal("3.60"), ChargingType.AC,
                 60000, new BigDecimal("20"), new BigDecimal("90"), null, null)
-                .toBuilder().chargingProviderId(savedProvider.getId()).build();
+                .toBuilder().chargingProviderId(savedProvider.getId()).publicCharging(false).build();
         evLogRepository.save(previousLog);
 
         // Act: new SMARTCAR_LIVE log at same geohash with 13.83 kWh netto, no costEur

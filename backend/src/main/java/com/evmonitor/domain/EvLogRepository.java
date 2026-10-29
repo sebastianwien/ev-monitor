@@ -223,6 +223,12 @@ public interface EvLogRepository {
 
     Optional<UUID> findMostRecentChargingProviderAtGeohash(UUID userId, String geohash, boolean isPublic);
 
+    /** Hat der Nutzer in diesem 6er-Feld schon ausdrücklich privat geladen (public = false)? Gelöschte zählen nicht. */
+    boolean existsPrivateLogInCell(UUID userId, String geohash6);
+
+    /** Hat der Nutzer in einer dieser 7er-Zellen schon öffentlich geladen? 6er-Ladungen zählen nicht, sie treffen keine Säule. */
+    boolean existsPublicLogInCells(UUID userId, java.util.Collection<String> geohashes7);
+
     /**
      * All logs of this user at exactly this geohash that still have no cost.
      *
