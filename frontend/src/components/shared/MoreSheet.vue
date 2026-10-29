@@ -74,13 +74,14 @@ function onLogout() {
           </a>
         </nav>
 
-        <div class="border-t border-gray-200 dark:border-white/10 px-4 py-2 flex items-center gap-3 text-gray-900 dark:text-gray-100">
-          <LocaleSwitcher variant="public" />
+        <!-- Drei Spalten: Sprache links, Unterstützen in der Mitte, Logout rechts (auch ohne Logout bleibt die Mitte die Mitte) -->
+        <div class="border-t border-gray-200 dark:border-white/10 px-2 py-2 grid grid-cols-[1fr_auto_1fr] items-center gap-1 text-gray-900 dark:text-gray-100">
+          <LocaleSwitcher variant="public" class="justify-self-start pl-2" />
           <SupportPopover variant="compact" />
           <button
             v-if="!props.isDemo"
             type="button"
-            class="ml-auto flex min-h-11 items-center gap-2 rounded-full px-3 text-[15px] font-medium text-gray-900 hover:bg-black/10 dark:text-gray-100 dark:hover:bg-white/10 transition-colors"
+            class="justify-self-end flex min-h-11 shrink-0 items-center gap-2 rounded-full px-2.5 text-[15px] font-medium text-gray-900 hover:bg-black/10 dark:text-gray-100 dark:hover:bg-white/10 transition-colors"
             @click="onLogout"
           >
             <ArrowRightOnRectangleIcon :class="ROW_ICON" aria-hidden="true" />

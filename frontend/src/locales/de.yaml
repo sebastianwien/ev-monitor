@@ -46,7 +46,7 @@ nav:
     watt: "Watt-Guthaben"
     settings: "Einstellungen"
     feedback: "Feedback"
-    logout: "Abmelden"
+    logout: "Logout"
 
 landing:
   superlatives:

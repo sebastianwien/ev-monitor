@@ -45,7 +45,7 @@ nav:
     watt: Watt-saldo
     settings: Inställningar
     feedback: Feedback
-    logout: Logga ut
+    logout: "Logout"
 landing:
   superlatives:
     eyebrow: "Communityns topplista"
