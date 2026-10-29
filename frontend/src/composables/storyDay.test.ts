@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
+import { barOfEvent,
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
   gapMinutes, canMerge, showStanding, ribbonSegments, dayAtNow, batteryBars,
   type DayLog, type DayTrip, type DayEvent,
@@ -159,5 +159,16 @@ describe('batteryBars', () => {
     expect(bars[16].kind).toBe('charge')
     expect(bars[20].kind).toBe('idle')
     expect(bars[24].kind).toBe('trip')
+  })
+})
+
+describe('barOfEvent', () => {
+  // Balken je halbe Stunde: ein Eintrag 8:10 bis 9:00 berührt die Balken ab 8:00 und 8:30
+  const e = { from: 490, to: 540 }
+  it('Balken, die der Eintrag berührt', () => {
+    expect([450, 480, 510, 540].map(from => barOfEvent({ from }, e))).toEqual([false, true, true, false])
+  })
+  it('kurzer Eintrag innerhalb eines Balkens', () => {
+    expect(barOfEvent({ from: 480 }, { from: 495, to: 496 })).toBe(true)
   })
 })

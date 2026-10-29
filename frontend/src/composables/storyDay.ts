@@ -198,3 +198,8 @@ export function batteryBars(ev: DayEvent[], slot = 30): BatteryBar[] {
     return { from, soc: known ? Math.round(socAt(Math.min(to, last!)) * 10) / 10 : null, kind: over('charge') ? 'charge' : over('trip') ? 'trip' : 'idle' }
   })
 }
+
+/** Ob ein Balken des Akku-Diagramms (ab `from`, `slot` Minuten breit) in die Zeit eines Eintrags fällt. */
+export function barOfEvent(bar: { from: number }, event: { from: number; to: number }, slot = 30): boolean {
+  return bar.from < event.to && bar.from + slot > event.from
+}

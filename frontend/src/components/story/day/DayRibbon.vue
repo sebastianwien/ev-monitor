@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ribbonSegments, batteryBars, type BatteryBar, type DayEvent } from '../../../composables/storyDay'
+import { ribbonSegments, batteryBars, barOfEvent, type BatteryBar, type DayEvent } from '../../../composables/storyDay'
 
 /**
  * Akku des Tages wie im Akku-Diagramm des Handys: ein Balken je halbe Stunde, Höhe = Akkustand,
  * grün beim Laden, dunkel beim Fahren, grau im Stand. Wo es keinen Messwert gibt, kein Balken.
  * Raster in 25-%-Stufen und Sechs-Stunden-Schritten als Skala; Start, Ende und tiefsten Stand nennt die Bildunterschrift.
  * aria-hidden, die Liste darunter sagt dasselbe vollständig. Antippbar nur, wenn `interactive`.
+ * `highlightId` (Logbuch, Hover über einer Zeile): dessen Balken bleiben kräftig, die übrigen treten zurück.
  */
-const props = defineProps<{ events: DayEvent[]; selectedId: string | null; interactive: boolean }>()
+const props = defineProps<{ events: DayEvent[]; selectedId: string | null; interactive: boolean; highlightId?: string | null }>()
 const emit = defineEmits<{ select: [event: DayEvent] }>()
 const { t } = useI18n()
 
@@ -19,8 +20,10 @@ const barClass = (b: BatteryBar) => b.kind === 'charge'
   ? 'bg-green-600 dark:bg-green-400'
   : b.kind === 'trip' ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-300 dark:bg-gray-600'
 const pct = (v: number) => `${Math.round(v)} %`
+const highlighted = computed(() => props.events.find(e => e.id === props.highlightId) ?? null)
+const dimmed = (b: BatteryBar) => !!highlighted.value && !barOfEvent(b, highlighted.value)
 function pick(b: BatteryBar) {
-  const over = props.events.filter(e => e.from < b.from + 30 && e.to > b.from)
+  const over = props.events.filter(e => barOfEvent(b, e))
   const e = over.find(v => v.kind === 'charge') ?? over[0]
   if (e) emit('select', e)
 }
@@ -40,7 +43,8 @@ function pick(b: BatteryBar) {
           <component :is="interactive && b.soc != null ? 'button' : 'span'" v-for="b in bars" :key="b.from" type="button" tabindex="-1"
             class="relative flex h-full flex-1 items-end" :class="interactive && b.soc != null ? 'cursor-pointer' : ''"
             @click="interactive && b.soc != null && pick(b)">
-            <i v-if="b.soc != null" data-testid="day-bar" :data-kind="b.kind" class="block w-full rounded-t-[2px]" :class="barClass(b)"
+            <i v-if="b.soc != null" data-testid="day-bar" :data-kind="b.kind" class="block w-full rounded-t-[2px] transition-opacity duration-150"
+              :class="[barClass(b), dimmed(b) ? 'opacity-25' : '']"
               :style="{ height: `${Math.max(2, b.soc)}%` }" />
           </component>
         </div>

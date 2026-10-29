@@ -33,7 +33,7 @@ const props = defineProps<{
   /** Logbuch: der Kartenhinweis steht einmal am Ende der Seite statt unter jedem Tag. */
   noCredit?: boolean
 }>()
-const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent, later: DayEvent] }>()
+const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent, later: DayEvent]; hover: [id: string | null] }>()
 const { t } = useI18n()
 const { formatDecimal, formatDistance, formatCurrency, formatCostPerKwh } = useLocaleFormat()
 
@@ -128,7 +128,7 @@ const items = computed<Item[]>(() => {
         <button type="button" :data-testid="`day-row-${e.kind}`" :aria-current="e.id === selectedId"
           class="relative flex min-h-14 w-full items-start gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
           :class="e.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : ''"
-          @click="emit('select', e)">
+          @click="emit('select', e)" @mouseenter="emit('hover', e.id)" @mouseleave="emit('hover', null)">
           <span v-if="e.kind === 'trip'" class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-sky-600 dark:border-gray-200 dark:bg-gray-900 dark:text-sky-400">
             <MapIcon class="h-[18px] w-[18px]" aria-hidden="true" />
           </span>

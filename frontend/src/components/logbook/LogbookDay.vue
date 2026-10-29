@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import DayRibbon from '../story/day/DayRibbon.vue'
 import DayTimeline, { type StandingRow } from '../story/day/DayTimeline.vue'
@@ -39,6 +39,8 @@ const showRibbon = computed(() => {
   return socs.length > 0 && Math.max(...socs) > Math.min(...socs)
 })
 const stickyTop = { top: 'var(--content-top, var(--top-nav-h))' }
+/** Zeile unter dem Mauszeiger: ihre Balken im Diagramm treten hervor (Desktop) */
+const hovered = ref<string | null>(null)
 /** Ab 768 px hinter Akku und Temperatur: Tempo, Streckentyp, Besonderheiten */
 const tripDetails = (trip: DayTrip) => tripDetailKeys(trip).map(k => t(k.key, k.params ?? {}))
 /** Ladekarte der Ladung, überall (auf dem Handy in eigener Zeile); der Preis je kWh steht rechts unter dem Betrag */
@@ -74,15 +76,19 @@ const sum = computed(() => {
 
 <template>
   <section class="border-t border-gray-200 px-4 pb-3 dark:border-gray-700" data-testid="logbook-day">
-    <div class="sticky z-20 -mx-4 mb-1 flex items-baseline justify-between gap-3 border-b border-gray-200 bg-white/95 px-4 py-2.5 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95"
+    <div class="sticky z-20 -mx-4 mb-1 border-b border-gray-200 bg-white/95 px-4 py-2.5 backdrop-blur dark:border-gray-700 dark:bg-gray-900/95"
       :style="stickyTop" data-testid="logbook-day-head">
-      <h3 class="text-[15px] font-bold">{{ label }}</h3>
-      <span class="text-right text-[12px] tabular-nums text-gray-500 dark:text-gray-400">{{ sum }}</span>
+      <div class="flex items-baseline justify-between gap-3">
+        <h3 class="text-[15px] font-bold">{{ label }}</h3>
+        <span class="text-right text-[12px] tabular-nums text-gray-500 dark:text-gray-400">{{ sum }}</span>
+      </div>
+      <!-- Desktop: das Diagramm klebt mit dem Tageskopf, Hover über einer Zeile hebt ihre Balken hervor -->
+      <DayRibbon v-if="showRibbon" class="hidden md:block" :highlight-id="hovered" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
     </div>
-    <DayRibbon v-if="showRibbon" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
+    <DayRibbon v-if="showRibbon" class="md:hidden" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
     <div class="mt-2">
       <DayTimeline :events="events" :selected-id="selectedId" :merging="merging" :standing="rows" newest-first no-credit
-        @select="emit('select', $event)" @merge="(a, b) => emit('merge', a, b)">
+        @select="emit('select', $event)" @merge="(a, b) => emit('merge', a, b)" @hover="id => { hovered = id }">
         <template #line2-end="{ event }">
           <template v-if="event.kind === 'trip'">
             <!-- Der Punkt hängt am Wert: bricht die Zeile um, steht keiner allein am Ende -->
