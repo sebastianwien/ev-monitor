@@ -99,6 +99,8 @@ export interface CrawlOverview {
   /** false: kein Sprachmodell konfiguriert, nur Bild-Quellen werden geprüft. */
   extractorAvailable: boolean
   enabled: boolean
+  /** true: eindeutige Preisänderungen übernimmt der Crawler nach einem zweiten Lauf selbst. */
+  autoApply: boolean
 }
 
 export interface CrawlSourceCommand {

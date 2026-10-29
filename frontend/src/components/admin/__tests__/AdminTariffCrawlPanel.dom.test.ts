@@ -43,6 +43,7 @@ const sample = (): CrawlOverview => ({
   proposals: [proposal({})],
   extractorAvailable: true,
   enabled: true,
+  autoApply: false,
 })
 
 let app: App | null = null
@@ -133,6 +134,16 @@ describe('AdminTariffCrawlPanel', () => {
   it('ohne Sprachmodell: Hinweis, dass nur Bild-Quellen geprüft werden', async () => {
     const host = await mount({ ...sample(), extractorAvailable: false })
     expect(text(host)).toContain('ANTHROPIC_API_KEY oder MISTRAL_API_KEY')
+  })
+
+  it('ohne automatische Übernahme: jede Preisänderung wartet auf die Entscheidung', async () => {
+    const manual = await mount(sample())
+    expect(text(manual)).toContain('Jede Preisänderung steht unten mit Zitat')
+    expect(text(manual)).not.toContain('übernimmt er nach einer zweiten Bestätigung selbst')
+    app?.unmount()
+    app = null
+    const auto = await mount({ ...sample(), autoApply: true })
+    expect(text(auto)).toContain('übernimmt er nach einer zweiten Bestätigung selbst')
   })
 
   it('zeigt, wo Fahrer deutlich anders zahlen als gepflegt', async () => {
