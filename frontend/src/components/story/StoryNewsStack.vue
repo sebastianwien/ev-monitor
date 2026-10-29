@@ -136,7 +136,7 @@ const panel = 'relative mx-auto w-full max-w-lg rounded-t-2xl border-2 border-b-
     </Transition>
     <Transition name="story-news-tab">
       <button v-if="count > 0 && mode === 'collapsed'" type="button"
-              class="fixed right-4 z-[50] inline-flex min-h-11 items-center gap-2 rounded-full bg-gray-900 px-4 text-[14px] font-bold text-white shadow-md dark:bg-gray-100 dark:text-gray-900"
+              class="btn-3d fixed right-4 z-[50] inline-flex min-h-11 items-center gap-2 rounded-full border-2 border-gray-900 bg-gray-900 px-4 text-[14px] font-bold text-white dark:border-edge dark:bg-gray-100 dark:text-gray-900"
               style="bottom: calc(3.5rem + env(safe-area-inset-bottom) + 12px)"
               data-testid="story-news-tab" @click="expand">
         <i class="block h-2 w-2 rounded-full bg-green-500" aria-hidden="true" />

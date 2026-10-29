@@ -85,7 +85,7 @@ async function remove() {
           <span class="flex-1 text-sm text-gray-700 dark:text-gray-200">{{ t('storyday.delete_trip_confirm') }}</span>
           <button type="button" class="min-h-11 px-3 text-sm font-medium text-gray-500 dark:text-gray-400" @click="confirmingDelete = false">{{ t('common.cancel') }}</button>
           <button type="button" data-testid="day-trip-delete-confirm" :disabled="saving"
-            class="btn-3d min-h-11 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white disabled:opacity-40" @click="remove">
+            class="btn-3d cta-shadow-sm min-h-11 rounded-xl border-2 border-edge bg-red-600 px-4 text-sm font-semibold text-white disabled:opacity-40" @click="remove">
             {{ t('dashboard.action_delete') }}
           </button>
         </div>

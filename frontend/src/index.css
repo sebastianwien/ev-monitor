@@ -175,16 +175,16 @@ html {
    --btn-shadow-color (Ladekarten, Banner) überschreiben ihn wie gehabt. */
 .dark { --btn-shadow-color: rgba(255, 255, 255, 0.30); }
 
-/* Global 3D press effect */
+/* Global 3D press effect: 2 px hard shadow in the edge colour, a press sinks the full 2 px (docs/design/ci.md) */
 .btn-3d {
-  box-shadow: 4px 4px 0 0 var(--btn-shadow-color, rgba(0,0,0,0.2));
+  box-shadow: 2px 2px 0 0 var(--btn-shadow-color, var(--color-edge));
   transform: translate(0, 0);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   touch-action: manipulation;
 }
 .btn-3d:active {
-  box-shadow: 1px 1px 0 0 var(--btn-shadow-color, rgba(0,0,0,0.2));
-  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 0 var(--btn-shadow-color, var(--color-edge));
+  transform: translate(2px, 2px);
   transition: transform 0.05s ease, box-shadow 0.05s ease;
 }
 .btn-3d:disabled {
@@ -192,8 +192,8 @@ html {
   transform: none;
 }
 .btn-3d.active {
-  box-shadow: 1px 1px 0 0 var(--btn-shadow-color, rgba(0,0,0,0.2));
-  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 0 var(--btn-shadow-color, var(--color-edge));
+  transform: translate(2px, 2px);
 }
 /* The app's edge look (header, ranking tiles): outline and a hard shadow in the edge colour. As utilities,
    so a breakpoint picks the level: on the model page cards carry it on the phone, the boxes from md up.
@@ -220,6 +220,8 @@ html {
 /* The same in the model page's 2 px edge look (cards and boxes carry 2 px): a press sinks the full 2 px */
 .cta-shadow-sm { box-shadow: 2px 2px 0 0 var(--color-edge) !important; }
 .cta-shadow-sm:active { box-shadow: 0 0 0 0 var(--color-edge) !important; transform: translate(2px, 2px); }
+/* Disabled like btn-3d: no shadow, no press (the !important above would otherwise win) */
+.cta-shadow-sm:disabled { box-shadow: none !important; transform: none; }
 /* A chosen chip stays pressed in (ChoiceChip) */
 .cta-shadow-sm.active { box-shadow: 0 0 0 0 var(--color-edge) !important; transform: translate(2px, 2px); }
 /* Clickable 3D card (model tiles): cta shadow + hover-lift + press.

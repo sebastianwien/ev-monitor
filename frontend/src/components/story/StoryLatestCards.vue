@@ -90,7 +90,7 @@ const plain = `${row} h-12 bg-white edge-card dark:bg-gray-700/50`
         <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
       </button>
       <div v-if="charge.missingPrice" class="px-3 pb-3">
-        <button type="button" class="btn-3d min-h-11 w-full rounded-lg border-2 border-edge bg-green-600 px-4 text-[15px] font-bold text-white" data-testid="story-latest-add-price" @click="emit('open-charge', charge.id, true)">{{ t('story.latest_enter_price') }}</button>
+        <button type="button" class="btn-3d cta-shadow-sm min-h-11 w-full rounded-lg border-2 border-edge bg-green-600 px-4 text-[15px] font-bold text-white" data-testid="story-latest-add-price" @click="emit('open-charge', charge.id, true)">{{ t('story.latest_enter_price') }}</button>
       </div>
     </div>
     <button v-else-if="charge" type="button" :class="plain" data-testid="story-latest-charge" @click="emit('open-charge', charge.id, charge.missingPrice)">

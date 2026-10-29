@@ -68,7 +68,7 @@ const confirming = ref<string | null>(null)
           <div class="flex gap-2">
             <button type="button" class="min-h-11 flex-1 rounded-xl px-3 text-[14px] font-semibold text-gray-600 dark:text-gray-300" @click="confirming = null">{{ t('common.cancel') }}</button>
             <button type="button" data-testid="day-merge-confirm" :disabled="merging"
-              class="btn-3d min-h-11 flex-1 rounded-xl border-2 border-gray-900 bg-gray-900 dark:border-edge px-3 text-[14px] font-semibold text-white disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900"
+              class="btn-3d cta-shadow-sm min-h-11 flex-1 rounded-xl border-2 border-gray-900 bg-gray-900 dark:border-edge px-3 text-[14px] font-semibold text-white disabled:opacity-40 dark:bg-gray-100 dark:text-gray-900"
               @click="emit('merge', events[i - 1], e)">{{ t('storyday.merge_do') }}</button>
           </div>
         </div>

@@ -23,7 +23,7 @@ const shareIcon = computed(() => props.moment.kind === 'milestone' && view.value
 const primary = computed<MomentAction | null>(() => shareIcon.value ? null : view.value.action ?? null)
 const primaryIsView = computed(() => !!primary.value && VIEW_ACTIONS.has(primary.value.id))
 
-const button = 'btn-3d flex min-h-12 w-full items-center justify-center rounded-lg border-2 border-edge bg-green-600 px-4 text-[15px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600'
+const button = 'btn-3d cta-shadow-sm flex min-h-12 w-full items-center justify-center rounded-lg border-2 border-edge bg-green-600 px-4 text-[15px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600'
 const link = 'inline-flex min-h-11 items-center gap-0.5 text-[15px] font-semibold text-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:text-green-400'
 const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray-700 underline underline-offset-2 dark:text-gray-200'
 </script>

@@ -46,11 +46,11 @@ const input = 'min-h-12 w-full min-w-0 rounded-xl border-2 border-edge bg-white 
     </div>
     <slot name="extra" />
     <div class="flex gap-2 pt-1">
-      <button type="button" class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[15px] font-semibold dark:bg-white/10" @click="emit('cancel')">
+      <button type="button" class="btn-3d cta-shadow-sm min-h-12 flex-1 rounded-xl border-2 border-edge bg-white px-3 text-[15px] font-semibold dark:bg-white/10" @click="emit('cancel')">
         {{ t('common.cancel') }}
       </button>
       <button type="submit" data-testid="day-trip-save" :disabled="saving"
-        class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white disabled:opacity-40">
+        class="btn-3d cta-shadow-sm min-h-12 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white disabled:opacity-40">
         {{ t('logfields.save') }}
       </button>
     </div>
