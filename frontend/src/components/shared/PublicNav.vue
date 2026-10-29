@@ -4,7 +4,7 @@
        Under the workspace frame only the frame's own nav (home) renders, the page's nav steps back. -->
   <div v-if="!authStore.isAuthenticated() || (member && (home || !framed))" ref="header" class="sticky top-0 z-50 [view-transition-name:public-nav]">
     <div class="public-nav-accent h-1 bg-gradient-to-r from-green-400 via-emerald-500 to-green-600"></div>
-    <nav class="relative pt-[env(safe-area-inset-top)] bg-green-50 dark:bg-green-950 border-b-2 border-gray-900 dark:border-gray-800 shadow-sm">
+    <nav class="relative pt-[env(safe-area-inset-top)] bg-green-50 dark:bg-green-950 border-b-2 border-gray-900 dark:border-white/20 shadow-sm">
     <NavCar />
     <!-- home: dieselbe Achse wie Ticker und Inhalt des eingeloggten Bereichs (max-w-6xl) -->
     <div class="mx-auto" :class="home ? 'max-w-6xl px-4 md:px-6' : 'max-w-7xl px-4 sm:px-8'">

@@ -63,7 +63,7 @@ function onMore() {
 <template>
   <nav
     v-show="!keyboardOpen"
-    class="bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden bg-green-50 dark:bg-green-950 border-t-2 border-gray-900 dark:border-gray-800 pb-[env(safe-area-inset-bottom)]"
+    class="bottom-nav fixed bottom-0 left-0 right-0 z-40 md:hidden bg-green-50 dark:bg-green-950 border-t-2 border-gray-900 dark:border-white/20 pb-[env(safe-area-inset-bottom)]"
     :aria-label="t('nav.bottom.aria')"
   >
     <div ref="row" class="relative flex items-stretch h-14">
