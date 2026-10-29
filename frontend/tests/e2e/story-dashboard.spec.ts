@@ -51,24 +51,31 @@ test.describe('Story-Dashboard', () => {
     expect(errors).toEqual([]);
   });
 
-  test('Kacheln öffnen Sheets, Monat wechselt ohne Fehler', async ({ page }) => {
+  test('Kacheln öffnen ihr Detail (ab 1024 px rechts in der Spalte), Monat wechselt ohne Fehler', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
     await page.addInitScript(() => localStorage.setItem('story_dashboard_opt_in', 'true'));
     await page.goto('/story');
     await page.waitForLoadState('networkidle');
 
-    // Jede sichtbare Kachel muss ein Sheet oeffnen und wieder schliessen koennen.
+    // Jede sichtbare Kachel muss ihr Detail öffnen und wieder schließen können: ab 1024 px in der Spalte, sonst als Sheet.
+    const wide = page.viewportSize()!.width >= 1024;
     for (const id of ['cost', 'wltp', 'trips', 'flow', 'range', 'peer', 'battery']) {
       const tile = page.getByTestId(`story-tile-${id}`);
       if (!(await tile.isVisible())) continue;
       await tile.click();
-      await expect(page.getByTestId('story-sheet')).toBeVisible();
-      await page.getByTestId('story-sheet').getByRole('button').last().click();
-      await expect(page.getByTestId('story-sheet')).toBeHidden();
+      if (wide) {
+        await expect(page.getByTestId('story-pane')).toBeVisible();
+        await page.getByTestId('story-pane-back').click();
+        await expect(page.getByTestId('story-pane')).toHaveCount(0);
+      } else {
+        await expect(page.getByTestId('story-sheet')).toBeVisible();
+        await page.getByTestId('story-sheet').getByRole('button').last().click();
+        await expect(page.getByTestId('story-sheet')).toBeHidden();
+      }
     }
 
-    await page.getByTestId('story-month--1').click();
+    await page.getByTestId('story-month-prev').click();
     await page.waitForLoadState('networkidle');
     await expect(page.getByTestId('story-view')).toBeVisible();
     expect(errors).toEqual([]);

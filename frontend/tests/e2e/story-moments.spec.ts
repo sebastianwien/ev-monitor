@@ -33,6 +33,9 @@ async function setup(page: Page, opts: { logs: unknown[] }) {
 }
 
 test.describe('Story: Karten von unten', () => {
+  // Der Stapel von unten gibt es nur unter 1024 px; darüber stehen die Karten in der Spalte (story-desktop)
+  test.use({ viewport: { width: 390, height: 844 } });
+
   test('frische Ladung ohne Preis ist keine Karte: "Heute geladen" mit Knopf "Preis eintragen"', async ({ page }) => {
     const errors: string[] = [];
     page.on('pageerror', (err) => errors.push(err.message));
