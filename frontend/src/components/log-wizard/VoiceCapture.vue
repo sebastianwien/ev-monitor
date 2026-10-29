@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MicrophoneIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
@@ -21,13 +21,16 @@ const props = withDefaults(defineProps<{
   /** Anlegen oder Bearbeiten - nur für die Messung und den Hinweis im Vollbild */
   entry?: VoiceEntry
   /**
-   * footer: Einstieg im Wizard - Knopf links neben "Weiter", Hinweise als Streifen darüber (beides in der WizardShell).
+   * footer: Knopf links neben der Hauptaktion, Hinweise als Sprechblase darüber. Ziele `#<host>-footer-note` und
+   * `#<host>-footer-lead`: im Wizard die WizardShell, beim Bearbeiten die Fußleiste des LogEditPanel.
    * inline: schmale Zeile zum Ergänzen oder Korrigieren nach einer ersten Aufnahme.
    */
   variant?: 'footer' | 'inline'
   /** inline: Text statt "Ergänzen oder korrigieren", z. B. was noch fehlt */
   label?: string | null
-}>(), { latitude: null, longitude: null, entry: 'create', variant: 'inline', label: null })
+  /** footer: Präfix der Ziel-ids, 'wizard' oder die id des LogEditPanel */
+  host?: string
+}>(), { latitude: null, longitude: null, entry: 'create', variant: 'inline', label: null, host: 'wizard' })
 const emit = defineEmits<{ draft: [draft: VoiceDraft] }>()
 const { t, locale } = useI18n()
 
@@ -143,17 +146,31 @@ const status = computed(() => {
   if (rec.state.value === 'error') return t('voicelog.error_mic')
   return null
 })
+/** Spitze der Sprechblase über der Mitte des Knopfs, gemessen; steht etwas links davon (Löschen beim Bearbeiten), stimmt sie trotzdem */
+const micEl = ref<HTMLElement | null>(null)
+const bubbleEl = ref<HTMLElement | null>(null)
+const tailLeft = ref<number | null>(null)
+function placeTail() {
+  const m = micEl.value?.getBoundingClientRect(), b = bubbleEl.value?.getBoundingClientRect()
+  // left zählt ab der Innenkante (Rand der Blase abziehen), 6 px = halbe Spitze
+  tailLeft.value = m && b && m.width ? m.left + m.width / 2 - b.left - (bubbleEl.value?.clientLeft ?? 0) - 6 : null
+}
+if (footer) {
+  watch(note, () => nextTick(placeTail))
+  onMounted(() => { window.addEventListener('resize', placeTail); requestAnimationFrame(placeTail) })
+  onUnmounted(() => window.removeEventListener('resize', placeTail))
+}
 </script>
 
 <template>
   <!-- Wizard: Knopf und Streifen leben in der WizardShell (Daumenreichweite), hier bleibt nichts sichtbar stehen.
        defer: die Ziele im Footer stehen erst nach diesem Schritt im DOM. -->
   <div v-if="variant === 'footer'" class="contents" data-testid="voice-capture" data-variant="footer">
-    <Teleport defer to="#wizard-footer-note">
+    <Teleport defer :to="`#${host}-footer-note`">
       <div aria-live="polite">
         <!-- Sprechblase: gleiche Linie wie der Knopf (2 px Kante, weißer Grund), die Spitze zeigt auf dessen Mitte - Blase und
              Mikrofon lesen sich als eine Einheit. Aufgebraucht gibt es keinen Knopf: dann ein Kasten ohne Spitze. -->
-        <div v-if="note" data-testid="voice-note" :data-note="note"
+        <div v-if="note" ref="bubbleEl" data-testid="voice-note" :data-note="note"
           :class="['relative mb-3 rounded-xl px-3 py-2.5 text-[14px] text-gray-800 dark:text-gray-100',
                    tail ? 'border-2 border-edge bg-white dark:bg-gray-800' : 'bg-gray-100 dark:bg-white/10']">
           <p v-if="note === 'denied'" data-testid="voice-denied">{{ t('voicelog.denied') }}</p>
@@ -186,19 +203,20 @@ const status = computed(() => {
                 class="whitespace-nowrap underline underline-offset-2 font-semibold text-gray-900 dark:text-gray-100">{{ t('voicelog.quota_low_cta') }}</router-link></template>
           </p>
           <!-- Ein kurzes Beispiel statt Bedienanleitung: ein lockerer Halbsatz reicht. Die volle Liste steht im Vollbild. -->
+          <p v-else-if="note === 'example' && entry === 'edit'"><span class="font-semibold text-gray-900 dark:text-gray-50">{{ t('voicelog.edit_title') }}.</span> {{ t('voicelog.again_hint') }}</p>
           <p v-else-if="note === 'example'"><span class="font-semibold text-gray-900 dark:text-gray-50">{{ t('voicelog.title') }}</span> {{ t('voicelog.card_example') }}</p>
           <!-- Spitze: gedrehtes Quadrat mit Rand nur unten/rechts, deckt den unteren Rand der Blase ab.
                Mitte des Knopfs: neu die linke von zwei gleich breiten Spalten (gap-3), vertraut 48 px rund. -->
-          <span v-if="tail" aria-hidden="true"
+          <span v-if="tail" aria-hidden="true" :style="tailLeft != null ? { left: `${tailLeft}px` } : undefined"
             :class="['absolute -bottom-[7px] h-3 w-3 rotate-45 border-b-2 border-r-2 border-edge bg-white dark:bg-gray-800',
-                     stage === 'new' ? 'left-[calc((100%_-_0.75rem)/4_-_0.375rem)]' : 'left-[1.125rem]']" />
+                     tailLeft != null ? '' : stage === 'new' ? 'left-[calc((100%_-_0.75rem)/4_-_0.375rem)]' : 'left-[1.125rem]']" />
         </div>
       </div>
     </Teleport>
-    <Teleport defer to="#wizard-footer-lead">
+    <Teleport defer :to="`#${host}-footer-lead`">
       <!-- Tippen startet, "Fertig" im Vollbild beendet; Halten nimmt auf, bis der Finger loslässt. Kein click-Handler, der würde doppelt auslösen.
            Neu mit Text, damit klar ist, was er tut; vertraut nur das Symbol, "Weiter" bekommt die Breite. -->
-      <button v-if="!out && rec.state.value !== 'denied'" type="button" data-testid="voice-mic" :disabled="busy" :aria-label="t('voicelog.mic_label')"
+      <button v-if="!out && rec.state.value !== 'denied'" ref="micEl" type="button" data-testid="voice-mic" :disabled="busy" :aria-label="t('voicelog.mic_label')"
         :class="['flex-shrink-0 inline-flex items-center justify-center gap-2 h-12 btn-3d border-2 border-edge text-gray-900 dark:text-gray-100 bg-white dark:bg-white/10 text-[15px] font-semibold hover:bg-gray-50 dark:hover:bg-white/15 transition-colors select-none touch-none [-webkit-touch-callout:none] disabled:opacity-70',
                  stage === 'new' ? 'flex-1 px-3 rounded-xl' : 'w-12 rounded-full']"
         @pointerdown.prevent="onPress" @pointerup="rec.release()" @pointercancel="rec.release()" @contextmenu.prevent

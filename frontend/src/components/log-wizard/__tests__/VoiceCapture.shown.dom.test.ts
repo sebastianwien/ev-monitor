@@ -46,3 +46,16 @@ describe('VoiceCapture: Messung "shown"', () => {
     expect(analytics.trackVoice).not.toHaveBeenCalledWith('shown', expect.anything())
   })
 })
+
+// Bearbeiten: dieselbe Fußleisten-Form, eigene Ziele im LogEditPanel; der Hinweis sagt, was Sprache hier tut
+describe('VoiceCapture: Fußleiste beim Bearbeiten', () => {
+  it('teleportiert Knopf und Hinweis in die Ziele des Bearbeitens', async () => {
+    document.body.innerHTML = '<div id="edit-footer-note"></div><div id="edit-footer-lead"></div>'
+    const el = document.createElement('div'); document.body.appendChild(el)
+    app = createApp({ render: () => h(VoiceCapture, { carId: 'car-1', variant: 'footer', host: 'edit', entry: 'edit' }) })
+    app.use(createPinia()).use(i18n).mount(el)
+    await new Promise(r => setTimeout(r))
+    expect(document.querySelector('#edit-footer-lead [data-testid="voice-mic"]')).not.toBeNull()
+    expect(document.querySelector('#edit-footer-note [data-testid="voice-note"]')?.textContent).toContain('Neue Werte ersetzen die alten')
+  })
+})

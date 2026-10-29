@@ -20,8 +20,8 @@
       <template v-if="!section">
         <!-- Erst die Ladung sehen: der Ort als Kartenkopf wie auf der Prüfseite des Wizards, ein Tipp darauf bearbeitet ihn -->
         <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" clickable class="-mt-4" data-testid="summary-place" @click="section = 'place'" />
-        <!-- Sprache: nur Handy, sagt nur, was sich ändert; danach Vorher/Nachher mit Rückgängig -->
-        <VoiceCapture v-if="showVoice" entry="edit" variant="inline" :label="t('voicelog.edit_title')" :car-id="log.carId" @draft="onVoiceDraft" />
+        <!-- Sprache: nur Handy, Knopf in der Fußleiste neben Speichern; danach Vorher/Nachher mit Rückgängig hier oben -->
+        <VoiceCapture v-if="showVoice && !confirmingDelete" entry="edit" variant="footer" :host="footerId" :car-id="log.carId" @draft="onVoiceDraft" />
         <div v-if="voiceChanges" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2" data-testid="edit-voice-changes" aria-live="polite">
           <p v-if="voiceNothing" class="text-sm text-gray-700 dark:text-gray-200">{{ t('voicelog.edit_nothing') }}</p>
           <template v-if="voiceChanges.length">
@@ -88,8 +88,11 @@
       <p v-if="errorMsg" role="alert" class="rounded-xl bg-amber-50 px-3 py-2 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">{{ errorMsg }}</p>
     </div>
 
-    <!-- Footer: in der Unteransicht "Fertig" (zurueck zur Uebersicht), sonst Speichern -->
-    <div class="flex items-center gap-2 px-4 py-3 border-t-2 border-gray-100 dark:border-gray-800 shrink-0">
+    <!-- Footer: in der Unteransicht "Fertig" (zurueck zur Uebersicht), sonst Speichern. Die Ziele fuer die Spracheingabe
+         (Sprechblase darueber, Mikrofon links neben Speichern) bleiben immer im DOM, sonst verliert das Teleport sein Ziel. -->
+    <div class="px-4 py-3 border-t-2 border-gray-100 dark:border-gray-800 shrink-0">
+      <div :id="`${footerId}-footer-note`" />
+      <div class="flex items-center gap-2">
       <button v-if="section" type="button" data-testid="edit-done" @click="section = null" v-haptic
         class="flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700">
         {{ t('logwizard.done') }}
@@ -112,21 +115,24 @@
           class="-ml-1 grid h-12 w-12 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
           <TrashIcon class="w-5 h-5" />
         </button>
-        <button type="button" @click="emit('cancel')" v-haptic class="min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+        <!-- Abbrechen erst ab 640 px: auf dem Handy fuehrt der Pfeil oder das X oben zurueck, Speichern bekommt die Breite -->
+        <button type="button" @click="emit('cancel')" v-haptic class="hidden sm:inline-flex sm:items-center min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
           {{ t('common.cancel') }}
         </button>
-        <button type="button" @click="save" v-haptic :disabled="loading || !isFormValid"
-          class="flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-          <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          {{ t('logfields.save') }}
-        </button>
       </template>
+      <div :id="`${footerId}-footer-lead`" class="contents" />
+      <button v-if="!section && !confirmingDelete" type="button" data-testid="edit-save" @click="save" v-haptic :disabled="loading || !isFormValid"
+        class="flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+        <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+        {{ t('logfields.save') }}
+      </button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, defineAsyncComponent, useId } from 'vue'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import { XMarkIcon, ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
@@ -204,6 +210,8 @@ const { t } = useI18n()
 const countryStore = useCountryStore()
 
 const confirmingDelete = ref(false)
+/** Ziele der Spracheingabe in der Fußleiste, eindeutig je Panel */
+const footerId = useId()
 const { deleteWithUndo } = useLogUndo()
 async function deleteLog() {
   errorMsg.value = ''
