@@ -114,7 +114,7 @@ const field = 'bg-gray-900 border border-gray-700 rounded-sm px-2 py-1.5 text-sm
       <div>
         <h3 class="text-base font-semibold text-white">Automatische Prüfung</h3>
         <p class="text-sm text-gray-400 max-w-2xl">
-          Täglich 05:40 liest der Crawler fällige Seiten. Unveränderte Preise bekommen den Stand von heute.
+          Sonntags um 23:40 liest der Crawler alle Seiten. Unveränderte Preise bekommen den Stand von heute.
           <template v-if="data?.autoApply">Eindeutige Preisänderungen übernimmt er nach einer zweiten Bestätigung selbst. Unten steht nur, was eine Entscheidung braucht.</template>
           <template v-else>Jede Preisänderung steht unten mit Zitat und bisherigem Wert zur Entscheidung.</template>
         </p>
