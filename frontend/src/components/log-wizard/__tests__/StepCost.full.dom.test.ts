@@ -4,7 +4,8 @@ import { computed, createApp, defineComponent, h, nextTick, ref, type App } from
 import { createPinia } from 'pinia'
 import { i18n } from '../../../i18n'
 
-vi.mock('../../../api/axios', () => ({ default: { get: vi.fn(() => Promise.resolve({ data: { count: 0 } })) } }))
+vi.mock('../../../api/axios', () => ({ default: { get: vi.fn((url: string) => Promise.resolve({ data: url === '/logs/price-suggestion' ? { costPerKwh: 0.49 } : { count: 0 } })) } }))
+import api from '../../../api/axios'
 import StepCost from '../StepCost.vue'
 import { useCostInput } from '../../../composables/useCostInput'
 
@@ -15,16 +16,16 @@ beforeEach(() => { localStorage.clear(); i18n.global.locale.value = 'de' })
 
 const card = (id: string, acPrice: number | null) => ({ id, providerName: id, label: null, isPrivate: false, acPricePerKwh: acPrice, dcPricePerKwh: null })
 
-async function mount(providers: any[]) {
+async function mount(providers: any[], geohash: string | null = null) {
   const form = ref<any>({ kwhCharged: 30, kwhAtVehicle: null, costEur: null, costExchangeRate: null, costCurrency: null,
-    chargingProviderId: null, chargingType: 'AC', isPublicCharging: true, latitude: null, longitude: null, cpoName: null, applyTariffToLocation: false })
+    chargingProviderId: null, chargingType: 'AC', isPublicCharging: true, latitude: null, longitude: null, cpoName: null, geohash, applyTariffToLocation: false })
   const cost = useCostInput(form, { isEurCountry: computed(() => true), exchangeRate: computed(() => 1), localCurrency: computed(() => 'EUR') })
   app = createApp(defineComponent({ render: () => h(StepCost, {
     modelValue: form.value, 'onUpdate:modelValue': (v: any) => { form.value = v },
     providers, 'onUpdate:providers': () => {}, cost }) }))
   app.use(i18n).use(createPinia())
   app.mount(document.body.appendChild(document.createElement('div')))
-  await nextTick()
+  await nextTick(); await Promise.resolve(); await nextTick()
   const q = (id: string) => document.body.querySelector<HTMLElement>(`[data-testid="${id}"]`)
   return { form, q }
 }
@@ -56,5 +57,11 @@ describe('StepCost voll: Kartenstreifen', () => {
     const { q } = await mount([])
     q('charging-card-prompt-open')!.click(); await nextTick()
     expect(q('charging-card-prompt')).not.toBeNull()
+  })
+
+  it('Bearbeiten kennt nur den Geohash: "Zuletzt hier" kommt trotzdem', async () => {
+    const { q } = await mount([], 'u0yjjd6')
+    expect(vi.mocked(api.get)).toHaveBeenCalledWith('/logs/price-suggestion', expect.objectContaining({ params: expect.objectContaining({ lat: expect.any(Number) }) }))
+    expect(q('card-strip')!.textContent).toContain('Zuletzt hier')
   })
 })

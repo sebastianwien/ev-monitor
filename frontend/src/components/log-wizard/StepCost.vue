@@ -15,6 +15,7 @@ import type { ConsumptionPreview } from '../../utils/consumptionPreview'
 import { useCountryStore } from '../../stores/country'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import api from '../../api/axios'
+import geohashLib from 'ngeohash'
 import BigInput from './BigInput.vue'
 import { CheckCircleIcon } from '@heroicons/vue/24/outline'
 import SegmentToggle from './SegmentToggle.vue'
@@ -181,6 +182,14 @@ const cardMatchingCpo = (): Suggestion | null => {
   return hits.length === 1 ? hits[0] : null
 }
 
+/** Bearbeiten kennt vom Ort nur den Geohash (lat/lon werden nie gespeichert) - seine Mitte reicht für den Vorschlag. */
+const spot = (): { lat: number; lon: number } | null => {
+  if (form.value.latitude != null && form.value.longitude != null) return { lat: form.value.latitude, lon: form.value.longitude }
+  if (!form.value.geohash) return null
+  const { latitude, longitude } = geohashLib.decode(form.value.geohash)
+  return { lat: latitude, lon: longitude }
+}
+
 onMounted(async () => {
   // Aus Schritt 1: "+ neue Karte" oder eine Karte ohne Tarif gewählt - der Editor öffnet hier
   if (props.openOnMount === 'new') openNewCard()
@@ -197,10 +206,11 @@ onMounted(async () => {
   const asSuggestion = (c: CommunityPrice): Suggestion => ({ key: 'community', label: t('logwizard.price_community'), eurPerKwh: c.eurPerKwh, providerId: c.providerId })
   if (props.communityPrice !== undefined) {
     if (props.communityPrice) community.value = asSuggestion(props.communityPrice)
-  } else if (form.value.latitude != null && form.value.longitude != null) {
+  } else if (spot()) {
     try {
+      const { lat, lon } = spot()!
       const res = await api.get('/logs/price-suggestion', {
-        params: { lat: form.value.latitude, lon: form.value.longitude, isPublic: form.value.isPublicCharging, chargingType: form.value.chargingType },
+        params: { lat, lon, isPublic: form.value.isPublicCharging, chargingType: form.value.chargingType },
       })
       if (res.data?.costPerKwh != null) community.value = asSuggestion({ eurPerKwh: Number(res.data.costPerKwh), providerId: res.data.chargingProviderId ?? null })
     } catch { /* kein Vorschlag - kein Problem */ }
