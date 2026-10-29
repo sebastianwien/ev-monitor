@@ -328,6 +328,9 @@ anthropic:
 # Admin-Tab "Ladekarten". Ohne ANTHROPIC_API_KEY und MISTRAL_API_KEY laufen nur Quellen im Modus WATCH. Hinweise per Mail an app.alert.email.
 tariff-crawl:
   enabled: ${TARIFF_CRAWL_ENABLED:true}
+  # true: eindeutige Preisänderungen nach zweitem gleichen Lauf ohne Admin übernehmen. Aus, solange das
+  # Modell einen Preis von der Seite dem falschen Tarif zuordnen kann (das Zitat belegt nur den Preis).
+  auto-apply: ${TARIFF_AUTO_APPLY:false}
 
 # Ladesaeulenregister der Bundesnetzagentur (offener ArcGIS-Dienst, CC BY 4.0).
 # Liefert die Vorauswahl der Ladenetze im Umkreis einer Ladung.

@@ -29,14 +29,14 @@ public class AdminTariffCrawlService {
     private final EmpCatalog empCatalog;
 
     @Transactional(readOnly = true)
-    public AdminTariffCrawlResponses.Overview overview(boolean extractorAvailable, boolean enabled) {
+    public AdminTariffCrawlResponses.Overview overview(boolean extractorAvailable, boolean enabled, boolean autoApply) {
         List<AdminTariffCrawlResponses.ProposalRow> open = proposals.findByStatusOrderByFirstSeenAtAsc(TariffProposalEntity.Status.PENDING).stream()
                 .map(p -> AdminTariffCrawlResponses.ProposalRow.of(p, p.getTariffId() == null ? null
                         : tariffs.findById(p.getTariffId()).map(AdminTariffResponses.Row::of).orElse(null)))
                 .toList();
         return new AdminTariffCrawlResponses.Overview(
                 sources.findAllByOrderByEmpNameAsc().stream().map(AdminTariffCrawlResponses.SourceRow::of).toList(),
-                open, extractorAvailable, enabled);
+                open, extractorAvailable, enabled, autoApply);
     }
 
     public AdminTariffCrawlResponses.Applied apply(UUID proposalId) {
