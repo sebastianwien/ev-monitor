@@ -111,6 +111,19 @@ class TariffReconcilerTest {
         assertThat(r.unchanged()).containsExactlyInAnyOrder(low, high, hpc, slow);
     }
 
+    @Test
+    void zeroOnThePage_andNothingInTheTable_isNoChange() {
+        var l = ChargingProviderTariff.builder().id(UUID.randomUUID()).empName("EnBW").tariffVariant("Tariff L")
+                .chargingType(ChargingType.DC).pricePerKwh(new BigDecimal("0.39")).validFrom(LocalDate.of(2025, 12, 1)).build();
+        var page = new ExtractedTariff("Tariff L", "DC", new BigDecimal("0.39"), BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
+                null, null, Scope.OWN_NETWORK, null, null, null, null, false, "Zitat 0.39");
+
+        Result r = TariffReconciler.reconcile(List.of(l), List.of(page));
+
+        assertThat(r.changes()).as("no fee and no blocking fee are the same as 0").isEmpty();
+        assertThat(r.unchanged()).containsExactly(l);
+    }
+
     private static ChargingProviderTariff known(String variant, String tier, String price, String fee) {
         return ChargingProviderTariff.builder().id(UUID.randomUUID()).empName("EnBW").tariffVariant(variant).priceTier(tier)
                 .chargingType(ChargingType.DC).pricePerKwh(new BigDecimal(price)).sessionFeeEur(BigDecimal.ZERO)

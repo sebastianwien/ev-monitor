@@ -5,7 +5,7 @@ import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
-/** Tarif-Crawler ({@code tariff-crawl.*}). Ohne Mistral-Key laufen nur WATCH-Quellen. */
+/** Tarif-Crawler ({@code tariff-crawl.*}). Ohne Sprachmodell-Key laufen nur WATCH-Quellen. */
 @ConfigurationProperties(prefix = "tariff-crawl")
 @Component
 @Getter
@@ -21,6 +21,12 @@ public class TariffCrawlProperties {
     private int refetchDays = 6;
     /** Ein offener Vorschlag wird frühestens nach so vielen Stunden bestätigt (zweiter Lauf). */
     private int confirmAfterHours = 20;
+    /**
+     * true: eine Preisänderung ohne Haltegrund übernimmt der Crawler selbst, sobald ein zweiter Lauf sie bestätigt.
+     * false (Standard): jede Änderung geht mit Zitat an den Admin. Das Modell kann einen Preis, der irgendwo auf der
+     * Seite steht, dem falschen Tarif zuordnen; das Zitat belegt nur den Preis, nicht die Zuordnung.
+     */
+    private boolean autoApply = false;
     /** Seitentext, der höchstens an das Sprachmodell geht. */
     private int maxTextChars = 60_000;
 

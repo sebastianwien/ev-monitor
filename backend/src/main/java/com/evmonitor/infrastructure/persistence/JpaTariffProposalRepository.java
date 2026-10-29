@@ -14,5 +14,7 @@ public interface JpaTariffProposalRepository extends JpaRepository<TariffProposa
 
     Optional<TariffProposalEntity> findBySourceIdAndFingerprintAndStatus(UUID sourceId, String fingerprint, TariffProposalEntity.Status status);
 
+    boolean existsBySourceIdAndFingerprintAndStatus(UUID sourceId, String fingerprint, TariffProposalEntity.Status status);
+
     long countByStatus(TariffProposalEntity.Status status);
 }

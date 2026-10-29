@@ -93,9 +93,9 @@ public final class TariffReconciler {
 
     private static boolean differs(ChargingProviderTariff row, ExtractedTariff f) {
         return !same(row.getPricePerKwh(), f.pricePerKwh())
-                || stated(f.monthlyFeeEur()) && !same(row.getMonthlyFeeEur(), f.monthlyFeeEur())
-                || stated(f.sessionFeeEur()) && !same(row.getSessionFeeEur(), f.sessionFeeEur())
-                || stated(f.blockingFeePerMin()) && !same(row.getBlockingFeePerMin(), f.blockingFeePerMin())
+                || stated(f.monthlyFeeEur()) && !sameFee(row.getMonthlyFeeEur(), f.monthlyFeeEur())
+                || stated(f.sessionFeeEur()) && !sameFee(row.getSessionFeeEur(), f.sessionFeeEur())
+                || stated(f.blockingFeePerMin()) && !sameFee(row.getBlockingFeePerMin(), f.blockingFeePerMin())
                 || f.blockingFeeAfterMin() != null && !Objects.equals(row.getBlockingFeeAfterMin(), f.blockingFeeAfterMin())
                 || stated(f.blockingFeeCapEur()) && !same(row.getBlockingFeeCapEur(), f.blockingFeeCapEur())
                 || f.dynamic() && !row.isDynamicPricing();
@@ -136,6 +136,11 @@ public final class TariffReconciler {
 
     private static boolean stated(BigDecimal v) {
         return v != null;
+    }
+
+    /** Keine Gebühr in der Tabelle und "0" auf der Seite sind dasselbe. */
+    private static boolean sameFee(BigDecimal a, BigDecimal b) {
+        return same(a == null ? BigDecimal.ZERO : a, b == null ? BigDecimal.ZERO : b);
     }
 
     private static boolean same(BigDecimal a, BigDecimal b) {

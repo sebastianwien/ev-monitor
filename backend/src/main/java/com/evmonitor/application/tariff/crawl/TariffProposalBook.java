@@ -88,11 +88,13 @@ public class TariffProposalBook {
                 p.setLastSeenAt(now);
                 p.setEvidence(d.evidence());
                 proposals.save(p);
-                if (d.autoConfirmable() && !now.isBefore(p.getFirstSeenAt().plusHours(props.getConfirmAfterHours()))) {
+                if (autoApplies(d) && !now.isBefore(p.getFirstSeenAt().plusHours(props.getConfirmAfterHours()))) {
                     if (apply(p, "AUTO", now)) applied++;
                 }
                 continue;
             }
+            // Vom Admin verworfen: derselbe Befund kommt nicht wieder, erst ein anderer Wert auf der Seite.
+            if (proposals.existsBySourceIdAndFingerprintAndStatus(source.getId(), fp, Status.REJECTED)) continue;
             TariffProposalEntity p = new TariffProposalEntity();
             p.setId(UUID.randomUUID());
             p.setSourceId(source.getId());
@@ -107,7 +109,7 @@ public class TariffProposalBook {
             p.setFirstSeenAt(now);
             p.setLastSeenAt(now);
             proposals.save(p);
-            if (!d.autoConfirmable()) needAdmin.add(p);
+            if (!autoApplies(d)) needAdmin.add(p);
         }
         for (TariffProposalEntity stale : proposals.findBySourceIdAndStatus(source.getId(), Status.PENDING)) {
             if (seen.contains(stale.getFingerprint())) continue;
@@ -120,10 +122,15 @@ public class TariffProposalBook {
         return !proposals.findBySourceIdAndStatus(sourceId, Status.PENDING).isEmpty();
     }
 
-    /** Offene Preisänderung ohne Haltegrund: ein zweiter Lauf kann sie bestätigen. */
+    /** Offene Preisänderung ohne Haltegrund: ein zweiter Lauf kann sie bestätigen (nur mit {@code auto-apply}). */
     public boolean hasConfirmable(UUID sourceId) {
+        if (!props.isAutoApply()) return false;
         return proposals.findBySourceIdAndStatus(sourceId, Status.PENDING).stream()
                 .anyMatch(p -> p.getKind() == Kind.CHANGE && p.getHoldReason() == null);
+    }
+
+    private boolean autoApplies(Draft d) {
+        return props.isAutoApply() && d.autoConfirmable();
     }
 
     public void touch(List<ChargingProviderTariff> rows, LocalDateTime now) {

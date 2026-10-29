@@ -71,6 +71,7 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
     private final List<ExtractedTariff> onPage = new ArrayList<>();
     private String pageText;
     private int originalConfirmHours;
+    private boolean originalAutoApply;
 
     @BeforeEach
     void setUp() {
@@ -92,6 +93,8 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
         source = sources.save(source);
         originalConfirmHours = props.getConfirmAfterHours();
         props.setConfirmAfterHours(20);
+        originalAutoApply = props.isAutoApply();
+        props.setAutoApply(true);
         pageText = "Tarif L\nDC: 0,39 €/kWh, Grundgebühr 11,99 €";
         when(extractor.isAvailable()).thenReturn(true);
         when(fetcher.fetch(anyString())).thenAnswer(i -> Fetched.ok(200, new PageText(pageText, List.of())));
@@ -101,6 +104,7 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
     @AfterEach
     void restore() {
         props.setConfirmAfterHours(originalConfirmHours);
+        props.setAutoApply(originalAutoApply);
         sources.delete(source);
     }
 
@@ -148,6 +152,48 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
         service.run(false, T0.plusHours(2));
 
         assertThat(pending()).singleElement().extracting(TariffProposalEntity::getSeenCount).isEqualTo(2);
+    }
+
+    @Test
+    void withoutAutoApply_everyChangeWaitsForTheAdmin_noEarlyRefetch_andNotAppliedWhenReadAgain() {
+        props.setAutoApply(false);
+        ChargingProviderTariff l = save("L", "0.39", "11.99");
+        pageText = "Tarif L\nDC: 0,42 €/kWh, Grundgebühr 11,99 €";
+        onPage.add(offer("L", "0.42", "11.99", "DC: 0,42 €/kWh"));
+
+        TariffCrawlService.RunSummary first = service.run(true, T0);
+        assertThat(first.needAdmin()).as("reported to the admin right away").singleElement()
+                .extracting(TariffProposalEntity::getKind).isEqualTo(Kind.CHANGE);
+        assertThat(service.isDue(sources.findById(source.getId()).orElseThrow(), T1)).as("no early refetch for a confirmation").isFalse();
+
+        service.run(false, T1);
+
+        assertThat(tariffs.findById(l.getId()).orElseThrow().getValidUntil()).isNull();
+        assertThat(pending()).singleElement().extracting(TariffProposalEntity::getKind).isEqualTo(Kind.CHANGE);
+    }
+
+    @Test
+    void rejectedProposal_staysRejected_whileThePageSaysTheSame() {
+        ChargingProviderTariff l = save("L", "0.39", "11.99");
+        pageText = "Tarif L\nDC: 0,42 €/kWh, Grundgebühr 11,99 €";
+        onPage.add(offer("L", "0.42", "11.99", "DC: 0,42 €/kWh"));
+        service.run(true, T0);
+        book.rejectByAdmin(pending().get(0).getId(), T0);
+
+        pageText = "Tarif L\nDC: 0,42 €/kWh, Grundgebühr 11,99 €\nStand 28.10.";
+        service.run(false, T1);
+        pageText = "Tarif L\nDC: 0,42 €/kWh, Grundgebühr 11,99 €\nStand 29.10.";
+        service.run(false, T1.plusDays(1));
+
+        assertThat(pending()).as("the same finding is not raised again").isEmpty();
+        assertThat(tariffs.findById(l.getId()).orElseThrow().getValidUntil()).as("and never applied").isNull();
+
+        pageText = "Tarif L\nDC: 0,45 €/kWh, Grundgebühr 11,99 €";
+        onPage.clear();
+        onPage.add(offer("L", "0.45", "11.99", "DC: 0,45 €/kWh"));
+        service.run(false, T1.plusDays(2));
+        assertThat(pending()).as("a new value on the page is a new proposal").singleElement()
+                .extracting(TariffProposalEntity::getKind).isEqualTo(Kind.CHANGE);
     }
 
     @Test

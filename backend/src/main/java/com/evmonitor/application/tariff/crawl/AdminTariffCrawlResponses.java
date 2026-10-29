@@ -18,8 +18,12 @@ public final class AdminTariffCrawlResponses {
 
     private AdminTariffCrawlResponses() {}
 
-    /** {@code extractorAvailable} false: weder Anthropic- noch Mistral-Key, nur WATCH-Quellen laufen. */
-    public record Overview(List<SourceRow> sources, List<ProposalRow> proposals, boolean extractorAvailable, boolean enabled) {}
+    /**
+     * {@code extractorAvailable} false: weder Anthropic- noch Mistral-Key, nur WATCH-Quellen laufen.
+     * {@code autoApply} false: jede Preisänderung wartet auf den Admin.
+     */
+    public record Overview(List<SourceRow> sources, List<ProposalRow> proposals, boolean extractorAvailable, boolean enabled,
+                           boolean autoApply) {}
 
     public record SourceRow(UUID id, String empName, String url, String mode, boolean enabled, LocalDateTime lastFetchedAt,
                             LocalDateTime lastSuccessAt, String lastStatus, Integer lastHttpStatus, String lastError,

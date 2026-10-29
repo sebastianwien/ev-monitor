@@ -39,7 +39,7 @@ public class AdminTariffCrawlController {
 
     @GetMapping
     public AdminTariffCrawlResponses.Overview overview() {
-        return service.overview(extractor.isAvailable(), props.isEnabled());
+        return service.overview(extractor.isAvailable(), props.isEnabled(), props.isAutoApply());
     }
 
     /** Wo Fahrer mit einer Karte deutlich anders zahlen als der gepflegte Preis; nur Hinweise. */
