@@ -51,6 +51,16 @@ class HomeChargingSavingsServiceTest {
         lenient().when(repo.homeWeightedPrice(USER)).thenReturn(new WeightedPrice(eur("0.27"), 23));
     }
 
+    /** Heimpreis bekannt, aber kein Jahr mit Vergleichspreis: die Kachel bleibt leer,
+     *  statt dass der Endpunkt mit einem Nullzeiger abbricht (Prod, Nutzer ohne Daten). */
+    @Test
+    void withoutComparableYears_returnsNullInsteadOfThrowing() {
+        when(repo.homeYearTotals(USER)).thenReturn(List.of());
+        when(repo.ownPublicPrices(USER)).thenReturn(List.of());
+
+        assertNull(assertDoesNotThrow(() -> service.calculate(USER)));
+    }
+
     @Test
     void ownPublicLogs_beatRegionAndCountry() {
         when(repo.ownPublicPrices(USER)).thenReturn(
