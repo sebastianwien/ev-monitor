@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CONTEXT_TABS, CAR_TABS, WORKSPACE_TABS, WORKSPACE_LINKS, contextTabPaths } from '../tabs'
+import { CONTEXT_TABS, CAR_TABS, WORKSPACE_TABS, WORKSPACE_LINKS, contextTabPaths, samePagerPair } from '../tabs'
 
 describe('Tab-Konfiguration', () => {
   it('die Desktop-Leiste zeigt alle vier Ziele in der geplanten Reihenfolge', () => {
@@ -28,5 +28,20 @@ describe('Tab-Konfiguration', () => {
   it('neues Design: die Übersicht (/story) steht im Wisch-Paar an der Stelle des Dashboards', () => {
     expect(contextTabPaths(true)).toEqual(['/story', '/logs'])
     expect(contextTabPaths(false)).toEqual(['/dashboard', '/logs'])
+  })
+})
+
+// Wechsel innerhalb eines Wisch-Paars: der Pager führt den Scrollstand je Tab, nicht der Router.
+describe('samePagerPair', () => {
+  it('Übersicht bzw. Dashboard und Logs, Fahrzeuge und Ladekarten', () => {
+    expect(samePagerPair('/story', '/logs')).toBe(true)
+    expect(samePagerPair('/logs', '/dashboard')).toBe(true)
+    expect(samePagerPair('/cars', '/charging-providers')).toBe(true)
+  })
+
+  it('über die Paar-Grenze, zu sich selbst oder außerhalb: nein', () => {
+    expect(samePagerPair('/logs', '/cars')).toBe(false)
+    expect(samePagerPair('/logs', '/logs')).toBe(false)
+    expect(samePagerPair('/modelle', '/logs')).toBe(false)
   })
 })

@@ -5,6 +5,7 @@ import { useCountryStore } from '../stores/country';
 import { setLocale, isValidLocale } from '../i18n';
 import { slideDirection } from '../composables/useWorkspaceTransition';
 import { installPageTransitions, isModelsRoute, modelsScrollPosition } from './pageTransitions';
+import { samePagerPair } from '../config/tabs';
 import type { CountryCode } from '../config/unitSystems';
 import { isValidCountryCode } from '../config/unitSystems';
 import { purchasesAvailable } from '../utils/iapPolicy';
@@ -63,7 +64,9 @@ import { onUpsellNavigation } from '../services/upsellSource'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
-    scrollBehavior: (to, from, savedPosition) => isModelsRoute(to.name) ? modelsScrollPosition(to, from, savedPosition) : { top: 0 },
+    // Innerhalb eines Wisch-Paars (Übersicht/Logs, Fahrzeuge/Ladekarten) merkt sich der SwipeTabPager den Stand je Tab
+    scrollBehavior: (to, from, savedPosition) => isModelsRoute(to.name) ? modelsScrollPosition(to, from, savedPosition)
+      : samePagerPair(from.path, to.path) ? false : { top: 0 },
     routes: [
         {
             path: '/landing',

@@ -22,6 +22,14 @@ export const CAR_TABS = [
   { to: '/charging-providers', labelKey: 'settings.tariff_title', barLabelKey: 'nav.cards' },
 ] as const
 
+/** Alle Wisch-Paare, beide Designs. */
+const PAGER_PAIRS: readonly (readonly string[])[] = [contextTabPaths(false), contextTabPaths(true), CAR_TABS.map(tab => tab.to)]
+
+/** Wechsel innerhalb eines Wisch-Paars: dann führt der Pager den Scrollstand je Tab, nicht der Router. */
+export function samePagerPair(from: string, to: string): boolean {
+  return from !== to && PAGER_PAIRS.some(pair => pair.includes(from) && pair.includes(to))
+}
+
 /**
  * Reihenfolge der Desktop-Leiste: vom Taeglichen (Dashboard, Logs) zum Seltenen
  * (Ladekarten, Fahrzeuge). Die Ladekarten stehen bewusst vor den Fahrzeugen - sie

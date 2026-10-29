@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onUnmounted, toRef } from 'vue'
+import { computed, ref, watch, nextTick, onUnmounted, onActivated, onDeactivated, toRef } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTabPager } from '../../composables/useTabPager'
 import { useIsMobile } from '../../composables/useIsMobile'
@@ -52,11 +52,47 @@ let transTimer: ReturnType<typeof setTimeout> | undefined
 // Richtung des Desktop-Uebergangs: der neue Body stupst aus der Richtung seines Tabs
 // herein (Klassen in App.vue, geteilt mit der Routen-Transition).
 const slideName = ref<'nudge-left' | 'nudge-right'>('nudge-left')
+
+// Scrollstand je Tab. Mobil teilen sich beide Panes den Fenster-Scroll; ohne Gedächtnis scrollte der eine
+// Tab den anderen mit. Beim Wechsel merkt sich der Pager den Stand des alten Tabs und stellt den des neuen
+// her (der Router lässt den Scroll innerhalb eines Paars in Ruhe, samePagerPair). Solange beide Panes zu
+// sehen sind (Wischen, Gleiten), verschiebt ein Versatz jedes an seinen eigenen Stand.
+const saved = [0, 0]
+const offsets = ref<[number, number]>([0, 0])
+const paneStyle = (i: number) => offsets.value[i] ? { transform: `translateY(${offsets.value[i]}px)` } : undefined
+// Nur Wechsel im Pager selbst: kommt man von einer anderen Seite zurück (KeepAlive), gilt der Router,
+// und beide Tabs beginnen wieder oben
+let active = true
+onActivated(() => { active = true })
+onDeactivated(() => { active = false; saved[0] = 0; saved[1] = 0 })
+
+watch(dragging, (on) => {
+  if (on) {
+    const neighbour = activeIndex.value === 0 ? 1 : 0
+    const next: [number, number] = [0, 0]
+    next[neighbour] = window.scrollY - saved[neighbour]
+    offsets.value = next
+  } else if (!transitioning.value) {
+    offsets.value = [0, 0]
+  }
+})
+
 watch(activeIndex, (to, from) => {
   slideName.value = to > from ? 'nudge-left' : 'nudge-right'
   transitioning.value = true
   clearTimeout(transTimer)
-  transTimer = setTimeout(() => { transitioning.value = false }, 320)
+  transTimer = setTimeout(() => { transitioning.value = false; offsets.value = [0, 0] }, 320)
+  if (!active) return
+  const y = window.scrollY
+  saved[from] = y
+  // Desktop: nur der aktive Body ist gemountet, er beginnt oben
+  if (!isMobile.value) { window.scrollTo(0, 0); return }
+  const target = saved[to]
+  const next: [number, number] = [0, 0]
+  next[from] = target - y
+  offsets.value = next
+  // Erst wenn beide Panes ausgeklappt sind, reicht die Seite bis zum gemerkten Stand
+  void nextTick(() => window.scrollTo(0, target))
 })
 onUnmounted(() => clearTimeout(transTimer))
 const bothExpanded = computed(() => dragging.value || transitioning.value)
@@ -80,12 +116,14 @@ const paneCollapsed = (i: number) => !bothExpanded.value && i !== activeIndex.va
       <div
         class="w-1/2 shrink-0"
         :class="{ 'max-h-0 overflow-hidden invisible': paneCollapsed(0) }"
+        :style="paneStyle(0)"
         :aria-hidden="paneCollapsed(0) || undefined">
         <slot name="left" />
       </div>
       <div
         class="w-1/2 shrink-0"
         :class="{ 'max-h-0 overflow-hidden invisible': paneCollapsed(1) }"
+        :style="paneStyle(1)"
         :aria-hidden="paneCollapsed(1) || undefined">
         <slot name="right" />
       </div>
