@@ -18,7 +18,7 @@ public final class AdminTariffCrawlResponses {
 
     private AdminTariffCrawlResponses() {}
 
-    /** {@code extractorAvailable} false: kein Mistral-Key, nur WATCH-Quellen laufen. */
+    /** {@code extractorAvailable} false: weder Anthropic- noch Mistral-Key, nur WATCH-Quellen laufen. */
     public record Overview(List<SourceRow> sources, List<ProposalRow> proposals, boolean extractorAvailable, boolean enabled) {}
 
     public record SourceRow(UUID id, String empName, String url, String mode, boolean enabled, LocalDateTime lastFetchedAt,

@@ -308,6 +308,23 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
         """)
     List<EvLogEntity> findPricelessByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash);
 
+    @Query(value = """
+        SELECT EXISTS(SELECT 1 FROM ev_log e JOIN car c ON c.id = e.car_id
+        WHERE c.user_id = :userId AND c.deleted_at IS NULL AND e.deleted_at IS NULL
+          AND e.is_public_charging = false
+          AND e.geohash LIKE :cellPrefix)
+        """, nativeQuery = true)
+    boolean existsPrivateInCell(@Param("userId") UUID userId, @Param("cellPrefix") String cellPrefix);
+
+    @Query(value = """
+        SELECT EXISTS(SELECT 1 FROM ev_log e JOIN car c ON c.id = e.car_id
+        WHERE c.user_id = :userId AND c.deleted_at IS NULL AND e.deleted_at IS NULL
+          AND e.is_public_charging = true
+          AND LENGTH(e.geohash) >= 7
+          AND SUBSTRING(e.geohash, 1, 7) IN (:cells))
+        """, nativeQuery = true)
+    boolean existsPublicInCells(@Param("userId") UUID userId, @Param("cells") java.util.Collection<String> cells);
+
     /**
      * Alle nicht-oeffentlichen Ladungen des Users ohne Kosten - unabhaengig vom Ort. Der
      * ortsbasierte Nachtrag erreicht sie nicht: Import-Quellen wie XPeng liefern keinen Geohash.

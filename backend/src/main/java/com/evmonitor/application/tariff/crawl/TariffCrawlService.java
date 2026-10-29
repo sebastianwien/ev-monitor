@@ -120,7 +120,7 @@ public class TariffCrawlService {
         }
         if (!reader.canExtract()) {
             source.setLastStatus("EXTRACT_ERROR");
-            source.setLastError("Kein Sprachmodell konfiguriert (MISTRAL_API_KEY)");
+            source.setLastError("Kein Sprachmodell konfiguriert (ANTHROPIC_API_KEY oder MISTRAL_API_KEY)");
             return new TariffProposalBook.Recorded(0, List.of());
         }
         TariffSourceReader.Reading reading = reader.read(source, page, known);

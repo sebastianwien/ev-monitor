@@ -1,6 +1,8 @@
 package com.evmonitor.application.tariff.crawl;
 
 import com.evmonitor.application.tariff.crawl.TariffPageFetcher.Fetched;
+import com.evmonitor.infrastructure.external.anthropic.AnthropicProperties;
+import com.evmonitor.infrastructure.external.anthropic.AnthropicTariffExtractClient;
 import com.evmonitor.infrastructure.external.mistral.MistralProperties;
 import com.evmonitor.infrastructure.external.mistral.MistralTariffExtractClient;
 import com.evmonitor.infrastructure.external.tariff.HttpTariffPageFetcher;
@@ -14,13 +16,19 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Gegen die echten Seiten der Anbieter, nicht im Standardlauf (Tag mistral-live).
  * Start: {@code ./gradlew mistralLiveTest --tests '*TariffCrawlLiveTest*'}; der zweite Test braucht
- * {@code MISTRAL_API_KEY} und kostet ein paar Cent.
+ * {@code ANTHROPIC_API_KEY} (Claude) oder {@code MISTRAL_API_KEY} und kostet ein paar Cent. Anbieter und
+ * Modell für einen Vergleich: {@code TARIFF_LIVE_PROVIDER=anthropic|mistral}, {@code TARIFF_LIVE_MODEL=...}.
+ * Er zählt, wie viele der geprüften Preise das Modell mit gültigem Beleg findet, und verlangt alle.
  *
  * <p>Die erwarteten Zitate stammen aus der Prüfung vom 27.10.2026. Ändert ein Anbieter seine Preise,
  * schlägt der erste Test fehl: dann die Seite ansehen und die Erwartung anpassen.
@@ -63,15 +71,14 @@ class TariffCrawlLiveTest {
     }
 
     @Test
-    void mistralReadsTheSamePrices() {
-        String key = System.getenv("MISTRAL_API_KEY");
-        Assumptions.assumeTrue(key != null && !key.isBlank(), "MISTRAL_API_KEY fehlt");
-        MistralProperties props = new MistralProperties();
-        props.setApiKey(key);
-        TariffExtractor extractor = new MistralTariffExtractClient(new RestTemplate(), props, new ObjectMapper());
+    void modelFindsTheVerifiedPrices() {
+        TariffExtractor extractor = liveExtractor();
+        Assumptions.assumeTrue(extractor != null, "ANTHROPIC_API_KEY oder MISTRAL_API_KEY fehlt");
         HttpTariffPageFetcher fetcher = new HttpTariffPageFetcher(new TariffCrawlProperties());
         List<String> catalog = List.of("IONITY", "EnBW", "Aral Pulse", "EWE Go", "Allego", "E.ON Drive", "EDEKA", "Fastned",
                 "JET Strom", "Kaufland", "LichtBlick", "Lidl", "TankE", "Vattenfall InCharge", "Tesla Supercharger");
+        List<String> missing = new ArrayList<>();
+        int[] totals = new int[4]; // erwartet, gefunden, Token rein, Token raus
         SOURCES.forEach((url, quotes) -> {
             if (quotes.isEmpty()) return;
             Fetched f = fetcher.fetch(url);
@@ -79,12 +86,57 @@ class TariffCrawlLiveTest {
             String emp = url.replaceFirst("https://(www\\.|incharge\\.)?", "").replaceFirst("[./].*", "");
             TariffExtractor.Extraction e = extractor.extract(new TariffExtractor.Request(emp, country, url, f.page().text(),
                     f.page().priceImages(), List.of(), catalog));
-            long ok = e.tariffs().stream().filter(t -> EvidenceCheck.supports(f.page().text(), t.evidence(), t.pricePerKwh())).count();
-            System.out.printf("%n%s: %d Tarife, %d belegt, %d Preisstufen%n", url, e.tariffs().size(), ok, e.tiers().size());
+            List<ExtractedTariff> supported = e.tariffs().stream()
+                    .filter(t -> EvidenceCheck.supports(f.page().text(), t.evidence(), t.pricePerKwh())).toList();
+            Set<BigDecimal> found = supported.stream()
+                    .flatMap(t -> Stream.of(t.pricePerKwh(), t.monthlyFeeEur(), t.sessionFeeEur()))
+                    .filter(Objects::nonNull).map(BigDecimal::stripTrailingZeros).collect(Collectors.toSet());
+            List<String> notFound = quotes.values().stream().distinct()
+                    .filter(p -> !found.contains(new BigDecimal(p).stripTrailingZeros())).toList();
+            int expected = (int) quotes.values().stream().distinct().count();
+            totals[0] += expected;
+            totals[1] += expected - notFound.size();
+            if (e.usage() != null) {
+                totals[2] += e.usage().promptTokens() == null ? 0 : e.usage().promptTokens();
+                totals[3] += e.usage().completionTokens() == null ? 0 : e.usage().completionTokens();
+            }
+            notFound.forEach(p -> missing.add(url + ": " + p));
+            System.out.printf("%n%s: %d Tarife, %d belegt, %d Preisstufen, Treffer %d von %d%n", url, e.tariffs().size(),
+                    supported.size(), e.tiers().size(), expected - notFound.size(), expected);
             e.tariffs().forEach(t -> System.out.printf("  %-14s %-2s %-11s %-12s kW>%-4s %s €/kWh  Grund %s  | %s%n", t.variant(), t.chargingType(),
                     t.scope(), t.operator() == null ? (t.tier() == null ? "" : t.tier()) : t.operator(), t.minPowerKw(), t.pricePerKwh(),
                     t.monthlyFeeEur(), t.evidence()));
-            assertThat(ok).as(url).isPositive();
         });
+        System.out.printf("%nGESAMT %s: Treffer %d von %d, %d Token rein, %d raus%n",
+                System.getenv().getOrDefault("TARIFF_LIVE_MODEL", "Standardmodell"), totals[1], totals[0], totals[2], totals[3]);
+        if (extractor instanceof AutoCloseable c) {
+            try {
+                c.close();
+            } catch (Exception ignored) {
+                // nur Testende
+            }
+        }
+        assertThat(missing).as("geprüfte Preise, die das Modell nicht belegt gefunden hat").isEmpty();
+    }
+
+    /** Claude, wenn ein Anthropic-Key da ist (oder TARIFF_LIVE_PROVIDER=anthropic), sonst Mistral; null ohne Key. */
+    private static TariffExtractor liveExtractor() {
+        String anthropicKey = System.getenv("ANTHROPIC_API_KEY");
+        String mistralKey = System.getenv("MISTRAL_API_KEY");
+        String model = System.getenv("TARIFF_LIVE_MODEL");
+        String provider = System.getenv().getOrDefault("TARIFF_LIVE_PROVIDER",
+                anthropicKey != null && !anthropicKey.isBlank() ? "anthropic" : "mistral");
+        if (provider.equals("anthropic")) {
+            if (anthropicKey == null || anthropicKey.isBlank()) return null;
+            AnthropicProperties props = new AnthropicProperties();
+            props.setApiKey(anthropicKey);
+            if (model != null) props.setTariffModel(model);
+            return new AnthropicTariffExtractClient(props, new ObjectMapper());
+        }
+        if (mistralKey == null || mistralKey.isBlank()) return null;
+        MistralProperties props = new MistralProperties();
+        props.setApiKey(mistralKey);
+        if (model != null) props.setTariffModel(model);
+        return new MistralTariffExtractClient(new RestTemplate(), props, new ObjectMapper());
     }
 }

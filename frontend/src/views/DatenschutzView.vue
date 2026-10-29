@@ -134,6 +134,14 @@ onMounted(async () => {
             Position nicht rekonstruieren.
           </p>
           <p class="mt-4">
+            <strong>Öffentlich oder privat:</strong> Meldet eine Fahrzeug-Integration nicht, ob an einer
+            öffentlichen Säule geladen wurde, gilt der Ladeort zunächst als öffentlich und wird auf ca. 150 m
+            gespeichert. Markieren Sie eine Ladung als privat, wird ihr Ort auf ca. 600 m gekürzt; künftige
+            Ladungen in diesem Umkreis gelten dann ebenfalls als privat und werden ebenso gekürzt, außer an
+            Säulen, an denen Sie dort schon öffentlich geladen haben. Sie können jede Ladung jederzeit auf
+            privat umstellen.
+          </p>
+          <p class="mt-4">
             <strong>Technische Rohdaten:</strong> Wenn Sie eine Fahrzeug-Integration nutzen, die uns
             Standortsignale liefert (z. B. Tesla, Smartcar), können in unseren technischen Rohdaten-Protokollen
             vorübergehend exakte Koordinaten enthalten sein. Diese Rohdaten dienen ausschließlich der

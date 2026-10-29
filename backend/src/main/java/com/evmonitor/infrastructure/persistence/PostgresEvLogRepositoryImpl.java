@@ -432,6 +432,16 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public boolean existsPrivateLogInCell(UUID userId, String geohash6) {
+        return jpaRepository.existsPrivateInCell(userId, geohash6 + "%");
+    }
+
+    @Override
+    public boolean existsPublicLogInCells(UUID userId, java.util.Collection<String> geohashes7) {
+        return !geohashes7.isEmpty() && jpaRepository.existsPublicInCells(userId, geohashes7);
+    }
+
+    @Override
     public Optional<TireType> findMostRecentTireTypeBefore(UUID carId, LocalDateTime before) {
         var results = jpaRepository.findMostRecentTireTypeBefore(carId, before, PageRequest.of(0, 1));
         if (results.isEmpty()) return Optional.empty();
