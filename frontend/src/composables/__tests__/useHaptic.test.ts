@@ -53,6 +53,15 @@ describe('Haptik beim Tippen', () => {
     expect(vibrate).not.toHaveBeenCalled()
   })
 
+  it('Android mit ausgeschalteter Vibration bleibt still, der Ton ist nur für Geräte ohne vibrate', () => {
+    const audio = vi.fn()
+    vi.stubGlobal('AudioContext', audio)
+    vibrate.mockReturnValueOnce(false)
+    haptic()
+    expect(audio).not.toHaveBeenCalled()
+    vi.unstubAllGlobals()
+  })
+
   it('globaler Listener und @click="haptic()" derselben Berührung geben einen Tick', () => {
     const button = html('<button>Los</button>')
     button.addEventListener('click', () => haptic())

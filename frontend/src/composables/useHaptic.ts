@@ -7,9 +7,10 @@ export function haptic(duration = 10) {
   const now = performance.now()
   if (now - lastAt < DEDUPE_MS) return
   lastAt = now
-  if (navigator.vibrate?.(duration)) return
+  // Android: vibrieren; liefert es false (Vibration aus), bleibt es still statt zu klicken
+  if (typeof navigator.vibrate === 'function') { navigator.vibrate(duration); return }
 
-  // iOS fallback: kurzer Sinuston bewegt den Lautsprecher minimal
+  // iOS (kein vibrate): kurzer Sinuston bewegt den Lautsprecher minimal
   try {
     const ctx = new AudioContext()
     const oscillator = ctx.createOscillator()

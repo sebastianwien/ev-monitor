@@ -5,6 +5,7 @@ import { ArrowPathIcon, BoltIcon, ClockIcon, MapPinIcon, XMarkIcon } from '@hero
 import { getActivePinia } from 'pinia'
 import { useLocationSearch, shortAddress, type PickedPlace } from '../../composables/useLocationSearch'
 import { listPlacement } from './listPlacement'
+import { haptic } from '../../composables/useHaptic'
 import { useStationSearch } from '../../composables/useStationSearch'
 import { useRecentAddresses } from '../../composables/useRecentAddresses'
 import { useAuthStore } from '../../stores/auth'
@@ -103,13 +104,13 @@ const rowClass = 'w-full flex items-start gap-2 px-3 py-2.5 text-left text-[14px
         :class="placement.above ? 'bottom-full mb-1' : 'top-full mt-1'"
         class="edge-box absolute z-10 w-full bg-white dark:bg-gray-800 rounded-xl overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
         <li v-for="p in showRecent ? recent.list.value : []" :key="p.name" role="option" data-testid="place-search-recent"
-          v-haptic :class="rowClass" @mousedown.prevent="pickRecent(p)">
+          v-haptic :class="rowClass" @mousedown.prevent="haptic(); pickRecent(p)">
           <ClockIcon class="h-4 w-4 mt-0.5 text-gray-500 flex-shrink-0" />
           <span class="min-w-0 text-gray-700 dark:text-gray-200">{{ p.name }}</span>
         </li>
         <!-- Säulen aus dem Register -->
         <li v-for="s in stations.matches.value" :key="s.name + s.geohash" role="option" data-testid="place-search-station"
-          v-haptic :class="rowClass" @mousedown.prevent="chooseStation(s)">
+          v-haptic :class="rowClass" @mousedown.prevent="haptic(); chooseStation(s)">
           <BoltIcon class="h-4 w-4 mt-0.5 text-indigo-600 flex-shrink-0" />
           <span class="min-w-0">
             <b class="block font-semibold text-gray-900 dark:text-gray-50 truncate">{{ s.name }}</b>
@@ -124,7 +125,7 @@ const rowClass = 'w-full flex items-start gap-2 px-3 py-2.5 text-left text-[14px
           <span class="min-w-0 text-gray-700 dark:text-gray-200">{{ t('logwizard.search_as_address', { q: trimmed }) }}</span>
         </li>
         <li v-for="s in address.suggestions.value" :key="s.place_id" role="option" data-testid="place-search-suggestion"
-          v-haptic :class="rowClass" @mousedown.prevent="pickAddress(s)">
+          v-haptic :class="rowClass" @mousedown.prevent="haptic(); pickAddress(s)">
           <MapPinIcon class="h-4 w-4 mt-0.5 text-gray-500 flex-shrink-0" />
           <span class="min-w-0">
             <b class="block font-semibold text-gray-900 dark:text-gray-50 truncate">{{ shortAddress(s) }}</b>
