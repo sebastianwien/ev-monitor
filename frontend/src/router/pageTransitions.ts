@@ -7,6 +7,9 @@ import type { RouteLocationNormalized, RouteRecordNameGeneric, Router } from 'vu
  * View Transition: die alte Seite bleibt stehen, bis die neue fertig ist, dann blendet sie
  * über. Tiefer (Liste -> Modellseite) kommt die neue Seite ein Stück von rechts, zurück von
  * links. Ohne API oder mit prefers-reduced-motion wechselt die Seite sofort.
+ *
+ * Auf dem Handy fährt der Vollbild-Wizard (meta.mobileFullscreen) auf demselben Weg wie ein
+ * Sheet von unten über die Seite und gleitet beim Verlassen wieder nach unten weg.
  */
 
 const MODELS_ROUTE = /^public-(models-list|models-compare|brand|model)(-[a-z]{2})?$/
@@ -30,6 +33,18 @@ export function navDirection(from: string, to: string, historyBack = false): Nav
   if (d !== 0) return d > 0 ? 'forward' : 'back'
   return historyBack ? 'back' : 'forward'
 }
+
+export type SheetDirection = 'sheet-up' | 'sheet-down'
+
+/** In den Vollbild-Wizard hinein fährt das Sheet hoch, heraus fährt es runter */
+export function sheetDirection(from: Pick<RouteLocationNormalized, 'meta'>, to: Pick<RouteLocationNormalized, 'meta'>): SheetDirection | null {
+  const fromSheet = !!from.meta.mobileFullscreen
+  const toSheet = !!to.meta.mobileFullscreen
+  if (fromSheet === toSheet) return null
+  return toSheet ? 'sheet-up' : 'sheet-down'
+}
+
+const MOBILE = '(max-width: 767px)'
 
 /** vue-router zählt die Einträge in history.state.position; kleiner als zuletzt = Zurück-Taste */
 function historyPosition(): number | null {
@@ -97,12 +112,20 @@ export function installPageTransitions(router: Router): void {
   let lastPosition = historyPosition()
 
   router.beforeResolve((to, from) => {
-    if (!isModelsRoute(to.name) || !isModelsRoute(from.name) || to.path === from.path || !canAnimate()) return
+    // from.matched leer = erster Aufruf, da fährt nichts
+    if (to.path === from.path || !from.matched.length || !canAnimate()) return
+    let direction: NavDirection | SheetDirection | null = null
+    if (isModelsRoute(to.name) && isModelsRoute(from.name)) {
+      // beim Zurück steht history.state schon auf dem Ziel, beim Klick noch auf der alten Seite
+      const position = historyPosition()
+      const historyBack = position != null && lastPosition != null && position < lastPosition
+      direction = navDirection(from.name as string, to.name as string, historyBack)
+    } else if (window.matchMedia(MOBILE).matches) {
+      direction = sheetDirection(from, to)
+    }
+    if (!direction) return
     const root = document.documentElement
-    // beim Zurück steht history.state schon auf dem Ziel, beim Klick noch auf der alten Seite
-    const position = historyPosition()
-    const historyBack = position != null && lastPosition != null && position < lastPosition
-    root.dataset.navDirection = navDirection(from.name as string, to.name as string, historyBack)
+    root.dataset.navDirection = direction
     return new Promise<void>(proceed => {
       const transition = document.startViewTransition(() => new Promise<void>(done => {
         finish = done

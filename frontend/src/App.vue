@@ -722,6 +722,18 @@ const handleBottomLogout = () => {
 html[data-nav-direction="back"]::view-transition-new(root) { animation-name: page-in-back; }
 ::view-transition-group(public-nav) { animation: none; }
 
+/*
+  Vollbild-Wizard auf dem Handy (router/pageTransitions.ts): fährt wie ein Sheet von unten über die
+  stehende Seite und gleitet beim Verlassen nach unten weg. Die ganze Seite bewegt sich als ein Bild,
+  die Nav fährt nicht extra.
+*/
+html[data-nav-direction^="sheet"] * { view-transition-name: none !important; }
+html[data-nav-direction="sheet-up"]::view-transition-new(root) { animation: sheet-up 0.36s cubic-bezier(0.32, 0.72, 0, 1) both; }
+html[data-nav-direction="sheet-down"]::view-transition-new(root) { animation: none; }
+html[data-nav-direction="sheet-down"]::view-transition-old(root) { animation: sheet-down 0.3s cubic-bezier(0.4, 0, 1, 1) both; z-index: 1; }
+
+@keyframes sheet-up { from { transform: translateY(100%); } }
+@keyframes sheet-down { to { transform: translateY(100%); } }
 @keyframes page-in-forward { from { opacity: 0; transform: translateX(14px); } }
 @keyframes page-in-back { from { opacity: 0; transform: translateX(-14px); } }
 
