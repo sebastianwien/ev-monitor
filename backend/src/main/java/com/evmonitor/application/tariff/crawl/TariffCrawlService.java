@@ -45,6 +45,9 @@ public class TariffCrawlService {
     private final ChargingProviderTariffRepository tariffs;
     private final TariffCrawlProperties props;
 
+    /** Seitentext vor und nach einem Zitat, den der Admin zum Vorschlag sieht. */
+    private static final int CONTEXT_CHARS = 140;
+
     /** Status, die beim nächsten Lauf einen neuen Versuch auslösen statt erst nach {@code refetch-days}. */
     private static final java.util.Set<String> RETRY_SOON = java.util.Set.of("HTTP_ERROR", "ROBOTS", "UNREADABLE", "EXTRACT_ERROR");
 
@@ -132,16 +135,16 @@ public class TariffCrawlService {
         book.touch(result.unchanged(), now);
         List<Draft> drafts = new ArrayList<>();
         for (Change c : result.changes()) {
-            drafts.add(new Draft(Kind.CHANGE, c.current().getId(), proposed(c.found()), c.found().evidence(), c.holdReason()));
+            drafts.add(new Draft(Kind.CHANGE, c.current().getId(), proposed(c.found()), snippet(page, c.found().evidence(), c.found().variant()), c.holdReason()));
         }
         for (ExtractedTariff added : result.added()) {
-            drafts.add(new Draft(Kind.NEW, null, proposed(added), added.evidence(), "Neuer Tarif auf der Seite"));
+            drafts.add(new Draft(Kind.NEW, null, proposed(added), snippet(page, added.evidence(), added.variant()), "Neuer Tarif auf der Seite"));
         }
         for (ChargingProviderTariff missing : result.missing()) {
             drafts.add(new Draft(Kind.MISSING, missing.getId(), TariffProposalBook.toMap(TariffSourceReader.nameOnly(missing)),
                     null, "Steht nicht mehr auf der Seite"));
         }
-        drafts.addAll(mappingDrafts(source.getEmpName(), reading.tiers()));
+        drafts.addAll(mappingDrafts(source.getEmpName(), reading.tiers(), page));
         succeed(source, drafts.isEmpty() ? "OK" : "CHANGED", fingerprint, now);
         return book.record(source, drafts, now);
     }
@@ -166,7 +169,7 @@ public class TariffCrawlService {
     }
 
     /** Nur Betreiber, die die Seite nennt und deren Stufe abweicht; "und viele weitere" bleibt unangetastet. */
-    private List<Draft> mappingDrafts(String empName, List<TierMembers> tiers) {
+    private List<Draft> mappingDrafts(String empName, List<TierMembers> tiers, PageText page) {
         List<Draft> drafts = new ArrayList<>();
         for (TierMembers m : tiers) {
             for (OperatorName o : m.operators()) {
@@ -176,10 +179,14 @@ public class TariffCrawlService {
                 proposed.put("operator", o.catalog());
                 proposed.put("tier", m.tier());
                 proposed.put("previousTier", current.orElse(null));
-                drafts.add(new Draft(Kind.MAPPING, null, proposed, o.onPage(), "Preisstufe eines Betreibers geändert"));
+                drafts.add(new Draft(Kind.MAPPING, null, proposed, snippet(page, o.onPage(), null), "Preisstufe eines Betreibers geändert"));
             }
         }
         return drafts;
+    }
+
+    private static String snippet(PageText page, String quote, String variant) {
+        return quote == null ? null : EvidenceSnippet.find(page.text(), quote, CONTEXT_CHARS, variant).encode();
     }
 
     /** Werte für den Vorschlag, ohne Zitat und Seitennamen: die zählen nicht zum Fingerabdruck. */

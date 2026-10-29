@@ -155,6 +155,20 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void proposal_keepsTheQuoteWithItsSurroundingPageText() {
+        save("L", "0.39", "11.99");
+        pageText = "Tarif L für Vielfahrer\nDC: 0,42 €/kWh, Grundgebühr 11,99 €\nStand Oktober";
+        onPage.add(offer("L", "0.42", "11.99", "DC: 0,42 €/kWh"));
+
+        service.run(true, T0);
+
+        EvidenceSnippet evidence = EvidenceSnippet.decode(pending().get(0).getEvidence());
+        assertThat(evidence.match()).isEqualTo("DC: 0,42 €/kWh");
+        assertThat(evidence.before()).isEqualTo("Tarif L für Vielfahrer · ");
+        assertThat(evidence.after()).isEqualTo(", Grundgebühr 11,99 € · Stand Oktober");
+    }
+
+    @Test
     void withoutAutoApply_everyChangeWaitsForTheAdmin_noEarlyRefetch_andNotAppliedWhenReadAgain() {
         props.setAutoApply(false);
         ChargingProviderTariff l = save("L", "0.39", "11.99");
