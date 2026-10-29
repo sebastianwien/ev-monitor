@@ -132,7 +132,7 @@ describe('AdminTariffCrawlPanel', () => {
 
   it('ohne Sprachmodell: Hinweis, dass nur Bild-Quellen geprüft werden', async () => {
     const host = await mount({ ...sample(), extractorAvailable: false })
-    expect(text(host)).toContain('MISTRAL_API_KEY')
+    expect(text(host)).toContain('ANTHROPIC_API_KEY oder MISTRAL_API_KEY')
   })
 
   it('zeigt, wo Fahrer deutlich anders zahlen als gepflegt', async () => {

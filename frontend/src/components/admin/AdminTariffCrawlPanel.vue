@@ -122,7 +122,7 @@ const field = 'bg-gray-900 border border-gray-700 rounded-sm px-2 py-1.5 text-sm
     </div>
 
     <div v-if="data && !data.extractorAvailable" class="mb-3 p-3 bg-amber-900/30 border border-amber-700 text-amber-200 text-sm rounded-sm">
-      Kein Sprachmodell konfiguriert (MISTRAL_API_KEY). Nur Seiten mit Preisbildern werden auf Änderungen geprüft.
+      Kein Sprachmodell konfiguriert (ANTHROPIC_API_KEY oder MISTRAL_API_KEY). Nur Seiten mit Preisbildern werden auf Änderungen geprüft.
     </div>
     <div v-if="data && !data.enabled" class="mb-3 p-3 bg-amber-900/30 border border-amber-700 text-amber-200 text-sm rounded-sm">
       Die nächtliche Prüfung ist abgeschaltet (TARIFF_CRAWL_ENABLED). Der Knopf funktioniert trotzdem.
