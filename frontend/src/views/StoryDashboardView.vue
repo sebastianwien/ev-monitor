@@ -44,6 +44,7 @@ const StoryPriceSheet = defineAsyncComponent(() => import('../components/story/S
 const PlacesSheet = defineAsyncComponent(() => import('../components/story/places/PlacesSheet.vue'))
 const EditTripModal = defineAsyncComponent(() => import('../components/dashboard/EditTripModal.vue'))
 const EditLogModal = defineAsyncComponent(() => import('../components/dashboard/EditLogModal.vue'))
+const PricelessLogsModal = defineAsyncComponent(() => import('../components/dashboard/PricelessLogsModal.vue'))
 const StoryDaySheet = defineAsyncComponent(() => import('../components/story/day/StoryDaySheet.vue'))
 const LogFormModal = defineAsyncComponent(() => import('../components/log-form/LogFormModal.vue'))
 
@@ -206,6 +207,9 @@ function onTripSheetClosed() {
   ctx.cancelTripEdit()
   tripModalId.value = null
 }
+
+/** Zeile "n Ladungen ohne Preis": dieselbe Liste wie auf /logs, je Ladung den Preis eintragen */
+const showPriceless = ref(false)
 
 function closeOperator(changed: boolean) {
   operatorLog.value = null
@@ -400,7 +404,7 @@ onUnmounted(() => unregisterReload?.())
               v-if="narrow && showFeed"
               :feed="feed" :model-name="modelName" :sheets="sheetIds"
               :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0"
-              @open="openSheet" @map="openPlaces" />
+              @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
           </template>
         </div>
@@ -408,7 +412,7 @@ onUnmounted(() => unregisterReload?.())
           <StoryFeed
             :feed="feed" :model-name="modelName" :sheets="sheetIds"
             :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0" map-preview
-            @open="openSheet" @map="openPlaces" />
+            @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" />
         </div>
       </section>
 
@@ -437,6 +441,7 @@ onUnmounted(() => unregisterReload?.())
       :upsell-to="upsellTo"
       @close="openMap = false"
       @operator="openOperator" />
+    <PricelessLogsModal v-if="showPriceless" :car-id="selectedCarId" open @close="showPriceless = false" @updated="story.reload()" />
     <EditLogModal
       v-if="operatorLog"
       :log="operatorLog"

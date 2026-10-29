@@ -4532,7 +4532,7 @@ story:
   latest_just_now: "just now"
   feed_rank: "Rank {rank} in the community ranking {category} this month."
   feed_quality_estimated: "Consumption is estimated for {estimated} of {total} charges."
-  feed_quality_priceless: "{count} charges without a price, costs are incomplete."
+  feed_quality_priceless: "One charge without a price, costs are incomplete. | {count} charges without a price, costs are incomplete."
   feed_temp: "Below {cold} °C your car needs {pct} % more than above {mild} °C (drivetrain consumption reported by the car)."
   sheet_flow_title: "Where does my power go?"
   sheet_flow_text: "{grid} from the grid, {vehicle} in the battery, {loss} charging loss ({pct} %)."

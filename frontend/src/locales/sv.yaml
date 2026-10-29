@@ -4374,7 +4374,7 @@ story:
   latest_just_now: "nyss"
   feed_rank: "Plats {rank} i communityrankingen {category} den här månaden."
   feed_quality_estimated: "Förbrukningen är uppskattad för {estimated} av {total} laddningar."
-  feed_quality_priceless: "{count} laddningar utan pris, kostnaderna är ofullständiga."
+  feed_quality_priceless: "En laddning utan pris, kostnaderna är ofullständiga. | {count} laddningar utan pris, kostnaderna är ofullständiga."
   feed_temp: "Under {cold} °C behöver din bil {pct} % mer än över {mild} °C (drivlineförbrukning rapporterad av bilen)."
   sheet_flow_title: "Vart tar min el vägen?"
   sheet_flow_text: "{grid} från nätet, {vehicle} i batteriet, {loss} laddförlust ({pct} %)."

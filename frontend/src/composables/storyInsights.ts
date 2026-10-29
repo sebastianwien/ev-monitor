@@ -203,6 +203,8 @@ export interface DataQuality {
   priceless: number
   /** Davon noch nachtragbar: ohne "Weiß ich nicht mehr". */
   pricelessOpen: number
+  /** Genau eine nachtragbare Ladung ohne Preis: ihre id, damit die Zeile sie direkt öffnet */
+  pricelessOpenLogId?: string | null
   severity: QualitySeverity
 }
 
@@ -220,12 +222,17 @@ export function dataQuality(stats: { totalCharges: number; estimatedConsumptionC
   return { estimated: stats.estimatedConsumptionCount, total, estimatedShare: share, priceless: pricelessInMonth, pricelessOpen: openInMonth, severity }
 }
 
-/** Zaehlt Logs, deren loggedAt (UTC) im Monat liegt. */
-export function countPricelessInMonth(logs: Array<{ loggedAt: string }>, year: number, month: number): number {
+/** Logs, deren loggedAt (UTC) im Monat liegt. */
+export function pricelessInMonth<T extends { loggedAt: string }>(logs: T[], year: number, month: number): T[] {
   return logs.filter(l => {
     const d = new Date(l.loggedAt)
     return d.getUTCFullYear() === year && d.getUTCMonth() + 1 === month
-  }).length
+  })
+}
+
+/** Zaehlt Logs, deren loggedAt (UTC) im Monat liegt. */
+export function countPricelessInMonth(logs: Array<{ loggedAt: string }>, year: number, month: number): number {
+  return pricelessInMonth(logs, year, month).length
 }
 
 export interface RankEntry {

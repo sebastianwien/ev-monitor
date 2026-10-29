@@ -75,6 +75,8 @@ export interface StoryFeedItem {
   locked?: boolean
   /** Rohwerte fuer den Satz, die Komponente formatiert sie. */
   params: Record<string, number>
+  /** Ladung, die die Zeile oeffnet (teuerste Ladung, einzige Ladung ohne Preis) */
+  logId?: string | null
   /** Textschluessel ohne Zahl, z. B. die Leaderboard-Kategorie. */
   label?: string
 }
@@ -481,6 +483,7 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
         relevance: Math.min(95, 50 + (m.mostExpensiveChargeEur / avgCharge) * 10),
         sentiment: 'warn',
         params: { eur: m.mostExpensiveChargeEur, avgEur: avgCharge },
+        logId: m.mostExpensiveChargeLogId ?? null,
       })
     }
   }
@@ -548,7 +551,8 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
       question: 1,
       relevance: q.severity === 'bad' ? 80 : 35,
       sentiment: q.severity,
-      params: { estimated: q.estimated, total: q.total, priceless: q.priceless },
+      params: { estimated: q.estimated, total: q.total, priceless: q.priceless, pricelessOpen: q.pricelessOpen },
+      logId: q.pricelessOpenLogId ?? null,
     })
   }
 

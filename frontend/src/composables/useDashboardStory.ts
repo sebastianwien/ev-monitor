@@ -13,7 +13,7 @@ import {
 } from './storyModel'
 import { buildEnergyFlow, buildRange, costLayers, monthCosts, type MonthCosts } from './storyEnergy'
 import {
-  temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, ranksFromStandings,
+  temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, pricelessInMonth, ranksFromStandings,
   type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRankClosing,
@@ -492,11 +492,14 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     return modelPeers(peerModels.value, lifetime ?? monthly)
   })
 
-  const quality = computed(() => monthStats.value
-    ? dataQuality(monthStats.value,
-      countPricelessInMonth(pricelessLogs.value, month.value.year, month.value.month),
-      countPricelessInMonth(pricelessLogs.value.filter(l => !l.priceUnknown), month.value.year, month.value.month))
-    : null)
+  const quality = computed(() => {
+    if (!monthStats.value) return null
+    const open = pricelessInMonth(pricelessLogs.value.filter(l => !l.priceUnknown), month.value.year, month.value.month)
+    return {
+      ...dataQuality(monthStats.value, countPricelessInMonth(pricelessLogs.value, month.value.year, month.value.month), open.length),
+      pricelessOpenLogId: open.length === 1 ? open[0].id : null,
+    }
+  })
 
   const pricelessInPreviousMonth = computed(() => {
     const prev = new Date(month.value.year, month.value.month - 2, 1)

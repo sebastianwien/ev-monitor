@@ -124,3 +124,24 @@ describe('StoryFeedItem Insights mit Vergleichsbasis und Balken', () => {
     expect(host.querySelector('[data-testid="story-insight-bars"]')).toBeNull()
   })
 })
+
+describe('StoryFeedItem Ladungen ohne Preis', () => {
+  it('eine Ladung: Einzahl im Satz, Tippen öffnet sie bei den Kosten', () => {
+    const charged: unknown[][] = []
+    const host = mount({ id: 'data_quality', question: 1, relevance: 35, sentiment: 'warn', params: { estimated: 0, total: 4, priceless: 1, pricelessOpen: 1 }, logId: 'l1' },
+      { sheets: ['cost'], onCharge: (...a: unknown[]) => charged.push(a) })
+    expect(host.textContent).toContain('Eine Ladung ohne Preis')
+    host.querySelector('button')!.click()
+    expect(charged).toEqual([['l1', 'cost']])
+  })
+
+  it('mehrere: Mehrzahl, Tippen öffnet die Liste', () => {
+    let priceless = 0
+    const host = mount({ id: 'data_quality', question: 1, relevance: 80, sentiment: 'bad', params: { estimated: 0, total: 9, priceless: 3, pricelessOpen: 3 }, logId: null },
+      { sheets: ['cost'], onPriceless: () => { priceless++ } })
+    expect(host.textContent).toContain('3 Ladungen ohne Preis')
+    host.querySelector('button')!.click()
+    expect(priceless).toBe(1)
+  })
+})
+

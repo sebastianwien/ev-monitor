@@ -69,6 +69,8 @@ export interface StatisticsData {
   avgCostPerKwh: number
   cheapestChargeEur: number
   mostExpensiveChargeEur: number
+  /** Ladung hinter mostExpensiveChargeEur, fehlt bei älterem Backend */
+  mostExpensiveChargeLogId?: string | null
   avgChargeDurationMinutes: number
   totalCharges: number
   totalDistanceKm: number | null

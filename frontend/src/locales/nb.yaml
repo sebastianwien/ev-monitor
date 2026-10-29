@@ -4374,7 +4374,7 @@ story:
   latest_just_now: "nettopp"
   feed_rank: "Plass {rank} i fellesskapsrangeringen {category} denne måneden."
   feed_quality_estimated: "Forbruket er anslått for {estimated} av {total} ladinger."
-  feed_quality_priceless: "{count} ladinger uten pris, kostnadene er ufullstendige."
+  feed_quality_priceless: "Én lading uten pris, kostnadene er ufullstendige. | {count} ladinger uten pris, kostnadene er ufullstendige."
   feed_temp: "Under {cold} °C trenger bilen din {pct} % mer enn over {mild} °C (drivlinjeforbruk rapportert av bilen)."
   sheet_flow_title: "Hvor blir strømmen min av?"
   sheet_flow_text: "{grid} fra nettet, {vehicle} i batteriet, {loss} ladetap ({pct} %)."

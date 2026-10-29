@@ -4538,7 +4538,7 @@ story:
   latest_just_now: "gerade eben"
   feed_rank: "Platz {rank} im Community-Ranking {category} diesen Monat."
   feed_quality_estimated: "Bei {estimated} von {total} Ladungen ist der Verbrauch geschätzt."
-  feed_quality_priceless: "{count} Ladungen ohne Preis, die Kosten sind unvollständig."
+  feed_quality_priceless: "Eine Ladung ohne Preis, die Kosten sind unvollständig. | {count} Ladungen ohne Preis, die Kosten sind unvollständig."
   feed_temp: "Unter {cold} °C braucht dein Auto {pct} % mehr als über {mild} °C (Antriebsverbrauch laut Fahrzeug)."
   sheet_flow_title: "Wo bleibt mein Strom?"
   sheet_flow_text: "{grid} vom Netz, {vehicle} im Akku, {loss} Ladeverlust ({pct} %)."

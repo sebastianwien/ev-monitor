@@ -24,7 +24,7 @@ withDefaults(defineProps<{
   /** Kartenbild im Teaser, nur in der rechten Spalte (ab lg). */
   mapPreview?: boolean
 }>(), { placesTeaser: null, placesRows: () => [], monthName: '', runningMonth: true, mapPreview: false })
-const emit = defineEmits<{ open: [id: TileId]; map: [] }>()
+const emit = defineEmits<{ open: [id: TileId]; map: []; charge: [logId: string, section?: 'cost']; priceless: [] }>()
 const { t } = useI18n()
 </script>
 
@@ -42,7 +42,7 @@ const { t } = useI18n()
       :model-name="modelName"
       :month-name="monthName"
       :sheets="sheets"
-      @open="emit('open', $event)" />
+      @open="emit('open', $event)" @charge="(id, section) => emit('charge', id, section)" @priceless="emit('priceless')" />
     <PlacesTeaser :teaser="placesTeaser" :rows="placesRows" :month-name="monthName" :preview="mapPreview" @open="emit('map')" />
   </section>
 </template>

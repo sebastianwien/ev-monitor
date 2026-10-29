@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { StoryFeedItem, TileId } from '../../composables/storyModel'
+import { feedTarget } from '../../composables/storyFeedTarget'
 import InsightBars, { type InsightBar } from './InsightBars.vue'
 
 /**
@@ -20,7 +21,7 @@ const props = withDefaults(defineProps<{
   /** Kacheln, die ein Sheet haben: nur dahin fuehrt ein Tipp auf die Zeile. */
   sheets?: TileId[]
 }>(), { modelName: '', monthName: '', sheets: () => [] })
-const emit = defineEmits<{ open: [id: TileId] }>()
+const emit = defineEmits<{ open: [id: TileId]; charge: [logId: string, section?: 'cost']; priceless: [] }>()
 
 const { t, locale } = useI18n()
 const { formatCurrency, formatDecimal, formatDistance } = useLocaleFormat()
@@ -52,7 +53,7 @@ const sentence = computed(() => {
     case 'data_quality': {
       const parts = []
       if (p.estimated > 0) parts.push(t('story.feed_quality_estimated', { estimated: p.estimated, total: p.total }))
-      if (p.priceless > 0) parts.push(t('story.feed_quality_priceless', { count: p.priceless }))
+      if (p.priceless > 0) parts.push(t('story.feed_quality_priceless', { count: p.priceless }, p.priceless))
       return parts.join(' ')
     }
     case 'temperature_effect':
@@ -126,33 +127,32 @@ const numberClass = computed(() => {
   return 'text-gray-900 dark:text-gray-100'
 })
 
-const SHEET_OF: Partial<Record<StoryFeedItem['id'], TileId>> = {
-  temperature_effect: 'wltp', autumn_forecast: 'range',
-  cost_trend: 'cost', most_expensive: 'cost', home_savings: 'cost', data_quality: 'cost', distance_trend: 'cost',
-  peer_cost_eur: 'peer',
+/** Ziel der Zeile: eine Ladung, die Liste ohne Preis oder das Sheet der Kachel dahinter */
+const target = computed(() => feedTarget(props.item, props.sheets))
+const tag = computed(() => target.value ? 'button' : 'div')
+function go() {
+  const to = target.value
+  if (to?.kind === 'sheet') emit('open', to.id)
+  else if (to?.kind === 'charge') emit('charge', to.logId, to.section)
+  else if (to?.kind === 'priceless') emit('priceless')
 }
-const sheet = computed<TileId | null>(() => {
-  const id = SHEET_OF[props.item.id]
-  return id && props.sheets.includes(id) ? id : null
-})
-const tag = computed(() => sheet.value ? 'button' : 'div')
 </script>
 
 <template>
   <component
     :is="tag"
-    :type="sheet ? 'button' : undefined"
+    :type="target ? 'button' : undefined"
     :data-testid="`story-feed-${item.id}`"
     class="story-feed-item grid w-full gap-1.5 rounded-xl bg-white px-3.5 py-3 text-left edge-card dark:bg-gray-700/50"
-    :class="sheet ? 'group transition-[transform,box-shadow,background-color] md:hover:bg-gray-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent md:dark:hover:bg-gray-700/70' : ''"
-    @click="sheet && emit('open', sheet)">
+    :class="target ? 'group transition-[transform,box-shadow,background-color] md:hover:bg-gray-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent md:dark:hover:bg-gray-700/70' : ''"
+    @click="go">
     <span class="flex items-start justify-between gap-3">
       <span class="min-w-0 flex-1">
         <span class="block text-[15px] leading-snug text-pretty text-gray-900 dark:text-gray-100" :class="sub ? 'font-bold' : ''"><template v-for="(x, i) in parts" :key="i"><b v-if="x.bold" class="font-bold">{{ x.text }}</b><template v-else>{{ x.text }}</template></template></span>
         <span v-if="sub" class="mt-0.5 block text-[13px] leading-snug text-gray-600 dark:text-gray-300">{{ sub }}</span>
       </span>
       <span v-if="number" data-testid="story-feed-number" class="shrink-0 text-[17px] font-bold tabular-nums" :class="numberClass">{{ number }}</span>
-      <span v-if="sheet" data-testid="story-feed-chevron" class="-ml-1 mt-0.5 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true"><ChevronRightIcon class="h-4 w-4" /></span>
+      <span v-if="target" data-testid="story-feed-chevron" class="-ml-1 mt-0.5 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true"><ChevronRightIcon class="h-4 w-4" /></span>
     </span>
     <InsightBars v-if="bars" :bars="bars" class="mt-1" />
   </component>
