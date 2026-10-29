@@ -5,6 +5,7 @@ import {
   TrashIcon, XMarkIcon, PlusIcon,
 } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
+import { CI_MENU_ROW as row } from '../../utils/ciClasses'
 import type { Car } from '../../api/carService'
 
 /**
@@ -34,7 +35,6 @@ const emit = defineEmits<{
 }>()
 const { t } = useI18n()
 
-const row = 'flex w-full items-center gap-3 min-h-12 px-4 py-2 text-left text-[15px] text-gray-900 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-gray-700 rounded-sm transition'
 const hint = 'ml-auto shrink-0 text-xs text-gray-500 dark:text-gray-400'
 </script>
 

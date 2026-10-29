@@ -15,5 +15,7 @@ export const CI_H2 = 'text-[18px] font-bold tracking-tight text-gray-900 md:text
 export const CI_CARD = 'rounded-2xl bg-white p-4 edge-card dark:bg-gray-700/50'
 /** Beta-Kennzeichnung neben einem Titel: Amber, damit sie sich vom grauen Inhalt abhebt */
 export const CI_BADGE_BETA = 'rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-bold uppercase tracking-wide text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+/** Zeile in einem Menü-Sheet (Mehr, Fahrzeug): ohne Kante, 48 px, Hover wie die Navbar-Knöpfe */
+export const CI_MENU_ROW = 'flex w-full items-center gap-3 min-h-12 px-4 py-2 rounded-lg text-left text-[15px] text-gray-900 hover:bg-black/5 dark:text-gray-100 dark:hover:bg-white/10 transition-colors'
 /** Ruhiger Hinweis im Inhalt: grau, ohne Kante, damit er nicht wie etwas zum Drücken aussieht */
 export const CI_NOTE = 'rounded-2xl bg-gray-100 p-4 text-sm text-gray-700 dark:bg-gray-800/60 dark:text-gray-200'
