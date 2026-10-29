@@ -1,11 +1,33 @@
 import { describe, it, expect } from 'vitest'
-import { toLocalDatetimeInput, tripFormFrom, newTripFormAt, tripFormError, tripPayload, splitTripTimes, joinTripTimes } from '../tripForm'
+import { toLocalDatetimeInput, tripFormFrom, newTripFormAt, tripFormError, tripPayload, splitTripTimes, joinTripTimes, toggleLoadExtra } from '../tripForm'
 
 describe('tripForm', () => {
   it('übernimmt eine Fahrt in Ortszeit fürs Formular', () => {
     const start = new Date(2026, 7, 16, 9, 5)
     const f = tripFormFrom({ tripStartedAt: start.toISOString(), tripEndedAt: null, distanceKm: 42, routeType: null, socStart: 80, socEnd: null })
-    expect(f).toEqual({ tripStartedAt: '2026-08-16T09:05', tripEndedAt: '', distanceKm: 42, routeType: '', socStart: 80, socEnd: '' })
+    expect(f).toEqual({ tripStartedAt: '2026-08-16T09:05', tripEndedAt: '', distanceKm: 42, routeType: '', socStart: 80, socEnd: '', loadExtras: [], measured: false })
+  })
+
+  it('übernimmt Besonderheiten und ob die Fahrt gemessen ist', () => {
+    const f = tripFormFrom({ tripStartedAt: null, tripEndedAt: null, loadExtras: ['TRAILER'], measured: true })
+    expect(f.loadExtras).toEqual(['TRAILER'])
+    expect(f.measured).toBe(true)
+  })
+
+  it('gemessene Fahrt: Payload nur mit Routentyp und Besonderheiten, keine Zeitprüfung', () => {
+    const f = { tripStartedAt: '2026-08-16T09:00', tripEndedAt: '2026-08-16T10:00', distanceKm: 12, routeType: 'HIGHWAY', socStart: 80, socEnd: 70, loadExtras: ['ROOF_BOX'], measured: true }
+    expect(tripPayload(f)).toEqual({ routeType: 'HIGHWAY', loadExtras: ['ROOF_BOX'] })
+    expect(tripFormError({ ...f, tripEndedAt: '' })).toBeNull()
+  })
+
+  it('leere Besonderheiten gehen als leere Liste mit, damit Abwählen ankommt', () => {
+    const p = tripPayload({ tripStartedAt: '2026-08-16T09:00', tripEndedAt: '2026-08-16T10:00', loadExtras: [] })
+    expect(p.loadExtras).toEqual([])
+  })
+
+  it('toggleLoadExtra fügt hinzu und nimmt wieder weg', () => {
+    expect(toggleLoadExtra([], 'TRAILER')).toEqual(['TRAILER'])
+    expect(toggleLoadExtra(['TRAILER', 'FULL_LOAD'], 'TRAILER')).toEqual(['FULL_LOAD'])
   })
 
   it('neue Fahrt endet zum gegebenen Zeitpunkt und beginnt eine Stunde vorher', () => {
@@ -21,7 +43,7 @@ describe('tripForm', () => {
 
   it('Payload: leere Felder bleiben weg, Zeiten mit Offset der Ortszeit', () => {
     const p = tripPayload({ tripStartedAt: '2026-08-16T09:00', tripEndedAt: '2026-08-16T10:00', distanceKm: '', routeType: 'CITY', socStart: 80, socEnd: '' })
-    expect(Object.keys(p).sort()).toEqual(['routeType', 'socStart', 'tripEndedAt', 'tripStartedAt'])
+    expect(Object.keys(p).sort()).toEqual(['loadExtras', 'routeType', 'socStart', 'tripEndedAt', 'tripStartedAt'])
     expect(new Date(p.tripStartedAt).getTime()).toBe(new Date(2026, 7, 16, 9, 0).getTime())
     expect(p.socStart).toBe(80)
   })

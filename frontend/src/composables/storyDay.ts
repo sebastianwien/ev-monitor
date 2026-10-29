@@ -18,6 +18,9 @@ export interface DayTrip {
   routeType?: string | null
   locationStartGeohash?: string | null
   locationEndGeohash?: string | null
+  loadExtras?: string[]
+  /** Vom Auto gemessen: Zeit, Strecke und Akku nicht änderbar */
+  measured?: boolean
 }
 
 /** Was das Tagesblatt von einer Ladung braucht (Auszug aus EvLogResponse). */

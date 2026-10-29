@@ -14,6 +14,7 @@ import org.springframework.http.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -161,7 +162,7 @@ class TripControllerTest extends AbstractIntegrationTest {
 
     @Test
     void updateTrip_validRequest_returns200WithUpdatedFieldsAndUserEditedAt() {
-        EvTrip existing = saveTrip(user1.getId(), car1.getId(), false);
+        EvTrip existing = saveTrip(user1.getId(), car1.getId(), true);
 
         Map<String, Object> patch = Map.of(
                 "distanceKm", 123.0,
@@ -180,6 +181,39 @@ class TripControllerTest extends AbstractIntegrationTest {
 
         EvTrip updated = tripRepository.findById(existing.getId()).orElseThrow();
         assertNotNull(updated.getUserEditedAt());
+    }
+
+    @Test
+    void updateTrip_measuredTrip_rejectsDistanceButAcceptsRouteTypeAndLoadExtras() {
+        EvTrip measured = saveTrip(user1.getId(), car1.getId(), false);
+        HttpHeaders auth = createAuthHeaders(user1.getId(), user1.getEmail());
+
+        ResponseEntity<Map<String, Object>> rejected = restTemplate.exchange(
+                "/api/trips/" + measured.getId(), HttpMethod.PATCH,
+                new HttpEntity<>(Map.of("distanceKm", 123.0), auth),
+                new ParameterizedTypeReference<>() {});
+        assertEquals(HttpStatus.BAD_REQUEST, rejected.getStatusCode());
+
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/trips/" + measured.getId(), HttpMethod.PATCH,
+                new HttpEntity<>(Map.of("routeType", "HIGHWAY", "loadExtras", List.of("TRAILER")), auth),
+                new ParameterizedTypeReference<>() {});
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertEquals(List.of("TRAILER"), res.getBody().get("loadExtras"));
+        assertEquals(true, res.getBody().get("measured"));
+        assertEquals(55.0, ((Number) res.getBody().get("distanceKm")).doubleValue(), 0.01);
+    }
+
+    @Test
+    void updateTrip_unknownLoadExtra_returns400() {
+        EvTrip trip = saveTrip(user1.getId(), car1.getId(), true);
+
+        ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
+                "/api/trips/" + trip.getId(), HttpMethod.PATCH,
+                new HttpEntity<>(Map.of("loadExtras", List.of("ROCKET")), createAuthHeaders(user1.getId(), user1.getEmail())),
+                new ParameterizedTypeReference<>() {});
+
+        assertEquals(HttpStatus.BAD_REQUEST, res.getStatusCode());
     }
 
     @Test
@@ -667,7 +701,7 @@ class TripControllerTest extends AbstractIntegrationTest {
                 OffsetDateTime.now().minusHours(3), OffsetDateTime.now().minusHours(2),
                 null, null, new BigDecimal("10.0"), null, "TESSIE");
 
-        Map<String, Object> patch = Map.of("distanceKm", 99.0);
+        Map<String, Object> patch = Map.of("routeType", "CITY");
 
         ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
                 "/api/trips/" + trip.getId(), HttpMethod.PATCH,
@@ -676,7 +710,7 @@ class TripControllerTest extends AbstractIntegrationTest {
 
         assertEquals(HttpStatus.OK, res.getStatusCode());
         assertNotNull(res.getBody());
-        assertEquals(99.0, ((Number) res.getBody().get("distanceKm")).doubleValue(), 0.01);
+        assertEquals("CITY", res.getBody().get("routeType"));
     }
 
     @Test
@@ -925,13 +959,13 @@ class TripControllerTest extends AbstractIntegrationTest {
 
         ResponseEntity<Map<String, Object>> res = restTemplate.exchange(
                 "/api/trips/" + liveTrip.getId(), HttpMethod.PATCH,
-                new HttpEntity<>(Map.of("distanceKm", 99.0),
+                new HttpEntity<>(Map.of("routeType", "CITY"),
                         createAuthHeaders(freeUser.getId(), freeUser.getEmail())),
                 new ParameterizedTypeReference<>() {});
 
         assertEquals(HttpStatus.OK, res.getStatusCode());
         assertNotNull(res.getBody());
-        assertEquals(99.0, ((Number) res.getBody().get("distanceKm")).doubleValue(), 0.01);
+        assertEquals("CITY", res.getBody().get("routeType"));
     }
 
     // --- helpers ---

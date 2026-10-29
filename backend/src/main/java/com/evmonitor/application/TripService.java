@@ -18,7 +18,9 @@ import java.time.OffsetDateTime;
 import org.springframework.data.domain.Pageable;
 import java.time.ZoneOffset;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -61,6 +63,7 @@ public class TripService {
                 .socStart(req.socStart())
                 .socEnd(req.socEnd())
                 .routeType(req.routeType())
+                .loadExtras(loadExtraNames(req.loadExtras()))
                 .status("COMPLETED")
                 .userCreated(true)
                 .build();
@@ -75,6 +78,11 @@ public class TripService {
                 .filter(t -> t.getDeletedAt() == null)
                 .filter(t -> userCanSeeTrip(t, user))
                 .orElseThrow(() -> new IllegalArgumentException("Trip not found"));
+
+        // Gemessene Fahrten: Zeit, Strecke und Akku kommen vom Auto, sonst passen Karte und Verbrauch nicht mehr
+        if (!trip.isUserCreated() && touchesMeasuredValues(req)) {
+            throw new ValidationException("Zeit, Strecke und Akku dieser Fahrt sind vom Auto gemessen");
+        }
 
         OffsetDateTime newStart = req.tripStartedAt() != null ? req.tripStartedAt() : trip.getTripStartedAt();
         OffsetDateTime newEnd   = req.tripEndedAt()   != null ? req.tripEndedAt()   : trip.getTripEndedAt();
@@ -91,10 +99,22 @@ public class TripService {
         if (req.socStart() != null)      { trip.setSocStart(req.socStart()); dataChanged = true; anyChanged = true; }
         if (req.socEnd() != null)        { trip.setSocEnd(req.socEnd());     dataChanged = true; anyChanged = true; }
         if (req.feedback() != null)      { trip.setFeedback(req.feedback());           anyChanged = true; }
+        if (req.loadExtras() != null)    { trip.setLoadExtras(loadExtraNames(req.loadExtras())); anyChanged = true; }
         if (!anyChanged) return project(trip, user);
 
         if (dataChanged) trip.setUserEditedAt(OffsetDateTime.now());
         return project(tripRepository.save(trip), user);
+    }
+
+    private static boolean touchesMeasuredValues(UpdateTripRequest req) {
+        return req.tripStartedAt() != null || req.tripEndedAt() != null || req.distanceKm() != null
+                || req.socStart() != null || req.socEnd() != null;
+    }
+
+    /** Reihenfolge der Auswahl bleibt, Duplikate und null fallen weg. */
+    private static List<String> loadExtraNames(List<TripLoadExtra> extras) {
+        if (extras == null) return new ArrayList<>();
+        return new ArrayList<>(extras.stream().filter(Objects::nonNull).map(Enum::name).distinct().toList());
     }
 
     @Transactional
@@ -178,6 +198,9 @@ public class TripService {
         surviving.setEstimatedConsumedKwh(estimatedConsumedKwh);
         surviving.setRouteType(mergeRouteType(earlier.getRouteType(), later.getRouteType()));
         surviving.setFeedback(null);
+        List<String> mergedExtras = new ArrayList<>(earlier.getLoadExtras());
+        later.getLoadExtras().stream().filter(e -> !mergedExtras.contains(e)).forEach(mergedExtras::add);
+        surviving.setLoadExtras(mergedExtras);
         surviving.setRawPayload(buildMergedPayload(other.getId(), survivingTripId,
                 earlier.getRawPayload(), later.getRawPayload()));
         surviving.setUserCreated(true);

@@ -743,6 +743,7 @@ const selectedCarCharging = computed(() => {
 })
 
 // Daten-Reload bei Auto-Wechsel liegt zentral im CarContextLayout.
+  for (const x of trip.loadExtras ?? []) parts.push(t('storyday.form_extra_' + String(x).toLowerCase()))
 const authStore = useAuthStore()
 const isAdmin   = computed(() => authStore.isAdmin)
 

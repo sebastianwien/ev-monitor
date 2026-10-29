@@ -6,6 +6,17 @@ export interface TripFormValues {
   routeType?: string
   socStart?: number | ''
   socEnd?: number | ''
+  /** Besonderheiten, Werte aus LOAD_EXTRAS */
+  loadExtras?: string[]
+  /** Vom Auto gemessen: Zeit, Strecke und Akku sind nur Anzeige, gesendet werden nur Nutzerangaben */
+  measured?: boolean
+}
+
+/** Besonderheiten einer Fahrt (Backend: TripLoadExtra), Mehrfachauswahl */
+export const LOAD_EXTRAS = ['TRAILER', 'ROOF_BOX', 'FULL_LOAD'] as const
+
+export function toggleLoadExtra(extras: string[], extra: string): string[] {
+  return extras.includes(extra) ? extras.filter(e => e !== extra) : [...extras, extra]
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
@@ -31,6 +42,8 @@ interface TripLike {
   routeType?: string | null
   socStart?: number | null
   socEnd?: number | null
+  loadExtras?: string[] | null
+  measured?: boolean
 }
 
 export function tripFormFrom(trip: TripLike): Required<TripFormValues> {
@@ -41,12 +54,14 @@ export function tripFormFrom(trip: TripLike): Required<TripFormValues> {
     routeType: trip.routeType ?? '',
     socStart: trip.socStart ?? '',
     socEnd: trip.socEnd ?? '',
+    loadExtras: [...(trip.loadExtras ?? [])],
+    measured: trip.measured === true,
   }
 }
 
 /** Neue Fahrt: endet zum gegebenen Zeitpunkt, beginnt eine Stunde vorher. */
 export function newTripFormAt(end: Date): TripFormValues {
-  return { tripStartedAt: localInput(new Date(end.getTime() - 3_600_000)), tripEndedAt: localInput(end), distanceKm: '', routeType: '' }
+  return { tripStartedAt: localInput(new Date(end.getTime() - 3_600_000)), tripEndedAt: localInput(end), distanceKm: '', routeType: '', loadExtras: [] }
 }
 
 type TripTimes = Pick<TripFormValues, 'tripStartedAt' | 'tripEndedAt'>
@@ -65,14 +80,20 @@ export function joinTripTimes(date: string, start: string, end: string): TripTim
 }
 
 /** i18n-Schlüssel des ersten Fehlers oder null */
-export function tripFormError(f: Pick<TripFormValues, 'tripStartedAt' | 'tripEndedAt'>): string | null {
+export function tripFormError(f: Pick<TripFormValues, 'tripStartedAt' | 'tripEndedAt' | 'measured'>): string | null {
+  if (f.measured) return null
   if (!f.tripStartedAt || !f.tripEndedAt) return 'dashboard.trip_err_times_required'
   if (new Date(f.tripEndedAt) <= new Date(f.tripStartedAt)) return 'dashboard.trip_err_end_before_start'
   return null
 }
 
-/** Body für POST /trips und PATCH /trips/{id}; leere Felder bleiben weg. */
+/**
+ * Body für POST /trips und PATCH /trips/{id}; leere Felder bleiben weg, Besonderheiten gehen immer mit
+ * (leer = zurücksetzen). Gemessene Fahrten senden nur, was der Nutzer ändern darf.
+ */
 export function tripPayload(f: TripFormValues): Record<string, any> {
+  const loadExtras = [...(f.loadExtras ?? [])]
+  if (f.measured) return f.routeType ? { routeType: f.routeType, loadExtras } : { loadExtras }
   const p: Record<string, any> = {
     tripStartedAt: toOffsetDateTime(f.tripStartedAt),
     tripEndedAt: toOffsetDateTime(f.tripEndedAt),
@@ -81,5 +102,6 @@ export function tripPayload(f: TripFormValues): Record<string, any> {
   if (f.routeType) p.routeType = f.routeType
   if (f.socStart !== '' && f.socStart != null) p.socStart = Number(f.socStart)
   if (f.socEnd !== '' && f.socEnd != null) p.socEnd = Number(f.socEnd)
+  p.loadExtras = loadExtras
   return p
 }
