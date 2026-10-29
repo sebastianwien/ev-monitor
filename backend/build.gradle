@@ -40,6 +40,8 @@ dependencies {
 	implementation 'com.stripe:stripe-java:28.3.1'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.3'
 	implementation 'org.jsoup:jsoup:1.18.3'
+	// Tarif-Crawler liest Preisseiten mit Claude (ANTHROPIC_API_KEY), sonst Mistral
+	implementation 'com.anthropic:anthropic-java:3.2.0'
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
 	runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
