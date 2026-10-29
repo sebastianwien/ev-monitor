@@ -128,7 +128,8 @@ const CASES: Case[] = [
     check: async (page) => {
       const review = card(page, 'month_change');
       await expect(sentence(page, 'month_change')).toContainText(/September: 512\skm für 61\s€\./);
-      await expect(review).toContainText(/Mit Benzin wären es 67\s€\./);
+      // 512 km x 7,6 l (Benziner der Klasse SEDAN, das E2E-Auto ist ein Model 3) x 1,75 € = 68 €
+      await expect(review).toContainText(/Mit Benzin wären es 68\s€\./);
       await expect(review.getByRole('button', { name: 'Rückblick teilen' })).toBeVisible();
     },
   },
