@@ -12,7 +12,9 @@ const ActivityLocationMap = defineAsyncComponent(() => import('../../dashboard/A
 
 /**
  * Ablauf eines Tages: chronologische Liste mit senkrechter Leiste durch die Symbole. Zeilen mindestens 56 px,
- * hier wird auf dem Handy getippt. Die Uhrzeit steht in der Unterzeile, so bleibt Breite für Karte und Preis. Zwischen zwei Fahrten mit kurzem Halt: Zusammenführen, zweistufig bestätigt.
+ * hier wird auf dem Handy getippt. Erste Zeile Startzeit | km bzw. Ort, Unterzeile Dauer und Akku; Symbol, Text und
+ * Minikarte auf einer Achse. Halt- und Standzeile gleich hoch (44 px), damit die Abstände zwischen Fahrten gleich sind.
+ * Zwischen zwei Fahrten mit kurzem Halt: Zusammenführen, zweistufig bestätigt.
  */
 const props = defineProps<{ events: DayEvent[]; selectedId: string | null; merging: boolean }>()
 const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent, later: DayEvent] }>()
@@ -24,15 +26,10 @@ function dur(min: number) {
   const h = Math.floor(min / 60), m = min % 60
   return h && m ? t('storyday.dur_hm', { h, m }) : h ? t('storyday.dur_h', { h }) : t('storyday.dur_m', { m })
 }
-const soc = (e: DayEvent) => e.socFrom != null && e.socTo != null
-  ? t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) })
-  : e.socTo != null ? t('storyday.soc_to', { to: Math.round(e.socTo) }) : ''
 function placeName(e: DayEvent & { kind: 'charge' }) {
   const p = chargePlace(e.log)
   return p.kind === 'operator' ? p.name : t(`storyday.place_${p.kind}`)
 }
-/** Unterzeile beider Arten: Zeitspanne und Dauer, auf dem Handy die Zeitachse */
-const span = (e: DayEvent) => `${hm(e.from)}-${hm(e.to)} · ${dur(e.to - e.from)}`
 /** Rechts unter dem Preis: Ladeart und Energie */
 function chargeSide(e: DayEvent & { kind: 'charge' }) {
   const k = chargeKwh(e.log)
@@ -75,40 +72,49 @@ const confirming = ref<string | null>(null)
           </div>
         </div>
       </li>
-      <li v-else-if="i && showStanding(events[i - 1], e)" class="py-1 pl-14 text-[12px] tabular-nums text-gray-400">
+      <li v-else-if="i && showStanding(events[i - 1], e)" class="flex min-h-11 items-center pl-14 text-[12px] tabular-nums text-gray-500 dark:text-gray-400">
         {{ t('storyday.standing', { d: dur(gapMinutes(events[i - 1], e)) }) }}
       </li>
 
       <li>
         <button type="button" :data-testid="`day-row-${e.kind}`" :aria-current="e.id === selectedId"
-          class="relative flex min-h-14 w-full items-start gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
+          class="relative flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
           :class="e.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : ''"
           @click="emit('select', e)">
-          <span v-if="e.kind === 'trip'" class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-white dark:border-gray-200 dark:bg-gray-900">
+          <span v-if="e.kind === 'trip'" class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-sky-600 dark:border-gray-200 dark:bg-gray-900 dark:text-sky-400">
             <MapIcon class="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
           <span v-else class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
             <BoltIcon class="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
           <span class="min-w-0 flex-1">
-            <span class="block truncate text-[15px] font-semibold leading-snug">
-              <template v-if="e.kind === 'trip'">{{ t('storyday.trip') }} <span class="tabular-nums">{{ e.trip.distanceKm != null ? formatDistance(e.trip.distanceKm) : '' }}</span></template>
-              <template v-else>{{ placeName(e) }}</template>
+            <span class="flex items-baseline gap-2 text-[15px] font-semibold leading-snug">
+              <span class="shrink-0 tabular-nums text-gray-500 dark:text-gray-400">{{ hm(e.from) }}</span>
+              <span class="h-3.5 w-px shrink-0 self-center bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
+              <span class="truncate">
+                <template v-if="e.kind === 'trip' && e.trip.distanceKm != null"><span class="sr-only">{{ t('storyday.trip') }} </span><span class="tabular-nums">{{ formatDistance(e.trip.distanceKm) }}</span></template>
+                <template v-else-if="e.kind === 'trip'">{{ t('storyday.trip') }}</template>
+                <template v-else>{{ placeName(e) }}</template>
+              </span>
             </span>
-            <span class="block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ span(e) }}</span>
-            <span v-if="e.socFrom != null && e.socTo != null" class="flex flex-wrap items-center gap-x-1.5 text-[13px] tabular-nums" data-testid="day-soc">
-              <span class="whitespace-nowrap text-gray-600 dark:text-gray-300">{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
-              <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="whitespace-nowrap rounded-full px-1.5 text-[12px] font-semibold"
-                :class="e.socTo > e.socFrom ? 'bg-green-50 text-green-800 dark:bg-green-400/10 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300'">{{ delta(e.socFrom, e.socTo) }}</span>
+            <span class="flex flex-wrap items-center gap-x-1.5 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">
+              <span class="whitespace-nowrap">{{ dur(e.to - e.from) }}</span>
+              <template v-if="e.socFrom != null && e.socTo != null">·
+                <span class="whitespace-nowrap text-gray-600 dark:text-gray-300" data-testid="day-soc"><span class="sr-only">{{ t('storyday.soc') }} </span>{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
+                <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="whitespace-nowrap rounded-full px-1.5 text-[12px] font-semibold"
+                  :class="e.socTo > e.socFrom ? 'bg-green-50 text-green-800 dark:bg-green-400/10 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300'">{{ delta(e.socFrom, e.socTo) }}</span>
+              </template>
+              <template v-else-if="e.socTo != null">·
+                <span class="whitespace-nowrap text-gray-600 dark:text-gray-300">{{ t('storyday.soc_to', { to: Math.round(e.socTo) }) }}</span>
+              </template>
             </span>
-            <span v-else-if="e.socTo != null" class="block text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ soc(e) }}</span>
             <span v-if="e.kind === 'charge' && missingOf(e.log).length" class="mt-1 flex gap-1">
               <span v-for="m in missingOf(e.log)" :key="m" data-testid="day-missing"
                 class="rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{{ t(`storyday.missing_${m}`) }}</span>
             </span>
           </span>
           <!-- isolate: Leaflets Ebenen dürfen nicht über die Kopfzeile des Sheets ragen -->
-          <span v-if="e.kind === 'trip' && hasTripMap(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-16 w-[88px] shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-white/5">
+          <span v-if="e.kind === 'trip' && hasTripMap(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-[52px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-white/5">
             <ActivityLocationMap variant="thumb" :start-geohash="e.trip.locationStartGeohash" :end-geohash="e.trip.locationEndGeohash"
               :route-polyline="e.trip.routePolyline" :route-kind="e.trip.routeKind" :trace-polyline="e.trip.tracePolyline" />
           </span>
