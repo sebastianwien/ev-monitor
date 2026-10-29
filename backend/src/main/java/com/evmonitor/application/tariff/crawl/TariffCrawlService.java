@@ -45,7 +45,7 @@ public class TariffCrawlService {
     private final ChargingProviderTariffRepository tariffs;
     private final TariffCrawlProperties props;
 
-    /** Status, die am nächsten Tag einen neuen Versuch auslösen statt erst nach {@code refetch-days}. */
+    /** Status, die beim nächsten Lauf einen neuen Versuch auslösen statt erst nach {@code refetch-days}. */
     private static final java.util.Set<String> RETRY_SOON = java.util.Set.of("HTTP_ERROR", "ROBOTS", "UNREADABLE", "EXTRACT_ERROR");
 
     /**

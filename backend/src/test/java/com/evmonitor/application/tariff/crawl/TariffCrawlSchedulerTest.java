@@ -10,7 +10,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.support.CronExpression;
 
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -114,6 +118,20 @@ class TariffCrawlSchedulerTest {
         assertThat(scheduler.tryStartManual()).isTrue();
         assertThat(scheduler.tryStartManual()).isFalse();
         verify(service).run(eq(false), any());
+    }
+
+    @Test
+    void runsOnceAWeek_sundayNight() throws Exception {
+        Scheduled scheduled = TariffCrawlScheduler.class.getMethod("runNightly").getAnnotation(Scheduled.class);
+        ZoneId berlin = ZoneId.of(scheduled.zone());
+        CronExpression cron = CronExpression.parse(scheduled.cron());
+
+        ZonedDateTime first = cron.next(ZonedDateTime.of(2026, 11, 2, 0, 0, 0, 0, berlin));
+        ZonedDateTime second = cron.next(first);
+
+        assertThat(berlin).isEqualTo(ZoneId.of("Europe/Berlin"));
+        assertThat(first).isEqualTo(ZonedDateTime.of(2026, 11, 8, 23, 40, 0, 0, berlin));
+        assertThat(second).isEqualTo(first.plusWeeks(1));
     }
 
     private static TariffProposalEntity proposal(TariffProposalEntity.Kind kind, Map<String, Object> proposed) {
