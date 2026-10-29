@@ -21,7 +21,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /**
- * Täglich 05:40 die fälligen Quellen, unter Lock (bei Blue/Green laufen kurz zwei Instanzen).
+ * Sonntags 23:40 die fälligen Quellen, unter Lock (bei Blue/Green laufen kurz zwei Instanzen).
  * Höchstens eine Mail je Lauf, nur wenn ein Admin etwas entscheiden muss oder eine Quelle zweimal
  * in Folge nicht lesbar war.
  */
@@ -56,7 +56,7 @@ public class TariffCrawlScheduler {
         this.executor = executor;
     }
 
-    @Scheduled(cron = "0 40 5 * * *", zone = "Europe/Berlin")
+    @Scheduled(cron = "0 40 23 * * SUN", zone = "Europe/Berlin")
     public void runNightly() {
         if (!props.isEnabled()) return;
         if (!locks.tryAcquire(LOCK_NAME, LOCK_TTL)) {
