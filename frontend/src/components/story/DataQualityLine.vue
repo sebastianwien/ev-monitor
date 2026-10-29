@@ -23,7 +23,7 @@ const elapsed = computed(() => props.days.filter(d => !d.future).length)
 const cellClass = (d: DayCoverage) => {
   if (d.charges > 0) return 'bg-green-700 dark:bg-green-400'
   if (d.future) return 'bg-gray-100 dark:bg-gray-800'
-  return 'bg-gray-200 dark:bg-gray-700'
+  return 'bg-gray-200 dark:bg-gray-600'
 }
 
 /** Der letzte Ladetag: beim Öffnen gewählt, und wieder, sobald Zeiger oder Fokus gehen. */

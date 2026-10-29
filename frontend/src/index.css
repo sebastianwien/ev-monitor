@@ -198,18 +198,18 @@ html {
 /* The app's edge look (header, ranking tiles): outline and a hard shadow in the edge colour. As utilities,
    so a breakpoint picks the level: on the model page cards carry it on the phone, the boxes from md up.
    Dark mode: only what you press keeps the edge (buttons, chips via border-edge). Cards drop it for a
-   1 px hairline, so a dense page does not turn into a grid; the border stays transparent so nothing shifts.
+   1 px hairline (20 % white, about 1.9:1 against the card), so a dense page does not turn into a grid; the border stays transparent so nothing shifts.
    The hairline gets a 1 px hard shadow (--edge-dark-shadow), a small echo of the light edge. */
 .dark { --color-edge: rgb(255 255 255 / 0.35); --edge-dark-shadow: 1px 1px 0 0 rgb(255 255 255 / 0.20); }
 @utility edge-card {
   border: 2px solid var(--color-edge);
   box-shadow: 2px 2px 0 0 var(--color-edge);
-  @variant dark { border-color: transparent; box-shadow: var(--edge-dark-shadow, none); outline: 1px solid rgb(255 255 255 / 0.10); outline-offset: -1px; }
+  @variant dark { border-color: transparent; box-shadow: var(--edge-dark-shadow, none); outline: 1px solid rgb(255 255 255 / 0.20); outline-offset: -1px; }
 }
 @utility edge-box {
   border: 2px solid var(--color-edge);
   box-shadow: 2px 2px 0 0 var(--color-edge);
-  @variant dark { border-color: transparent; box-shadow: var(--edge-dark-shadow, none); outline: 1px solid rgb(255 255 255 / 0.10); outline-offset: -1px; }
+  @variant dark { border-color: transparent; box-shadow: var(--edge-dark-shadow, none); outline: 1px solid rgb(255 255 255 / 0.20); outline-offset: -1px; }
 }
 /* Landing CTA: force the crisp bottom-right 3D shadow (overrides btn-3d default,
    keeps the :active press via higher pseudo-class specificity) */

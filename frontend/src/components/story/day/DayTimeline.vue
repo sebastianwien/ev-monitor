@@ -73,7 +73,7 @@ const confirming = ref<string | null>(null)
           </div>
         </div>
       </li>
-      <li v-else-if="i && showStanding(events[i - 1], e)" class="py-1 pl-[90px] text-[12px] tabular-nums text-gray-400 dark:text-gray-500">
+      <li v-else-if="i && showStanding(events[i - 1], e)" class="py-1 pl-[90px] text-[12px] tabular-nums text-gray-400">
         {{ t('storyday.standing', { d: dur(gapMinutes(events[i - 1], e)) }) }}
       </li>
 
@@ -83,7 +83,7 @@ const confirming = ref<string | null>(null)
           :class="e.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : ''"
           @click="emit('select', e)">
           <span class="w-11 shrink-0 text-[13px] font-semibold leading-tight tabular-nums">
-            {{ hm(e.from) }}<span class="block font-normal text-gray-400 dark:text-gray-500">{{ hm(e.to) }}</span>
+            {{ hm(e.from) }}<span class="block font-normal text-gray-400">{{ hm(e.to) }}</span>
           </span>
           <template v-if="e.kind === 'trip'">
             <span class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-white dark:border-gray-200 dark:bg-gray-900">
@@ -130,6 +130,6 @@ const confirming = ref<string | null>(null)
       </li>
     </template>
   </ul>
-  <p v-if="credit" data-testid="day-map-credit" class="mt-1 text-right text-[10px] text-gray-400 dark:text-gray-500">{{ credit }}</p>
+  <p v-if="credit" data-testid="day-map-credit" class="mt-1 text-right text-[10px] text-gray-400">{{ credit }}</p>
   </div>
 </template>

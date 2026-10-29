@@ -37,7 +37,7 @@ function pick(b: BatteryBar) {
       <div class="relative mt-2 h-[100px]">
         <!-- Grundlinie und 100 % als leise Skala -->
         <div v-for="v in [100, 0]" :key="v" class="absolute inset-x-0 border-t border-gray-200 dark:border-gray-700" :style="{ top: `${100 - v}%` }">
-          <span class="absolute -left-11 w-9 -translate-y-1/2 whitespace-nowrap text-right text-[10.5px] tabular-nums text-gray-400 dark:text-gray-500">{{ v }} %</span>
+          <span class="absolute -left-11 w-9 -translate-y-1/2 whitespace-nowrap text-right text-[10.5px] tabular-nums text-gray-400">{{ v }} %</span>
         </div>
         <div class="absolute inset-0 flex items-end gap-px">
           <component :is="interactive && b.soc != null ? 'button' : 'span'" v-for="b in bars" :key="b.from" type="button" tabindex="-1"
@@ -57,7 +57,7 @@ function pick(b: BatteryBar) {
           </span>
         </div>
       </div>
-      <div class="relative mt-1.5 h-3.5 text-[10.5px] tabular-nums text-gray-400 dark:text-gray-500">
+      <div class="relative mt-1.5 h-3.5 text-[10.5px] tabular-nums text-gray-400">
         <span v-for="(h, i) in ['0', '6', '12', '18', t('storyday.axis_24')]" :key="i" class="absolute whitespace-nowrap"
           :class="i === 0 ? '' : i === 4 ? '-translate-x-full' : '-translate-x-1/2'" :style="{ left: `${i * 25}%` }">{{ h }}</span>
       </div>
