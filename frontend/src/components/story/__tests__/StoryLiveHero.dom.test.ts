@@ -37,4 +37,10 @@ describe('StoryLiveHero', () => {
     expect(host.textContent).not.toContain('0%')
     expect(host.textContent).toContain('kW')
   })
+
+  it('ohne Leistung (Smartcar) traegt der Ladestand den Hero, keine 0 kW', () => {
+    const host = mount(live({ powerKw: null, timeToFullMinutes: null, estRangeKm: null }))
+    expect(host.querySelector('[role="progressbar"]')?.getAttribute('aria-valuenow')).toBe('63')
+    expect(host.textContent).not.toContain('kW')
+  })
 })

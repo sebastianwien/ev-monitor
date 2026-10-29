@@ -54,7 +54,8 @@ watch(() => props.live.powerKw, v => tickTo(v ?? 0))
       </SocRing>
 
       <div class="min-w-0 flex-1">
-        <p class="font-extrabold tracking-tight leading-none text-gray-900 dark:text-gray-50 tabular-nums text-[44px] md:text-[56px]">
+        <!-- Smartcar misst keine Leistung: dann traegt der Ring den Hero, statt 0 kW zu behaupten. -->
+        <p v-if="live.powerKw != null" class="font-extrabold tracking-tight leading-none text-gray-900 dark:text-gray-50 tabular-nums text-[44px] md:text-[56px]">
           {{ formatDecimal(shownKw, 0) }}<span class="text-lg font-semibold text-gray-500 ml-1">kW</span>
         </p>
         <p v-if="live.timeToFullMinutes != null" class="mt-2 flex items-center gap-1.5 text-[15px] text-gray-800 dark:text-gray-200">

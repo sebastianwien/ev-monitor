@@ -67,8 +67,9 @@ const selectedCar = computed(() => cars.value.find((c: any) => c.id === selected
 const sohPercent = computed(() => selectedCar.value?.batteryDegradationPercent != null ? 100 - selectedCar.value.batteryDegradationPercent : null)
 const effectiveCapacity = computed<number | null>(() => selectedCar.value?.effectiveBatteryCapacityKwh ?? null)
 
-// Live-Laden: Polling nur, wenn das Gate offen ist (gleiche Regel wie die LiveChargingCard).
-const liveGate = computed(() => authStore.canViewLiveCharging(selectedCar.value?.brand ?? null))
+// Live-Laden: abgefragt wird nur bei Marken mit Live-Quelle (Tesla, Smartcar-Marken inkl. Polestar).
+// Ob wirklich geladen wird, entscheidet der Connector.
+const liveGate = computed(() => !!selectedCar.value && autoSyncProviderFor(selectedCar.value) !== 'NONE')
 const liveCarId = computed(() => liveGate.value ? selectedCarId.value : null)
 const { data: live, isLive: liveActive } = useChargingLive(liveCarId)
 watch(liveActive, (v) => { if (v) analytics.track('story_live_shown') })
