@@ -113,6 +113,8 @@ export interface TripMapSource {
   routePolyline?: string | null
   /** Woher {@link routePolyline} stammt - siehe {@link tripLine}. */
   routeKind?: string | null
+  /** Gefahrene Strecke; unter 0,1 km zeigt die Minikarte keine Bewegung, auch wenn die Spur einen Ausreißer hat */
+  distanceKm?: number | null
 }
 
 export function hasTripMap(trip: TripMapSource | null | undefined): boolean {
@@ -153,6 +155,7 @@ function meters(a: LatLon, b: LatLon): number {
  */
 export function hasTripThumb(trip: TripMapSource): boolean {
   if (!hasTripMap(trip)) return false
+  if (trip.distanceKm != null && trip.distanceKm * 1000 < THUMB_MIN_MOVE_M) return false
   const line = tripLine(trip.tracePolyline, trip.routePolyline, trip.routeKind)
   if (line) {
     const first = { lat: line.points[0][0], lon: line.points[0][1] }

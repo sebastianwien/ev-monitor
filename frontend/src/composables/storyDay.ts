@@ -194,7 +194,7 @@ export function batteryBars(ev: DayEvent[], slot = 30): BatteryBar[] {
   return Array.from({ length: DAY_MIN / slot }, (_, i) => {
     const from = i * slot, to = from + slot
     const known = pts.length > 0 && from < last! && to > first!
-    const over = (k: DayEvent['kind']) => ev.some(e => e.kind === k && e.from < to && e.to > from)
+    const over = (k: DayEvent['kind']) => ev.some(e => e.kind === k && barOfEvent({ from }, e, slot))
     return { from, soc: known ? Math.round(socAt(Math.min(to, last!)) * 10) / 10 : null, kind: over('charge') ? 'charge' : over('trip') ? 'trip' : 'idle' }
   })
 }

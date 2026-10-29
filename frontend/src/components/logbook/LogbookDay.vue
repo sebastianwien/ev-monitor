@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useIsMobile } from '../../composables/useIsMobile'
 import { useI18n } from 'vue-i18n'
 import DayRibbon from '../story/day/DayRibbon.vue'
 import DayTimeline, { type StandingRow } from '../story/day/DayTimeline.vue'
@@ -41,6 +42,8 @@ const showRibbon = computed(() => {
 const stickyTop = { top: 'var(--content-top, var(--top-nav-h))' }
 /** Zeile unter dem Mauszeiger: ihre Balken im Diagramm treten hervor (Desktop) */
 const hovered = ref<string | null>(null)
+/** Ab 768 px klebt das Diagramm im Tageskopf, darunter steht es im Blatt: immer nur eins im DOM */
+const md = useIsMobile('(min-width: 768px)')
 /** Ab 768 px hinter Akku und Temperatur: Tempo, Streckentyp, Besonderheiten */
 const tripDetails = (trip: DayTrip) => tripDetailKeys(trip).map(k => t(k.key, k.params ?? {}))
 /** Ladekarte der Ladung, überall (auf dem Handy in eigener Zeile); der Preis je kWh steht rechts unter dem Betrag */
@@ -83,9 +86,9 @@ const sum = computed(() => {
         <span class="text-right text-[12px] tabular-nums text-gray-500 dark:text-gray-400">{{ sum }}</span>
       </div>
       <!-- Desktop: das Diagramm klebt mit dem Tageskopf, Hover über einer Zeile hebt ihre Balken hervor -->
-      <DayRibbon v-if="showRibbon" class="hidden md:block" :highlight-id="hovered" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
+      <DayRibbon v-if="showRibbon && md" :highlight-id="hovered" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
     </div>
-    <DayRibbon v-if="showRibbon" class="md:hidden" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
+    <DayRibbon v-if="showRibbon && !md" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
     <div class="mt-2">
       <DayTimeline :events="events" :selected-id="selectedId" :merging="merging" :standing="rows" newest-first no-credit
         @select="emit('select', $event)" @merge="(a, b) => emit('merge', a, b)" @hover="id => { hovered = id }">

@@ -139,6 +139,9 @@ describe('hasTripThumb', () => {
     expect(hasTripThumb({ locationStartGeohash: 'u33df5x8', locationEndGeohash: 'u33df5x8' })).toBe(false)
     expect(hasTripThumb({ locationStartGeohash: 'u33df5x8', locationEndGeohash: 'u33df5x8', tracePolyline: '????' })).toBe(false)
   })
+  it('unter 100 m gefahren keine Minikarte, auch wenn ein GPS-Ausreißer die Spur weit zieht', () => {
+    expect(hasTripThumb({ locationStartGeohash: 'u33d0k', tracePolyline: '_p~iF~ps|U_ulLnnqC', distanceKm: 0.05 })).toBe(false)
+  })
   it('ohne Ort keine Minikarte', () => {
     expect(hasTripThumb({})).toBe(false)
   })

@@ -103,3 +103,14 @@ describe('DayTimeline Story und Logbuch', () => {
     expect(standings[0].textContent).toContain('gestanden')
   })
 })
+
+describe('DayTimeline Hover (Logbuch, Desktop)', () => {
+  it('meldet die Zeile unter dem Mauszeiger und das Verlassen', async () => {
+    const hovered: (string | null)[] = []
+    const host = await mountWith({ events: eventsOfDay('2026-08-16', [trip()], []), onHover: (id: string | null) => hovered.push(id) })
+    const row = host.querySelector('[data-testid="day-row-trip"]')!
+    row.dispatchEvent(new MouseEvent('mouseenter'))
+    row.dispatchEvent(new MouseEvent('mouseleave'))
+    expect(hovered).toEqual(['t1', null])
+  })
+})
