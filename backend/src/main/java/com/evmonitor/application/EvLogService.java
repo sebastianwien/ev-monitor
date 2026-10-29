@@ -551,7 +551,14 @@ public class EvLogService {
             }
         }
 
-        UUID updatedChargingProviderId = existing.getChargingProviderId();
+        // Privat -> öffentlich: der Heimtarif gilt nicht an der Säule. Karte und kWh-Preis gehören zu ihm
+        // und fallen immer weg; die Kosten nur, wenn der Request keine neuen mitbringt. Der Preis kommt
+        // dann aus dem Ort oder bleibt offen.
+        boolean leavesHome = Boolean.FALSE.equals(existing.getPublicCharging())
+                && Boolean.TRUE.equals(updatedIsPublicCharging);
+        boolean dropHomePrice = leavesHome && request.costEur() == null;
+
+        UUID updatedChargingProviderId = leavesHome ? null : existing.getChargingProviderId();
         if (request.chargingProviderId() != null) {
             requireOwnCard(request.chargingProviderId(), userId);
             updatedChargingProviderId = request.chargingProviderId();
@@ -571,7 +578,8 @@ public class EvLogService {
                 .kwhCharged(updatedKwhCharged)
                 .kwhAtVehicle(updatedKwhAtVehicle)
                 .measurementType(updatedMeasurementType)
-                .costEur(request.costEur()                   != null ? request.costEur()                : existing.getCostEur())
+                .costEur(request.costEur()                   != null ? request.costEur()                : dropHomePrice ? null : existing.getCostEur())
+                .pricePerKwh(leavesHome ? null : existing.getPricePerKwh())
                 .chargeDurationMinutes(request.chargeDurationMinutes() != null ? request.chargeDurationMinutes() : existing.getChargeDurationMinutes())
                 .geohash(geohash)
                 .odometerKm(request.odometerKm()             != null ? request.odometerKm()             : existing.getOdometerKm())
@@ -592,6 +600,10 @@ public class EvLogService {
                 .temperatureCelsius(geohashChanged ? null : existing.getTemperatureCelsius())
                 .updatedAt(LocalDateTime.now())
                 .build();
+        // Nur mit 7 Stellen: eine 6er-Zelle trifft keine Säule und bekäme sonst den Preis irgendeiner Ladung im Feld.
+        if (dropHomePrice && geohash != null && geohash.length() >= 7) {
+            updated = locationPricing.enrich(updated, userId);
+        }
 
         EvLog savedLog = save(updated);
 
