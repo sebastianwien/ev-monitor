@@ -1,5 +1,21 @@
+<script lang="ts">
+/**
+ * Solange ein Sheet offen ist, scrollt die Seite dahinter nicht (sonst nimmt ein Wisch auf
+ * Abdunklung oder Kopf die Seite mit). Gezaehlt ueber alle Sheets, weil sie sich stapeln.
+ */
+let openSheets = 0
+let pageOverflow = ''
+function lockPage() {
+  if (openSheets++ === 0) { pageOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden' }
+}
+function unlockPage() {
+  if (openSheets > 0 && --openSheets === 0) document.body.style.overflow = pageOverflow
+}
+</script>
+
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useSheetDrag } from '../../composables/useSheetDrag'
 
 /**
  * Overlay, das auf Mobile von unten hereinfaehrt und beim Schliessen wieder nach unten
@@ -42,7 +58,8 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ close: [] }>()
 
 const visible = ref(false)
-onMounted(() => { visible.value = true })
+onMounted(() => { visible.value = true; lockPage() })
+onUnmounted(unlockPage)
 
 function requestClose() {
   visible.value = false
@@ -50,6 +67,12 @@ function requestClose() {
 function onBackdrop() {
   if (!props.locked) requestClose()
 }
+
+// Mobil liegt das Panel unten an: nach unten ziehen schließt wie bei den Karten des Stapels.
+const drag = useSheetDrag({
+  enabled: () => !props.locked && !window.matchMedia?.('(min-width: 640px)').matches,
+  close: requestClose,
+})
 
 defineExpose({ requestClose })
 </script>
@@ -64,10 +87,12 @@ defineExpose({ requestClose })
         aria-modal="true"
         :aria-label="label"
         @click.self="onBackdrop">
-        <div class="absolute inset-0" :class="stacked ? 'bg-black/25' : 'bg-black/50'" @click="onBackdrop" />
+        <div class="absolute inset-0 touch-none" :class="stacked ? 'bg-black/25' : 'bg-black/50'" @click="onBackdrop" />
         <div
           :data-testid="testid"
-          class="sheet-panel relative w-full max-h-[90vh] flex flex-col overflow-hidden bg-white dark:bg-gray-800 rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0"
+          class="sheet-panel relative w-full max-h-[90vh] flex flex-col overflow-hidden overscroll-contain bg-white dark:bg-gray-800 rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0"
+          :style="drag.style.value"
+          @touchstart="drag.onTouchStart" @touchmove="drag.onTouchMove" @touchend="drag.onTouchEnd" @touchcancel="drag.onTouchEnd"
           :class="[edge ? 'edge-box sm:rounded-2xl' : 'sm:rounded-sm shadow-[0_-4px_20px_rgba(0,0,0,0.25)] sm:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:sm:shadow-[5px_5px_0_rgba(255,255,255,0.35)]', panelClass]">
           <slot :close="requestClose" />
         </div>

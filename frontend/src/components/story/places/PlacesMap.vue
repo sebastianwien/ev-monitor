@@ -184,7 +184,7 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="places-map absolute inset-0" aria-hidden="true" data-testid="places-map">
+  <div class="places-map absolute inset-0" aria-hidden="true" data-testid="places-map" data-no-sheet-drag>
     <div ref="container" class="absolute inset-0" />
   </div>
 </template>
