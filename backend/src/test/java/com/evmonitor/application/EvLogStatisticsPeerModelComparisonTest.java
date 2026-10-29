@@ -249,4 +249,50 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
         assertTrue(response.modelComparisons().isEmpty());
         assertNull(response.allVariants());
     }
+
+    /** Die fremde Seite liest alle Ladungen aller Varianten und ist 24 h gecacht, die eigene Seite bleibt live. */
+    @Test
+    void getPeerModelComparison_peerSideCachedWhilePeersChange_ownSideLive() {
+        VehicleSpecification spec = saveSpec("Tesla", "Model 3", "cache-" + UUID.randomUUID(), new BigDecimal("75.0"));
+        User user = createUser("cache-user-" + UUID.randomUUID() + "@example.com", "DE");
+        Car userCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLog(userCar.getId(), 15.0, 100, 3.0);
+        Car peer = createCar(createUser("cache-peer-" + UUID.randomUUID() + "@example.com", "DE").getId(), CarBrand.CarModel.MODEL_3, spec.getId());
+        addLog(peer.getId(), 15.0, 100, 4.5);
+
+        PeerModelComparisonItem first = itemOf(evLogStatisticsService.getPeerModelComparison(userCar, user), spec);
+
+        addLog(peer.getId(), 15.0, 100, 9.0);
+        addLog(userCar.getId(), 15.0, 100, 9.0);
+        PeerModelComparisonResponse second = evLogStatisticsService.getPeerModelComparison(userCar, user);
+        PeerModelComparisonItem again = itemOf(second, spec);
+
+        assertEquals(0, first.peerMetrics().avgCostPerKwh().compareTo(again.peerMetrics().avgCostPerKwh()));
+        assertEquals(0, first.peerMetrics().avgCostPerKwh().compareTo(second.allVariants().avgCostPerKwh()));
+        assertTrue(again.userMetrics().costPerKwh().compareTo(first.userMetrics().costPerKwh()) > 0,
+                "own cost must include the new own log immediately");
+    }
+
+    /** Eine nach dem Cachen angelegte Variante, der der Nutzer sein Auto zuordnet, erscheint sofort mit eigenen Werten. */
+    @Test
+    void getPeerModelComparison_newSpecAfterCaching_userRowStillPresent() {
+        VehicleSpecification oldSpec = saveSpec("Tesla", "Model 3", "cache-old-" + UUID.randomUUID(), new BigDecimal("60.0"));
+        User user = createUser("cache-spec-" + UUID.randomUUID() + "@example.com", "DE");
+        Car userCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, oldSpec.getId());
+        addLog(userCar.getId(), 15.0, 100, 3.0);
+        evLogStatisticsService.getPeerModelComparison(userCar, user);
+
+        VehicleSpecification newSpec = saveSpec("Tesla", "Model 3", "cache-new-" + UUID.randomUUID(), new BigDecimal("75.0"));
+        Car moved = carRepository.save(userCar.toBuilder().vehicleSpecificationId(newSpec.getId()).build());
+
+        PeerModelComparisonItem own = itemOf(evLogStatisticsService.getPeerModelComparison(moved, user), newSpec);
+        assertTrue(own.isUserVehicleSpec());
+        assertNotNull(own.userMetrics());
+    }
+
+    private static PeerModelComparisonItem itemOf(PeerModelComparisonResponse response, VehicleSpecification spec) {
+        return response.modelComparisons().stream()
+                .filter(i -> i.vehicleSpecificationId().equals(spec.getId()))
+                .findFirst().orElseThrow();
+    }
 }
