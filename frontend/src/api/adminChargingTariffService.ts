@@ -85,8 +85,11 @@ export interface CrawlProposal {
   proposed: Record<string, unknown>
   /** Gepflegter Tarif, auf den sich der Vorschlag bezieht (CHANGE, MISSING). */
   current: TariffRow | null
-  /** Wörtliches Zitat der Seite. */
+  /** Wörtliches Zitat, wie es auf der Seite steht. */
   evidence: string | null
+  /** Seitentext vor und nach dem Zitat, Zeilenumbrüche als " · ". */
+  evidenceBefore: string | null
+  evidenceAfter: string | null
   holdReason: string | null
   seenCount: number
   firstSeenAt: string

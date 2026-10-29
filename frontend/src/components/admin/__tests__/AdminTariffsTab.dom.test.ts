@@ -1,13 +1,17 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, vi } from 'vitest'
 import { createApp, nextTick, type App } from 'vue'
-import type { TariffOverview, TariffRow } from '../../../api/adminChargingTariffService'
+import type { CrawlOverview, CrawlProposal, TariffOverview, TariffRow } from '../../../api/adminChargingTariffService'
 
 const overview = vi.fn()
 const create = vi.fn()
 const update = vi.fn()
 const end = vi.fn()
 const verify = vi.fn()
+const crawlOverview = vi.fn()
+const apply = vi.fn()
+const reject = vi.fn()
+const updateSource = vi.fn()
 vi.mock('../../../api/adminChargingTariffService', () => ({
   adminChargingTariffService: {
     overview: () => overview(),
@@ -17,8 +21,11 @@ vi.mock('../../../api/adminChargingTariffService', () => ({
     verify: (id: string) => verify(id),
   },
   adminTariffCrawlService: {
-    overview: () => Promise.resolve({ sources: [], proposals: [], extractorAvailable: true, enabled: true }),
+    overview: () => crawlOverview(),
     driverCheck: () => Promise.resolve([]),
+    apply: (id: string) => apply(id),
+    reject: (id: string) => reject(id),
+    updateSource: (id: string, c: unknown) => updateSource(id, c),
   },
 }))
 
@@ -43,41 +50,59 @@ const sample: TariffOverview = {
   cpos: ['EnBW', 'IONITY'],
 }
 
+const change = (): CrawlProposal => ({
+  id: 'p1', sourceId: 's1', empName: 'IONITY', kind: 'CHANGE', description: 'IONITY: Power DC neu 0,41 €/kWh',
+  proposed: { variant: 'Power', chargingType: 'DC', scope: 'OWN_NETWORK', pricePerKwh: 0.41 }, current: sample.tariffs[0],
+  evidence: '0.41 €/kWh', evidenceBefore: '', evidenceAfter: ' power-monthly-kwh-price', holdReason: null,
+  seenCount: 1, firstSeenAt: '2026-10-29T12:55:00', lastSeenAt: '2026-10-29T12:55:00',
+})
+const crawl = (proposals: CrawlProposal[] = []): CrawlOverview => ({
+  sources: [{ id: 's1', empName: 'IONITY', url: 'https://www.ionity.eu/de/abonnements', mode: 'EXTRACT', enabled: true,
+    lastFetchedAt: '2026-10-29T12:55:00', lastSuccessAt: '2026-10-29T12:55:00', lastStatus: 'CHANGED', lastHttpStatus: 200,
+    lastError: null, consecutiveFailures: 0 }],
+  proposals, extractorAvailable: true, enabled: true, autoApply: false,
+})
+
 let app: App | null = null
 afterEach(() => {
   app?.unmount(); app = null
   document.body.innerHTML = ''
-  overview.mockReset(); create.mockReset(); update.mockReset(); end.mockReset(); verify.mockReset()
+  for (const m of [overview, create, update, end, verify, crawlOverview, apply, reject, updateSource]) m.mockReset()
   vi.restoreAllMocks()
 })
 
-async function mount(): Promise<HTMLElement> {
+/** Alle Anbieter aufgeklappt, damit jede Tarifzeile sichtbar ist. */
+async function mount(proposals: CrawlProposal[] = []): Promise<HTMLElement> {
   overview.mockResolvedValue(sample)
+  crawlOverview.mockResolvedValue(crawl(proposals))
   const host = document.createElement('div')
   document.body.appendChild(host)
   app = createApp(AdminTariffsTab)
   app.mount(host)
-  await nextTick(); await nextTick(); await nextTick()
+  await flush()
+  button(host, 'Alle aufklappen').click()
+  await flush()
   return host
 }
 
 const flush = async () => { for (let i = 0; i < 4; i++) await nextTick() }
-const button = (host: HTMLElement, text: string) =>
+const button = (host: Element, text: string) =>
   [...host.querySelectorAll('button')].find(b => b.textContent?.replace(/\s+/g, ' ').trim() === text)!
 const rows = (host: HTMLElement) => [...host.querySelectorAll('[data-testid="tariff-row"]')].map(r => r.textContent!.replace(/\s+/g, ' '))
+const rowWith = (host: HTMLElement, content: string) =>
+  [...host.querySelectorAll('[data-testid="tariff-row"]')].find(r => r.textContent!.replace(/\s+/g, ' ').includes(content))!
 const input = (host: HTMLElement, name: string) => host.querySelector(`[name="${name}"]`) as HTMLInputElement
 
 describe('AdminTariffsTab', () => {
-  it('zeigt gültige Tarife mit Geltungsbereich, beendete erst auf Wunsch', async () => {
+  it('zeigt gültige Tarife je Anbieter mit Geltungsbereich, beendete erst auf Wunsch', async () => {
     const host = await mount()
     expect(rows(host)).toHaveLength(5)
-    expect(rows(host)[0]).toContain('IONITY')
-    expect(rows(host)[0]).toContain('eigenes Netz')
-    expect(rows(host)[0]).toContain('39,0 ct')
-    expect(rows(host)[0]).toContain('11,99 €')
-    expect(rows(host)[1]).toContain('Tier HIGH')
+    expect(rowWith(host, '39,0 ct')).toBeTruthy()
+    expect(rows(host).find(r => r.includes('39,0 ct'))).toContain('eigenes Netz')
+    expect(rows(host).find(r => r.includes('39,0 ct'))).toContain('11,99 €')
+    expect(rows(host).find(r => r.includes('82,0 ct'))).toContain('Tier HIGH')
     // ohne eigenes Netz im Katalog gilt der Tarif nirgends
-    expect(rows(host)[2]).toContain('nirgends')
+    expect(rows(host).find(r => r.includes('55,0 ct'))).toContain('nirgends')
 
     ;(host.querySelector('[name="showEnded"]') as HTMLInputElement).click()
     await flush()
@@ -96,7 +121,7 @@ describe('AdminTariffsTab', () => {
     verify.mockResolvedValue(row({ lastVerifiedAt: '2026-10-27T12:00:00' }))
     const host = await mount()
 
-    ;[...host.querySelectorAll('[data-testid="tariff-row"]')][0].querySelector('button[data-action="verify"]')!.dispatchEvent(new Event('click'))
+    rowWith(host, '39,0 ct').querySelector('button[data-action="verify"]')!.dispatchEvent(new Event('click'))
     await flush()
 
     expect(verify).toHaveBeenCalledWith('t1')
@@ -108,7 +133,7 @@ describe('AdminTariffsTab', () => {
     end.mockResolvedValue(row({ validUntil: '2026-10-25' }))
     const host = await mount()
 
-    ;[...host.querySelectorAll('[data-testid="tariff-row"]')][0].querySelector('button[data-action="end"]')!.dispatchEvent(new Event('click'))
+    rowWith(host, '39,0 ct').querySelector('button[data-action="end"]')!.dispatchEvent(new Event('click'))
     await flush()
 
     expect(end).toHaveBeenCalledWith('t1', '2026-10-25')
@@ -140,7 +165,7 @@ describe('AdminTariffsTab', () => {
   it('ändert einen Tarif mit vorbelegtem Formular', async () => {
     update.mockResolvedValue(row({ pricePerKwh: 0.41 }))
     const host = await mount()
-    ;[...host.querySelectorAll('[data-testid="tariff-row"]')][0].querySelector('button[data-action="edit"]')!.dispatchEvent(new Event('click'))
+    rowWith(host, '39,0 ct').querySelector('button[data-action="edit"]')!.dispatchEvent(new Event('click'))
     await flush()
 
     expect(input(host, 'empName').value).toBe('IONITY')
@@ -149,5 +174,54 @@ describe('AdminTariffsTab', () => {
     await flush()
 
     expect(update).toHaveBeenCalledWith('t1', expect.objectContaining({ empName: 'IONITY', tariffVariant: 'Power', pricePerKwh: 0.41, monthlyFeeEur: 11.99 }))
+  })
+
+  it('übernimmt einen Vorschlag und lädt Tarife und Crawler neu', async () => {
+    apply.mockResolvedValue(true)
+    const host = await mount([change()])
+    crawlOverview.mockResolvedValue(crawl([]))
+
+    button(host.querySelector('[data-testid="crawl-proposal"]')!, 'Übernehmen').click()
+    await flush()
+
+    expect(apply).toHaveBeenCalledWith('p1')
+    expect(overview).toHaveBeenCalledTimes(2)
+    expect(host.querySelector('[data-testid="crawl-proposal"]')).toBeNull()
+  })
+
+  it('überholter Vorschlag: sagt es, statt still nichts zu tun', async () => {
+    apply.mockResolvedValue(false)
+    const host = await mount([change()])
+
+    button(host.querySelector('[data-testid="crawl-proposal"]')!, 'Übernehmen').click()
+    await flush()
+
+    expect(host.textContent).toContain('Der Tarif wurde inzwischen anders gepflegt')
+  })
+
+  it('verwirft einen Vorschlag und schaltet eine Quelle ab', async () => {
+    reject.mockResolvedValue(undefined)
+    updateSource.mockResolvedValue(undefined)
+    const host = await mount([change()])
+
+    button(host.querySelector('[data-testid="crawl-proposal"]')!, 'Verwerfen').click()
+    ;(host.querySelector('[data-testid="crawl-source"] input[type="checkbox"]') as HTMLInputElement).click()
+    await flush()
+
+    expect(reject).toHaveBeenCalledWith('p1')
+    expect(updateSource).toHaveBeenCalledWith('s1', { empName: 'IONITY', url: 'https://www.ionity.eu/de/abonnements', mode: 'EXTRACT', enabled: false })
+  })
+
+  it('Crawler nicht erreichbar: sagt es, die Tarife stehen trotzdem da', async () => {
+    overview.mockResolvedValue(sample)
+    crawlOverview.mockRejectedValue(new Error('500'))
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    app = createApp(AdminTariffsTab)
+    app.mount(host)
+    await flush()
+
+    expect(host.textContent).toContain('Crawler-Daten konnten nicht geladen werden')
+    expect(host.querySelectorAll('[data-testid="tariff-node"]').length).toBeGreaterThan(0)
   })
 })

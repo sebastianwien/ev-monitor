@@ -1,12 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { adminChargingTariffService, type TariffCommand, type TariffOverview, type TariffRow } from '../../api/adminChargingTariffService'
+import {
+  adminChargingTariffService, adminTariffCrawlService,
+  type CrawlOverview, type CrawlProposal, type CrawlSource, type DriverDeviation, type TariffCommand, type TariffOverview, type TariffRow,
+} from '../../api/adminChargingTariffService'
 import { apiErrorText } from '../../api/adminVehicleSpecService'
 import AdminTariffCrawlPanel from './AdminTariffCrawlPanel.vue'
+import AdminTariffTree from './AdminTariffTree.vue'
 
 /**
  * Admin-Tab "Ladekarten": die gepflegten Tarife hinter dem Story-Moment "Teurer als üblich"
- * und dem Schnellladepreis des Rechners. Oben der Tarif-Crawler mit seinen Vorschlägen.
+ * und dem Schnellladepreis des Rechners, je Anbieter aufklappbar mit Quelle und den Vorschlägen des
+ * Tarif-Crawlers an der Zeile, die sie ändern würden. Oben der Kopf des Crawlers.
  * Preisänderung = alten Tarif beenden, neuen anlegen; "Ändern" ist für Tippfehler und erneuert
  * den Stand, "Geprüft" erneuert nur den Stand.
  */
@@ -16,15 +21,28 @@ const showEnded = ref(false)
 const editing = ref<{ id: string | null; form: TariffCommand } | null>(null)
 const busy = ref(false)
 const formError = ref('')
+const crawl = ref<CrawlOverview | null>(null)
+const hints = ref<DriverDeviation[]>([])
+const deciding = ref<string | null>(null)
+const message = ref('')
+const crawlError = ref('')
 
 const today = () => new Date().toISOString().slice(0, 10)
-const de = (iso: string) => new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
-const ct = (eur: number) => `${(eur * 100).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 })} ct`
-const euro = (v: number) => `${v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
 
 async function load() {
+  crawlError.value = ''
   try {
-    data.value = await adminChargingTariffService.overview()
+    const [tariffs, crawler, deviations] = await Promise.all([
+      adminChargingTariffService.overview(),
+      adminTariffCrawlService.overview().catch(() => {
+        crawlError.value = 'Crawler-Daten konnten nicht geladen werden.'
+        return null
+      }),
+      adminTariffCrawlService.driverCheck().catch(() => []),
+    ])
+    data.value = tariffs
+    crawl.value = crawler
+    hints.value = deviations
     loadError.value = ''
   } catch (e) {
     loadError.value = apiErrorText(e, 'Tarife konnten nicht geladen werden.')
@@ -32,17 +50,36 @@ async function load() {
 }
 onMounted(load)
 
+async function decide(p: CrawlProposal, how: 'apply' | 'reject') {
+  deciding.value = p.id
+  loadError.value = ''
+  message.value = ''
+  try {
+    if (how === 'apply') {
+      const applied = await adminTariffCrawlService.apply(p.id)
+      if (!applied) message.value = 'Der Tarif wurde inzwischen anders gepflegt, der Vorschlag ist überholt.'
+    } else {
+      await adminTariffCrawlService.reject(p.id)
+    }
+    await load()
+  } catch (e) {
+    loadError.value = apiErrorText(e, 'Das hat nicht geklappt.')
+  } finally {
+    deciding.value = null
+  }
+}
+
+async function toggleSource(s: CrawlSource) {
+  try {
+    await adminTariffCrawlService.updateSource(s.id, { empName: s.empName, url: s.url, mode: s.mode, enabled: !s.enabled })
+    await load()
+  } catch (e) {
+    loadError.value = apiErrorText(e, 'Ändern hat nicht geklappt.')
+  }
+}
+
 const isEnded = (r: TariffRow) => r.validUntil != null && r.validUntil < today()
 const rows = computed(() => (data.value?.tariffs ?? []).filter(r => showEnded.value || !isEnded(r)))
-/** Ohne Betreiber und Tier gilt ein Tarif nur, wenn der Anbieter selbst ein Netz im Katalog hat (ADAC, Maingau nicht). */
-function scope(r: TariffRow): string {
-  if (r.cpoName) return r.cpoName
-  if (r.priceTier) return r.appliesElsewhere ? `Tier ${r.priceTier} und alle anderen Betreiber` : `Tier ${r.priceTier}`
-  if (r.appliesElsewhere) return 'alle anderen Betreiber'
-  return data.value?.cpos.includes(r.empName) ? 'eigenes Netz' : 'nirgends: kein eigenes Netz, Betreiber setzen'
-}
-const kind = (r: TariffRow) => r.minPowerKw != null ? `${r.chargingType} über ${r.minPowerKw} kW` : r.chargingType
-const validity = (r: TariffRow) => r.validUntil ? `${de(r.validFrom)} bis ${de(r.validUntil)}` : `ab ${de(r.validFrom)}`
 
 const blank = (): TariffCommand => ({
   empName: '', tariffVariant: '', cpoName: null, priceTier: null, chargingType: 'DC', pricePerKwh: 0,
@@ -131,9 +168,11 @@ const label = 'block text-xs text-gray-400 mb-1'
       </div>
     </div>
 
-    <AdminTariffCrawlPanel @changed="load" />
+    <AdminTariffCrawlPanel :overview="crawl" @changed="load" />
 
     <div v-if="loadError" class="mb-4 p-3 bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-sm">{{ loadError }}</div>
+    <div v-if="crawlError" class="mb-4 p-3 bg-amber-900/30 border border-amber-700 text-amber-200 text-sm rounded-sm">{{ crawlError }}</div>
+    <div v-if="message" class="mb-4 p-3 bg-gray-800 border border-gray-700 text-gray-200 text-sm rounded-sm">{{ message }}</div>
 
     <form v-if="editing" class="mb-6 p-4 bg-gray-900 border border-gray-800 rounded-sm grid gap-3 sm:grid-cols-2 lg:grid-cols-4" @submit.prevent="save">
       <h3 class="sm:col-span-2 lg:col-span-4 text-base font-semibold text-white">{{ editing.id ? 'Tarif ändern' : 'Neuer Tarif' }}</h3>
@@ -222,44 +261,8 @@ const label = 'block text-xs text-gray-400 mb-1'
       </div>
     </form>
 
-    <div class="overflow-x-auto border border-gray-800 rounded-sm">
-      <table class="min-w-full text-sm">
-        <thead class="bg-gray-900 text-gray-400 text-xs uppercase tracking-wider">
-          <tr>
-            <th class="px-3 py-2 text-left">Anbieter</th>
-            <th class="px-3 py-2 text-left">Variante</th>
-            <th class="px-3 py-2 text-left">Gilt bei</th>
-            <th class="px-3 py-2 text-left">Art</th>
-            <th class="px-3 py-2 text-right">Preis</th>
-            <th class="px-3 py-2 text-right">Grundgebühr</th>
-            <th class="px-3 py-2 text-left">Gültig</th>
-            <th class="px-3 py-2 text-left">Stand</th>
-            <th class="px-3 py-2 text-left">Quelle</th>
-            <th class="px-3 py-2" />
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-800">
-          <tr v-for="r in rows" :key="r.id" data-testid="tariff-row" :class="isEnded(r) ? 'text-gray-500' : 'text-gray-200'">
-            <td class="px-3 py-2 font-medium">{{ r.empName }}</td>
-            <td class="px-3 py-2">{{ r.tariffVariant ?? '-' }}</td>
-            <td class="px-3 py-2">{{ scope(r) }}</td>
-            <td class="px-3 py-2 whitespace-nowrap">{{ kind(r) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap">{{ ct(r.pricePerKwh) }}</td>
-            <td class="px-3 py-2 text-right tabular-nums whitespace-nowrap">{{ r.monthlyFeeEur > 0 ? euro(r.monthlyFeeEur) : '-' }}</td>
-            <td class="px-3 py-2 whitespace-nowrap">{{ validity(r) }}</td>
-            <td class="px-3 py-2 whitespace-nowrap">{{ de(r.lastVerifiedAt) }}</td>
-            <td class="px-3 py-2">
-              <a v-if="r.sourceUrl" :href="r.sourceUrl" target="_blank" rel="noopener noreferrer" class="text-indigo-400 hover:underline">Link</a>
-              <span v-else>-</span>
-            </td>
-            <td class="px-3 py-2 whitespace-nowrap text-right">
-              <button v-if="!isEnded(r)" type="button" data-action="verify" class="px-2 py-1 text-emerald-400 hover:underline" @click="verifyTariff(r)">Geprüft</button>
-              <button type="button" data-action="edit" class="px-2 py-1 text-indigo-400 hover:underline" @click="startEdit(r)">Ändern</button>
-              <button v-if="!isEnded(r)" type="button" data-action="end" class="px-2 py-1 text-amber-400 hover:underline" @click="endTariff(r)">Beenden</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <AdminTariffTree :tariffs="rows" :cpos="data?.cpos ?? []" :proposals="crawl?.proposals ?? []" :sources="crawl?.sources ?? []"
+                     :hints="hints" :busy-id="deciding" @verify="verifyTariff" @edit="startEdit" @end="endTariff"
+                     @decide="decide" @toggle-source="toggleSource" />
   </div>
 </template>
