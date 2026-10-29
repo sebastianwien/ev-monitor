@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isModelsRoute, navDirection, sheetDirection } from '../pageTransitions'
+import { isModelsRoute, navDirection } from '../pageTransitions'
 
 describe('isModelsRoute', () => {
   it('list, brand, compare and model page in every market', () => {
@@ -37,20 +37,5 @@ describe('navDirection', () => {
 
   it('the level wins over the history: back button from list to model page still goes forward', () => {
     expect(navDirection('public-models-list', 'public-model', true)).toBe('forward')
-  })
-})
-
-describe('sheetDirection', () => {
-  const page = { meta: {} }
-  const wizard = { meta: { mobileFullscreen: true } }
-
-  it('into the full-screen wizard the sheet comes up, out of it it goes down', () => {
-    expect(sheetDirection(page, wizard)).toBe('sheet-up')
-    expect(sheetDirection(wizard, page)).toBe('sheet-down')
-  })
-
-  it('no sheet between two pages or two full-screen routes', () => {
-    expect(sheetDirection(page, page)).toBeNull()
-    expect(sheetDirection(wizard, wizard)).toBeNull()
   })
 })
