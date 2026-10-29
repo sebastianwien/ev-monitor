@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  ExclamationTriangleIcon, CurrencyEuroIcon, BoltIcon, ArrowPathIcon, HeartIcon, InformationCircleIcon,
+  ExclamationTriangleIcon, CurrencyEuroIcon, BoltIcon, ArrowPathIcon, HeartIcon, InformationCircleIcon, MapIcon,
 } from '@heroicons/vue/24/outline'
 import FeedHintRow from './FeedHintRow.vue'
 import WattBadge from '../shared/WattBadge.vue'
@@ -12,8 +12,9 @@ import { useCountryStore } from '../../stores/country'
 import { getPricing } from '../../config/pricingConfig'
 import { purchasesAvailable } from '../../utils/iapPolicy'
 import { wattPossiblePerLogMax } from '../../utils/wattPreview'
-import { feedHints } from '../../utils/feedHints'
-import { hasFreeDataSource, isAutoSyncUnsupported } from '../../composables/useCarAutoSyncProvider'
+import { feedHints, tripsHintVisible } from '../../utils/feedHints'
+import { hasFreeDataSource, isAutoSyncUnsupported, brandDeliversTrips, tripsComeByImport, normalizeBrand } from '../../composables/useCarAutoSyncProvider'
+import polestarService from '../../api/polestarService'
 import { subscriptionService, type SubscriptionTier } from '../../api/subscriptionService'
 
 /**
@@ -24,7 +25,7 @@ import { subscriptionService, type SubscriptionTier } from '../../api/subscripti
 const emit = defineEmits<{ 'open-implausible': []; 'open-priceless': [] }>()
 const { t } = useI18n()
 const {
-  selectedCar, implausibleCount, implausibleBannerDismissed, dismissImplausibleBanner,
+  selectedCar, latestTrip, logsLoading, teslaStatus, implausibleCount, implausibleBannerDismissed, dismissImplausibleBanner,
   pricelessCount, pricelessBannerDismissed, dismissPricelessBanner,
 } = useCarContext()
 const coinStore = useCoinStore()
@@ -111,9 +112,53 @@ function dismissCostTip() {
 }
 
 // Eine Hinweis-Karte statt vier Bannern, Reihenfolge und Deckel in utils/feedHints.
+// Fahrten automatisch erfassen: Marke mit Fahrten, das Auto hat noch keine, nicht weggeklickt (je Auto).
+// Mit der ersten Fahrt verschwindet der Hinweis von selbst.
+const LS_TRIPS_HINT_DISMISSED = 'trips_hint_dismissed'
+function readDismissedTripsHint(): string[] {
+  try { return JSON.parse(localStorage.getItem(LS_TRIPS_HINT_DISMISSED) ?? '[]') } catch { return [] }
+}
+const tripsHintDismissed = ref<string[]>(readDismissedTripsHint())
+// Steht die Verbindung schon (Tesla, Polestar), kommen die Fahrten ohnehin: dann kein Hinweis
+const polestarActive = ref<Set<string>>(new Set())
+watch(() => selectedCar.value?.id, async () => {
+  const car = selectedCar.value
+  if (!car || normalizeBrand(car) !== 'POLESTAR') return
+  try {
+    const connections = await polestarService.getConnections()
+    polestarActive.value = new Set(connections.filter(c => c.status === 'ACTIVE').map(c => c.carId))
+  } catch { /* ohne Status gilt: nicht verbunden */ }
+}, { immediate: true })
+const connected = computed(() => {
+  const car = selectedCar.value
+  if (!car) return false
+  const tesla = teslaStatus.value
+  const teslaConnected = !!tesla?.connected && (tesla.carId === car.id || tesla.carId == null)
+    && normalizeBrand(car) === 'TESLA'
+  return teslaConnected || polestarActive.value.has(car.id)
+})
+const showTripsHint = computed(() => {
+  const car = selectedCar.value
+  return !!car && tripsHintVisible({
+    brandDeliversTrips: brandDeliversTrips(car),
+    connected: connected.value,
+    loading: logsLoading.value,
+    hasTrip: latestTrip.value != null,
+    dismissed: tripsHintDismissed.value.includes(car.id),
+  })
+})
+const tripsByImport = computed(() => !!selectedCar.value && tripsComeByImport(selectedCar.value))
+function dismissTripsHint() {
+  const id = selectedCar.value?.id
+  if (!id) return
+  tripsHintDismissed.value = [...tripsHintDismissed.value, id]
+  try { localStorage.setItem(LS_TRIPS_HINT_DISMISSED, JSON.stringify(tripsHintDismissed.value)) } catch { /* privater Modus */ }
+}
+
 const visibleHints = computed(() => feedHints({
   implausible: implausibleCount.value > 0 && !implausibleBannerDismissed.value,
   priceless: pricelessCount.value > 0 && !pricelessBannerDismissed.value,
+  trips: showTripsHint.value,
   live: showLiveBanner.value,
   autosync: showAutoSyncBanner.value,
   supporter: showSupporterBanner.value,
@@ -143,6 +188,12 @@ onMounted(async () => {
         :dismiss-label="t('priceless.dismiss')" @open="emit('open-priceless')" @dismiss="dismissPricelessBanner">
         {{ t('priceless.banner', pricelessCount) }}
         <template #sub>{{ t('priceless.banner_cta') }} <WattBadge :amount="wattForAllPriceless" up-to /></template>
+      </FeedHintRow>
+      <!-- Die Importseite öffnet für Tesla, Polestar und XPeng den passenden Abschnitt des aktiven Autos -->
+      <FeedHintRow v-else-if="hint === 'trips'" data-testid="trips-hint" :icon="MapIcon" to="/imports"
+        :dismiss-label="t('logbook.trips_dismiss')" @dismiss="dismissTripsHint">
+        <i18n-t keypath="logbook.trips_hint" tag="span"><template #title><b class="font-semibold">{{ tripsByImport ? t('logbook.trips_title_import') : t('logbook.trips_title') }}</b></template></i18n-t>
+        <template #sub>{{ tripsByImport ? t('logbook.trips_import') : t('logbook.trips_connect') }}</template>
       </FeedHintRow>
       <FeedHintRow v-else-if="hint === 'live'" :icon="BoltIcon" to="/upgrade"
         :dismiss-label="t('dashboard.live_banner_dismiss')" @dismiss="dismissLiveBanner">

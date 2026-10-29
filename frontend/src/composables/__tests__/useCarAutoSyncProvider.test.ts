@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
+import { brandDeliversTrips, tripsComeByImport,
     autoSyncProviderFor, providerLabel, hasFreeDataSource, isAutoSyncUnsupported, hasOnlyUnsupportedBrands,
 } from '../useCarAutoSyncProvider'
 
@@ -121,4 +121,21 @@ describe('hasOnlyUnsupportedBrands', () => {
         expect(hasOnlyUnsupportedBrands([{ brand: 'XPENG' }])).toBe(false)
         expect(hasOnlyUnsupportedBrands([zeekr, { brand: 'XPENG' }])).toBe(false)
     })
+})
+
+describe('brandDeliversTrips', () => {
+  it('Tesla, XPeng und Polestar liefern Fahrten, auch klein geschrieben', () => {
+    for (const brand of ['TESLA', 'XPENG', 'POLESTAR', 'tesla']) expect(brandDeliversTrips({ brand })).toBe(true)
+  })
+  it('andere Marken und eine fehlende Marke nicht', () => {
+    for (const brand of ['VOLKSWAGEN', 'BMW', '', null]) expect(brandDeliversTrips({ brand } as any)).toBe(false)
+  })
+})
+
+describe('tripsComeByImport', () => {
+  it('nur XPeng, auch mit Leerzeichen oder klein geschrieben', () => {
+    expect(tripsComeByImport({ brand: ' xpeng ' })).toBe(true)
+    expect(tripsComeByImport({ brand: 'TESLA' })).toBe(false)
+    expect(tripsComeByImport({ brand: 'POLESTAR' })).toBe(false)
+  })
 })

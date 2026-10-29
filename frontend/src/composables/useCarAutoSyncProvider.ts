@@ -15,8 +15,8 @@ import { SMARTCAR_BRANDS } from '../config/smartcarBrands'
  */
 export type AutoSyncProvider = 'TESLA' | 'SMARTCAR' | 'NONE'
 
-/** Shared normalization so every brand-keyed Set/lookup in this file compares consistently. */
-function normalizeBrand(car: Pick<Car, 'brand'>): string {
+/** Shared normalization so every brand-keyed Set/lookup compares consistently. */
+export function normalizeBrand(car: Pick<Car, 'brand'>): string {
     return (car.brand ?? '').toUpperCase().trim()
 }
 
@@ -74,6 +74,20 @@ const FREE_DATA_SOURCE_BRANDS = new Set(['TESLA'])
 /** Whether this car's data already arrives without needing to buy AutoSync. */
 export function hasFreeDataSource(car: Pick<Car, 'brand'>): boolean {
     return FREE_DATA_SOURCE_BRANDS.has(normalizeBrand(car))
+}
+
+/**
+ * Marken, deren Fahrten ins Logbuch kommen können: Tesla über Fleet Telemetry, Polestar über das Data
+ * Portal, XPeng über den Import des EU-Data-Act-Exports. Für ein Auto dieser Marken ohne Fahrt zeigt
+ * /logs den Hinweis "Fahrten automatisch erfassen".
+ */
+const TRIP_BRANDS = new Set(['TESLA', 'XPENG', 'POLESTAR'])
+export function brandDeliversTrips(car: Pick<Car, 'brand'>): boolean {
+    return TRIP_BRANDS.has(normalizeBrand(car))
+}
+/** XPeng hat keine Verbindung: Fahrten kommen nur über den Import des EU-Data-Act-Exports. */
+export function tripsComeByImport(car: Pick<Car, 'brand'>): boolean {
+    return normalizeBrand(car) === 'XPENG'
 }
 
 export function providerLabel(provider: AutoSyncProvider): string {

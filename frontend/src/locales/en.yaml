@@ -4710,6 +4710,12 @@ storyday:
   form_soc: "Battery"
 logbook:
   no_trip: "no trip"
+  trips_hint: "{title}: then your trips show up here, day by day."
+  trips_title: "Record trips automatically"
+  trips_title_import: "Trips from your data export"
+  trips_connect: "Connect your car"
+  trips_import: "Import your trips"
+  trips_dismiss: "Hide trips hint"
   idle_range: "{from} to {to}"
   per_100km: "{cost} per 100 km"
   max_power: "max {kw} kW"

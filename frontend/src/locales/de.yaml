@@ -4716,6 +4716,12 @@ storyday:
   form_soc: "Akku"
 logbook:
   no_trip: "keine Fahrt"
+  trips_hint: "{title}: dann stehen hier auch deine Fahrten, Tag für Tag."
+  trips_title: "Fahrten automatisch erfassen"
+  trips_title_import: "Fahrten aus deinem Datenexport"
+  trips_connect: "Verbinde dein Auto"
+  trips_import: "Importiere deine Fahrten"
+  trips_dismiss: "Hinweis zu Fahrten ausblenden"
   idle_range: "{from} bis {to}"
   per_100km: "{cost} pro 100 km"
   max_power: "max {kw} kW"

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
-import { feedHints, MAX_FEED_HINTS, type FeedHintFlags } from '../feedHints'
+import { feedHints, tripsHintVisible, MAX_FEED_HINTS, type FeedHintFlags } from '../feedHints'
 
-const none: FeedHintFlags = { implausible: false, priceless: false, live: false, autosync: false, supporter: false, costTip: false }
+const none: FeedHintFlags = { implausible: false, priceless: false, trips: false, live: false, autosync: false, supporter: false, costTip: false }
 
 describe('feedHints', () => {
   it('shows nothing without a reason', () => {
@@ -23,7 +23,26 @@ describe('feedHints', () => {
   })
 
   it(`caps the list at ${MAX_FEED_HINTS} rows, the tip goes first`, () => {
-    const all = { implausible: true, priceless: true, live: false, autosync: true, supporter: false, costTip: true }
+    const all = { implausible: true, priceless: true, trips: false, live: false, autosync: true, supporter: false, costTip: true }
     expect(feedHints(all)).toEqual(['implausible', 'priceless', 'autosync'])
+  })
+
+  it('Fahrten automatisch erfassen geht als Angebot vor allen anderen', () => {
+    expect(feedHints({ ...none, trips: true, live: true, autosync: true })).toEqual(['trips'])
+    expect(feedHints({ ...none, trips: true, priceless: true, costTip: true })).toEqual(['priceless', 'trips', 'cost_tip'])
+  })
+})
+
+describe('tripsHintVisible', () => {
+  const base = { brandDeliversTrips: true, connected: false, loading: false, hasTrip: false, dismissed: false }
+  it('Marke mit Fahrten, nicht verbunden, geladen, ohne Fahrt, nicht weggeklickt', () => {
+    expect(tripsHintVisible(base)).toBe(true)
+  })
+  it('jede einzelne Bedingung schaltet ihn ab, auch das Laden (kein Aufblitzen)', () => {
+    expect(tripsHintVisible({ ...base, brandDeliversTrips: false })).toBe(false)
+    expect(tripsHintVisible({ ...base, connected: true })).toBe(false)
+    expect(tripsHintVisible({ ...base, loading: true })).toBe(false)
+    expect(tripsHintVisible({ ...base, hasTrip: true })).toBe(false)
+    expect(tripsHintVisible({ ...base, dismissed: true })).toBe(false)
   })
 })

@@ -4552,6 +4552,12 @@ storyday:
   form_soc: "Batteri"
 logbook:
   no_trip: "ingen tur"
+  trips_hint: "{title}: da vises turene dine her, dag for dag."
+  trips_title: "Registrer turer automatisk"
+  trips_title_import: "Turer fra dataeksporten din"
+  trips_connect: "Koble til bilen din"
+  trips_import: "Importer turene dine"
+  trips_dismiss: "Skjul tips om turer"
   idle_range: "{from} til {to}"
   per_100km: "{cost} per 100 km"
   max_power: "maks {kw} kW"
