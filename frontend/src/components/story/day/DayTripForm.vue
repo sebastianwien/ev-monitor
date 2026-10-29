@@ -26,6 +26,8 @@ const rowLabel = 'flex-1 text-[15px] text-gray-600 dark:text-gray-300'
 // Das fokussierte Feld bekommt eine leichte Fläche, der Rand der Zeile allein zeigt bei zwei Feldern nicht, welches gemeint ist
 const value = 'trip-value min-h-11 min-w-0 shrink-0 rounded-md bg-transparent px-1 focus:bg-green-50 dark:focus:bg-green-400/10 text-right text-[17px] font-semibold tabular-nums text-gray-900 outline-none dark:text-gray-50'
 const unit = 'text-[15px] font-semibold text-gray-500 dark:text-gray-400'
+/** SoC-Feld so breit wie sein Wert: Telemetrie liefert Nachkommastellen (78,76), Hand-Eingaben meist ganze Zahlen */
+const socWidth = (v: unknown) => ({ width: `calc(${Math.max(2, String(v ?? '').length)}ch + 0.5rem)` })
 
 // Datum lokal halten: eine geleerte Uhrzeit darf den Tag nicht mitnehmen
 const times = computed(() => splitTripTimes(form.value as { tripStartedAt: string; tripEndedAt: string }))
@@ -60,10 +62,10 @@ const end = computed({ get: () => times.value.end, set: v => setTimes({ end: v }
         <span :class="unit">{{ distanceUnit }}</span></label>
       <div v-if="mode === 'edit'" :class="row" role="group" :aria-label="t('storyday.form_soc')">
         <span :class="rowLabel" aria-hidden="true">{{ t('storyday.form_soc') }}</span>
-        <input v-model="form.socStart" type="number" inputmode="decimal" min="0" max="100" step="any" placeholder="-" :aria-label="t('storyday.form_soc_start')" :class="[value, 'w-[4.5ch]']" />
+        <input v-model="form.socStart" type="number" inputmode="decimal" min="0" max="100" step="any" placeholder="-" :aria-label="t('storyday.form_soc_start')" :class="value" :style="socWidth(form.socStart)" />
         <span :class="unit">%</span>
         <ArrowRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
-        <input v-model="form.socEnd" type="number" inputmode="decimal" min="0" max="100" step="any" placeholder="-" :aria-label="t('storyday.form_soc_end')" :class="[value, 'w-[4.5ch]']" />
+        <input v-model="form.socEnd" type="number" inputmode="decimal" min="0" max="100" step="any" placeholder="-" :aria-label="t('storyday.form_soc_end')" :class="value" :style="socWidth(form.socEnd)" />
         <span :class="unit">%</span>
       </div>
     </div>
