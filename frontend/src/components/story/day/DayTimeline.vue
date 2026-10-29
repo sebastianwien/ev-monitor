@@ -11,8 +11,8 @@ import { hasTripMap, isRoutedLine, mapCredit, tripLine } from '../../../utils/tr
 const ActivityLocationMap = defineAsyncComponent(() => import('../../dashboard/ActivityLocationMap.vue'))
 
 /**
- * Ablauf eines Tages: chronologische Liste mit senkrechter Leiste. Zeilen mindestens 56 px, hier wird
- * auf dem Handy getippt. Zwischen zwei Fahrten mit kurzem Halt: Zusammenführen, zweistufig bestätigt.
+ * Ablauf eines Tages: chronologische Liste mit senkrechter Leiste durch die Symbole. Zeilen mindestens 56 px,
+ * hier wird auf dem Handy getippt. Die Uhrzeit steht in der Unterzeile, so bleibt Breite für Karte und Preis. Zwischen zwei Fahrten mit kurzem Halt: Zusammenführen, zweistufig bestätigt.
  */
 const props = defineProps<{ events: DayEvent[]; selectedId: string | null; merging: boolean }>()
 const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent, later: DayEvent] }>()
@@ -31,12 +31,14 @@ function placeName(e: DayEvent & { kind: 'charge' }) {
   const p = chargePlace(e.log)
   return p.kind === 'operator' ? p.name : t(`storyday.place_${p.kind}`)
 }
-function chargeSub(e: DayEvent & { kind: 'charge' }) {
+/** Unterzeile beider Arten: Zeitspanne und Dauer, auf dem Handy die Zeitachse */
+const span = (e: DayEvent) => `${hm(e.from)}-${hm(e.to)} · ${dur(e.to - e.from)}`
+/** Rechts unter dem Preis: Ladeart und Energie */
+function chargeSide(e: DayEvent & { kind: 'charge' }) {
   const k = chargeKwh(e.log)
   const type = e.log.chargingType && e.log.chargingType !== 'UNKNOWN' ? e.log.chargingType : null
-  return [type, dur(e.to - e.from), k != null ? `${formatDecimal(k, 1)} kWh` : null].filter(Boolean).join(' · ')
+  return [type, k != null ? `${formatDecimal(k, 1)} kWh` : null].filter(Boolean).join(' · ')
 }
-const tripSub = (e: DayEvent) => dur(e.to - e.from)
 /** Die Minikarten tragen keine eigene Attribution - sie steht einmal unter der Liste. */
 const credit = computed(() => {
   const mapped = props.events.flatMap(e => e.kind === 'trip' && hasTripMap(e.trip) ? [e.trip] : [])
@@ -52,10 +54,10 @@ const confirming = ref<string | null>(null)
 <template>
   <div>
   <ul class="relative -mx-2" data-testid="day-timeline">
-    <span class="pointer-events-none absolute bottom-6 left-[77px] top-6 w-0.5 bg-gray-200 dark:bg-gray-800" aria-hidden="true" />
+    <span class="pointer-events-none absolute bottom-6 left-[25px] top-6 w-0.5 bg-gray-200 dark:bg-gray-800" aria-hidden="true" />
     <template v-for="(e, i) in events" :key="e.id">
       <!-- Zwischen zwei Einträgen: Halt mit Zusammenführen oder längere Standzeit -->
-      <li v-if="i && canMerge(events[i - 1], e)" class="pl-[90px] text-[12.5px] text-gray-500 dark:text-gray-400" data-testid="day-merge-row">
+      <li v-if="i && canMerge(events[i - 1], e)" class="pl-14 text-[12.5px] text-gray-500 dark:text-gray-400" data-testid="day-merge-row">
         <div v-if="confirming !== events[i - 1].id" class="flex min-h-11 flex-wrap items-center gap-x-2">
           <span class="tabular-nums">{{ gapMinutes(events[i - 1], e) <= 0 ? t('storyday.direct') : t('storyday.halt', { d: dur(gapMinutes(events[i - 1], e)) }) }}</span>
           <button type="button" data-testid="day-merge" class="inline-flex min-h-11 items-center gap-1 rounded-full px-2 font-semibold text-gray-900 underline decoration-gray-300 underline-offset-4 hover:decoration-gray-900 dark:text-gray-100 dark:decoration-gray-600"
@@ -73,59 +75,48 @@ const confirming = ref<string | null>(null)
           </div>
         </div>
       </li>
-      <li v-else-if="i && showStanding(events[i - 1], e)" class="py-1 pl-[90px] text-[12px] tabular-nums text-gray-400">
+      <li v-else-if="i && showStanding(events[i - 1], e)" class="py-1 pl-14 text-[12px] tabular-nums text-gray-400">
         {{ t('storyday.standing', { d: dur(gapMinutes(events[i - 1], e)) }) }}
       </li>
 
       <li>
         <button type="button" :data-testid="`day-row-${e.kind}`" :aria-current="e.id === selectedId"
-          class="relative flex min-h-14 w-full items-center gap-3 rounded-2xl px-2 py-2.5 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
+          class="relative flex min-h-14 w-full items-start gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
           :class="e.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : ''"
           @click="emit('select', e)">
-          <span class="w-11 shrink-0 text-[13px] font-semibold leading-tight tabular-nums">
-            {{ hm(e.from) }}<span class="block font-normal text-gray-400">{{ hm(e.to) }}</span>
+          <span v-if="e.kind === 'trip'" class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-white dark:border-gray-200 dark:bg-gray-900">
+            <MapIcon class="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
-          <template v-if="e.kind === 'trip'">
-            <span class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-white dark:border-gray-200 dark:bg-gray-900">
-              <MapIcon class="h-[18px] w-[18px]" aria-hidden="true" />
+          <span v-else class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
+            <BoltIcon class="h-[18px] w-[18px]" aria-hidden="true" />
+          </span>
+          <span class="min-w-0 flex-1">
+            <span class="block truncate text-[15px] font-semibold leading-snug">
+              <template v-if="e.kind === 'trip'">{{ t('storyday.trip') }} <span class="tabular-nums">{{ e.trip.distanceKm != null ? formatDistance(e.trip.distanceKm) : '' }}</span></template>
+              <template v-else>{{ placeName(e) }}</template>
             </span>
-            <span class="min-w-0 flex-1">
-              <span class="block truncate text-[15px] font-semibold">{{ t('storyday.trip') }} <span class="tabular-nums">{{ e.trip.distanceKm != null ? formatDistance(e.trip.distanceKm) : '' }}</span></span>
-              <span class="line-clamp-2 block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ tripSub(e) }}</span>
-              <span v-if="e.socFrom != null && e.socTo != null" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] tabular-nums" data-testid="day-soc">
-                <span class="whitespace-nowrap text-gray-600 dark:text-gray-300">{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
-                <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="whitespace-nowrap rounded-full px-1.5 py-px text-[12px] font-semibold"
-                  :class="e.socTo > e.socFrom ? 'bg-green-50 text-green-800 dark:bg-green-400/10 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300'">{{ delta(e.socFrom, e.socTo) }}</span>
-              </span>
-              <span v-else-if="e.socTo != null" class="mt-1 block text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ soc(e) }}</span>
+            <span class="block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ span(e) }}</span>
+            <span v-if="e.socFrom != null && e.socTo != null" class="flex flex-wrap items-center gap-x-1.5 text-[13px] tabular-nums" data-testid="day-soc">
+              <span class="whitespace-nowrap text-gray-600 dark:text-gray-300">{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
+              <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="whitespace-nowrap rounded-full px-1.5 text-[12px] font-semibold"
+                :class="e.socTo > e.socFrom ? 'bg-green-50 text-green-800 dark:bg-green-400/10 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300'">{{ delta(e.socFrom, e.socTo) }}</span>
             </span>
-            <!-- isolate: Leaflets Ebenen dürfen nicht über die Kopfzeile des Sheets ragen -->
-            <span v-if="hasTripMap(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-11 w-[60px] shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-white/5">
-              <ActivityLocationMap variant="thumb" :start-geohash="e.trip.locationStartGeohash" :end-geohash="e.trip.locationEndGeohash"
-                :route-polyline="e.trip.routePolyline" :route-kind="e.trip.routeKind" :trace-polyline="e.trip.tracePolyline" />
+            <span v-else-if="e.socTo != null" class="block text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ soc(e) }}</span>
+            <span v-if="e.kind === 'charge' && missingOf(e.log).length" class="mt-1 flex gap-1">
+              <span v-for="m in missingOf(e.log)" :key="m" data-testid="day-missing"
+                class="rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{{ t(`storyday.missing_${m}`) }}</span>
             </span>
-          </template>
-          <template v-else>
-            <span class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
-              <BoltIcon class="h-[18px] w-[18px]" aria-hidden="true" />
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="block truncate text-[15px] font-semibold">{{ placeName(e) }}</span>
-              <span class="line-clamp-2 block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ chargeSub(e) }}</span>
-              <span v-if="e.socFrom != null && e.socTo != null" class="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px] tabular-nums" data-testid="day-soc">
-                <span class="whitespace-nowrap text-gray-600 dark:text-gray-300">{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
-                <span v-if="Math.round(e.socTo - e.socFrom) !== 0" class="whitespace-nowrap rounded-full px-1.5 py-px text-[12px] font-semibold"
-                  :class="e.socTo > e.socFrom ? 'bg-green-50 text-green-800 dark:bg-green-400/10 dark:text-green-300' : 'bg-gray-100 text-gray-700 dark:bg-white/10 dark:text-gray-300'">{{ delta(e.socFrom, e.socTo) }}</span>
-              </span>
-              <span v-else-if="e.socTo != null" class="mt-1 block text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ soc(e) }}</span>
-              <span v-if="missingOf(e.log).length" class="mt-1 flex gap-1">
-                <span v-for="m in missingOf(e.log)" :key="m" data-testid="day-missing"
-                  class="rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{{ t(`storyday.missing_${m}`) }}</span>
-              </span>
-            </span>
-            <span class="shrink-0 text-[15px] font-bold tabular-nums">{{ e.log.costEur != null ? formatCurrency(e.log.costEur) : '' }}</span>
-          </template>
-          <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+          </span>
+          <!-- isolate: Leaflets Ebenen dürfen nicht über die Kopfzeile des Sheets ragen -->
+          <span v-if="e.kind === 'trip' && hasTripMap(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-16 w-[88px] shrink-0 overflow-hidden rounded-lg bg-gray-100 dark:bg-white/5">
+            <ActivityLocationMap variant="thumb" :start-geohash="e.trip.locationStartGeohash" :end-geohash="e.trip.locationEndGeohash"
+              :route-polyline="e.trip.routePolyline" :route-kind="e.trip.routeKind" :trace-polyline="e.trip.tracePolyline" />
+          </span>
+          <span v-else-if="e.kind === 'charge'" class="shrink-0 text-right tabular-nums">
+            <span class="block text-[15px] font-bold leading-snug">{{ e.log.costEur != null ? formatCurrency(e.log.costEur) : '' }}</span>
+            <span class="block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400">{{ chargeSide(e) }}</span>
+          </span>
+          <ChevronRightIcon class="-ml-1 h-4 w-4 shrink-0 self-center text-gray-400" aria-hidden="true" />
         </button>
       </li>
     </template>
