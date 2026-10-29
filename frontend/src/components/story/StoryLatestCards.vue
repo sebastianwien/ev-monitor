@@ -99,9 +99,9 @@ const plain = `${row} h-12 bg-white edge-card dark:bg-gray-700/50`
         <span class="block truncate text-[14px] font-semibold text-gray-900 tabular-nums dark:text-gray-50">{{ charge.title }}</span>
         <span v-if="charge.sub" class="block truncate text-[12px] text-gray-500 tabular-nums dark:text-gray-400" :class="chip ? 'md:hidden' : ''">{{ charge.sub }}</span>
         <!-- Ab md (zwei Zeilen nebeneinander) nimmt der Chip den Platz der Unterzeile, damit der Titel lesbar bleibt. -->
-        <span v-if="chip" class="mt-0.5 hidden rounded-sm bg-amber-100 px-1.5 text-[12px] font-semibold text-amber-800 md:inline-block dark:bg-amber-900/40 dark:text-amber-300">{{ t('story.latest_add_price') }}</span>
+        <span v-if="chip" class="mt-0.5 hidden rounded-sm bg-amber-100 px-1.5 text-[12px] font-semibold text-amber-800 md:inline-block dark:bg-amber-900/40 dark:text-amber-300">{{ t('story.latest_missing_price') }}</span>
       </span>
-      <span v-if="chip" class="shrink-0 rounded-sm bg-amber-100 px-2 py-1 text-[12px] font-semibold text-amber-800 md:hidden dark:bg-amber-900/40 dark:text-amber-300">{{ t('story.latest_add_price') }}</span>
+      <span v-if="chip" class="shrink-0 rounded-sm bg-amber-100 px-2 py-1 text-[12px] font-semibold text-amber-800 md:hidden dark:bg-amber-900/40 dark:text-amber-300">{{ t('story.latest_missing_price') }}</span>
       <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
     </button>
     <button v-if="trip" type="button" :class="plain" data-testid="story-latest-trip" @click="emit('open-trip', trip.id)">

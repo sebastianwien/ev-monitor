@@ -4405,7 +4405,7 @@ story:
   latest_charged_plain: "Sist ladet"
   latest_drove: "Siste tur: {km}"
   latest_drove_plain: "Siste tur"
-  latest_add_price: "Legg inn pris"
+  latest_missing_price: "Pris mangler"
   latest_today: "Ladet i dag"
   latest_new: "Ny"
   latest_soc_range: "Batteri nå {soc} %, rekker omtrent {km}"

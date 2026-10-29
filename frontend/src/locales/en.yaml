@@ -4563,7 +4563,7 @@ story:
   latest_charged_plain: "Last charged"
   latest_drove: "Last trip: {km}"
   latest_drove_plain: "Last trip"
-  latest_add_price: "Add price"
+  latest_missing_price: "Price missing"
   latest_today: "Charged today"
   latest_new: "New"
   latest_soc_range: "Battery now {soc} %, good for about {km}"

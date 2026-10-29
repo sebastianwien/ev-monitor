@@ -63,7 +63,7 @@ describe('StoryLatestCards', () => {
     const host = mount({ charge: { id: 'l', at: '2026-09-30T11:59:30Z', kwh: 10, costEur: null, ...noSoc }, trip: null }, now, {}, events)
     const charge = host.querySelector<HTMLElement>('[data-testid="story-latest-charge"]')
     expect(text(charge)).toContain('vorgestern')
-    expect(text(charge)).toContain('Preis nachtragen')
+    expect(text(charge)).toContain('Preis fehlt')
     charge?.click()
     expect(events).toEqual([['charge', 'l', true]])
     expect(host.querySelector('[data-testid="story-latest-trip"]')).toBeNull()
@@ -79,7 +79,7 @@ describe('StoryLatestCards', () => {
     expect(text(card)).toContain('Akku jetzt 80 %, reicht für etwa 160 km')
     expect(text(card)).toContain('25,9 kWh ab 35 % · gerade eben · AC')
     expect(host.querySelector('[data-testid="story-latest-add-price"]')).toBeNull()
-    expect(text(card)).not.toContain('Preis nachtragen')
+    expect(text(card)).not.toContain('Preis fehlt')
   })
 
   it('heute geladen ohne Preis: Knopf "Preis eintragen" in der Karte, kein Amber-Chip', () => {
@@ -88,7 +88,7 @@ describe('StoryLatestCards', () => {
     const card = host.querySelector<HTMLElement>('[data-testid="story-latest-today"]')
     expect(text(card)).toContain('Heute geladen')
     expect(text(card)).toContain('Akku jetzt 80 %')
-    expect(text(card)).not.toContain('Preis nachtragen')
+    expect(text(card)).not.toContain('Preis fehlt')
     const button = host.querySelector<HTMLElement>('[data-testid="story-latest-add-price"]')!
     expect(text(button)).toBe('Preis eintragen')
     button.click()

@@ -4405,7 +4405,7 @@ story:
   latest_charged_plain: "Senast laddat"
   latest_drove: "Senaste resa: {km}"
   latest_drove_plain: "Senaste resa"
-  latest_add_price: "Lägg till pris"
+  latest_missing_price: "Pris saknas"
   latest_today: "Laddat i dag"
   latest_new: "Ny"
   latest_soc_range: "Batteri nu {soc} %, räcker ungefär {km}"

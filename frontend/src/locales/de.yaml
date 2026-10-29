@@ -4569,7 +4569,7 @@ story:
   latest_charged_plain: "Zuletzt geladen"
   latest_drove: "Letzte Fahrt: {km}"
   latest_drove_plain: "Letzte Fahrt"
-  latest_add_price: "Preis nachtragen"
+  latest_missing_price: "Preis fehlt"
   latest_today: "Heute geladen"
   latest_new: "Neu"
   latest_soc_range: "Akku jetzt {soc} %, reicht für etwa {km}"
