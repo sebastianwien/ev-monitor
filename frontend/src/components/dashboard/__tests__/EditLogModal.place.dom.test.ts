@@ -112,3 +112,44 @@ describe('EditLogModal - Ort per Adresse', () => {
     expect(q('[data-testid="place-here"]')!.textContent).toContain('Linzer Straße 51, Freistadt')
   })
 })
+
+describe('EditLogModal - private Ladung auf öffentlich umstellen', () => {
+  const home = { ...log, geohash: 'u33df5', isPublicCharging: false, chargingType: 'AC' as const, costEur: 6, chargingProviderId: 'home-card' }
+  const stationsAt = (url: string) => Promise.resolve({ data: url.includes('nearby-stations')
+    ? [{ name: 'EnBW Parkhaus', known: true, distanceMeters: 80, geohash: 'u33df50', address: 'Hauptstraße 1',
+        fastCharging: false, chargePoints: 2, maxAcKw: 22, maxDcKw: null, plugTypes: [], registerId: null }] : [] })
+  const mountAt = async () => {
+    ;(api.get as any).mockImplementation(stationsAt)
+    app = createApp(defineComponent({ render: () => h(EditLogModal, { log: home }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+    await nextTick()
+    q('[data-testid="summary-place"]')!.click()
+  }
+
+  it('zeigt beim Öffnen des Orts aus der Übersicht die Säulen im gespeicherten Feld', async () => {
+    await mountAt()
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain('EnBW Parkhaus'))
+    const call = (api.get as any).mock.calls.find((c: unknown[]) => String(c[0]).includes('nearby-stations'))
+    expect(call[1].params.lat).toBeCloseTo(52.5, 0)
+  })
+
+  it('verwirft Heimtarif-Kosten und -Karte, sobald eine Säule gewählt ist', async () => {
+    ;(api.patch as any).mockResolvedValue({ data: {} })
+    await mountAt()
+    const station = await vi.waitFor(() => {
+      const b = [...document.body.querySelectorAll('button')].find(x => x.textContent?.includes('EnBW Parkhaus'))
+      expect(b).toBeTruthy(); return b!
+    })
+    station.click()
+    await nextTick()
+    q('[data-testid="edit-done"]')!.click()
+    await nextTick()
+    ;[...document.body.querySelectorAll('button')].find(b => b.textContent?.trim() === 'Speichern')?.click()
+    await nextTick()
+
+    // Ohne Kosten lässt sich nicht speichern: der Nutzer trägt den Preis der Säule ein
+    expect(api.patch).not.toHaveBeenCalled()
+  })
+})

@@ -103,3 +103,21 @@ describe('EditLogModal - per Sprache ändern', () => {
     await vi.waitFor(() => expect(analytics.trackVoice).toHaveBeenCalledWith('saved', { entry: 'edit', corrected: 0 }))
   })
 })
+
+describe('EditLogModal - per Sprache von privat auf öffentlich', () => {
+  it('verwirft den Heimtarif, wenn die Sprache eine öffentliche Säule nennt', async () => {
+    app = createApp(defineComponent({ render: () => h(EditLogModal, { log: { ...log, geohash: 'u33df5', isPublicCharging: false,
+      chargingType: 'AC', cpoName: null, costEur: 6, chargingProviderId: 'home-card' } }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+    await vi.waitFor(() => expect(q('[data-testid="voice-mic"]')).not.toBeNull())
+
+    await speak({ ...draft({}), place: { kind: 'other', cpoName: 'EnBW' } })
+    save()
+    await nextTick()
+
+    // Ohne die alten Heimtarif-Kosten lässt sich nicht speichern: der Nutzer trägt den Preis der Säule ein
+    expect(api.patch).not.toHaveBeenCalled()
+    expect(q('[data-testid="edit-voice-change-costEur"]')).not.toBeNull()
+  })
+})

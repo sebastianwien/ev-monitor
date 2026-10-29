@@ -80,12 +80,15 @@ describe('EditLogModal - Ortswechsel per Sprache', () => {
 
   it('eine vorhandene Karte wird nicht überschrieben', async () => {
     ;(api.patch as any).mockResolvedValue({ data: {} })
+    // Öffentlich: beim Wechsel von privat fiele die (Heim-)Karte ohnehin weg
     log.chargingProviderId = 'mine' as any
+    log.isPublicCharging = true as any
     await mount()
     await speak({ ...draft({}), place: { kind: 'station', station: mixedStation, site: null, cpoName: null } })
     save()
     await vi.waitFor(() => expect(api.patch).toHaveBeenCalled())
     expect((api.patch as any).mock.calls[0][1]).toMatchObject({ chargingProviderId: 'mine' })
     log.chargingProviderId = null as any
+    log.isPublicCharging = false as any
   })
 })

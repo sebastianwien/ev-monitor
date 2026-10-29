@@ -59,13 +59,16 @@
       </template>
 
       <!-- Unteransichten: dieselben Schritte wie beim Anlegen -->
-      <StepPlace v-else-if="section === 'place'" :place="place" :selected-cpo="formData.cpoName" :selected-site="formData.chargingSite"
+      <template v-else-if="section === 'place'">
+      <StepPlace :place="place" :selected-cpo="formData.cpoName" :selected-site="formData.chargingSite"
         :stations="nearby.stations.value" :stations-loading="nearby.loading.value" permission="unavailable" :location-status="locationStatus"
         :radius-meters="nearby.radius.value" :can-expand="nearby.canExpand.value" :next-radius="nearby.nextRadius.value" :exhausted="nearby.exhausted.value"
         :latitude="formData.latitude" :longitude="formData.longitude" :stored-place="!!log.geohash"
         :address-label="pickedAddress" @choose="choosePlace" @place-picked="onPlacePicked"
         @expand-radius="nearby.expand()">
       </StepPlace>
+      <p class="text-[13px] text-gray-500 dark:text-gray-400" data-testid="edit-place-precision">{{ t('logwizard.place_precision_note') }}</p>
+      </template>
       <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
       <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />
       <StepCost v-else-if="section === 'cost'" v-model="formData" v-model:providers="providers" :cost="cost" />
@@ -121,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, defineAsyncComponent } from 'vue'
+import { ref, computed, onMounted, nextTick, watch, defineAsyncComponent } from 'vue'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import { XMarkIcon, ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
@@ -272,13 +275,19 @@ const locationStatus = ref<'idle' | 'success'>('idle')
 const providers = ref<ChargingProvider[]>([])
 onMounted(() => {
   api.get<ChargingProvider[]>('/users/me/charging-providers').then(r => { providers.value = r.data }).catch(() => {})
-  // Direkt im Ort ("Betreiber eintragen" auf der Ladekarte): Säulen rund um den gespeicherten Ort zeigen,
-  // sonst müsste der Nutzer den Ort erst suchen. Es gibt nur den Geohash, also seine Zellmitte.
-  if (props.startSection === 'place' && props.log.geohash && formData.value.latitude == null) {
-    const { latitude, longitude } = geohashLib.decode(props.log.geohash)
-    void nearby.load(latitude, longitude)
-  }
+  if (props.startSection === 'place') loadStationsAtStoredPlace()
 })
+
+/**
+ * Säulen rund um den gespeicherten Ort, sobald der Ort-Editor aufgeht - sonst müsste der Nutzer den Ort
+ * erst suchen. Es gibt nur den Geohash, also seine Zellmitte; bei einer Heimladung ist das das 6er-Feld.
+ */
+function loadStationsAtStoredPlace() {
+  if (!props.log.geohash || formData.value.latitude != null || nearby.stations.value.length || nearby.loading.value) return
+  const { latitude, longitude } = geohashLib.decode(props.log.geohash)
+  void nearby.load(latitude, longitude)
+}
+watch(section, s => { if (s === 'place') loadStationsAtStoredPlace() })
 
 const place = computed<PlaceKind | null>(() => !formData.value.isPublicCharging ? 'home' : formData.value.chargingSite ? 'site' : 'other')
 // Per Suche gewählte Adresse: muss nach "Fertig" in der Übersicht stehen, sonst wirkt sie verworfen
@@ -297,6 +306,14 @@ const applyChoice = (choice: PlaceChoice) => {
   const chargingType = formData.value.chargingType
   applyPlace(formData.value, choice)
   formData.value.chargingType = chargingType
+  dropHomePriceIfPublic()
+}
+/** Von privat auf öffentlich: der Heimtarif gilt an der Säule nicht. Kosten und Karte neu, solange sie noch die alten sind. */
+function dropHomePriceIfPublic() {
+  const f = formData.value
+  if (props.log.isPublicCharging !== false || !f.isPublicCharging) return
+  if (f.costEur === (props.log.costEur ?? null)) { cost.reset(); f.costEur = null }
+  if (f.chargingProviderId === (props.log.chargingProviderId ?? null)) f.chargingProviderId = null
 }
 const choosePlace = (choice: PlaceChoice) => { applyChoice(choice); void fillFromHistory() }
 
@@ -363,6 +380,7 @@ async function onVoiceDraft(draft: VoiceDraft) {
   const keptType = formData.value.chargingType
   const choice = applyVoiceDraft(formData.value, viaAddress ? { ...draft, place: null } : draft)
   if (!draft.fields.chargingType) formData.value.chargingType = keptType
+  dropHomePriceIfPublic()
   if (choice && (choice.kind === 'station' || choice.kind === 'site')) pickedName.value = null
   if (viaAddress) {
     // Bekannte Zelle des Logs als Umgebung für die Suche (es gibt keine Live-Position)
