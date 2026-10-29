@@ -73,7 +73,7 @@ onUnmounted(() => document.removeEventListener('click', handleOutsideClick))
       v-else
       @click.stop="open = !open"
       class="inline-flex items-center gap-1.5 transition font-medium cursor-pointer"
-      :class="variant === 'compact' ? 'min-h-11 text-[13px] text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100' : 'text-red-500 hover:text-red-600'">
+      :class="variant === 'compact' ? 'min-h-11 rounded-full px-3 text-[15px] text-gray-900 hover:bg-black/10 dark:text-gray-100 dark:hover:bg-white/10' : 'text-red-500 hover:text-red-600'">
       <HeartIcon class="h-4 w-4" />
       {{ variant === 'compact' ? t('support.nav_btn') : t('support.footer_btn') }}
     </button>

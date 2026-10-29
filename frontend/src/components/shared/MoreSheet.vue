@@ -5,7 +5,6 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon, ChatBubbleLeftEllipsisIcon,
 } from '@heroicons/vue/24/outline'
-import ThemeToggle from './ThemeToggle.vue'
 import LocaleSwitcher from './LocaleSwitcher.vue'
 import SupportPopover from '../settings/SupportPopover.vue'
 import BottomSheet from './BottomSheet.vue'
@@ -77,7 +76,7 @@ function onLogout() {
 
         <div class="border-t border-gray-200 dark:border-white/10 px-4 py-2 flex items-center gap-3 text-gray-900 dark:text-gray-100">
           <LocaleSwitcher variant="public" />
-          <ThemeToggle v-if="!props.isDemo" />
+          <SupportPopover variant="compact" />
           <button
             v-if="!props.isDemo"
             type="button"
@@ -89,15 +88,12 @@ function onLogout() {
           </button>
         </div>
 
-        <!-- Footer: Unterstützen (nur Web, nativ verboten - siehe iapPolicy) + Rechtliches
-             (nur native App - im Web liegen die Legal-Links im Seiten-Footer). -->
-        <div class="border-t border-gray-200 dark:border-white/10 px-4 py-3 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
-          <SupportPopover variant="compact" />
-          <template v-if="props.isNative">
-            <router-link to="/impressum" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go(close)">{{ t('footer.imprint') }}</router-link>
-            <router-link to="/datenschutz" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go(close)">{{ t('footer.privacy') }}</router-link>
-            <router-link to="/agb" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go(close)">{{ t('footer.terms') }}</router-link>
-          </template>
+        <!-- Rechtliches nur in der nativen App, im Web liegen die Links im Seiten-Footer.
+             Unterstützen blendet sich nativ selbst aus (iapPolicy). -->
+        <div v-if="props.isNative" class="border-t border-gray-200 dark:border-white/10 px-4 py-3 flex flex-wrap justify-center items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+          <router-link to="/impressum" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go(close)">{{ t('footer.imprint') }}</router-link>
+          <router-link to="/datenschutz" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go(close)">{{ t('footer.privacy') }}</router-link>
+          <router-link to="/agb" class="hover:text-gray-700 dark:hover:text-gray-200 underline" @click="go(close)">{{ t('footer.terms') }}</router-link>
         </div>
       </div>
     </template>
