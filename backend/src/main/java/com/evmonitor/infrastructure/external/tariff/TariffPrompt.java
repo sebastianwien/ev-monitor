@@ -48,7 +48,8 @@ public final class TariffPrompt {
             9. variant: Steht der Tarif in "knownTariffs", übernimm dessen variant exakt. Sonst den Tarifnamen von der
                Seite ohne den Anbieternamen.
             10. evidence: wörtliches Zitat aus dem Seitentext (höchstens 200 Zeichen), das den Preis enthält, Zahl in
-                derselben Schreibweise wie im Text.
+                derselben Schreibweise wie im Text. Ein einziges zusammenhängendes Stück, Zeichen für Zeichen kopiert,
+                nie aus mehreren Stellen zusammengesetzt. In Tabellen genügt die Zelle mit dem Preis ("0,62 €/kWh").
             11. tiers: Betreiber, die die Seite einer Preisstufe zuordnet. onPage wie im Text, catalog der passende Name
                 aus "catalog" oder null. "und viele weitere" ist kein Betreiber.
             """;
