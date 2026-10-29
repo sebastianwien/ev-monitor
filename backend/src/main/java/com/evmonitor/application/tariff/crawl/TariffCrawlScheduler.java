@@ -21,7 +21,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /**
- * Sonntags 23:40 die fälligen Quellen, unter Lock (bei Blue/Green laufen kurz zwei Instanzen).
+ * Sonntags 23:40 alle aktiven Quellen, unter Lock (bei Blue/Green laufen kurz zwei Instanzen).
  * Höchstens eine Mail je Lauf, nur wenn ein Admin etwas entscheiden muss oder eine Quelle zweimal
  * in Folge nicht lesbar war.
  */
@@ -56,14 +56,18 @@ public class TariffCrawlScheduler {
         this.executor = executor;
     }
 
+    /**
+     * Alle aktiven Quellen, nicht nur fällige: ein Lauf per Knopf unter der Woche soll den Sonntag nicht
+     * verschieben. Unveränderte Seiten kosten trotzdem keinen Modellaufruf (Fingerabdruck).
+     */
     @Scheduled(cron = "0 40 23 * * SUN", zone = "Europe/Berlin")
-    public void runNightly() {
+    public void runWeekly() {
         if (!props.isEnabled()) return;
         if (!locks.tryAcquire(LOCK_NAME, LOCK_TTL)) {
-            log.info("Tarif-Crawler übersprungen, Lock {} ist belegt", LOCK_NAME);
+            log.warn("Tarif-Crawler übersprungen, Lock {} ist belegt; nächster Lauf in einer Woche", LOCK_NAME);
             return;
         }
-        runReleasing(true);
+        runReleasing(false);
     }
 
     /** Knopf im Admin-Tab: alle aktiven Quellen, im Hintergrund. false, wenn gerade ein Lauf aktiv ist. */

@@ -323,7 +323,7 @@ anthropic:
   api-key: ${ANTHROPIC_API_KEY:}
   tariff-model: ${ANTHROPIC_TARIFF_MODEL:claude-haiku-5-5}
 
-# Tarif-Crawler: liest sonntags um 23:40 die fälligen Preisseiten der Ladekarten-Anbieter (tariff_source).
+# Tarif-Crawler: liest sonntags um 23:40 alle aktiven Preisseiten der Ladekarten-Anbieter (tariff_source).
 # Unverändert = Stand der Tarife auf heute; Änderungen als Vorschlag mit Zitat in den
 # Admin-Tab "Ladekarten" (mit auto-apply: eindeutige nach zweitem gleichen Lauf automatisch). Ohne ANTHROPIC_API_KEY und MISTRAL_API_KEY laufen nur Quellen im Modus WATCH. Hinweise per Mail an app.alert.email.
 tariff-crawl:

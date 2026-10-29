@@ -50,7 +50,7 @@ class TariffCrawlSchedulerTest {
     void switchedOff_doesNothing() {
         props.setEnabled(false);
 
-        scheduler.runNightly();
+        scheduler.runWeekly();
 
         verify(locks, never()).tryAcquire(any(), any());
     }
@@ -59,7 +59,7 @@ class TariffCrawlSchedulerTest {
     void lockHeldByTheOtherInstance_skips() {
         when(locks.tryAcquire(eq(TariffCrawlScheduler.LOCK_NAME), any())).thenReturn(false);
 
-        scheduler.runNightly();
+        scheduler.runWeekly();
 
         verify(service, never()).run(anyBoolean(), any());
     }
@@ -74,9 +74,9 @@ class TariffCrawlSchedulerTest {
         broken.setUrl("https://de.mer.eco/x");
         broken.setLastStatus("HTTP_ERROR");
         broken.setLastError("HTTP 404");
-        when(service.run(eq(true), any())).thenReturn(new TariffCrawlService.RunSummary(Map.of(), 0, List.of(change), List.of(broken), List.of()));
+        when(service.run(eq(false), any())).thenReturn(new TariffCrawlService.RunSummary(Map.of(), 0, List.of(change), List.of(broken), List.of()));
 
-        scheduler.runNightly();
+        scheduler.runWeekly();
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<String>> lines = ArgumentCaptor.forClass(List.class);
@@ -90,9 +90,9 @@ class TariffCrawlSchedulerTest {
     @Test
     void languageModelErrors_areOneLine() {
         when(locks.tryAcquire(eq(TariffCrawlScheduler.LOCK_NAME), any())).thenReturn(true);
-        when(service.run(eq(true), any())).thenReturn(new TariffCrawlService.RunSummary(Map.of(), 0, List.of(), List.of(), List.of("Mistral: REJECTED")));
+        when(service.run(eq(false), any())).thenReturn(new TariffCrawlService.RunSummary(Map.of(), 0, List.of(), List.of(), List.of("Mistral: REJECTED")));
 
-        scheduler.runNightly();
+        scheduler.runWeekly();
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<String>> lines = ArgumentCaptor.forClass(List.class);
@@ -103,9 +103,9 @@ class TariffCrawlSchedulerTest {
     @Test
     void nothingToDecide_noMail() {
         when(locks.tryAcquire(eq(TariffCrawlScheduler.LOCK_NAME), any())).thenReturn(true);
-        when(service.run(eq(true), any())).thenReturn(new TariffCrawlService.RunSummary(Map.of(), 2, List.of(), List.of(), List.of()));
+        when(service.run(eq(false), any())).thenReturn(new TariffCrawlService.RunSummary(Map.of(), 2, List.of(), List.of(), List.of()));
 
-        scheduler.runNightly();
+        scheduler.runWeekly();
 
         verify(alerts, never()).sendTariffCrawlAlert(any());
     }
@@ -122,7 +122,7 @@ class TariffCrawlSchedulerTest {
 
     @Test
     void runsOnceAWeek_sundayNight() throws Exception {
-        Scheduled scheduled = TariffCrawlScheduler.class.getMethod("runNightly").getAnnotation(Scheduled.class);
+        Scheduled scheduled = TariffCrawlScheduler.class.getMethod("runWeekly").getAnnotation(Scheduled.class);
         ZoneId berlin = ZoneId.of(scheduled.zone());
         CronExpression cron = CronExpression.parse(scheduled.cron());
 
