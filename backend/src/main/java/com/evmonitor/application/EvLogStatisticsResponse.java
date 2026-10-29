@@ -3,6 +3,7 @@ package com.evmonitor.application;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 public record EvLogStatisticsResponse(
         // Key Metrics
@@ -37,7 +38,10 @@ public record EvLogStatisticsResponse(
         PeerBenchmark peerBenchmark,
 
         // Charging efficiency - only for logs with both kwhCharged and kwhAtVehicle
-        ChargingEfficiencySplit chargingEfficiencySplit
+        ChargingEfficiencySplit chargingEfficiencySplit,
+
+        // Ladung hinter mostExpensiveChargeEur, damit die Story genau sie öffnet; null ohne Ladung mit Preis
+        UUID mostExpensiveChargeLogId
 ) {
     public record ChargeDataPoint(
             LocalDateTime timestamp,

@@ -263,7 +263,7 @@ class MonthlyRecapServiceTest {
         EvLogStatisticsResponse response = new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 null, null, null, null, null, new BigDecimal(distance), null,
-                null, null, null, List.of(), null, null, null, null);
+                null, null, null, List.of(), null, null, null, null, null);
         when(statisticsService.getStatistics(eq(car.getId()), eq(user.getId()), eq(start), eq(end), any())).thenReturn(response);
     }
 
@@ -273,7 +273,7 @@ class MonthlyRecapServiceTest {
                 null, null, null, null, null,
                 distance == null ? null : new BigDecimal(distance),
                 consumption == null ? null : new BigDecimal(consumption),
-                null, null, null, List.of(), null, location, null, null);
+                null, null, null, List.of(), null, location, null, null, null);
         when(statisticsService.getStatistics(eq(car.getId()), eq(user.getId()),
                 eq(LocalDate.of(2026, 8, 1)), eq(LocalDate.of(2026, 8, 31)), any())).thenReturn(response);
     }

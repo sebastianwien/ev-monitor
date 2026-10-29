@@ -212,11 +212,11 @@ public class EvLogStatisticsService {
                 .min(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
-        BigDecimal mostExpensiveCharge = logs.stream()
-                .map(EvLog::getCostEur)
-                .filter(Objects::nonNull)
-                .max(BigDecimal::compareTo)
-                .orElse(BigDecimal.ZERO);
+        EvLog mostExpensiveLog = logs.stream()
+                .filter(l -> l.getCostEur() != null)
+                .max(java.util.Comparator.comparing(EvLog::getCostEur))
+                .orElse(null);
+        BigDecimal mostExpensiveCharge = mostExpensiveLog != null ? mostExpensiveLog.getCostEur() : BigDecimal.ZERO;
 
         Integer avgChargeDuration = (int) logs.stream()
                 .map(EvLog::getChargeDurationMinutes)
@@ -310,7 +310,8 @@ public class EvLogStatisticsService {
                 chargingTypeSplit,
                 locationSplit,
                 peerBenchmark,
-                efficiencySplit
+                efficiencySplit,
+                mostExpensiveLog != null ? mostExpensiveLog.getId() : null
         );
     }
 
@@ -326,7 +327,7 @@ public class EvLogStatisticsService {
                 BigDecimal.ZERO, BigDecimal.ZERO, fixedCosts.cost(), fixedCosts.income(), fixedCosts.net(),
                 BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
-                distanceKm, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit
+                distanceKm, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit, null
         );
     }
 
