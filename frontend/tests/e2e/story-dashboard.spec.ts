@@ -81,7 +81,7 @@ test.describe('Story-Dashboard', () => {
     await expect(page.getByTestId('story-view')).toBeVisible();
 
     // Dieselben DOM-Elemente vorher und nachher: kein Neu-Rendern des Gerüsts (sonst flackert es)
-    const head = await page.getByTestId('public-nav-settings').elementHandle();
+    const head = await page.getByTestId('public-nav-account').elementHandle();
     const chips = page.getByRole('navigation', { name: /Bereiche|Sections|Områder|Områden/ });
     const chipsHandle = await chips.elementHandle();
     await chips.getByRole('link', { name: /Ladevorgänge/ }).click();

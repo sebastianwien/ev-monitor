@@ -36,15 +36,10 @@
                     :class="[navItem, 'hidden md:inline-flex w-10']">
               <ChatBubbleLeftEllipsisIcon class="h-5 w-5" aria-hidden="true" />
             </button>
-            <!-- Mobil führt das Männchen direkt zu den Einstellungen (Import und Vergleich trägt das Mehr-Sheet),
-                 ab md öffnet es die Konto-Zeile -->
-            <router-link v-if="home" to="/settings" data-testid="public-nav-settings" :aria-label="t('nav.bottom.settings')"
-                         :class="[profileButton, 'inline-flex bg-green-600 md:hidden']">
-              <UserIcon class="h-5 w-5" aria-hidden="true" />
-            </router-link>
+            <!-- Das Männchen öffnet das Konto-Menü unter der Navbar, mobil als Liste, ab md als Zeile -->
             <button v-if="home" ref="accountButton" type="button" data-testid="public-nav-account"
                     aria-controls="public-nav-account-row" :aria-expanded="accountOpen" :aria-label="t('nav.account')"
-                    :class="[profileButton, 'relative hidden md:inline-flex', accountOpen ? 'bg-green-700' : 'bg-green-600']" @click="accountOpen = !accountOpen">
+                    :class="[profileButton, 'relative inline-flex', accountOpen ? 'bg-green-700' : 'bg-green-600']" @click="accountOpen = !accountOpen">
               <!-- Männchen und X überblenden: offen zeigt der Knopf, wie man die Zeile wieder schließt -->
               <UserIcon class="h-5 w-5 transition duration-200 ease-out" :class="accountOpen ? 'scale-50 opacity-0' : ''" aria-hidden="true" />
               <XMarkIcon class="absolute h-5 w-5 transition duration-200 ease-out" :class="accountOpen ? '' : 'scale-50 opacity-0'" aria-hidden="true" />
@@ -74,19 +69,20 @@
         </div>
       </div>
     </div>
-    <!-- Konto (ab md): eine zweite Zeile im Grün der Navbar, rechtsbündig unter dem Profil, gleich hoch wie
-         der Ticker und über ihm. Textlinks wie die Bereiche statt eines schwebenden Menüs. -->
-    <nav v-if="member && home" id="public-nav-account-row" :aria-label="t('nav.account')" class="absolute inset-x-0 top-full z-20 hidden md:block">
+    <!-- Konto: fährt im Grün der Navbar unter ihr hervor und liegt über dem Ticker. Mobil eine Liste mit
+         44-px-Zeilen, ab md eine Zeile rechtsbündig unter dem Profil, gleich hoch wie der Ticker.
+         Textlinks wie die Bereiche statt eines schwebenden Menüs. -->
+    <nav v-if="member && home" id="public-nav-account-row" :aria-label="t('nav.account')" class="absolute inset-x-0 top-full z-20">
       <!-- Gleitet unter der Navbar hervor, ohne Einblenden; zu als Umkehrung -->
       <div class="overflow-hidden">
         <Transition name="account-slide">
           <div v-show="accountOpen" class="border-b-2 border-gray-900 bg-green-50 dark:border-gray-800 dark:bg-green-950">
-            <div class="mx-auto flex h-11 max-w-6xl items-stretch justify-end gap-1 px-4 md:px-6">
+            <div class="mx-auto flex max-w-6xl flex-col px-1 py-1 md:h-11 md:flex-row md:items-stretch md:justify-end md:gap-1 md:px-6 md:py-0">
               <router-link v-if="!authStore.isDemoAccount" to="/settings" :class="accountLink"><Cog6ToothIcon class="h-4 w-4" aria-hidden="true" />{{ t('nav.bottom.settings') }}</router-link>
               <router-link v-if="!authStore.isDemoAccount" to="/imports" :class="accountLink"><ArrowDownTrayIcon class="h-4 w-4" aria-hidden="true" />{{ t('nav.bottom.import') }}</router-link>
               <router-link to="/modelle" :class="accountLink"><ArrowsRightLeftIcon class="h-4 w-4" aria-hidden="true" />{{ t('nav.models_compare') }}</router-link>
               <template v-if="!authStore.isDemoAccount">
-                <span class="mx-2 my-3 w-px bg-gray-300 dark:bg-gray-700" aria-hidden="true" />
+                <span class="mx-3 my-1 h-px bg-gray-300 md:mx-2 md:my-3 md:h-auto md:w-px dark:bg-gray-700" aria-hidden="true" />
                 <button type="button" data-testid="public-nav-logout" :class="[accountLink, 'text-gray-500 dark:text-gray-400']" @click="authStore.logout()">
                   <ArrowRightOnRectangleIcon class="h-4 w-4" aria-hidden="true" />{{ t('nav.bottom.logout') }}
                 </button>
@@ -138,7 +134,7 @@ const profileButton = 'h-10 w-10 items-center justify-center rounded-full border
 // Hover der rechten Gruppe (Watt, Feedback; ThemeToggle und LocaleSwitcher tragen denselben selbst)
 const navItem = 'h-10 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-black/10 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white'
 // Wie die Bereiche: Text statt Kachel, beim Hover wächst ein Unterstrich von links herein
-const accountLink = 'inline-flex items-center gap-2 px-3 text-[14px] font-semibold whitespace-nowrap text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-[linear-gradient(currentColor,currentColor)] bg-no-repeat bg-bottom-left bg-[length:0%_2px] hover:bg-[length:100%_2px] focus-visible:bg-[length:100%_2px] focus-visible:outline-none transition-[background-size,color] duration-200 ease-out'
+const accountLink = 'inline-flex min-h-11 items-center gap-2 px-3 text-[14px] font-semibold whitespace-nowrap text-gray-700 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white bg-[linear-gradient(currentColor,currentColor)] bg-no-repeat bg-bottom-left bg-[length:0%_2px] hover:bg-[length:100%_2px] focus-visible:bg-[length:100%_2px] focus-visible:outline-none transition-[background-size,color] duration-200 ease-out'
 
 // Passen die Bereiche zwischen Logo und rechte Gruppe? Gemessen statt per Breakpoint, denn Sprache und Watt-Stand
 // ändern die Breite. Die rechte Gruppe schrumpft nicht (home), also bekommt der Slot weniger Platz, als er braucht.

@@ -68,8 +68,16 @@ describe('PublicNav', () => {
   it('member on the home page (home): no link to itself, the profile instead', async () => {
     const host = await mount(true, true, { home: true })
     expect(host.querySelector('[data-testid="public-nav-dashboard"]')).toBeNull()
-    expect(host.querySelector('[data-testid="public-nav-settings"]')?.getAttribute('href')).toBe('/settings')
     expect(host.querySelector('[data-testid="public-nav-watt"]')).not.toBeNull()
+  })
+
+  it('member at home on the phone too: the profile opens the account row instead of jumping to the settings', async () => {
+    const host = await mount(true, true, { home: true })
+    expect(host.querySelector('[data-testid="public-nav-settings"]')).toBeNull()
+    const trigger = host.querySelector('[data-testid="public-nav-account"]') as HTMLButtonElement
+    expect(trigger.className).not.toContain('hidden')
+    const row = document.getElementById(trigger.getAttribute('aria-controls')!)!
+    expect(row.className).not.toContain('hidden')
   })
 
   it('member at home: the account row opens below the nav with settings, import, model comparison and logout', async () => {
