@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { CHIP_ROW, chipClass } from './chipClass'
-import type { CommunityPrice } from './CardStrip.vue'
+import CardStrip, { type CardChoice, type CommunityPrice } from './CardStrip.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { LogFormData } from '../log-form/logFormData'
@@ -41,7 +40,6 @@ const cardSuggestions = computed<Suggestion[]>(() => providers.value.flatMap(p =
   const price = providerPriceForType(p, form.value.chargingType)
   return price == null ? [] : [{ key: p.id, label: p.label || p.providerName, eurPerKwh: price, providerId: p.id }]
 }))
-const suggestions = computed(() => [...(community.value ? [community.value] : []), ...cardSuggestions.value])
 
 const selectedKey = ref<string | null>(null)
 const pick = (s: Suggestion) => {
@@ -50,6 +48,14 @@ const pick = (s: Suggestion) => {
   setPerKwhEur(s.eurPerKwh)
 }
 const pickFree = () => { selectedKey.value = 'free'; form.value.chargingProviderId = null; costMode.value = 'total'; costLocalPerKwh.value = null; costLocalTotal.value = 0 }
+/** Voll-Modus: derselbe Kartenstreifen wie im Wizard. Eine Karte ohne Tarif holt ihn sich beim Tap. */
+const onCardChoose = (c: CardChoice) => {
+  if (c.kind === 'free') pickFree()
+  else if (c.kind === 'new') openNewCard()
+  else if (c.kind === 'community') { if (community.value) pick(community.value) }
+  else if (c.eurPerKwh != null) pick({ key: c.provider.id, label: c.provider.label || c.provider.providerName, eurPerKwh: c.eurPerKwh, providerId: c.provider.id })
+  else { selectedKey.value = c.provider.id; form.value.chargingProviderId = c.provider.id; openPriceForSelected() }
+}
 // ── Kompakt (Schritt 2): eine Zeile "Kosten". Die Einheit rechts schaltet zwischen Gesamtbetrag und
 // Preis je kWh (Euroraum in ct, wie beim Anlegen einer Karte); die Zeile darunter zeigt den anderen Wert.
 const compactTotal = computed(() => costMode.value === 'total' ? costLocalTotal.value : calculatedLocalTotal.value)
@@ -65,8 +71,6 @@ const inlineCard = useInlineChargingCard(
   (eur: number) => isEurCountry.value ? Math.round(eur * 1000) / 10 : eur)
 const cardEmps = KNOWN_EMPS.filter(e => e !== CUSTOM_PROVIDER && e !== HOME_TARIFF_NAME)
 const selectedProvider = computed(() => providers.value.find(p => p.id === form.value.chargingProviderId) ?? null)
-const selectedNeedsPrice = computed(() =>
-  selectedProvider.value != null && providerPriceForType(selectedProvider.value, form.value.chargingType) == null)
 const typedEurPerKwh = computed<number | null>(() => {
   const local = costMode.value === 'per_kwh' ? costLocalPerKwh.value : calculatedLocalPerKwh.value
   return local == null ? null : local / (props.cost.eurToLocal(1))
@@ -299,36 +303,13 @@ onMounted(async () => {
 
   <!-- Voll (Bearbeiten-Dialog): Lese-Zone oben, Bedien-Zone unten in Daumenreichweite (siehe StepEnergy) -->
   <div v-else class="flex-1 flex flex-col gap-4">
-    <p class="text-sm text-gray-500 dark:text-gray-400">{{ t('logwizard.price_hint') }}</p>
-
     <div class="mt-auto space-y-4">
-    <div>
-      <div :class="[CHIP_ROW, 'items-center']">
-        <span class="mr-auto text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('logwizard.price_suggestions') }}</span>
-        <button v-for="s in suggestions" :key="s.key" type="button" :aria-pressed="selectedKey === s.key" @click="pick(s)"
-          :class="chipClass(selectedKey === s.key)">
-          {{ priceLabel(s.eurPerKwh) }} · {{ s.label }}
-        </button>
-        <button type="button" :aria-pressed="selectedKey === 'free'" @click="pickFree"
-          :class="chipClass(selectedKey === 'free')">
-          {{ t('logwizard.price_free') }}
-        </button>
-      </div>
-    </div>
+    <CardStrip :providers="providers" :is-public="form.isPublicCharging" :charging-type="form.chargingType"
+      :community="community ? { eurPerKwh: community.eurPerKwh, providerId: community.providerId } : null"
+      :selected="selectedKey" :price-label="priceLabel" @choose="onCardChoose" />
 
-    <!-- Ladekarte: anlegen oder der gewaehlten Karte den fehlenden Tarif geben -->
-    <div v-if="form.isPublicCharging" class="space-y-2">
-      <div v-if="!inlineCard.isOpen.value" :class="CHIP_ROW">
-        <button v-if="selectedNeedsPrice" type="button" data-testid="charging-card-price-missing" @click="openPriceForSelected"
-          :class="chipClass(false, 'warn')">
-          {{ t('logwizard.card_price_missing', { card: selectedProvider!.label || selectedProvider!.providerName }) }}
-        </button>
-        <button type="button" data-testid="charging-card-prompt-open" @click="openNewCard"
-          :class="chipClass(false, 'dashed')">
-          + {{ t('logwizard.card_add') }}
-        </button>
-      </div>
-
+    <!-- Ladekarte inline anlegen oder der gewählten Karte den fehlenden Tarif geben -->
+    <div class="space-y-2">
       <div v-if="inlineCard.isOpen.value" data-testid="charging-card-prompt" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2.5">
         <label class="block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400" for="inline-card-provider">
           {{ t(inlineCard.isEditing.value ? 'logfields.card_edit_title' : 'logfields.card_prompt_title') }}
@@ -372,12 +353,13 @@ onMounted(async () => {
       </label>
     </div>
 
-    <SegmentToggle v-model="costMode"
-      :options="[{ value: 'total', label: t('logwizard.cost_total') }, { value: 'per_kwh', label: t('logwizard.cost_per_kwh') }]" />
     <BigInput v-if="costMode === 'total'" id="wizard-cost" v-model="costLocalTotal" :unit="symbol" :label="t('logfields.cost_eur')" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" autofocus
       :hint="calculatedLocalPerKwh != null ? `= ${formatDecimal(calculatedLocalPerKwh, 2)} ${symbol}/kWh` : null" />
     <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus
       :hint="calculatedLocalTotal != null ? `= ${formatDecimal(calculatedLocalTotal, 2)} ${symbol}` : null" />
+    <!-- Einheit des Felds, deshalb klein und darunter -->
+    <SegmentToggle v-model="costMode" class="mx-auto w-56"
+      :options="[{ value: 'total', label: t('logwizard.cost_total') }, { value: 'per_kwh', label: t('logwizard.cost_per_kwh') }]" />
     </div>
   </div>
 </template>
