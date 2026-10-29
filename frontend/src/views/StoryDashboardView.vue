@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent, onUnmounted, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, nextTick, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
@@ -24,6 +24,7 @@ import { isPreviewHost, mainAppOrigin } from '../utils/previewHost'
 import { DAY, type Moment } from '../composables/storyMoments'
 import { useMomentSeen } from '../composables/useMomentSeen'
 import StoryNewsStack from '../components/story/StoryNewsStack.vue'
+import StoryNewsList from '../components/story/StoryNewsList.vue'
 import StoryHero from '../components/story/StoryHero.vue'
 import StoryLatestCards from '../components/story/StoryLatestCards.vue'
 import StoryLiveHero from '../components/story/StoryLiveHero.vue'
@@ -40,6 +41,7 @@ import { dayKeyOf } from '../composables/storyDay'
 import { useLogsRefreshStore } from '../stores/logsRefresh'
 
 const StorySheet = defineAsyncComponent(() => import('../components/story/StorySheet.vue'))
+const StoryTilePane = defineAsyncComponent(() => import('../components/story/StoryTilePane.vue'))
 const StoryPriceSheet = defineAsyncComponent(() => import('../components/story/StoryPriceSheet.vue'))
 const PlacesSheet = defineAsyncComponent(() => import('../components/story/places/PlacesSheet.vue'))
 const EditTripModal = defineAsyncComponent(() => import('../components/dashboard/EditTripModal.vue'))
@@ -147,8 +149,9 @@ watch(monthStats, () => {
   monthDirection = 0
   if (!dir || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
   for (const el of [monthMain.value, monthSide.value]) {
+    // Ab lg ist die Fläche groß und das Auge weiter weg: etwas ruhiger als auf dem Handy
     el?.animate([{ opacity: 0, transform: `translateX(${dir * 14}px)` }, { opacity: 1, transform: 'none' }],
-      { duration: 220, easing: 'cubic-bezier(0.22, 0.68, 0.24, 1)' })
+      { duration: narrow.value ? 220 : 340, easing: 'cubic-bezier(0.22, 0.68, 0.24, 1)' })
   }
 }, { flush: 'post' })
 let swipeX: number | null = null
@@ -233,7 +236,7 @@ const expensivePrice = computed(() => {
   return m?.kind === 'expensive' ? m.pricePerKwh : null
 })
 
-// Karten von unten: Handlungen, Erledigt (nur dieses Geraet) und Zaehlen.
+// Neuigkeiten (mobil von unten, ab lg in der Spalte): Handlungen, Erledigt (nur dieses Gerät) und Zählen.
 const { seen, markShown, dismiss } = useMomentSeen()
 function onNewsShown(m: Moment) {
   if (seen.value.shown[m.key] != null) return
@@ -272,6 +275,21 @@ function openSheet(id: TileId) {
   openTile.value = id
 }
 const sheetTile = computed(() => tiles.value.find(x => x.id === openTile.value) ?? null)
+// Ab lg steht das Detail rechts in der Spalte statt als Sheet: Lesen ohne Abdunkeln, die Kacheln bleiben daneben.
+const paneTile = computed(() => narrow.value ? null : sheetTile.value)
+const feedLabel = computed(() => month.value.offset === 0 ? t('story.feed_title') : t('story.feed_title_past', { month: monthLabel(month.value) }))
+/** Pfeiltasten in der Spalte: nächste oder vorige Kachel, im Kreis. */
+function stepTile(dir: 1 | -1) {
+  const ids = sheetIds.value
+  const i = ids.indexOf(openTile.value as TileId)
+  if (i >= 0) openSheet(ids[(i + dir + ids.length) % ids.length])
+}
+/** Spalte schließen: der Fokus geht zurück auf die Kachel, von der das Detail kam. */
+function closePane() {
+  const id = openTile.value
+  openTile.value = null
+  nextTick(() => document.querySelector<HTMLElement>(`[data-testid="story-tile-${id}"]`)?.focus({ preventScroll: true }))
+}
 const sheetContext = computed(() => ({
   stats: monthStats.value,
   monthLabels: sixMonthLabels.value,
@@ -337,7 +355,8 @@ onUnmounted(() => unregisterReload?.())
 <template>
   <div data-testid="story-view">
     <main class="mx-auto grid max-w-6xl grid-cols-1 gap-4 pb-6 md:px-6 md:pb-12">
-      <!-- Eine Box: oben Auto und Monat, darunter ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts der Feed. -->
+      <!-- Eine Box: oben Auto und Monat, darunter ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts eine stehende Spalte:
+           Neuigkeiten und Feed, oder das Detail der gewählten Kachel. -->
       <section class="grid grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box">
         <!-- Auto über beiden Spalten, nur bei mehreren Autos: mit einem gibt es nichts zu wählen -->
         <header v-if="cars.length > 1" class="flex items-center lg:col-span-12">
@@ -406,14 +425,26 @@ onUnmounted(() => unregisterReload?.())
               :feed="feed" :model-name="modelName" :sheets="sheetIds"
               :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0"
               @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" />
-            <StoryTileRow v-if="hasCharges" :tiles="tiles" @open="openSheet" />
+            <StoryTileRow v-if="hasCharges" :tiles="tiles" :selected="paneTile?.id ?? null" @open="openSheet" />
           </template>
         </div>
-        <div v-if="!narrow && showFeed" ref="monthSide" class="min-w-0 lg:col-span-5" :class="switching ? monthWaiting : ''">
-          <StoryFeed
-            :feed="feed" :model-name="modelName" :sheets="sheetIds"
-            :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0" map-preview
-            @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" />
+        <!-- Steht beim Scrollen unter dem Kopf; eigene Scrollhöhe, Rand für Kante und Fokusring -->
+        <div
+          v-if="!narrow && (showFeed || paneTile || story.cards.value.length)" ref="monthSide"
+          class="min-w-0 lg:sticky lg:top-[calc(var(--content-top,4rem)+1rem)] lg:col-span-5 lg:-mx-2 lg:max-h-[calc(100dvh-var(--content-top,4rem)-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-2 lg:pb-2"
+          :class="switching ? monthWaiting : ''" data-testid="story-side">
+          <StoryTilePane v-if="paneTile" :tile="paneTile" :context="sheetContext" :back-label="feedLabel" @close="closePane" @step="stepTile" />
+          <div v-else class="grid content-start gap-6">
+            <StoryNewsList
+              v-if="selectedCarId"
+              :cards="story.cards.value" :car-id="selectedCarId" :car-name="carName" :seen="seen"
+              @shown="onNewsShown" @act="onNewsAct" @dismiss="onNewsDismiss" />
+            <StoryFeed
+              v-if="showFeed"
+              :feed="feed" :model-name="modelName" :sheets="sheetIds"
+              :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0" map-preview
+              @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" />
+          </div>
         </div>
       </section>
 
@@ -427,7 +458,7 @@ onUnmounted(() => unregisterReload?.())
       </div>
     </main>
 
-    <StorySheet v-if="sheetTile" :tile="sheetTile" :context="sheetContext" @close="openTile = null" />
+    <StorySheet v-if="sheetTile && narrow" :tile="sheetTile" :context="sheetContext" @close="openTile = null" />
 
     <StoryPriceSheet v-if="openPrices && story.benchmark.value" :benchmark="story.benchmark.value" :price-per-kwh="expensivePrice" @close="openPrices = false" />
 
@@ -467,10 +498,11 @@ onUnmounted(() => unregisterReload?.())
       @close="openDay = null"
       @changed="story.reload()"
       @add-charge="onAddCharge" />
-    <!-- Teleport: mobil liegt die Uebersicht im verschobenen Pager-Track, fixed waere dort relativ zum Track -->
+    <!-- Teleport: mobil liegt die Übersicht im verschobenen Pager-Track, fixed wäre dort relativ zum Track.
+         Der Stapel von unten nur unter lg, darüber stehen die Neuigkeiten in der rechten Spalte. -->
     <Teleport to="body">
       <StoryNewsStack
-        v-if="route.path === '/story' && selectedCarId"
+        v-if="narrow && route.path === '/story' && selectedCarId"
         :cards="story.cards.value" :car-id="selectedCarId" :car-name="carName" :seen="seen"
         @shown="onNewsShown" @act="onNewsAct" @dismiss="onNewsDismiss"
         @collapsed="analytics.track('story_news_collapsed')" @expanded="analytics.track('story_news_expanded')" @list="analytics.track('story_news_list_opened')" />
