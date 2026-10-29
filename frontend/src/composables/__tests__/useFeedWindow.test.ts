@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { nextTick } from 'vue'
-import { useFeedWindow, formatOlderWindow, FEED_RESOLUTION_KEY } from '../useFeedWindow'
+import { nextTick, ref } from 'vue'
+import { useFeedWindow, formatOlderWindow, FEED_RESOLUTION_KEY, type FeedResolution } from '../useFeedWindow'
 
 // Der Log-Feed laedt ein festes Zeitfenster je Darstellung: Einzeln den laufenden Monat (wie die
 // Uebersicht), Monat drei Monate, Woche acht Wochen, Tag zwei Wochen. "Aeltere laden" holt je ein
@@ -103,4 +103,28 @@ describe('useFeedWindow', () => {
       expect(formatOlderWindow(win('2026-05-25T00:00:00Z', '2026-07-19T23:59:59.999Z'), 'week', 'de')).toBe('25. Mai-19. Juli')
     })
   })
+
+  describe('feste Darstellung (Logbuch)', () => {
+    it('lädt monatsweise, ohne die gespeicherte Wahl zu überschreiben', async () => {
+      localStorage.setItem(FEED_RESOLUTION_KEY, 'week')
+      const fixed = ref<FeedResolution | null>('cycle')
+      const feed = useFeedWindow(now, fixed)
+      expect(from(feed)).toBe('&from=2026-09-01T00:00:00.000Z')
+      feed.loadOlder()
+      expect(from(feed)).toBe('&from=2026-08-01T00:00:00.000Z')
+      expect(feed.nextOlder.value.startMs).toBe(Date.parse('2026-07-01T00:00:00Z'))
+      await nextTick()
+      expect(localStorage.getItem(FEED_RESOLUTION_KEY)).toBe('week')
+      expect(feed.resolution.value).toBe('week')
+    })
+
+    it('ohne feste Darstellung gilt wieder die Wahl, ab ihrem Standardfenster', () => {
+      const fixed = ref<FeedResolution | null>('cycle')
+      const feed = useFeedWindow(now, fixed)
+      feed.loadOlder()
+      fixed.value = null
+      expect(from(feed)).toBe('&from=2026-07-01T00:00:00.000Z')
+    })
+  })
 })
+

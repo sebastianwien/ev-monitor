@@ -1,4 +1,5 @@
-import { provide, inject, ref, watch, onMounted, onActivated, type InjectionKey, type Ref } from 'vue'
+import { provide, inject, ref, computed, watch, onMounted, onActivated, type InjectionKey, type Ref, type ComputedRef } from 'vue'
+import type { FeedResolution } from './useFeedWindow'
 import { useDashboardStats } from './useDashboardStats'
 import { useLogList } from './useLogList'
 import { useCarStore } from '../stores/car'
@@ -24,15 +25,20 @@ export type CarContext =
     setLogsSection: (el: unknown) => void
     /** Aktueller Kilometerstand aus dem Backend (fuer Card-Details). */
     currentOdometerKm: Ref<number | null>
+    /** Das gewählte Auto, ohne Auswahl das erste. */
+    selectedCar: ComputedRef<any | null>
   }
 
 const CAR_CONTEXT: InjectionKey<CarContext> = Symbol('car-context')
 
-/** Im Layout aufrufen: erzeugt die geteilten Instanzen + zentrale Orchestrierung. */
-export function provideCarContext(): CarContext {
+/**
+ * Im Layout aufrufen: erzeugt die geteilten Instanzen + zentrale Orchestrierung.
+ * `fixedFeedResolution`: das Logbuch lädt monatsweise, ohne die Wahl der alten Liste zu überschreiben.
+ */
+export function provideCarContext(options: { fixedFeedResolution?: Ref<FeedResolution | null> } = {}): CarContext {
   const dash = useDashboardStats()
   const logsSection = ref<HTMLElement | null>(null)
-  const logs = useLogList(dash.selectedCarId, dash.cars, logsSection)
+  const logs = useLogList(dash.selectedCarId, dash.cars, logsSection, options.fixedFeedResolution)
 
   // Zentraler Reload bei Auto-Wechsel - laeuft einmal, unabhaengig vom aktiven Tab.
   watch(dash.selectedCarId, async (newId) => {
@@ -65,7 +71,9 @@ export function provideCarContext(): CarContext {
 
   const setLogsSection = (el: unknown) => { logsSection.value = (el as HTMLElement | null) }
 
-  const ctx: CarContext = { ...dash, ...logs, logsSection, setLogsSection, currentOdometerKm }
+  const selectedCar = computed(() => dash.cars.value.find((c: any) => c.id === dash.selectedCarId.value) ?? dash.cars.value[0] ?? null)
+
+  const ctx: CarContext = { ...dash, ...logs, logsSection, setLogsSection, currentOdometerKm, selectedCar }
   provide(CAR_CONTEXT, ctx)
   return ctx
 }

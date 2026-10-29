@@ -5,10 +5,8 @@ import {
   TruckIcon,
   MapIcon,
   BoltIcon,
-  HeartIcon,
   PencilSquareIcon,
   ChevronDownIcon,
-  ChevronRightIcon,
   ChevronDoubleDownIcon,
   ChevronDoubleUpIcon,
   TrashIcon,
@@ -22,19 +20,19 @@ import {
   LockClosedIcon,
   CheckIcon,
   LinkIcon,
-  CurrencyEuroIcon,
 } from '@heroicons/vue/24/outline'
 import WattBadge from '../components/shared/WattBadge.vue'
 import { useCoinStore } from '../stores/coins'
-import { wattPossibleForLog, wattPossiblePerLogMax } from '../utils/wattPreview'
+import { wattPossibleForLog } from '../utils/wattPreview'
 import { purchasesAvailable } from '../utils/iapPolicy'
 import { isShortTrip } from '../utils/shortTrip'
-import { phantomEurFor, totalPhantomKwh } from '../utils/phantomDrain'
+import { phantomEurFor, totalPhantomKwh, phantomTeaserId, showsDrain as showsDrainFor } from '../utils/phantomDrain'
 import {
   tripConsumption as tripConsumptionPure,
   tripGroupConsumedKwh as tripGroupConsumedKwhPure,
   tripGroupSocBoundaries as tripGroupSocBoundariesPure,
   tripGroupCostPer100km as tripGroupCostPer100kmPure,
+  tripCostPer100km as tripCostPer100kmPure,
   buildTripCostPerKwhMap,
   isRestBreak,
   groupTripsByDay,
@@ -44,18 +42,18 @@ import api from '../api/axios'
 import { distributeProportionally } from '../utils/distributeProportionally'
 import { rescaleCostForKwhChange } from '../utils/costRescale'
 import PowerCurveModal from '../components/charging/PowerCurveModal.vue'
-import { mergeSocSeries, type CurvePoint, type SocPoint } from '../components/charging/powerCurveSeries'
+import { usePowerCurve } from '../composables/usePowerCurve'
 import { formatSocRange } from '../utils/socRange'
 import { hasTripMap } from '../utils/tripMap'
 import { formatPauseDuration, timeColumn, tripDayLabel } from '../utils/tripTimeFormat'
 import { buildPeriodGroups } from '../utils/tripPeriods'
 import { collapseAnchorScrollY, isGroupScrolledPast } from '../utils/stickyGroup'
 import { normalizeCharge } from '../utils/recentActivity'
-import { pricelessDeepLink } from '../utils/pricelessDeepLink'
-import { feedHints } from '../utils/feedHints'
+import { usePricelessDeepLink } from '../composables/usePricelessDeepLink'
 import PeriodGroupHeader from '../components/dashboard/PeriodGroupHeader.vue'
+import FeedHintCard from '../components/dashboard/FeedHintCard.vue'
+import DeletedLogsEntry from '../components/dashboard/DeletedLogsEntry.vue'
 import FeedLegend from '../components/dashboard/FeedLegend.vue'
-import FeedHintRow from '../components/dashboard/FeedHintRow.vue'
 import FeedEventRow from '../components/dashboard/FeedEventRow.vue'
 import FeedActionMenu from '../components/dashboard/FeedActionMenu.vue'
 import FeedMenuItem from '../components/dashboard/FeedMenuItem.vue'
@@ -77,22 +75,16 @@ import CarSwitch from '../components/car/CarSwitch.vue'
 import RewardSystemUpdateBanner from '../components/shared/RewardSystemUpdateBanner.vue'
 import { useAuthStore } from '../stores/auth'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
-import DeletedLogsSheet from '../components/dashboard/DeletedLogsSheet.vue'
-import { useDeletedLogs } from '../composables/useDeletedLogs'
 import PricelessLogsModal from '../components/dashboard/PricelessLogsModal.vue'
 import MergeLogModal from '../components/dashboard/MergeLogModal.vue'
 import { FEED_RESOLUTIONS, formatOlderWindow } from '../composables/useFeedWindow'
-import { useRoute, useRouter } from 'vue-router'
+import { useRoute } from 'vue-router'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useHaptic } from '../composables/useHaptic'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
-import { hasFreeDataSource, isAutoSyncUnsupported } from '../composables/useCarAutoSyncProvider'
-import { useCountryStore } from '../stores/country'
-import { getPricing } from '../config/pricingConfig'
 import { carDisplayName } from '../utils/enumLabel'
-import { subscriptionService, type SubscriptionTier } from '../api/subscriptionService'
 import {
   computeRealCostHint,
   isNettoOnlyCostLog,
@@ -112,15 +104,13 @@ coinStore.ensureCatalog()
 const { formatConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatDecimal, consumptionUnitLabel } = useLocaleFormat()
 const { haptic } = useHaptic()
 const route = useRoute()
-const router = useRouter()
 
 // -- Geteilter Auto-Context (State + Polling liegen im CarContextLayout) --
 const {
   selectedCarId, stats, loading, isInitialLoad,
   cars, carImageUrls,
-  implausibleBannerDismissed, teslaStatus, smartcarStatus, implausibleCount,
-  dismissImplausibleBanner, fetchImplausibleCount, fetchStatistics,
-  pricelessCount, pricelessBannerDismissed, dismissPricelessBanner, fetchPricelessCount,
+  teslaStatus, smartcarStatus,
+  fetchImplausibleCount, fetchStatistics, fetchPricelessCount,
   setLogsSection,
   logs, logsLoading, editingLog, priceAmendingLog,
   feedResolution, feedNextOlder, loadOlderFeed,
@@ -132,17 +122,9 @@ const {
   formatLogDate, formatTripTimeRange, tripTimeParts, toggleOdometerDisplay, sourceInfo, mergedLogFeed,
   editingTripId, addingTripAfterId, tripForm, tripSaving, tripError,
   startEditTrip, cancelTripEdit, saveTripEdit, startAddTrip, saveNewTrip, deleteTripEntry,
-  mergeTripEntry,
+  mergeTripEntry, selectedCar,
 } = useCarContext()
-const wattForAllPriceless = computed(() => wattPossiblePerLogMax(coinStore.catalog) * pricelessCount.value)
 
-// -- Papierkorb: Liste erst laden, wenn der Nutzer das Sheet öffnet --
-const deletedLogs = useDeletedLogs(selectedCarId)
-const showDeletedSheet = ref(false)
-function openDeletedSheet() {
-  showDeletedSheet.value = true
-  deletedLogs.load()
-}
 
 const deletingTripId = ref<string | null>(null)
 let _deleteTimer: ReturnType<typeof setTimeout> | null = null
@@ -498,31 +480,12 @@ function toggleLogExpanded(id: string) {
   else expandedLogs.value.add(id)
 }
 
-// Power-Curve: lazy-loaded pro Log-ID, einmal geladen wird's gecached.
-// LRU mit Hard-Cap auf POWER_CURVE_CACHE_MAX: bei einem Power-User der hunderte
-// Logs aufklappt waere die Map sonst unbounded (~600 Byte pro Eintrag).
-const POWER_CURVE_CACHE_MAX = 50
-// Die Kurve wird im Overlay gezeigt, nicht inline: in der Feed-Zeile blieb ihr
-// nur eine gestauchte Resthoehe. Es ist immer hoechstens eine offen.
-const powerCurveEntry = ref<any | null>(null)
-/** Was zu einer Ladung aufgezeichnet wurde: Leistungskurve (Tesla) oder
- *  Ladeverlauf (Smartcar). Nie beides - siehe PowerCurveResponse im Backend. */
-interface CurveData { points: CurvePoint[]; socPoints: SocPoint[] }
-const powerCurveCache = ref(new Map<string, CurveData>())
-const powerCurveLoading = ref(new Set<string>())
-
-function cachePut(logId: string, points: CurveData) {
-  // LRU-Verhalten via JS-Map-Insertion-Order: bei Hit erst delete dann set
-  // schiebt den Eintrag ans Ende; oldest fliegt raus wenn Cap erreicht.
-  if (powerCurveCache.value.has(logId)) powerCurveCache.value.delete(logId)
-  powerCurveCache.value.set(logId, points)
-  while (powerCurveCache.value.size > POWER_CURVE_CACHE_MAX) {
-    const oldest = powerCurveCache.value.keys().next().value
-    if (oldest === undefined) break
-    powerCurveCache.value.delete(oldest)
-  }
-  powerCurveCache.value = new Map(powerCurveCache.value)
-}
+// Ladekurve im Overlay, je Log einmal geladen (usePowerCurve, geteilt mit dem Logbuch)
+const {
+  entry: powerCurveEntry, cache: powerCurveCache, loading: powerCurveLoading,
+  open: openPowerCurve, consumption: powerCurveConsumption, subtitle: powerCurveSubtitle,
+  canOpen: logCurveOpen, available: logHasCurve,
+} = usePowerCurve(stats, formatLogDate)
 
 /** Anzahl der Teilladungen einer Ladegruppe, die eine Kurve aufgezeichnet haben. */
 function curveTopUpCount(entry: any): number {
@@ -550,66 +513,6 @@ function firstCurveTopUp(entry: any): any {
   return (entry?._topUps ?? []).find((t: any) => t?.hasPowerCurve || t?.hasSocCurve) ?? entry
 }
 
-async function openPowerCurve(entry: any) {
-  const logId = entry.id
-  powerCurveEntry.value = entry
-  // Ohne Freischaltung zeigt das Overlay den Teaser. Der Abruf wuerde am
-  // Server-Gate scheitern - gar nicht erst fragen. Der Ladeverlauf hat ein
-  // eigenes, weiteres Gate.
-  if (!authStore.canViewLiveAnalytics && !(entry?.hasSocCurve && authStore.canViewSocCurve)) return
-  if (powerCurveCache.value.has(logId)) {
-    // Recency-Touch fuer LRU: re-insert um den Eintrag ans Map-Ende zu schieben
-    const cached = powerCurveCache.value.get(logId)!
-    cachePut(logId, cached)
-    return
-  }
-  powerCurveLoading.value.add(logId)
-  powerCurveLoading.value = new Set(powerCurveLoading.value)
-  try {
-    // Teilladungen mitladen: der Connector trennt einen Ladelauf am
-    // Zaehler-Reset, der Feed fuehrt die Logs ueber den identischen
-    // Kilometerstand aber wieder zusammen. Der Ladeverlauf folgt derselben
-    // Gruppierung und wird dadurch wieder durchgehend. Die Leistungskurve
-    // bleibt beim Elternlog - Tesla kennt diesen Split nicht.
-    const fetchCurve = (id: string) =>
-      api.get<{ points: CurvePoint[]; socPoints: SocPoint[] }>(`/logs/${id}/power-curve`)
-        .then(r => r.data)
-        .catch(() => ({ points: [] as CurvePoint[], socPoints: [] as SocPoint[] }))
-
-    const parent = await fetchCurve(logId)
-    // Teilladungen nur nachladen, wenn es um einen Ladeverlauf geht: der
-    // Connector trennt einen Lauf am Zaehler-Reset, der Feed fuehrt die Logs
-    // ueber den identischen Kilometerstand aber wieder zusammen. Bei einer
-    // Leistungskurve gibt es diesen Split nicht - dort waeren die zusaetzlichen
-    // Requests reine Last.
-    const topUpIds = parent.points?.length
-      ? []
-      : ((entry?._topUps ?? []) as any[]).map(t => t?.id).filter(Boolean)
-    const topUps = topUpIds.length ? await Promise.all(topUpIds.map(fetchCurve)) : []
-
-    cachePut(logId, {
-      points: parent.points ?? [],
-      socPoints: mergeSocSeries([parent, ...topUps].map(r => r?.socPoints)),
-    })
-  } catch {
-    cachePut(logId, { points: [], socPoints: [] })
-  } finally {
-    powerCurveLoading.value.delete(logId)
-    powerCurveLoading.value = new Set(powerCurveLoading.value)
-  }
-}
-
-// Referenzlinie der Ladekurve: Verbrauch des Logs, sonst der Fahrzeug-Schnitt.
-function powerCurveConsumption(entry: any): number | null {
-  if (entry?.consumptionKwhPer100km != null) return Number(entry.consumptionKwhPer100km)
-  return stats.value?.avgConsumptionKwhPer100km != null ? Number(stats.value.avgConsumptionKwhPer100km) : null
-}
-
-// formatLogDate enthaelt bereits die Uhrzeit - kein zweites Mal anhaengen.
-const powerCurveSubtitle = computed(() => {
-  const at = powerCurveEntry.value?.loggedAt
-  return at ? formatLogDate(at) : ''
-})
 
 function chargingEfficiency(kwhCharged: number | null, kwhAtVehicle: number | null): number | null {
   if (!kwhCharged || !kwhAtVehicle || kwhCharged <= 0) return null
@@ -653,24 +556,11 @@ const showImplausibleModal = ref(false)
 const showPricelessModal = ref(false)
 const implausibleModalDirty = ref(false)
 
-// Einstieg aus der Monatsrückblick-Mail (/logs?car=<id>&nachtragen=preis). Wartet, bis die Autos
-// geladen sind, und nimmt die Parameter danach aus der URL, damit Neuladen das Modal nicht erneut öffnet.
-let pricelessLinkHandled = false
-watch(cars, (list) => {
-  if (pricelessLinkHandled || !list.length) return
-  pricelessLinkHandled = true
-  const link = pricelessDeepLink(route.query, list)
-  if (!link) return
-  if (link.carId) selectedCarId.value = link.carId
-  showPricelessModal.value = true
-  router.replace({ query: { ...route.query, car: undefined, nachtragen: undefined } })
-}, { immediate: true })
+// Einstieg aus der Monatsrückblick-Mail: Liste der Ladungen ohne Preis öffnen
+usePricelessDeepLink(cars, selectedCarId, () => { showPricelessModal.value = true })
 
 // -- Range calculator --
 
-const selectedCar = computed(() =>
-  cars.value.find(c => c.id === selectedCarId.value) ?? cars.value[0] ?? null
-)
 
 // -- Community-Vergleich: Schnitt der Modellgruppe fuer Chip-Faerbung und Tooltips --
 const communityModelStats = ref<PublicModelStats | null>(null)
@@ -754,16 +644,12 @@ const upsellTarget = useAnalyticsUpsellTarget()
 // Locked-state: for users without the analytics entitlement, unlock only the most-recent
 // phantom marker inline (in its native style, with an upgrade link); all other markers stay
 // gated. The id matches either a trip or a standalone entry in the feed.
-const teaserPhantomId = computed<string | null>(() => {
-  if (authStore.canViewLiveAnalytics) return null
-  const first = (mergedLogFeed.value ?? []).find((e: any) => (e?._phantomDrain?.kwh ?? 0) > 0.05)
-  return first ? first.id : null
-})
+const teaserPhantomId = computed(() => phantomTeaserId(mergedLogFeed.value, authStore.canViewLiveAnalytics))
 
 // Die EINZIGEN Sichtbarkeits-Regeln fuer Standverluste - Gate nirgendwo im Template
 // duplizieren. Einzelner Drain: Supporter-Pack oder der eine Teaser. Summen: nur Supporter.
 function showsDrain(entry: any): boolean {
-  return !!entry?._phantomDrain && (authStore.canViewLiveAnalytics || entry.id === teaserPhantomId.value)
+  return showsDrainFor(entry, authStore.canViewLiveAnalytics, teaserPhantomId.value)
 }
 function visiblePhantomTotal(item: any): number | null {
   return authStore.canViewLiveAnalytics ? (item?.totalPhantomKwh ?? null) : null
@@ -877,12 +763,6 @@ function logKwhBasis(entry: any): number | null {
   const v = entry?.kwhCharged ?? entry?.kwhAtVehicle
   return v ? Number(v) : null
 }
-function logCurveOpen(entry: any): boolean {
-  return !!((entry?.hasPowerCurve && authStore.canViewLiveAnalytics) || (entry?.hasSocCurve && authStore.canViewSocCurve))
-}
-function logHasCurve(entry: any): boolean {
-  return logCurveOpen(entry) || (!!(entry?.hasPowerCurve || entry?.hasSocCurve) && purchasesAvailable())
-}
 
 /** Verbrauch neutral; amber nur, wenn deutlich ueber dem eigenen Schnitt oder unplausibel (App-CI, nie rot). */
 function consumptionValueTone(value: number | null | undefined): string {
@@ -918,11 +798,7 @@ const EMPTY_CELL = 'text-gray-300 dark:text-gray-600'
 const FEED_ICON_BTN = 'btn-3d cta-shadow-sm grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-gray-800 transition-colors hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15'
 
 function tripCostPer100km(trip: any): number | null {
-  const c = tripConsumption(trip)
-  if (!c) return null
-  const cpk = tripCostPerKwh(trip)
-  if (cpk == null) return null
-  return c.kwhPer100km * cpk
+  return tripCostPer100kmPure(trip, tripCostPerKwh(trip), selectedCar.value?.effectiveBatteryCapacityKwh ?? null)
 }
 
 /**
@@ -1057,103 +933,6 @@ function tripGroupSocBoundaries(group: any): { start: number; end: number } | nu
 }
 
 
-const subscriptionTier = ref<SubscriptionTier | null>(null)
-
-// Ob das ausgewaehlte Auto bereits kostenlos Daten liefert (Tesla/XPeng) - dreht die
-// AutoSync- vs. Supporter-Weiche fuer alle drei Banner unten. Kein Auto ausgewaehlt
-// zaehlt als "keine freie Quelle", wie zuvor bei den einzelnen Brand-Checks.
-const selectedCarHasFreeSource = computed(() =>
-  selectedCar.value != null && hasFreeDataSource(selectedCar.value)
-)
-
-// Marke ohne AutoSync-Weg (Zeekr, Leapmotor, Lucid, Rivian): ein Abo wuerde ihre Daten nicht
-// anfassen, also auch keine AutoSync-Banner. Kein Auto ausgewaehlt zaehlt als "unbekannt".
-const selectedCarAutoSyncUnsupported = computed(() =>
-  selectedCar.value != null && isAutoSyncUnsupported(selectedCar.value)
-)
-
-// AutoSync Live discoverability banner: temporarily disabled (flip flag to re-enable).
-// Shown to users without a free data source and without Live, dismissible. Position:
-// below ConsumptionInfoBox.
-const LIVE_BANNER_ENABLED = false
-const LS_LIVE_BANNER_DISMISSED = 'autosync_live_banner_dismissed'
-const liveBannerDismissed = ref(localStorage.getItem(LS_LIVE_BANNER_DISMISSED) === 'true')
-const showLiveBanner = computed(() =>
-  LIVE_BANNER_ENABLED
-  && purchasesAvailable()
-  && subscriptionTier.value != null
-  && subscriptionTier.value !== 'AUTOSYNC_LIVE'
-  && !selectedCarHasFreeSource.value
-  && !selectedCarAutoSyncUnsupported.value
-  && !liveBannerDismissed.value
-)
-function dismissLiveBanner() {
-  liveBannerDismissed.value = true
-  localStorage.setItem(LS_LIVE_BANNER_DISMISSED, 'true')
-}
-
-// AutoSync discoverability banner: shown to users without a free data source and
-// without any subscription (tier NONE), dismissible. Position: below ConsumptionInfoBox.
-const countryStore = useCountryStore()
-const autoSyncPrice = computed(() => getPricing(countryStore.country).monthly)
-const LS_AUTOSYNC_BANNER_DISMISSED = 'autosync_banner_dismissed'
-const autoSyncBannerDismissed = ref(localStorage.getItem(LS_AUTOSYNC_BANNER_DISMISSED) === 'true')
-const showAutoSyncBanner = computed(() =>
-  purchasesAvailable()
-  && subscriptionTier.value === 'NONE'
-  && !selectedCarHasFreeSource.value
-  && !selectedCarAutoSyncUnsupported.value
-  && !autoSyncBannerDismissed.value
-)
-function dismissAutoSyncBanner() {
-  autoSyncBannerDismissed.value = true
-  localStorage.setItem(LS_AUTOSYNC_BANNER_DISMISSED, 'true')
-}
-
-// Supporter-Banner: das Gegenstueck zum AutoSync-Banner darueber, gleicher Slot,
-// gleiches Dismiss-Verhalten. Tesla-/XPeng-Fahrer bekommen die Datenerfassung gratis,
-// AutoSync hat ihnen also nichts zu verkaufen - die Auswertungsebene schon. Ohne diesen
-// Banner erfahren sie vom Pack nur, wenn sie zufaellig auf ein gesperrtes Widget klicken.
-const supporterPrice = computed(() => getPricing(countryStore.country).supporterMonthly)
-const LS_SUPPORTER_BANNER_DISMISSED = 'supporter_banner_dismissed'
-const supporterBannerDismissed = ref(localStorage.getItem(LS_SUPPORTER_BANNER_DISMISSED) === 'true')
-const showSupporterBanner = computed(() =>
-  purchasesAvailable()
-  && subscriptionTier.value === 'NONE'
-  && selectedCarHasFreeSource.value
-  && !supporterBannerDismissed.value
-)
-function dismissSupporterBanner() {
-  supporterBannerDismissed.value = true
-  localStorage.setItem(LS_SUPPORTER_BANNER_DISMISSED, 'true')
-}
-
-const LS_COST_TIP_DISMISSED = 'logfeed_cost_reuse_tip_dismissed'
-const costTipDismissed = ref(localStorage.getItem(LS_COST_TIP_DISMISSED) === 'true')
-const showCostTip = computed(() => !costTipDismissed.value)
-function dismissCostTip() {
-  costTipDismissed.value = true
-  localStorage.setItem(LS_COST_TIP_DISMISSED, 'true')
-}
-
-// Eine Hinweis-Karte statt vier Bannern, Reihenfolge und Deckel in utils/feedHints.
-const visibleHints = computed(() => feedHints({
-  implausible: implausibleCount.value > 0 && !implausibleBannerDismissed.value,
-  priceless: pricelessCount.value > 0 && !pricelessBannerDismissed.value,
-  live: showLiveBanner.value,
-  autosync: showAutoSyncBanner.value,
-  supporter: showSupporterBanner.value,
-  costTip: showCostTip.value,
-}))
-
-onMounted(async () => {
-  try {
-    const status = await subscriptionService.getStatus()
-    subscriptionTier.value = status.tier ?? 'NONE'
-  } catch {
-    subscriptionTier.value = null
-  }
-})
 
 /**
  * Dauer der Auf-/Zuklapp-Animation, an die Inhaltshoehe gekoppelt. Eine feste Dauer liest
@@ -1406,46 +1185,7 @@ function toggleAllFeed() {
           <!-- Hinweise als eine Karte statt eines Bannerstapels: erst Aufgaben, dann hoechstens
                ein Angebot, zuletzt der Tipp (utils/feedHints). So beginnt der Feed auf dem Handy
                im ersten Bildschirm. -->
-          <ul v-if="visibleHints.length" data-testid="feed-hints"
-            class="mb-4 divide-y divide-gray-200 rounded-2xl bg-white edge-card dark:divide-gray-700/70 dark:bg-gray-800">
-            <template v-for="hint in visibleHints" :key="hint">
-              <FeedHintRow v-if="hint === 'implausible'" data-testid="implausible-banner" task :icon="ExclamationTriangleIcon"
-                :dismiss-label="t('dashboard.implausible_dismiss')" @open="showImplausibleModal = true" @dismiss="dismissImplausibleBanner">
-                {{ t('dashboard.implausible_banner', { n: implausibleCount, noun: implausibleCount === 1 ? t('dashboard.implausible_entry') : t('dashboard.implausible_entries') }) }}
-                <template #sub>{{ t('logs.hints.check') }}</template>
-              </FeedHintRow>
-              <FeedHintRow v-else-if="hint === 'priceless'" data-testid="priceless-banner" task :icon="CurrencyEuroIcon"
-                :dismiss-label="t('priceless.dismiss')" @open="showPricelessModal = true" @dismiss="dismissPricelessBanner">
-                {{ t('priceless.banner', pricelessCount) }}
-                <template #sub>{{ t('priceless.banner_cta') }} <WattBadge :amount="wattForAllPriceless" up-to /></template>
-              </FeedHintRow>
-              <FeedHintRow v-else-if="hint === 'live'" :icon="BoltIcon" to="/upgrade"
-                :dismiss-label="t('dashboard.live_banner_dismiss')" @dismiss="dismissLiveBanner">
-                <i18n-t keypath="logs.hints.live" tag="span"><template #product><b class="font-semibold">AutoSync Live</b></template></i18n-t>
-                <template #sub>{{ t('logs.hints.more') }}</template>
-              </FeedHintRow>
-              <FeedHintRow v-else-if="hint === 'autosync'" data-testid="autosync-banner" :icon="ArrowPathIcon" to="/upgrade"
-                :dismiss-label="t('dashboard.autosync_banner_dismiss')" @dismiss="dismissAutoSyncBanner">
-                <i18n-t keypath="logs.hints.autosync" tag="span"><template #product><b class="font-semibold">AutoSync</b></template></i18n-t>
-                <template #sub>{{ t('logs.hints.per_month', { price: autoSyncPrice }) }} &middot; {{ t('logs.hints.more') }}</template>
-              </FeedHintRow>
-              <FeedHintRow v-else-if="hint === 'supporter'" data-testid="supporter-banner" :icon="HeartIcon" to="/supporter"
-                :dismiss-label="t('dashboard.supporter_banner_dismiss')" @dismiss="dismissSupporterBanner">
-                <i18n-t keypath="logs.hints.supporter" tag="span"><template #pack><b class="font-semibold">{{ t('dashboard.supporter_banner_pack') }}</b></template></i18n-t>
-                <template #sub>{{ t('logs.hints.per_month', { price: supporterPrice }) }} &middot; {{ t('logs.hints.more') }}</template>
-              </FeedHintRow>
-              <FeedHintRow v-else-if="hint === 'cost_tip'" plain :icon="InformationCircleIcon"
-                :dismiss-label="t('dashboard.cost_reuse_tip_dismiss')" @dismiss="dismissCostTip">
-                <span class="text-[13.5px] text-gray-600 dark:text-gray-300">
-                  <i18n-t keypath="dashboard.cost_reuse_tip_text" tag="span">
-                    <template #settings>
-                      <router-link to="/settings" class="font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100">{{ t('dashboard.cost_reuse_tip_settings') }}</router-link>
-                    </template>
-                  </i18n-t>
-                </span>
-              </FeedHintRow>
-            </template>
-          </ul>
+          <FeedHintCard class="mb-4" @open-implausible="showImplausibleModal = true" @open-priceless="showPricelessModal = true" />
 
           <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0 -translate-y-1" enter-to-class="opacity-100 translate-y-0" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100" leave-to-class="opacity-0">
             <div v-if="reassignSuccessMessage" role="status" class="mb-3 flex items-center gap-2 rounded-xl bg-green-50 px-3 py-2.5 text-[14px] font-semibold text-green-800 dark:bg-green-400/10 dark:text-green-300">
@@ -2555,18 +2295,7 @@ function toggleAllFeed() {
           </div>
 
           <!-- Papierkorb: unaufdringlicher Einstieg, die Liste laedt erst beim Oeffnen -->
-          <button type="button" data-testid="deleted-logs-row"
-            @click="openDeletedSheet"
-            class="group mt-6 flex min-h-14 w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors hover:bg-gray-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent dark:hover:bg-white/5">
-            <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300">
-              <TrashIcon class="h-[18px] w-[18px]" aria-hidden="true" />
-            </span>
-            <span class="min-w-0 flex-1">
-              <span class="block text-[14px] font-semibold text-gray-900 dark:text-gray-100">{{ t('logs.trash.row') }}</span>
-              <span class="block text-[12.5px] text-gray-500 dark:text-gray-400">{{ t('logs.trash.hint') }}</span>
-            </span>
-            <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-          </button>
+          <DeletedLogsEntry class="mt-6" />
 
           <!-- Erklaerung der Verbrauchsberechnung als Nachschlagestoff unter der Liste -->
           <ConsumptionInfoBox :min-trips="5" class="mt-2" />
@@ -2580,17 +2309,6 @@ function toggleAllFeed() {
   <!-- Der EditLogModal liegt im CarContextLayout (geteilt mit dem Dashboard) - hier
        wird nur noch `editingLog` gesetzt. -->
 
-  <DeletedLogsSheet
-    v-if="showDeletedSheet"
-    :logs="deletedLogs.logs.value"
-    :busy-id="deletedLogs.busyId.value"
-    :loading="deletedLogs.loading.value"
-    :failed="deletedLogs.failed.value"
-    :format-date="formatLogDate"
-    @restore="deletedLogs.restore"
-    @purge="deletedLogs.purge"
-    @close="showDeletedSheet = false"
-  />
 
   <ImplausibleLogsModal
     :car-id="selectedCarId"

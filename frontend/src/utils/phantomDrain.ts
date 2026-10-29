@@ -50,6 +50,22 @@ export function totalPhantomKwh(entries: readonly DrainEntry[] | null | undefine
 /** Unterhalb dieser Energiemenge ist ein Drain Messrauschen und wird nicht angezeigt. */
 const DRAIN_DISPLAY_THRESHOLD_KWH = 0.05
 
+interface DrainCarrier { id: string; _phantomDrain?: { kwh?: number | null } | null }
+
+/**
+ * Ohne Supporter-Pack zeigt der Feed genau einen Standverlust offen, den jüngsten über der
+ * Anzeigeschwelle, mit Link zum Freischalten. Mit Pack gibt es keinen Teaser.
+ */
+export function phantomTeaserId(feed: readonly DrainCarrier[] | null | undefined, canView: boolean): string | null {
+  if (canView) return null
+  return (feed ?? []).find(e => (e?._phantomDrain?.kwh ?? 0) > DRAIN_DISPLAY_THRESHOLD_KWH)?.id ?? null
+}
+
+/** Die einzige Sichtbarkeitsregel für einen einzelnen Standverlust: Supporter-Pack oder der Teaser. */
+export function showsDrain(entry: DrainCarrier | null | undefined, canView: boolean, teaserId: string | null): boolean {
+  return !!entry?._phantomDrain && (canView || entry.id === teaserId)
+}
+
 /** Backend stores LocalDateTime without timezone - treat as UTC for consistent comparison. */
 function toEpochMs(isoString: string | null | undefined): number {
   if (!isoString) return 0

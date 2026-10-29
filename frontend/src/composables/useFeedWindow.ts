@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, type Ref } from 'vue'
 import type { TripWindow } from '../utils/tripMonthSummary'
 import type { PeriodResolution } from '../utils/tripPeriods'
 
@@ -10,6 +10,9 @@ import type { PeriodResolution } from '../utils/tripPeriods'
  *
  * Die Raender liegen auf ganzen Tagen, Wochen (ab Montag) und Monaten - eine Gruppe am Rand
  * zeigte sonst zu kleine Summen unter einem Kopf, der den ganzen Zeitraum nennt.
+ *
+ * `fixed` setzt die Darstellung von außen (das Logbuch lädt monatsweise), ohne die gespeicherte
+ * Wahl des Nutzers zu überschreiben.
  */
 export type FeedResolution = 'cycle' | PeriodResolution
 export const FEED_RESOLUTIONS: FeedResolution[] = ['day', 'week', 'month', 'cycle']
@@ -55,25 +58,26 @@ function writeStored(key: string, value: string) {
   try { localStorage.setItem(key, value) } catch { /* Safari private mode, quota */ }
 }
 
-export function useFeedWindow(now: () => Date = () => new Date()) {
+export function useFeedWindow(now: () => Date = () => new Date(), fixed: Ref<FeedResolution | null> = ref(null)) {
   const storedResolution = readStored(FEED_RESOLUTION_KEY) as FeedResolution | null
   const resolution = ref<FeedResolution>(
     storedResolution && FEED_RESOLUTIONS.includes(storedResolution) ? storedResolution : 'month')
   watch(resolution, (value) => writeStored(FEED_RESOLUTION_KEY, value))
+  const active = computed(() => fixed.value ?? resolution.value)
 
   // Stuecke, die "Aeltere laden" dazugeholt hat; jede Darstellung beginnt wieder bei ihrem Fenster.
   const olderSteps = ref(0)
-  watch(resolution, () => { olderSteps.value = 0 }, { flush: 'sync' })
+  watch(active, () => { olderSteps.value = 0 }, { flush: 'sync' })
   const loadOlder = () => { olderSteps.value += 1 }
 
   const window = computed<TripWindow>(() => {
     const current = now()
-    return { startMs: windowStart(resolution.value, current, olderSteps.value), endMs: current.getTime() }
+    return { startMs: windowStart(active.value, current, olderSteps.value), endMs: current.getTime() }
   })
 
   /** Das Stueck, das der naechste "Aeltere laden"-Klick dazuholt. */
   const nextOlder = computed<TripWindow>(() => ({
-    startMs: windowStart(resolution.value, now(), olderSteps.value + 1),
+    startMs: windowStart(active.value, now(), olderSteps.value + 1),
     endMs: window.value.startMs - 1,
   }))
 

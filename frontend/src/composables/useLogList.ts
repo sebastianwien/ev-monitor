@@ -7,7 +7,7 @@ import { sourceInfo } from '../utils/logSource'
 import { formatTripDateTimeRange, tripDateTimeParts } from '../utils/tripTimeFormat'
 import { annotatePhantomDrains } from '../utils/phantomDrain'
 import { aggregateGroupCost, costBasisKwh } from './useChargingEfficiency'
-import { useFeedWindow } from './useFeedWindow'
+import { useFeedWindow, type FeedResolution } from './useFeedWindow'
 import { useLogUndo } from './useLogUndo'
 import { tripFormFrom, newTripFormAt, tripFormError, tripPayload, type TripFormValues } from '../utils/tripForm'
 
@@ -28,13 +28,16 @@ function toEpochMs(isoString: string | null | undefined): number {
 }
 
 
-export function useLogList(selectedCarId: Ref<string | null>, cars: Ref<any[]>, logsSection: Ref<HTMLElement | null>) {
+export function useLogList(
+  selectedCarId: Ref<string | null>, cars: Ref<any[]>, logsSection: Ref<HTMLElement | null>,
+  fixedResolution?: Ref<FeedResolution | null>,
+) {
   const { t, locale } = useI18n()
   const logsRefreshStore = useLogsRefreshStore()
 
   const logs = ref<any[]>([])
   const trips = ref<any[]>([])
-  const feedWindow = useFeedWindow()
+  const feedWindow = useFeedWindow(undefined, fixedResolution)
   const logsLoading = ref(false)
   const editingLog = ref<any | null>(null)
   // Schlanker Preis-Nachtrag (PriceAmendModal), getrennt vom vollen EditLogModal (editingLog).

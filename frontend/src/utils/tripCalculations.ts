@@ -171,6 +171,41 @@ export function tripGroupSocBoundaries(trips: TripForCalc[]): { start: number; e
 }
 
 /**
+ * €/100km einer Fahrt: Verbrauch der Fahrt mal Preis je kWh (aus {@link buildTripCostPerKwhMap},
+ * sonst der eigene Schnitt). Null ohne Verbrauch oder ohne Preis.
+ */
+export function tripCostPer100km(
+  trip: TripForCalc,
+  costPerKwh: number | null,
+  effectiveBatteryCapacityKwh: number | null | undefined,
+): number | null {
+  const c = tripConsumption(trip, effectiveBatteryCapacityKwh)
+  if (!c || costPerKwh == null) return null
+  return c.kwhPer100km * costPerKwh
+}
+
+/** Kosten und Energie einer Fahrt für eine Zeile; je 100 km erst ab 1 km, darunter ist die Hochrechnung Rauschen. */
+export interface TripFacts { eur: number | null; eurPer100km: number | null; kwh: number | null; kwhPer100km: number | null; estimated: boolean }
+const MIN_KM_PER_100 = 1
+
+export function tripFacts(
+  trip: TripForCalc,
+  costPerKwh: number | null,
+  effectiveBatteryCapacityKwh: number | null | undefined,
+): TripFacts {
+  const c = tripConsumption(trip, effectiveBatteryCapacityKwh)
+  const per100 = tripCostPer100km(trip, costPerKwh, effectiveBatteryCapacityKwh)
+  const km = trip.distanceKm ?? 0
+  return {
+    eur: per100 != null && km > 0 ? per100 * km / 100 : null,
+    eurPer100km: per100 != null && km >= MIN_KM_PER_100 ? per100 : null,
+    kwh: c && km > 0 ? c.kwhPer100km * km / 100 : null,
+    kwhPer100km: c && km >= MIN_KM_PER_100 ? c.kwhPer100km : null,
+    estimated: !!c?.estimated,
+  }
+}
+
+/**
  * Aggregate €/100km for a trip group, weighted by per-trip distance.
  * Uses the precomputed cpkMap so it doesn't rescan logs.
  */

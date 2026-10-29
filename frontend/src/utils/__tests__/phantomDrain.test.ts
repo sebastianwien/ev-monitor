@@ -4,6 +4,8 @@ import {
   sumPhantomKwh,
   totalPhantomKwh,
   annotatePhantomDrains,
+  phantomTeaserId,
+  showsDrain,
   phantomEur,
   chargeCostPerKwh,
   phantomEurFor,
@@ -165,6 +167,28 @@ describe('phantomDrain', () => {
     })
     it('returns null when no priced charge precedes the drain', () => {
       expect(precedingChargePricePerKwh([trip(), trip()], 0)).toBeNull()
+    })
+  })
+
+  describe('Standverlust ohne Supporter-Pack: genau ein Teaser', () => {
+    const feed = [
+      { id: 'a', _phantomDrain: { kwh: 0.03 } },
+      { id: 'b', _phantomDrain: { kwh: 0.4 } },
+      { id: 'c', _phantomDrain: { kwh: 0.9 } },
+    ]
+
+    it('der jüngste Drain über der Anzeigeschwelle ist der Teaser', () => {
+      expect(phantomTeaserId(feed, false)).toBe('b')
+    })
+
+    it('mit Supporter-Pack kein Teaser, alle sichtbar', () => {
+      expect(phantomTeaserId(feed, true)).toBeNull()
+      expect(feed.map(e => showsDrain(e, true, null))).toEqual([true, true, true])
+    })
+
+    it('ohne Pack nur der Teaser sichtbar', () => {
+      expect(feed.map(e => showsDrain(e, false, 'b'))).toEqual([false, true, false])
+      expect(showsDrain({ id: 'x', _phantomDrain: null }, true, null)).toBe(false)
     })
   })
 })
