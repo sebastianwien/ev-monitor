@@ -35,14 +35,19 @@ public final class AdminTariffCrawlResponses {
         }
     }
 
-    /** {@code current}: der gepflegte Tarif, auf den sich der Vorschlag bezieht (CHANGE, MISSING), sonst null. */
+    /**
+     * {@code current}: der gepflegte Tarif, auf den sich der Vorschlag bezieht (CHANGE, MISSING), sonst null.
+     * {@code evidence}: das Zitat, wie es auf der Seite steht; {@code evidenceBefore}/{@code evidenceAfter}: Text drumherum.
+     */
     public record ProposalRow(UUID id, UUID sourceId, String empName, String kind, String description, Map<String, Object> proposed,
-                              AdminTariffResponses.Row current, String evidence, String holdReason, int seenCount,
-                              LocalDateTime firstSeenAt, LocalDateTime lastSeenAt) {
+                              AdminTariffResponses.Row current, String evidence, String evidenceBefore, String evidenceAfter,
+                              String holdReason, int seenCount, LocalDateTime firstSeenAt, LocalDateTime lastSeenAt) {
 
         public static ProposalRow of(TariffProposalEntity p, AdminTariffResponses.Row current) {
+            EvidenceSnippet e = EvidenceSnippet.decode(p.getEvidence());
             return new ProposalRow(p.getId(), p.getSourceId(), p.getEmpName(), p.getKind().name(), TariffCrawlScheduler.describe(p),
-                    p.getProposed(), current, p.getEvidence(), p.getHoldReason(), p.getSeenCount(), p.getFirstSeenAt(), p.getLastSeenAt());
+                    p.getProposed(), current, e == null ? null : e.match(), e == null ? null : e.before(), e == null ? null : e.after(),
+                    p.getHoldReason(), p.getSeenCount(), p.getFirstSeenAt(), p.getLastSeenAt());
         }
     }
 
