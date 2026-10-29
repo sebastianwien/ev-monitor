@@ -5,14 +5,17 @@ import { ChevronUpIcon } from '@heroicons/vue/24/outline'
 import type { Moment, MomentSeen, ScoredMoment } from '../../composables/storyMoments'
 import StoryNewsCard from './StoryNewsCard.vue'
 import Confetti from './Confetti.vue'
+import { useCardSwipe } from '../../composables/useCardSwipe'
 
 /**
- * Neuigkeiten von der Unterkante, über der Navigation, der Rest leicht abgedunkelt. Eine Karte
- * nach der anderen wie ein Stapel: Punkte und "1 von N", "Weiter" blättert (kein Wischen, das
- * gehört dem Seiten-Pager), "Alle zeigen" klappt die Liste auf. × heißt erledigt und merkt sich
- * nur dieses Gerät. Ein Tipp daneben oder Escape klappt den Stapel zu einem Reiter
- * "N Neuigkeiten" über der Navigation ein; zugeklappt bleibt er für diesen Tab, bis etwas
- * Neues dazukommt. Nicht modal: role="region" und aria-live, der Fokus bleibt auf der Seite.
+ * Neuigkeiten von der Unterkante, über der Navigation, der Rest leicht abgedunkelt. Ein Stapel wie
+ * native Karten: oben liegt eine, die nächsten schauen als Kanten heraus. Seitlich wischen oder ×
+ * heißt erledigt (merkt sich nur dieses Gerät), die Karte fliegt raus und die nächste rückt nach.
+ * Nach unten ziehen, ein Tipp daneben oder Escape klappt den Stapel zu einem Reiter
+ * "N Neuigkeiten" über der Navigation ein; zugeklappt bleibt er für diesen Tab, bis etwas Neues
+ * dazukommt. "Alle zeigen" klappt die Liste auf. data-no-swipe: Gesten auf Karte und Abdunkelung
+ * gehören dem Stapel, nicht dem Seiten-Pager oder der Zurück-Geste. Nicht modal: role="region"
+ * und aria-live, der Fokus bleibt auf der Seite.
  */
 const props = defineProps<{
   cards: ScoredMoment[]
@@ -37,16 +40,18 @@ const writeCollapsed = (v: string | null) => { try { v == null ? sessionStorage.
 
 // Zugeklappt schon beim ersten Rendern, sonst gleitet die Karte kurz herein und wieder hinaus.
 const mode = ref<'stack' | 'list' | 'collapsed'>(readCollapsed() === keys.value ? 'collapsed' : 'stack')
-const index = ref(0)
-// Etwas Neues: aufklappen, vorne anfangen.
+// Etwas Neues: aufklappen.
 watch(keys, (now, before) => {
-  if (index.value >= props.cards.length) index.value = Math.max(0, props.cards.length - 1)
   if (now !== before && readCollapsed() !== now && mode.value === 'collapsed') mode.value = 'stack'
 })
 
 const count = computed(() => props.cards.length)
-const current = computed<Moment | null>(() => props.cards[index.value]?.moment ?? null)
+const current = computed<Moment | null>(() => props.cards[0]?.moment ?? null)
 const open = computed(() => count.value > 0 && mode.value !== 'collapsed')
+/** Kanten der nächsten Karten hinter der obersten, höchstens zwei. */
+const peeks = computed(() => mode.value === 'stack' ? Math.min(2, count.value - 1) : 0)
+/** Nach einem Erledigt rückt die nächste Karte aus der Kante nach vorn. */
+const rising = ref(false)
 
 /** Konfetti nur beim ersten Zeigen eines Meilensteins; danach ist er "gesehen". */
 const celebrate = ref<string | null>(null)
@@ -63,16 +68,26 @@ function collapse() {
   emit('collapsed')
 }
 function expand() {
+  swipe.reset()
+  rising.value = false
   mode.value = 'stack'
   writeCollapsed(null)
   emit('expanded')
 }
-function next() { index.value = (index.value + 1) % count.value }
 function showList() { mode.value = 'list'; emit('list') }
-function dismiss(m: Moment) {
-  emit('dismiss', m)
-  if (index.value >= count.value - 1) index.value = Math.max(0, count.value - 2)
+function dismiss(m: Moment) { emit('dismiss', m) }
+function dismissTop() {
+  if (!current.value) return
+  rising.value = true
+  dismiss(current.value)
 }
+const cardEl = ref<HTMLElement | null>(null)
+const swipe = useCardSwipe({
+  axes: () => ({ x: mode.value === 'stack', y: true }),
+  card: () => cardEl.value,
+  dismiss: dismissTop,
+  collapse,
+})
 function dismissAll() { for (const c of [...props.cards]) emit('dismiss', c.moment) }
 function onKey(e: KeyboardEvent) { if (e.key === 'Escape') collapse() }
 onMounted(() => document.addEventListener('keydown', onKey))
@@ -85,38 +100,37 @@ const panel = 'relative mx-auto w-full max-w-lg rounded-t-2xl border-2 border-b-
   <div>
     <Confetti v-if="celebrate" :key="celebrate" />
     <Transition name="story-news-dim">
-      <div v-if="open" class="fixed inset-0 z-[55] bg-black/30" data-testid="story-news-backdrop" @click="collapse" />
+      <div v-if="open" class="fixed inset-0 z-[55] touch-none bg-black/30" data-no-swipe data-testid="story-news-backdrop" @click="collapse" />
     </Transition>
     <Transition name="story-news">
-      <section v-if="open" class="fixed inset-x-0 bottom-0 z-[60]" role="region" :aria-label="t('story.news_region')" aria-live="polite" data-testid="story-news">
-        <!-- Die nächste Karte schaut oben heraus -->
-        <div v-if="mode === 'stack' && count > 1" class="mx-auto h-2.5 w-[calc(100%-2rem)] max-w-[calc(32rem-2rem)] rounded-t-2xl border-2 border-b-0 border-gray-900 bg-gray-100 dark:border-white/20 dark:bg-gray-800" aria-hidden="true" />
-        <div :class="panel">
-          <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
-          <template v-if="mode === 'stack' && current">
-            <div v-if="count > 1" class="mb-1 flex items-center gap-2 text-[12px] text-gray-500 tabular-nums dark:text-gray-400" data-testid="story-news-position">
-              <span class="flex items-center gap-1" aria-hidden="true">
-                <i v-for="(c, i) in cards" :key="c.moment.key" class="block h-1.5 w-1.5 rounded-full" :class="i === index ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-300 dark:bg-gray-600'" />
-              </span>
-              <span>{{ t('story.news_of', { i: index + 1, n: count }) }}</span>
-            </div>
-            <StoryNewsCard :key="current.key" :moment="current" :car-id="carId" :car-name="carName" @act="emit('act', current!, $event)" @dismiss="dismiss(current!)" />
-            <div v-if="count > 1" class="mt-3 flex items-center justify-between gap-3">
-              <button type="button" class="inline-flex min-h-11 items-center text-sm font-semibold text-gray-700 underline underline-offset-2 dark:text-gray-200" data-testid="story-news-all" @click="showList">{{ t('story.news_show_all') }}</button>
-              <button type="button" class="btn-3d inline-flex min-h-11 items-center rounded-lg border-2 border-edge bg-white px-4 text-[14px] font-bold text-gray-900 dark:bg-gray-800 dark:text-gray-100" data-testid="story-news-next" @click="next">{{ t('story.news_next') }}</button>
-            </div>
-          </template>
-          <template v-else-if="mode === 'list'">
-            <div class="mb-3 flex items-center justify-between gap-3">
-              <h2 class="text-[18px] font-bold text-gray-900 dark:text-gray-50">{{ t('story.news_title', { n: count }) }}</h2>
-              <button type="button" class="inline-flex min-h-11 items-center text-sm font-semibold text-gray-700 underline underline-offset-2 dark:text-gray-200" data-testid="story-news-all-done" @click="dismissAll">{{ t('story.news_all_done') }}</button>
-            </div>
-            <div class="grid max-h-[65vh] gap-3 overflow-y-auto pb-1" data-testid="story-news-list">
-              <div v-for="c in cards" :key="c.moment.key" class="rounded-xl bg-white p-3.5 edge-card dark:bg-gray-700/50">
-                <StoryNewsCard :moment="c.moment" :car-id="carId" :car-name="carName" @act="emit('act', c.moment, $event)" @dismiss="dismiss(c.moment)" />
+      <section v-if="open" class="fixed inset-x-0 bottom-0 z-[60]" role="region" :aria-label="t('story.news_region')" aria-live="polite" data-no-swipe data-testid="story-news">
+        <div class="touch-none select-none" :style="swipe.stackStyle.value" data-testid="story-news-drag"
+             v-on="swipe.handlers" @click.capture="swipe.onClickCapture">
+          <!-- Die nächsten Karten schauen oben heraus, die hintere schmaler -->
+          <div v-for="i in peeks" :key="i" data-testid="story-news-peek" aria-hidden="true"
+               class="mx-auto h-2.5 rounded-t-2xl border-2 border-b-0 border-gray-900 bg-gray-100 dark:border-white/20 dark:bg-gray-800"
+               :class="i === peeks ? 'w-[calc(100%-2rem)] max-w-[calc(32rem-2rem)]' : 'w-[calc(100%-4rem)] max-w-[calc(32rem-4rem)]'" />
+          <div :key="mode === 'stack' ? current?.key : 'list'" ref="cardEl" :class="[panel, mode === 'stack' && rising && 'story-news-rise']"
+               :style="mode === 'stack' ? swipe.cardStyle.value : undefined">
+            <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
+            <template v-if="mode === 'stack' && current">
+              <StoryNewsCard :moment="current" :car-id="carId" :car-name="carName" @act="emit('act', current!, $event)" @dismiss="swipe.fly(1)" />
+              <div v-if="count > 1" class="mt-3">
+                <button type="button" class="inline-flex min-h-11 items-center text-sm font-semibold text-gray-700 underline underline-offset-2 dark:text-gray-200" data-testid="story-news-all" @click="showList">{{ t('story.news_show_all') }}</button>
               </div>
-            </div>
-          </template>
+            </template>
+            <template v-else-if="mode === 'list'">
+              <div class="mb-3 flex items-center justify-between gap-3">
+                <h2 class="text-[18px] font-bold text-gray-900 dark:text-gray-50">{{ t('story.news_title', { n: count }) }}</h2>
+                <button type="button" class="inline-flex min-h-11 items-center text-sm font-semibold text-gray-700 underline underline-offset-2 dark:text-gray-200" data-testid="story-news-all-done" @click="dismissAll">{{ t('story.news_all_done') }}</button>
+              </div>
+              <div class="grid max-h-[65vh] touch-pan-y select-text gap-3 overflow-y-auto overscroll-contain pb-1" data-scroll data-testid="story-news-list">
+                <div v-for="c in cards" :key="c.moment.key" class="rounded-xl bg-white p-3.5 edge-card dark:bg-gray-700/50">
+                  <StoryNewsCard :moment="c.moment" :car-id="carId" :car-name="carName" @act="emit('act', c.moment, $event)" @dismiss="dismiss(c.moment)" />
+                </div>
+              </div>
+            </template>
+          </div>
         </div>
       </section>
     </Transition>
@@ -140,7 +154,11 @@ const panel = 'relative mx-auto w-full max-w-lg rounded-t-2xl border-2 border-b-
 .story-news-dim-enter-from, .story-news-dim-leave-to { opacity: 0; }
 .story-news-tab-enter-active, .story-news-tab-leave-active { transition: opacity 200ms ease, transform 200ms ease; }
 .story-news-tab-enter-from, .story-news-tab-leave-to { opacity: 0; transform: translateY(8px); }
+/* Die nächste Karte rückt aus der Kante nach vorn */
+.story-news-rise { animation: story-news-rise 220ms cubic-bezier(0.32, 0.72, 0, 1); }
+@keyframes story-news-rise { from { transform: translateY(10px) scale(0.97); } }
 @media (prefers-reduced-motion: reduce) {
   .story-news-enter-active, .story-news-leave-active, .story-news-dim-enter-active, .story-news-dim-leave-active, .story-news-tab-enter-active, .story-news-tab-leave-active { transition: none; }
+  .story-news-rise { animation: none; }
 }
 </style>

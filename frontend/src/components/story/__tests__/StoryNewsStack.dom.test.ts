@@ -39,6 +39,19 @@ const q = (sel: string) => document.querySelector<HTMLElement>(sel)
 const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 /** Transition-Leave in jsdom: ein Frame, bis das Element weg ist. */
 const settle = () => new Promise(r => setTimeout(r, 80))
+/** Wegfliegen der Karte abwarten (200 ms). */
+const flown = () => new Promise(r => setTimeout(r, 260))
+/** Finger-Zug als Pointer Events; jsdom kennt kein PointerEvent, Vue hört nur auf den Typ. */
+function drag(el: Element, path: [number, number][]) {
+  const fire = (type: string, [x, y]: [number, number]) => {
+    const e = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, button: 0 })
+    Object.defineProperties(e, { isPrimary: { value: true }, pointerId: { value: 1 } })
+    el.dispatchEvent(e)
+  }
+  fire('pointerdown', path[0])
+  for (const p of path.slice(1)) fire('pointermove', p)
+  fire('pointerup', path[path.length - 1])
+}
 
 describe('StoryNewsStack', () => {
   it('ohne Karten nichts, mit einer Karte der Stapel ohne Punkte, Hintergrund abgedunkelt', async () => {
@@ -52,28 +65,54 @@ describe('StoryNewsStack', () => {
     await nextTick()
     expect(q('[data-testid="story-news"]')).not.toBeNull()
     expect(q('[data-testid="story-news-backdrop"]')).not.toBeNull()
-    expect(q('[data-testid="story-news-position"]')).toBeNull()
+    expect(document.querySelectorAll('[data-testid="story-news-peek"]')).toHaveLength(0)
+    expect(q('[data-testid="story-news-all"]')).toBeNull()
+    // Gesten auf Karte und Abdunkelung gehören dem Stapel, nicht dem Seiten-Pager oder der Zurück-Geste
+    expect(q('[data-testid="story-news"]')!.hasAttribute('data-no-swipe')).toBe(true)
+    expect(q('[data-testid="story-news-backdrop"]')!.hasAttribute('data-no-swipe')).toBe(true)
     expect(text(q('[data-testid="story-news-first_frost"]'))).toContain('Es wird kalt')
     expect(events).toEqual([['shown', 'first_frost']])
   })
 
-  it('mehrere Karten: "1 von 2", Weiter blättert, Alle zeigen klappt die Liste auf, Alle erledigt räumt', async () => {
+  it('mehrere Karten als Stapel: Kanten dahinter, kein Weiter, Alle zeigen klappt die Liste auf, Alle erledigt räumt', async () => {
     const events: unknown[][] = []
-    mount(scored(frost, silence), NONE, events)
+    mount(scored(frost, silence, milestone), NONE, events)
     await nextTick()
-    expect(text(q('[data-testid="story-news-position"]'))).toContain('1 von 2')
-    q('[data-testid="story-news-next"]')!.click()
-    await nextTick()
-    expect(text(q('[data-testid="story-news-position"]'))).toContain('2 von 2')
-    expect(q('[data-testid="story-news-silence"]')).not.toBeNull()
+    expect(document.querySelectorAll('[data-testid="story-news-peek"]')).toHaveLength(2)
+    expect(q('[data-testid="story-news-next"]')).toBeNull()
+    expect(q('[data-testid="story-news-position"]')).toBeNull()
     q('[data-testid="story-news-all"]')!.click()
     await nextTick()
     expect(text(q('[data-testid="story-news-list"]'))).toContain('Es wird kalt')
-    expect(text(q('[data-testid="story-news"]'))).toContain('Neu für dich (2)')
+    expect(text(q('[data-testid="story-news"]'))).toContain('Neu für dich (3)')
     q('[data-testid="story-news-all-done"]')!.click()
-    expect(events.filter(e => e[0] === 'dismiss')).toEqual([['dismiss', 'first_frost'], ['dismiss', 'silence']])
-    expect(events.filter(e => e[0] === 'shown').map(e => e[1])).toEqual(['first_frost', 'silence'])
+    expect(events.filter(e => e[0] === 'dismiss')).toEqual([['dismiss', 'first_frost'], ['dismiss', 'silence'], ['dismiss', 'milestone']])
+    expect(events.filter(e => e[0] === 'shown').map(e => e[1])).toEqual(['first_frost'])
     expect(events).toContainEqual(['list'])
+  })
+
+  it('seitlich wischen fliegt die oberste Karte raus und meldet erledigt, ein kurzer Zug federt zurück', async () => {
+    const events: unknown[][] = []
+    mount(scored(frost, silence), NONE, events)
+    await nextTick()
+    const stack = q('[data-testid="story-news-drag"]')!
+    drag(stack, [[100, 300], [104, 301]])
+    await flown()
+    expect(events.filter(e => e[0] === 'dismiss')).toEqual([])
+    drag(stack, [[100, 300], [130, 302], [320, 305]])
+    await flown()
+    expect(events.filter(e => e[0] === 'dismiss')).toEqual([['dismiss', 'first_frost']])
+  })
+
+  it('nach unten ziehen klappt zum Reiter ein', async () => {
+    const events: unknown[][] = []
+    mount(scored(frost, silence), NONE, events)
+    await nextTick()
+    drag(q('[data-testid="story-news-drag"]')!, [[100, 300], [102, 330], [103, 450]])
+    await settle()
+    expect(q('[data-testid="story-news"]')).toBeNull()
+    expect(text(q('[data-testid="story-news-tab"]'))).toBe('2 Neuigkeiten')
+    expect(events).toContainEqual(['collapsed'])
   })
 
   it('× meldet erledigt, Tipp daneben klappt zum Reiter ein, der Reiter klappt wieder auf', async () => {
@@ -81,6 +120,7 @@ describe('StoryNewsStack', () => {
     mount(scored(frost, silence), NONE, events)
     await nextTick()
     q('[data-testid="story-news-dismiss"]')!.click()
+    await flown()
     expect(events).toContainEqual(['dismiss', 'first_frost'])
     q('[data-testid="story-news-backdrop"]')!.click()
     await settle()

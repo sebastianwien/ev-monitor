@@ -87,6 +87,32 @@ test.describe('Story: Karten von unten', () => {
     await expect(page.getByTestId('story-news-silence')).toBeVisible();
   });
 
+  test('Karte mit dem Finger: nach unten ziehen klappt ein, seitlich wischen heißt erledigt', async ({ page }) => {
+    const old = new Date(Date.now() - 20 * 86_400_000).toISOString();
+    await setup(page, { logs: [log({ loggedAt: old, createdAt: old })] });
+    const drag = async (dx: number, dy: number) => {
+      // erst wenn die Karte ganz hereingeglitten ist, sonst greift der Finger daneben
+      await expect(page.getByTestId('story-news')).toHaveCSS('transform', 'none');
+      const box = (await page.getByTestId('story-news-sentence').boundingBox())!;
+      const x = box.x + box.width / 2, y = box.y + box.height / 2;
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + dx, y + dy, { steps: 8 });
+      await page.mouse.up();
+    };
+    await expect(page.getByTestId('story-news-silence')).toBeVisible();
+    await drag(0, 160);
+    await expect(page.getByTestId('story-news')).toHaveCount(0);
+    await page.getByTestId('story-news-tab').click();
+    await expect(page.getByTestId('story-news-silence')).toBeVisible();
+    await drag(260, 10);
+    await expect(page.getByTestId('story-news-silence')).toBeHidden();
+
+    await page.reload();
+    await waitForStory(page);
+    await expect(page.getByTestId('story-news-silence')).toBeHidden();
+  });
+
   test('Lücke fragt nach dem Preis, "Weiß ich nicht mehr" lässt die Karte verschwinden', async ({ page }) => {
     const twoDays = new Date(Date.now() - 2 * 86_400_000).toISOString();
     const gap = log({ id: '00000000-0000-0000-0000-00000000e2e2', loggedAt: twoDays, createdAt: twoDays, kwhAtVehicle: 28.5, priceUnknown: false });
