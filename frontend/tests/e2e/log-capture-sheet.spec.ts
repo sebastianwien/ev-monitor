@@ -4,8 +4,7 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements'
 
 /**
  * Erfassen als Sheet auf dem Handy: öffnet über der Seite (kein Seitenwechsel), ohne Eingaben
- * schließt ein Tipp daneben, mit Eingaben minimiert er zur Leiste über der Bottom-Nav.
- * Der Zug nach unten läuft im BottomSheet-Unit-Test, hier der Tipp auf die Abdunklung (derselbe Weg).
+ * schließt ein Zug nach unten, mit Eingaben minimiert er zur Leiste über der Bottom-Nav.
  */
 test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true,
   geolocation: { latitude: 52.52, longitude: 13.4 }, permissions: ['geolocation'] })
@@ -23,8 +22,19 @@ async function login(page: Page) {
 const sheet = (page: Page) => page.getByTestId('log-form-sheet')
 const bar = (page: Page) => page.getByTestId('log-form-bar')
 const openCapture = (page: Page) => page.locator('nav.bottom-nav').getByRole('button', { name: 'Erfassen' }).click()
-// Über dem fast bildschirmhohen Panel bleibt oben ein Streifen Abdunklung
-const tapBesideSheet = (page: Page) => page.mouse.click(195, 20)
+/** Zug nach unten über den Kopf des Sheets (Touch-Events wie im BottomSheet-Unit-Test) */
+const dragDown = (page: Page) => sheet(page).locator('header').evaluate((el) => {
+  const ys = [100, 140, 200, 260]
+  const fire = (type: string, i: number) => {
+    const e = new Event(type, { bubbles: true, cancelable: true })
+    Object.defineProperty(e, 'touches', { value: type === 'touchend' ? [] : [{ clientX: 100, clientY: ys[i] }] })
+    Object.defineProperty(e, 'timeStamp', { value: i * 16 })
+    el.dispatchEvent(e)
+  }
+  fire('touchstart', 0)
+  ys.slice(1).forEach((_, i) => fire('touchmove', i + 1))
+  fire('touchend', ys.length - 1)
+})
 
 test('Erfassen öffnet als Sheet, mit Eingaben minimiert es zur Leiste', async ({ page }) => {
   await login(page)
@@ -34,15 +44,15 @@ test('Erfassen öffnet als Sheet, mit Eingaben minimiert es zur Leiste', async (
   await expect(sheet(page)).toBeVisible()
   expect(page.url()).toBe(url)
 
-  // Ohne Eingaben: daneben tippen schließt
-  await tapBesideSheet(page)
+  // Ohne Eingaben: der Zug schließt
+  await dragDown(page)
   await expect(sheet(page)).toHaveCount(0)
 
-  // Mit Ort gewählt: daneben tippen minimiert, die Eingabe bleibt
+  // Mit Ort gewählt: der Zug minimiert, die Eingabe bleibt
   await openCapture(page)
   await page.getByTestId('place-here').click()
   await page.locator('#wizard-kwh').waitFor()
-  await tapBesideSheet(page)
+  await dragDown(page)
   await expect(bar(page)).toBeVisible()
   await expect(bar(page)).toBeInViewport()
   await expect(page.locator('nav.bottom-nav')).toBeVisible()
@@ -53,13 +63,13 @@ test('Erfassen öffnet als Sheet, mit Eingaben minimiert es zur Leiste', async (
   await expect(page.locator('#wizard-kwh')).toBeVisible()
 
   // Erneut minimiert, der Erfassen-Knopf klappt denselben Entwurf auf
-  await tapBesideSheet(page)
+  await dragDown(page)
   await expect(bar(page)).toBeVisible()
   await openCapture(page)
   await expect(page.locator('#wizard-kwh')).toBeVisible()
 
   // Das X in der Leiste verwirft
-  await tapBesideSheet(page)
+  await dragDown(page)
   await bar(page).getByRole('button', { name: 'Abbrechen' }).click()
   await expect(sheet(page)).toHaveCount(0)
 })

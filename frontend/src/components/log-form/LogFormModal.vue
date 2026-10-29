@@ -7,7 +7,7 @@ import LogWizard from '../log-wizard/LogWizard.vue'
 import { useIsMobile } from '../../composables/useIsMobile'
 
 /**
- * Erfassen als Sheet: mobil fast bildschirmhoch von unten, nach unten ziehen schließt wie bei
+ * Erfassen als Sheet: mobil bis knapp unter den oberen Rand, nach unten ziehen schließt wie bei
  * den anderen Sheets. Mit `minimizable` und schon gemachten Eingaben minimiert der Zug stattdessen
  * zur Leiste über der Bottom-Nav (v-model:minimized); Tipp darauf macht weiter, das X verwirft.
  * Ab sm ein zentrierter Dialog.
@@ -47,15 +47,18 @@ const onBarTouchEnd = (e: TouchEvent) => {
 
 <template>
   <BottomSheet ref="sheet" edge :label="t('logform.title')" testid="log-form-sheet"
-    panel-class="h-[90dvh] sm:h-auto sm:max-w-xl"
+    panel-class="h-[calc(100dvh-env(safe-area-inset-top)-0.5rem)] max-h-none! dark:bg-gray-900! sm:h-auto sm:max-h-[90vh]! sm:max-w-xl"
     :minimizable="canMinimize" :minimized="minimized"
     @minimize="emit('update:minimized', true)" @close="emit('close')">
-    <div class="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-gray-200 sm:hidden dark:bg-gray-700" aria-hidden="true" />
-    <LogWizard ref="wizard" embedded :car-id="carId" :initial-logged-at="initialLoggedAt"
-      @success="emit('saved'); close()" @cancel="close" />
+    <!-- Ein Hintergrund wie der Wizard, auch unter Griff und Safe-Area -->
+    <div class="flex min-h-0 flex-1 flex-col bg-white dark:bg-gray-900">
+      <div class="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-gray-200 sm:hidden dark:bg-gray-700" aria-hidden="true" />
+      <LogWizard ref="wizard" embedded :car-id="carId" :initial-logged-at="initialLoggedAt"
+        @success="emit('saved'); close()" @cancel="close" />
+    </div>
 
     <!-- Minimiert: die Leiste deckt den Wizard-Kopf ab, die Eingaben darunter bleiben erhalten -->
-    <div v-if="minimized" data-testid="log-form-bar" class="absolute inset-x-0 top-0 z-10 h-16 bg-white dark:bg-gray-800"
+    <div v-if="minimized" data-testid="log-form-bar" class="absolute inset-x-0 top-0 z-10 h-16 bg-white dark:bg-gray-900"
       @touchstart.passive="onBarTouchStart" @touchend="onBarTouchEnd">
       <div class="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
       <div class="flex items-center gap-1 px-2">

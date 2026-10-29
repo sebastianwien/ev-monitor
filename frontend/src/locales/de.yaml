@@ -3644,6 +3644,7 @@ logwizard:
   d_peak_tile: "Max. Leistung"
   d_soc_before_short: "vorher"
   d_route: "Strecke seit der letzten Ladung"
+  d_route_pill: "Streckentyp"
   d_route_city: "Stadt"
   d_route_mixed: "Gemischt"
   d_route_highway: "Autobahn"

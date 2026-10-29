@@ -3638,6 +3638,7 @@ logwizard:
   d_peak_tile: "Peak power"
   d_soc_before_short: "before"
   d_route: "Driving since the last charge"
+  d_route_pill: "Route type"
   d_route_city: "City"
   d_route_mixed: "Mixed"
   d_route_highway: "Motorway"

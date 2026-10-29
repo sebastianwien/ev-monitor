@@ -523,7 +523,8 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
 </script>
 
 <template>
-  <div>
+  <!-- Im Sheet füllt der Wizard das Panel, sonst schneidet es den Footer ab -->
+  <div :class="embedded && 'flex min-h-0 flex-1 flex-col'">
     <div v-if="hasCars === false" class="text-center py-10 px-4 space-y-4">
       <TruckIcon class="h-14 w-14 mx-auto text-gray-300 dark:text-gray-600" />
       <p class="text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ t('logform.no_car_title') }}</p>

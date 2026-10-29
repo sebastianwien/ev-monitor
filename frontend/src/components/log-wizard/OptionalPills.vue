@@ -33,8 +33,8 @@ const pills = computed<Pill[]>(() => {
   const tires = TIRE_CHIPS.find(c => c.value === form.value.tireType)!
   return [
     { field: 'time', text: timeLabel.value, icon: ClockIcon, label: t('logwizard.d_when') },
-    // open route: the pill reads "Strecke", nothing looks chosen
-    { field: 'route', text: route ? t(route.key) : t('logwizard.d_route'), icon: route?.icon ?? RouteIcon, label: t('logwizard.d_route') },
+    // open route: the pill reads "Streckentyp", nothing looks chosen
+    { field: 'route', text: route ? t(route.key) : t('logwizard.d_route_pill'), icon: route?.icon ?? RouteIcon, label: t('logwizard.d_route') },
     { field: 'tires', text: t(tires.key), icon: tires.icon, label: t('logwizard.d_tires') },
   ]
 })

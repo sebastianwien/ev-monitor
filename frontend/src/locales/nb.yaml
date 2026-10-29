@@ -3521,6 +3521,7 @@ logwizard:
   d_peak_tile: "Toppeffekt"
   d_soc_before_short: "før"
   d_route: "Kjøring siden forrige lading"
+  d_route_pill: "Rutetype"
   d_route_city: "By"
   d_route_mixed: "Blandet"
   d_route_highway: "Motorvei"

@@ -3521,6 +3521,7 @@ logwizard:
   d_peak_tile: "Toppeffekt"
   d_soc_before_short: "före"
   d_route: "Körning sedan senaste laddning"
+  d_route_pill: "Vägtyp"
   d_route_city: "Stad"
   d_route_mixed: "Blandat"
   d_route_highway: "Motorväg"
