@@ -75,9 +75,9 @@ const plain = `${row} h-12 bg-white edge-card dark:bg-gray-700/50`
 
 <template>
   <div class="grid gap-2 md:grid-cols-2" data-testid="story-latest">
-    <!-- Heute geladen: grün hinterlegt, "Neu", drei Zeilen; ohne Preis der Knopf darunter in derselben Karte -->
+    <!-- Heute geladen: grün hinterlegt, "Neu", drei Zeilen; die Zeile zeigt die Ladung, ohne Preis führt der Knopf darunter zum Preis -->
     <div v-if="charge && charge.today" class="grid rounded-xl bg-green-50 edge-card dark:bg-green-900/20" :class="trip ? '' : 'md:col-span-2'" data-testid="story-latest-today">
-      <button type="button" :class="row" class="min-h-16 py-2.5 rounded-b-none" data-testid="story-latest-charge" @click="emit('open-charge', charge.id, charge.missingPrice)">
+      <button type="button" :class="row" class="min-h-16 py-2.5 rounded-b-none" data-testid="story-latest-charge" @click="emit('open-charge', charge.id, false)">
         <BoltIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
         <span class="min-w-0 flex-1 leading-tight">
           <span class="flex items-center gap-2">

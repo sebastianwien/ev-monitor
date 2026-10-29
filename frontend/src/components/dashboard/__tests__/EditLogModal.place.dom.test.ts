@@ -37,6 +37,24 @@ describe('EditLogModal - direkt im Ort (Betreiber eintragen)', () => {
   })
 })
 
+describe('EditLogModal - Übersicht zeigt die Ladung', () => {
+  it('der Ort steht als Kartenkopf über den Kacheln, ein Tipp darauf öffnet den Ort', async () => {
+    app = createApp(defineComponent({ render: () => h(EditLogModal, { log: { ...log, geohash: 'u1x3k7q', cpoName: 'Tesla' } }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+    await nextTick()
+
+    const heads = document.body.querySelectorAll<HTMLElement>('[data-testid="summary-place"]')
+    expect(heads).toHaveLength(1)
+    expect(heads[0].getAttribute('role')).toBe('button')
+    expect(heads[0].style.height).not.toBe('') // mit gespeicherter Zelle: Minimap
+    expect(heads[0].textContent).toContain('Tesla')
+    heads[0].click()
+    await nextTick()
+    expect(q('#wizard-place-search')).not.toBeNull()
+  })
+})
+
 describe('EditLogModal - Ort per Adresse', () => {
   it('übernimmt die gewählte Adresse als Koordinaten ins PATCH', async () => {
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ json: () => Promise.resolve([

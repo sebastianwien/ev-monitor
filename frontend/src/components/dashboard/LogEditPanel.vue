@@ -18,6 +18,8 @@
     <div class="flex-1 overflow-y-auto p-4 space-y-4">
       <!-- Uebersicht: was da ist, was fehlt, Optionales -->
       <template v-if="!section">
+        <!-- Erst die Ladung sehen: der Ort als Kartenkopf wie auf der Prüfseite des Wizards, ein Tipp darauf bearbeitet ihn -->
+        <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" clickable class="-mt-4" data-testid="summary-place" @click="section = 'place'" />
         <!-- Sprache: nur Handy, sagt nur, was sich ändert; danach Vorher/Nachher mit Rückgängig -->
         <VoiceCapture v-if="showVoice" entry="edit" variant="inline" :label="t('voicelog.edit_title')" :car-id="log.carId" @draft="onVoiceDraft" />
         <div v-if="voiceChanges" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2" data-testid="edit-voice-changes" aria-live="polite">
@@ -35,7 +37,7 @@
             </ul>
           </template>
         </div>
-        <LogSummary v-model="formData" :place-label="placeLabel" :missing="missingAtOpen" show-time-tile @edit="s => section = s" />
+        <LogSummary v-model="formData" :place-label="placeLabel" :missing="missingAtOpen" show-time-tile hide-place @edit="s => section = s" />
 
         <div v-if="missingAtOpen.length" class="rounded-xl bg-amber-50 dark:bg-amber-400/10 p-3 space-y-4" data-testid="edit-missing">
           <p class="text-[14px] font-semibold text-amber-900 dark:text-amber-200">{{ t('logwizard.still_open') }}</p>
@@ -140,6 +142,8 @@ import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversion
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { buildLogUpdatePayload, missingRequired, applyPlace, type PlaceChoice, type PlaceKind, type RequiredField } from '../log-wizard/wizardLogic'
 import LogSummary, { type SummarySection } from '../log-wizard/LogSummary.vue'
+import PlaceHeader, { type NumbersContext } from '../log-wizard/PlaceHeader.vue'
+import { privateArea } from '../log-wizard/minimapTiles'
 import BigInput from '../log-wizard/BigInput.vue'
 import StepPlace from '../log-wizard/StepPlace.vue'
 import { useNearbyStations } from '../../composables/useNearbyStations'
@@ -297,6 +301,21 @@ const pickedAddress = ref<string | null>(null)
 const placeLabel = computed(() => pickedName.value ?? (formData.value.isPublicCharging
   ? (formData.value.cpoName ?? t('logwizard.place_public'))
   : t('logwizard.place_private')))
+const PLACE_MAP_PX = 160
+/**
+ * Kopf der Übersicht: Ort, Ladekarte und Minimap. Mittelpunkt ist ein neu gewählter Ort, sonst die gespeicherte
+ * Zelle (öffentlich rund 150 m); privat die Zelle als Fläche, nie ein Punkt darin. Ohne beides nur die Textzeile.
+ */
+const placeContext = computed<NumbersContext>(() => {
+  const card = providers.value.find(p => p.id === formData.value.chargingProviderId)
+  const base = { title: placeLabel.value, address: null, card: card ? (card.label || card.providerName) : null }
+  const cell = props.log.geohash ? geohashLib.decode(props.log.geohash) : null
+  const lat = formData.value.latitude ?? cell?.latitude ?? null
+  const lon = formData.value.longitude ?? cell?.longitude ?? null
+  if (lat == null || lon == null) return { ...base, lat: null, lon: null }
+  if (!formData.value.isPublicCharging) { const area = privateArea(lat, lon); return { ...base, lat: area.lat, lon: area.lon, area } }
+  return { ...base, lat, lon }
+})
 /**
  * Ortswechsel beim Bearbeiten: die Ladeart der Ladung bleibt (das Register kennt nur die Stecker, nicht
  * diese Ladung; gemessene Werte stehen schon im Log). Karte und Preis kommen aus der Historie am neuen Ort.

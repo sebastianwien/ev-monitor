@@ -170,15 +170,18 @@ const operatorLog = ref<EvLogResponse | null>(null)
 const operatorSection = ref<SummarySection | undefined>('place')
 const placesSheet = ref<{ reload: () => void } | null>(null)
 /** "Betreiber eintragen": die Ladung öffnet im Ort, über der Karte und leichter abgedunkelt. */
-async function openOperator(logId: string, section: SummarySection | undefined = 'place') {
+/** Ladung im Sheet öffnen: ohne Abschnitt auf der Übersicht (ansehen), sonst direkt im Abschnitt. */
+async function openCharge(logId: string, section?: SummarySection) {
   operatorSection.value = section
   try {
     operatorLog.value = (await api.get<EvLogResponse>(`/logs/${logId}`)).data
   } catch { /* Ladung weg oder offline: die Karte bleibt einfach stehen */ }
 }
-/** Karte "Zuletzt geladen": Ladung ansehen und bearbeiten, ohne Preis direkt bei den Kosten. */
-function openLatestCharge(logId: string, missingPrice: boolean) {
-  openOperator(logId, missingPrice ? 'cost' : undefined)
+/** Ladeort-Karte: Betreiber eintragen, also direkt beim Ort. */
+function openOperator(logId: string) { openCharge(logId, 'place') }
+/** Karte "Zuletzt geladen": Ladung ansehen; der Preis-Knopf und der Chip "Preis nachtragen" führen direkt zu den Kosten. */
+function openLatestCharge(logId: string, toPrice: boolean) {
+  openCharge(logId, toPrice ? 'cost' : undefined)
 }
 
 // Karte "Letzte Fahrt": dasselbe Fahrt-Sheet wie das alte Dashboard, Formular-State im CarContext.

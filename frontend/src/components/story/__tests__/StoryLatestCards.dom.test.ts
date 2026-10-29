@@ -93,6 +93,9 @@ describe('StoryLatestCards', () => {
     expect(text(button)).toBe('Preis eintragen')
     button.click()
     expect(events).toEqual([['charge', 'l', true]])
+    // Die Zeile selbst zeigt die Ladung, nur der Knopf führt zum Preis
+    host.querySelector<HTMLElement>('[data-testid="story-latest-charge"]')!.click()
+    expect(events).toEqual([['charge', 'l', true], ['charge', 'l', false]])
   })
 
   it('heute ist der Kalendertag in Ortszeit, nicht 24 Stunden', () => {
