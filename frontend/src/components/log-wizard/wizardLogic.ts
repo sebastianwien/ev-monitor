@@ -49,6 +49,16 @@ export function emptyLogForm(): LogFormData {
 
 const positive = (v: number | null | undefined) => v != null && v > 0
 
+const ENTERED: ReadonlyArray<keyof LogFormData> = [
+  'kwhCharged', 'costEur', 'odometerKm', 'socAfterChargePercent', 'socBeforeChargePercent',
+  'kwhAtVehicle', 'chargeDurationMinutes', 'maxChargingPowerKw',
+]
+
+/** Hat der Nutzer schon etwas eingegeben? Ein gewählter Ort oder eine Zahl; die eigene Position allein zählt nicht. */
+export function hasInput(f: LogFormData, state: WizardState): boolean {
+  return state.place != null || ENTERED.some(k => f[k] != null)
+}
+
 /** Pflicht je Schritt: Ort; dann Energie, Tacho, SoC danach und Kosten zusammen. Schritt 3 prüft nur. */
 export function canProceed(step: WizardStep, f: LogFormData, state: WizardState): boolean {
   switch (step) {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  emptyLogForm, canProceed, applyPlace, readSuggestion, hasOpenChargingType, applyVoiceDraft, voiceCost, canJumpToReview, voiceFlags, type VoiceDraft, type VoiceDraftFields, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
+  emptyLogForm, canProceed, hasInput, applyPlace, readSuggestion, hasOpenChargingType, applyVoiceDraft, voiceCost, canJumpToReview, voiceFlags, type VoiceDraft, type VoiceDraftFields, buildLogPayload, buildLogUpdatePayload, missingRequired, netEnergyKwh, socToKwh, optionalFacts,
 } from '../wizardLogic'
 import type { NearbyStation } from '../../../composables/useNearbyStations'
 import { datetimeLocalToUtcIso } from '../../../utils/datetime'
@@ -334,5 +334,22 @@ describe('hasOpenChargingType', () => {
     expect(hasOpenChargingType({ kind: 'station', station: ionity })).toBe(false)
     expect(hasOpenChargingType({ kind: 'home' })).toBe(false)
     expect(hasOpenChargingType({ kind: 'other', cpoName: 'EnBW' })).toBe(false)
+  })
+})
+
+describe('hasInput', () => {
+  it('leeres Formular ohne Ort hat nichts eingegeben', () => {
+    expect(hasInput(emptyLogForm(), { place: null })).toBe(false)
+  })
+
+  it('die eigene Position allein ist keine Eingabe, ein gewählter Ort schon', () => {
+    expect(hasInput({ ...emptyLogForm(), latitude: 52.5, longitude: 13.4 }, { place: null })).toBe(false)
+    expect(hasInput(emptyLogForm(), { place: 'home' as never })).toBe(true)
+  })
+
+  it('jede eingetragene Zahl zählt, auch 0', () => {
+    for (const key of ['kwhCharged', 'costEur', 'odometerKm', 'socAfterChargePercent', 'socBeforeChargePercent', 'kwhAtVehicle', 'chargeDurationMinutes', 'maxChargingPowerKw'] as const) {
+      expect(hasInput({ ...emptyLogForm(), [key]: 0 }, { place: null }), key).toBe(true)
+    }
   })
 })

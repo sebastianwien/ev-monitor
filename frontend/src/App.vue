@@ -17,6 +17,7 @@ import { useIsMobile } from './composables/useIsMobile'
 import { useHead } from '@unhead/vue'
 import { robotsForPath } from './composables/useMarketRoute'
 import LogFormModal from './components/log-form/LogFormModal.vue'
+import { useLogCapture } from './composables/useLogCapture'
 import FloatingActionButton from './components/shared/FloatingActionButton.vue'
 import OnboardingWizard from './components/onboarding/OnboardingWizard.vue'
 import FeatureAnnouncementModal from './components/shared/FeatureAnnouncementModal.vue'
@@ -161,7 +162,9 @@ const carStore = useCarStore()
 const { cars: carList } = storeToRefs(carStore)
 const showWallboxChip = computed(() => wallboxHasConnections.value && carList.value.length !== 1)
 const showImportOverlay = ref(false)
-const showLogFormModal = ref(false)
+// Erfassen-Sheet, app-weit eins (auch Links auf /erfassen öffnen es, siehe router)
+const capture = useLogCapture()
+const { open: captureOpen, minimized: captureMinimized } = capture
 // Bottom-Nav "Mehr"-Sheet (nur Mobile)
 const moreOpen = ref(false)
 const balanceBumping = ref(false)
@@ -280,16 +283,7 @@ const stopImpersonation = () => {
 }
 
 
-const handleNewLog = () => {
-  // Check if desktop (≥768px) or mobile
-  const isDesktop = window.innerWidth >= 768
-
-  if (isDesktop) {
-    showLogFormModal.value = true
-  } else {
-    router.push('/erfassen')
-  }
-}
+const handleNewLog = () => capture.show()
 
 // Bottom-Nav: Erfassen-FAB nutzt dieselbe Logik wie der Header-Button.
 const handleBottomRecord = () => {
@@ -562,7 +556,8 @@ const handleBottomLogout = () => {
       :class="[
         memberChrome ? 'md:px-4' : '',
         // Mobile: Platz fuer die Bottom-Nav (h-14 + Safe-Area); Desktop unveraendert.
-        authStore.isAuthenticated() && !mobileFullscreen ? 'pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-10' : '',
+        // Minimiertes Erfassen-Sheet: seine Leiste (4rem) liegt zusätzlich über der Nav
+        authStore.isAuthenticated() && !mobileFullscreen ? (captureMinimized ? 'pb-[calc(7.5rem+env(safe-area-inset-bottom))] md:pb-10' : 'pb-[calc(3.5rem+env(safe-area-inset-bottom))] md:pb-10') : '',
         mobileFullscreen ? 'md:pb-10' : ''
       ]"
       style="overflow-x: clip;"
@@ -614,11 +609,11 @@ const handleBottomLogout = () => {
     <!-- Floating-Action-Button nur Desktop (>=768px); auf Mobile uebernimmt der Bottom-Nav-FAB.
          Auf Seiten in der CI der Modellseiten (publicNav) als Pille "+ Erfassen". -->
     <div class="hidden md:block">
-      <FloatingActionButton v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !isOnboardingVisible && !showLogFormModal && $route.path !== '/erfassen'" :key="publicNavRoute ? 'pill' : 'round'" :extended="publicNavRoute" @click="handleNewLog" />
+      <FloatingActionButton v-if="authStore.isAuthenticated() && !authStore.isDemoAccount && !isOnboardingVisible && !captureOpen && $route.path !== '/erfassen'" :key="publicNavRoute ? 'pill' : 'round'" :extended="publicNavRoute" @click="handleNewLog" />
     </div>
 
-    <!-- Log Form Modal (Desktop only) -->
-    <LogFormModal v-if="showLogFormModal && authStore.isAuthenticated()" @close="showLogFormModal = false" />
+    <!-- Erfassen: Sheet (mobil von unten, minimierbar), ab sm Dialog -->
+    <LogFormModal v-if="captureOpen && authStore.isAuthenticated()" minimizable v-model:minimized="captureMinimized" @close="capture.close()" />
 
     <!-- Onboarding Welcome (First-time users) -->
     <OnboardingWizard v-if="authStore.isAuthenticated()" />

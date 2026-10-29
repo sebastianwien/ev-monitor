@@ -13,6 +13,8 @@ const props = defineProps<{
   canProceed: boolean
   primaryLabel: string
   saving?: boolean
+  /** Im Erfassen-Sheet: füllt das Panel statt den Viewport, Safe-Area und Tastatur übernimmt das Sheet. */
+  embedded?: boolean
 }>()
 const emit = defineEmits<{ back: []; next: []; blocked: []; cancel: [] }>()
 /** Unvollständig bleibt der Button fokussierbar (aria-disabled statt disabled): ein Druck sagt, was fehlt. */
@@ -23,7 +25,7 @@ const isInputStep = computed(() => props.step <= INPUT_STEPS)
 // Tastatur nur diesen Ausschnitt - ohne Bindung wandert der Kopf nach oben aus dem Bild.
 const isMobile = useIsMobile()
 const viewport = useVisualViewportBox()
-const frameStyle = computed(() => isMobile.value && viewport.value
+const frameStyle = computed(() => !props.embedded && isMobile.value && viewport.value
   ? { top: `${viewport.value.top}px`, height: `${viewport.value.height}px` } : undefined)
 // Mobil scrollt nur dieser Container, nicht die Seite - jeder Schritt beginnt oben
 const scroller = ref<HTMLElement | null>(null)
@@ -34,7 +36,8 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
   <!-- Mobile: fest auf den Viewport gespannt - Kopf und Footer bleiben stehen, nur der Inhalt
        dazwischen scrollt. Die Seite selbst kann nicht mehr scrollen, der Balken laeuft nie raus. -->
   <!-- Deutlicher Fokusring für alles im Wizard, grün wie überall in der App-CI -->
-  <div :style="frameStyle" class="[&_:focus-visible]:outline-2 [&_:focus-visible]:outline-offset-2 [&_:focus-visible]:outline-green-600 fixed inset-0 z-50 flex flex-col bg-white dark:bg-gray-900 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0">
+  <div :style="frameStyle" :class="['[&_:focus-visible]:outline-2 [&_:focus-visible]:outline-offset-2 [&_:focus-visible]:outline-green-600 flex flex-col bg-white dark:bg-gray-900',
+    embedded ? 'flex-1 min-h-0' : 'fixed inset-0 z-50 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0']">
     <header class="px-4 pt-4 pb-3 md:px-6">
       <div class="flex items-center justify-between">
         <button v-if="step > 1" type="button" :aria-label="t('common.back')" @click="emit('back')"
@@ -65,7 +68,7 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
       </div>
     </div>
 
-    <footer class="bg-white dark:bg-gray-900 border-t-2 border-gray-100 dark:border-gray-800 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:px-6 md:pb-3">
+    <footer :class="['bg-white dark:bg-gray-900 border-t-2 border-gray-100 dark:border-gray-800 px-4 pt-3 md:px-6', embedded ? 'pb-3' : 'pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-3']">
       <!-- Ziele für Schritt-eigene Werkzeuge in Daumenreichweite (Schritt 1: Spracheingabe): note über der Knopfzeile
            (Sprechblase zum Mikrofon, gehört so sichtbar zum Footer), lead links neben der Hauptaktion. Leer bleiben sie unsichtbar. -->
       <div id="wizard-footer-note" />

@@ -169,4 +169,64 @@ describe('BottomSheet', () => {
       expect(closed.n).toBe(0)
     })
   })
+
+  describe('minimieren statt schließen (Erfassen mit Eingaben)', () => {
+    const panel = () => document.querySelector<HTMLElement>('.sheet-panel')!
+    function drag(el: HTMLElement, ys: number[]) {
+      const fire = (type: string, i: number) => {
+        const e = new Event(type, { bubbles: true, cancelable: true })
+        Object.defineProperty(e, 'touches', { value: type === 'touchend' ? [] : [{ clientX: 100, clientY: ys[i] }] })
+        Object.defineProperty(e, 'timeStamp', { value: i * 16 })
+        el.dispatchEvent(e)
+      }
+      fire('touchstart', 0)
+      ys.slice(1).forEach((_, i) => fire('touchmove', i + 1))
+      fire('touchend', ys.length - 1)
+    }
+    async function mountMin(minimized = ref(false)) {
+      const calls = { close: 0, minimize: 0 }
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      app = createApp(defineComponent({
+        render: () => h(BottomSheet, {
+          label: 'Test', minimizable: true, minimized: minimized.value,
+          onClose: () => { calls.close++ }, onMinimize: () => { calls.minimize++; minimized.value = true },
+        }, { default: () => h('div', { 'data-testid': 'body' }, 'Inhalt') }),
+      }))
+      app.mount(el)
+      await nextTick()
+      return calls
+    }
+
+    it('ein Zug nach unten minimiert, der Inhalt bleibt im DOM', async () => {
+      const calls = await mountMin()
+      drag(document.querySelector<HTMLElement>('[data-testid="body"]')!, [100, 130, 180, 230])
+      await afterLeave()
+      expect(calls).toEqual({ close: 0, minimize: 1 })
+      expect(document.querySelector('[data-testid="body"]')).not.toBeNull()
+      // Der Zug gibt das Panel frei, die Lage bestimmt jetzt der minimierte Zustand
+      expect(panel().style.transform).toBe('')
+    })
+
+    it('ein Tipp auf die Abdunklung minimiert ebenfalls', async () => {
+      const calls = await mountMin()
+      backdrop().click()
+      await afterLeave()
+      expect(calls).toEqual({ close: 0, minimize: 1 })
+    })
+
+    it('minimiert scrollt die Seite dahinter wieder, aufgeklappt nicht', async () => {
+      document.body.style.overflow = 'auto'
+      const minimized = ref(false)
+      await mountMin(minimized)
+      expect(document.body.style.overflow).toBe('hidden')
+      minimized.value = true
+      await nextTick()
+      expect(document.body.style.overflow).toBe('auto')
+      expect(document.querySelector('[role="dialog"]')!.getAttribute('aria-modal')).toBe('false')
+      minimized.value = false
+      await nextTick()
+      expect(document.body.style.overflow).toBe('hidden')
+    })
+  })
 })

@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { useAuthStore } from '../stores/auth';
+import { opensAsSheet, useLogCapture } from '../composables/useLogCapture';
 import { useCountryStore } from '../stores/country';
 import { setLocale, isValidLocale } from '../i18n';
 import { slideDirection } from '../composables/useWorkspaceTransition';
@@ -516,6 +517,14 @@ router.afterEach((to, from) => onUpsellNavigation(to, from));
 router.beforeEach((to) => {
     if (to.meta.hideOnNative && !purchasesAvailable()) {
         return '/dashboard';
+    }
+});
+
+// Links auf /erfassen aus der laufenden App öffnen das Erfassen-Sheet über der aktuellen Seite
+router.beforeEach((to, from) => {
+    if (opensAsSheet(to, from) && useAuthStore().isAuthenticated()) {
+        useLogCapture().show();
+        return false;
     }
 });
 

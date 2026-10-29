@@ -103,5 +103,11 @@ export function useSheetDrag(opts: { enabled: () => boolean; close: () => void }
     return undefined
   })
 
-  return { style, onTouchStart, onTouchMove, onTouchEnd }
+  /** Das Panel freigeben (nach dem Minimieren): kein Inline-Transform mehr, die CSS-Lage gilt. */
+  function release() {
+    phase.value = 'idle'
+    dy.value = 0
+  }
+
+  return { style, onTouchStart, onTouchMove, onTouchEnd, release }
 }

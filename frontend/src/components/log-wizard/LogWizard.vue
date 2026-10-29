@@ -21,7 +21,7 @@ import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { analytics } from '../../services/analytics'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
-import { emptyLogForm, canProceed, missingRequired, applyPlace, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice,
+import { emptyLogForm, canProceed, hasInput, missingRequired, applyPlace, buildLogPayload, LAST_STEP, type WizardStep, type WizardState, type PlaceChoice,
   applyVoiceDraft, voiceCost, voiceFlags, readSuggestion, hasOpenChargingType, mergeUncertain, canJumpToReview, type VoiceDraft, type VoiceCost, type VoiceFlag, type VoiceUsage } from './wizardLogic'
 import { spokenSnapshot, correctedFields, type SpokenSnapshot } from './voiceAnalytics'
 import { resolveSpokenAddress, placeFromAddress } from './voiceAddress'
@@ -45,6 +45,8 @@ const props = defineProps<{
   /** Nachtragen aus dem Tagesblatt: Auto vorwählen und Zeitpunkt (datetime-local) vorbelegen, beides änderbar. */
   carId?: string | null
   initialLoggedAt?: string | null
+  /** Im Erfassen-Sheet statt als eigene Vollbildseite */
+  embedded?: boolean
 }>()
 const emit = defineEmits<{ success: []; cancel: [] }>()
 const { t } = useI18n()
@@ -65,6 +67,8 @@ const selectedCar = computed(() => cars.value.find(c => c.id === selectedCarId.v
 const form = ref<LogFormData>({ ...emptyLogForm(), loggedAt: props.initialLoggedAt ?? null })
 const state = ref<WizardState>({ place: null })
 const step = ref<WizardStep>(1)
+/** Für das Sheet: mit Eingaben minimiert ein Zug nach unten, statt alles zu verwerfen */
+defineExpose({ hasInput: computed(() => hasInput(form.value, state.value)) })
 const ocrUsed = ref(false)
 const saving = ref(false)
 const error = ref<string | null>(null)
@@ -529,7 +533,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
       </router-link>
     </div>
 
-    <WizardShell v-else-if="hasCars" :step="step" :question="t(questions[step])" :hint="hint"
+    <WizardShell v-else-if="hasCars" :embedded="embedded" :step="step" :question="t(questions[step])" :hint="hint"
       :can-proceed="proceedAllowed && !!selectedCarId" :saving="saving"
       :primary-label="step === LAST_STEP ? t('common.save') : t('common.next')"
       @back="back" @next="next" @blocked="onBlocked" @cancel="emit('cancel')">
