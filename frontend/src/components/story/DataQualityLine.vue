@@ -9,7 +9,7 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
  * heute heller), darüber eine Säule je Fahrtag nach km, darunter die Achse und eine Legende. Beim
  * Öffnen ist der letzte Ladetag gewählt; seine Tagesanzeige steht als Sprechblase unter dem
  * Zeitstrahl mit Spitze zum Tag. Überfahren, Antippen oder Pfeiltasten wählen einen anderen Tag,
- * Klick, Tipp oder Enter öffnen das Tagesblatt.
+ * Klick, Tipp oder Enter öffnen das Tagesblatt; der geöffnete Tag bleibt danach gewählt.
  */
 const props = defineProps<{ days: DayCoverage[] }>()
 /** Klick, Tap oder Enter auf einen Tag bis heute: Tagesblatt öffnen */
@@ -31,8 +31,11 @@ const lastCharged = computed<number | null>(() => {
   for (let i = props.days.length - 1; i >= 0; i--) if (props.days[i].charges > 0 && !props.days[i].future) return i
   return null
 })
+/** Der zuletzt geöffnete Tag ersetzt den Ladetag als Ruhestellung: das Tagesblatt nimmt den Fokus. */
+const opened = ref<number | null>(null)
+const rest = () => opened.value ?? lastCharged.value
 const active = ref<number | null>(lastCharged.value)
-watch(lastCharged, v => { active.value = v })
+watch(lastCharged, () => { active.value = rest() })
 const bar = ref<HTMLElement | null>(null)
 
 function indexAt(clientX: number): number | null {
@@ -47,11 +50,13 @@ function onPointer(e: PointerEvent) {
   if (i != null) active.value = i
 }
 function onLeave(e: PointerEvent) {
-  if (e.pointerType !== 'touch') active.value = lastCharged.value
+  if (e.pointerType !== 'touch') active.value = rest()
 }
 function open(i: number | null) {
   const d = i != null ? props.days[i] : null
-  if (d && !d.future) emit('open-day', d.day)
+  if (!d || d.future) return
+  opened.value = active.value = i
+  emit('open-day', d.day)
 }
 const onClick = (e: MouseEvent) => open(indexAt(e.clientX))
 function onKey(e: KeyboardEvent) {
@@ -115,7 +120,7 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.leng
         :aria-label="t('story.days_aria')"
         class="-my-1.5 flex cursor-pointer gap-[3px] rounded py-1.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
         @pointerdown="onPointer" @pointermove="onPointer" @pointerleave="onLeave"
-        @click="onClick" @keydown="onKey" @blur="active = lastCharged">
+        @click="onClick" @keydown="onKey" @blur="active = rest()">
         <span v-for="(d, i) in days" :key="d.day" class="flex flex-1 flex-col justify-end gap-[2px]" :class="hasTrips ? 'h-7' : ''">
           <span v-if="hasTrips" class="relative block flex-1">
             <i v-if="d.trips > 0" data-role="km" class="absolute inset-x-0 bottom-0 rounded-[2px]"

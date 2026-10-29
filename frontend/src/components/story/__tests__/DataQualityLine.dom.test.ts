@@ -95,6 +95,24 @@ describe('DataQualityLine', () => {
     expect(tip(host)).toBe('25.: kommt noch')
   })
 
+  it('ein geöffneter Tag bleibt gewählt, wenn das Tagesblatt den Fokus nimmt und wieder schließt', async () => {
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const w = this.dataset.testid === 'story-days' ? 310 : 0
+      return { width: w, height: 10, left: 0, top: 0, right: w, bottom: 10, x: 0, y: 0, toJSON: () => ({}) } as DOMRect
+    })
+    const opened: number[] = []
+    const host = mount(days([3, 24], 28), d => opened.push(d))
+    const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement
+    // Tipp auf Tag 6: 10 px je Tag
+    bar.dispatchEvent(new MouseEvent('click', { clientX: 55 }))
+    bar.dispatchEvent(new Event('blur'))
+    bar.dispatchEvent(new Event('pointerleave'))
+    await settle()
+    expect(opened).toEqual([6])
+    expect(tip(host)).toBe('6.: nichts erfasst')
+    spy.mockRestore()
+  })
+
   it('Fahrtage als Säule nach km, Ladetage grün, Legende nennt nur, was vorkommt', () => {
     const plain = mount(days([1, 15], 25))
     expect(plain.querySelectorAll('[data-role="km"]')).toHaveLength(0)
