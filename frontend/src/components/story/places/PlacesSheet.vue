@@ -141,7 +141,8 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
             </div>
           </div>
 
-          <StoryUpsellRow v-if="tripsLocked" data-testid="places-trips-locked" class="mx-4 lg:mx-6" compact
+          <!-- Unter dem Schalter: mobil volle Breite, ab sm rechts unter dem Schalter -->
+          <StoryUpsellRow v-if="tripsLocked" data-testid="places-trips-locked" class="mx-4 mt-2 sm:ml-auto sm:w-96 lg:mr-6"
             :text="t('story.places_trips_locked')" from="story_places" />
 
           <div class="mt-3 grid min-h-0 flex-1" :class="showMap ? 'grid-rows-[40%_1fr] lg:grid-cols-[1.4fr_1fr] lg:grid-rows-1' : 'grid-rows-1'">

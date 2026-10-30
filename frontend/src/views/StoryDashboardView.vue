@@ -401,8 +401,8 @@ onUnmounted(() => unregisterReload?.())
             <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ t('story.empty_body') }}</p>
             <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
             <template v-if="autoSyncOffer">
-              <p data-testid="story-empty-autosync" class="mt-3 text-sm text-gray-700 dark:text-gray-200">{{ t('story.moment_silence_autosync', { car: carName }) }}</p>
-              <router-link to="/imports" class="mt-1 inline-flex min-h-11 items-center text-[15px] font-semibold text-green-700 dark:text-green-400"
+              <p data-testid="story-empty-autosync" class="mx-auto mt-4 max-w-sm text-[15px] text-gray-800 text-pretty dark:text-gray-100">{{ t('story.empty_autosync', { car: carName }) }}</p>
+              <router-link to="/imports" class="btn-3d cta-shadow-sm mx-auto mt-3 flex min-h-12 w-full max-w-sm items-center justify-center rounded-lg border-2 border-edge bg-green-600 px-4 text-[15px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
                 @click="analytics.track('story_empty_autosync')">{{ t('story.moment_action_autosync') }}</router-link>
             </template>
           </div>

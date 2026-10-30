@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import { ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { ChevronRightIcon, HomeIcon } from '@heroicons/vue/24/outline'
 import MonthBars from '../MonthBars.vue'
 import StoryUpsellRow from '../StoryUpsellRow.vue'
 import ChoiceChip from '../../shared/ChoiceChip.vue'
@@ -30,8 +30,8 @@ const props = withDefaults(defineProps<{
   hasFixedCosts: boolean
   loadMonthlyCosts: () => Promise<MonthCosts[] | null>
   /** Heimlade-Ersparnis: gesperrt nach dem Probemonat, sonst das Ende des Probemonats (null ohne). */
-  savings?: { locked: boolean; trialEndsAt: string | null }
-}>(), { savings: () => ({ locked: false, trialEndsAt: null }) })
+  savings?: { locked: boolean; trialEndsAt: string | null; eur: number | null }
+}>(), { savings: () => ({ locked: false, trialEndsAt: null, eur: null }) })
 
 const STORAGE_KEY = 'story_cost_fixed'
 function readChoice(): boolean {
@@ -79,7 +79,7 @@ const split = computed(() => {
 
 const trialUntil = computed(() => {
   const end = props.savings.trialEndsAt
-  return end ? new Date(`${end.slice(0, 10)}T00:00:00`).toLocaleDateString(locale.value, { day: 'numeric', month: 'long' }) : null
+  return end ? new Date(`${end.slice(0, 10)}T00:00:00`).toLocaleDateString(locale.value, { day: 'numeric', month: 'numeric' }) : null
 })
 
 const partialLabel = computed(() => props.runningMonth ? t('story.sheet_partial', { month: props.monthLabels[props.monthLabels.length - 1] ?? '' }) : '')
@@ -102,7 +102,19 @@ const partialLabel = computed(() => props.runningMonth ? t('story.sheet_partial'
     </Collapse>
     <StoryUpsellRow v-if="savings.locked" data-testid="story-upsell-cost" class="mt-4"
       :title="t('story.upsell_cost_title')" :text="t('story.upsell_cost_text')" from="story_cost" />
-    <p v-else-if="trialUntil" data-testid="story-trial-cost" class="mt-4 text-xs text-gray-500 dark:text-gray-400">{{ t('story.trial_until_savings', { date: trialUntil }) }}</p>
+    <!-- Freigeschaltet (auch im Probemonat): die Ersparnis selbst, mit Gratis-Test-Plakette -->
+    <div v-else-if="savings.eur != null || trialUntil" data-testid="story-savings-cost" class="mt-4 flex items-start gap-3 border-t border-gray-200 pt-3 dark:border-gray-700">
+      <HomeIcon class="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+      <div class="min-w-0 flex-1">
+        <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+          {{ t('story.upsell_cost_title') }}
+          <span v-if="trialUntil" data-testid="story-trial-cost"
+            class="ml-1.5 whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 align-[1px] text-[11.5px] font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-400">{{ t('story.trial_until', { date: trialUntil }) }}</span>
+        </div>
+        <div class="text-[13px] text-gray-500 dark:text-gray-400">{{ t('story.savings_sub') }}</div>
+      </div>
+      <div v-if="savings.eur != null" class="text-right text-sm font-semibold tabular-nums text-green-700 dark:text-green-400">{{ eur(savings.eur) }}</div>
+    </div>
     <RouterLink
       to="/cars"
       data-testid="story-cost-cars"

@@ -68,7 +68,7 @@ const rows = computed(() => {
       <ul class="mt-3 divide-y divide-gray-100 dark:divide-gray-800">
         <li v-for="r in rows" :key="r.key" class="flex items-start gap-3 py-2.5">
           <!-- Stand gesperrt: die Zeile selbst ist das Angebot -->
-          <StoryUpsellRow v-if="r.key === 'standby' && r.kwh == null" data-testid="story-upsell-flow" class="flex-1"
+          <StoryUpsellRow v-if="r.key === 'standby' && r.kwh == null" data-testid="story-upsell-flow" class="-mx-3 flex-1"
             :title="r.label" :text="t('story.upsell_flow_text')" from="story_flow" />
           <template v-else>
           <i class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" :class="r.dot" aria-hidden="true" />
@@ -76,7 +76,7 @@ const rows = computed(() => {
             <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {{ r.label }}
               <span v-if="r.key === 'standby' && trialUntil" data-testid="story-trial-flow"
-                class="ml-1.5 rounded-full bg-green-50 px-2 py-0.5 align-[1px] text-[11.5px] font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-400">{{ t('story.trial_until', { date: trialUntil }) }}</span>
+                class="ml-1.5 whitespace-nowrap rounded-full bg-green-50 px-2 py-0.5 align-[1px] text-[11.5px] font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-400">{{ t('story.trial_until', { date: trialUntil }) }}</span>
             </div>
             <div class="text-[13px] text-gray-500 dark:text-gray-400">{{ r.sub }}</div>
           </div>

@@ -211,7 +211,7 @@ export interface PetrolPrice {
 }
 
 /** Heimlade-Ersparnis: gesperrt (Probemonat vorbei, kein Tarif) oder bis wann der Probemonat läuft. */
-export interface SavingsAccess { locked: boolean; trialEndsAt: string | null }
+export interface SavingsAccess { locked: boolean; trialEndsAt: string | null; eur: number | null }
 
 /** Meilenstein mit Supporter-Bitte, wenn sie passt. */
 function withSupport(m: Moment | null, ask: boolean): Moment | null {
@@ -286,8 +286,8 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
       : { eurPerLitre: PETROL_EUR_PER_L_DE, live: false },
     savingsEur: savings.status === 'fulfilled' ? savings.value.savings?.savingsEur ?? null : null,
     savingsAccess: savings.status === 'fulfilled'
-      ? { locked: savings.value.locked, trialEndsAt: savings.value.viaTrial ? savings.value.trialEndsAt : null }
-      : { locked: false, trialEndsAt: null },
+      ? { locked: savings.value.locked, trialEndsAt: savings.value.viaTrial ? savings.value.trialEndsAt : null, eur: savings.value.savings?.savingsEur ?? null }
+      : { locked: false, trialEndsAt: null, eur: null },
     amortisationYearsRemaining: savings.status === 'fulfilled' ? savings.value.savings?.amortisationYearsRemaining ?? null : null,
     peerModels: models.status === 'fulfilled' ? models.value : null,
     pricelessLogs: priceless.status === 'fulfilled' && Array.isArray(priceless.value.data) ? priceless.value.data : [],
@@ -331,7 +331,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const placeBenchmarks = ref<Record<string, ChargingBenchmark | null>>({})
   const placeRows = computed<PlaceRow[]>(() => toPlaceRows(places.value, placeBenchmarks.value))
   const savingsEur = ref<number | null>(null)
-  const savingsAccess = ref<SavingsAccess>({ locked: false, trialEndsAt: null })
+  const savingsAccess = ref<SavingsAccess>({ locked: false, trialEndsAt: null, eur: null })
   const amortisationYearsRemaining = ref<number | null>(null)
   const peerModels = ref<PeerModelComparisonResponse | null>(null)
   /** Alle Ladungen ohne Preis, auch "Weiß ich nicht mehr": die Kosten des Monats bleiben unvollständig. */

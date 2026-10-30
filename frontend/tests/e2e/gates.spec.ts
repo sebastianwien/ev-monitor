@@ -72,7 +72,7 @@ for (const v of VIEWS) {
       ]);
       await openStory(page, d);
       await page.getByTestId('story-tile-flow').click();
-      await expect(page.getByTestId('story-trial-flow')).toContainText(/gratis bis/);
+      await expect(page.getByTestId('story-trial-flow')).toContainText(/Gratis-Test bis/);
       await page.getByTestId('story-trial-flow').scrollIntoViewIfNeeded();
       await shot(page, v.name, '03-strom-probemonat');
     });
@@ -95,7 +95,7 @@ for (const v of VIEWS) {
       await savings(page, { status: 200, json: { savingsEur: 84, viaTrial: true, trialEndsAt: '2026-11-03' } });
       await page.reload();
       await page.getByTestId('story-tile-cost').click();
-      await expect(page.getByTestId('story-trial-cost')).toContainText('3. November');
+      await expect(page.getByTestId('story-trial-cost')).toContainText('3.11.');
       await page.getByTestId('story-trial-cost').scrollIntoViewIfNeeded();
       await shot(page, v.name, '05-kosten-probemonat');
     });
@@ -106,7 +106,7 @@ for (const v of VIEWS) {
       d.monthStats = stats({ totalCharges: 0, totalKwhCharged: 0, energyCostEur: 0, totalCostEur: 0, totalDistanceKm: 0, chargesOverTime: [] });
       d.logs = [log(NOW_MID, { loggedAt: iso(NOW_MID - 10 * DAY), createdAt: iso(NOW_MID - 10 * DAY) })];
       await openStory(page, d);
-      await expect(page.getByTestId('story-empty-autosync')).toContainText('kann Ladungen und Fahrten selbst eintragen');
+      await expect(page.getByTestId('story-empty-autosync')).toContainText('trägt jede Ladung und Fahrt selbst ein');
       await shot(page, v.name, '06-leerer-monat-autosync');
     });
 

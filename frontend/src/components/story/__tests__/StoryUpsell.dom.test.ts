@@ -60,32 +60,33 @@ describe('Strom-Sheet: Stand gesperrt', () => {
     const pinia = setup('NONE', 'TESLA', new Date().toISOString())
     mount(SheetFlow, { use: { ...lockedUse(), standbyKwh: 12, standbyEur: 3.5 } }, pinia)
     expect($('story-upsell-flow')).toBeNull()
-    expect(text($('story-trial-flow'))).toMatch(/^gratis bis /)
+    expect(text($('story-trial-flow'))).toMatch(/^Gratis-Test bis /)
   })
 })
 
 const costTile = (): StoryTile => ({ id: 'cost', value: 42, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [40, 42], sparkVariant: 'bars' } as StoryTile)
-const costProps = (savings: { locked: boolean; trialEndsAt: string | null }) => ({
+const costProps = (savings: { locked: boolean; trialEndsAt: string | null; eur: number | null }) => ({
   tile: costTile(), stats: null, monthLabels: ['Sep', 'Okt'], monthName: 'Oktober', runningMonth: true,
   hasFixedCosts: false, loadMonthlyCosts: async () => null, savings,
 })
 
 describe('Kosten-Sheet: Heimlade-Ersparnis', () => {
   it('gesperrt: Zeile mit Knopf, Ziel nach Marke', () => {
-    mount(SheetCost, costProps({ locked: true, trialEndsAt: null }), setup('NONE', 'VW'))
+    mount(SheetCost, costProps({ locked: true, trialEndsAt: null, eur: null }), setup('NONE', 'VW'))
     const row = $('story-upsell-cost')!
     expect(text(row)).toContain('Was du zu Hause gegenüber öffentlichem Laden sparst')
     expect(row.getAttribute('href')).toBe('/upgrade?from=story_cost')
   })
 
   it('im Probemonat: "Gratis bis", kein Knopf', () => {
-    mount(SheetCost, costProps({ locked: false, trialEndsAt: '2026-11-15' }), setup('NONE', 'TESLA'))
+    mount(SheetCost, costProps({ locked: false, trialEndsAt: '2026-11-15', eur: 84 }), setup('NONE', 'TESLA'))
     expect($('story-upsell-cost')).toBeNull()
-    expect(text($('story-trial-cost'))).toMatch(/^Die Heimlade-Ersparnis siehst du gratis bis /)
+    expect(text($('story-trial-cost'))).toMatch(/^Gratis-Test bis /)
+    expect(text($('story-savings-cost'))).toMatch(/Heimladen-Ersparnis.*84\s?€/)
   })
 
   it('entsperrt ohne Probemonat: nichts davon', () => {
-    mount(SheetCost, costProps({ locked: false, trialEndsAt: null }), setup('SUPPORTER', 'TESLA'))
+    mount(SheetCost, costProps({ locked: false, trialEndsAt: null, eur: null }), setup('SUPPORTER', 'TESLA'))
     expect($('story-upsell-cost')).toBeNull()
     expect($('story-trial-cost')).toBeNull()
   })

@@ -26,7 +26,7 @@ export interface StorySheetContext {
   /** Strom und Fixkosten je Monat der sechs Balken, erst auf Abruf. */
   loadMonthlyCosts: () => Promise<MonthCosts[] | null>
   /** Heimlade-Ersparnis gesperrt oder im Probemonat, für die Zeile im Kosten-Sheet. */
-  savings: { locked: boolean; trialEndsAt: string | null }
+  savings: { locked: boolean; trialEndsAt: string | null; eur: number | null }
 }
 
 /** Titel des Details, auch als Beschriftung des Sheets. */
