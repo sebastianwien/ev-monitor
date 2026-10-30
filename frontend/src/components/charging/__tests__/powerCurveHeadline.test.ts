@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chargeHeadline, addedRangeKm } from '../powerCurveHeadline'
+import { chargeHeadline, chargeHeadlineText, addedRangeKm } from '../powerCurveHeadline'
 
 const MIN = 60_000
 
@@ -41,5 +41,26 @@ describe('addedRangeKm', () => {
     expect(addedRangeKm(41.7, null)).toBeNull()
     expect(addedRangeKm(41.7, 0)).toBeNull()
     expect(addedRangeKm(41.7, -5)).toBeNull()
+  })
+})
+
+describe('chargeHeadlineText', () => {
+  const t = (key: string, params: Record<string, unknown>) => `${key}|${JSON.stringify(params)}`
+  const kwh = (v: number) => `${v} kWh`
+
+  it('wählt den Text zum Fall und reicht die Werte durch', () => {
+    expect(chargeHeadlineText({ key: 'soc', duration: '16 Min', from: 8, to: 66 }, t, kwh))
+      .toBe('dashboard.power_curve_headline_soc|{"duration":"16 Min","from":8,"to":66}')
+    expect(chargeHeadlineText({ key: 'duration', duration: '16 Min' }, t, kwh))
+      .toBe('dashboard.power_curve_headline_duration|{"duration":"16 Min"}')
+  })
+
+  it('formatiert die Energie über den übergebenen Formatierer', () => {
+    expect(chargeHeadlineText({ key: 'energy', duration: '16 Min', kwh: 41.7 }, t, kwh))
+      .toBe('dashboard.power_curve_headline_energy|{"duration":"16 Min","kwh":"41.7 kWh"}')
+  })
+
+  it('liefert nichts ohne Kopfsatz', () => {
+    expect(chargeHeadlineText(null, t, kwh)).toBeNull()
   })
 })

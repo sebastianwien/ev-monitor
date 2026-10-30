@@ -8,7 +8,7 @@ import SheetCloseButton from '../story/SheetCloseButton.vue'
 import PowerCurveChart from './PowerCurveChart.vue'
 import SocCurveChart from './SocCurveChart.vue'
 import { computeCurveStats } from './powerCurveStats'
-import { chargeHeadline, addedRangeKm } from './powerCurveHeadline'
+import { chargeHeadline, chargeHeadlineText, addedRangeKm } from './powerCurveHeadline'
 import { useCurveShare } from '../../composables/useCurveShare'
 
 /**
@@ -131,12 +131,7 @@ const headline = computed(() => {
     socAfter: props.socAfterChargePercent,
     kwh: energyKwh.value,
   })
-  if (!h) return null
-  switch (h.key) {
-    case 'soc': return t('dashboard.power_curve_headline_soc', { duration: h.duration, from: h.from, to: h.to })
-    case 'energy': return t('dashboard.power_curve_headline_energy', { duration: h.duration, kwh: kwhText(h.kwh) })
-    default: return t('dashboard.power_curve_headline_duration', { duration: h.duration })
-  }
+  return chargeHeadlineText(h, t, kwhText)
 })
 
 /** Im Teaser bleibt die Reichweite weg - sie ist Teil dessen, was freigeschaltet wird. */

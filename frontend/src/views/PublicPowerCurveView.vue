@@ -1,59 +1,69 @@
 <template>
-  <div :class="isAuthenticated ? '' : 'min-h-screen bg-gray-50 dark:bg-gray-950'">
+  <div :class="isAuthenticated ? '' : 'min-h-screen bg-white dark:bg-gray-900'">
     <PublicNav />
+    <!-- Mobile edge-to-edge, ab 768 px Karte mit Kante (App-CI) -->
     <main class="max-w-3xl mx-auto md:px-4 py-6 md:py-10">
-      <div class="bg-white dark:bg-gray-900 border-y md:border border-gray-200 dark:border-gray-800 md:rounded-xl md:shadow-sm px-4 md:px-6 py-6 md:py-8">
-        <div v-if="loading" class="text-center py-16 text-gray-500 dark:text-gray-400">
+      <div class="bg-white dark:bg-gray-900 md:edge-card md:rounded-2xl px-4 md:px-8 py-2 md:py-8">
+        <p v-if="loading" class="text-center py-16 text-gray-500 dark:text-gray-400">
           {{ t('common.loading') }}
-        </div>
+        </p>
 
-        <div v-else-if="!curve" class="text-center py-16">
-          <p class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2">
+        <div v-else-if="!curve" class="py-16 text-center">
+          <p class="text-[22px] font-bold text-gray-900 dark:text-gray-100">
             {{ t('share_curve.not_found_title') }}
           </p>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">{{ t('share_curve.not_found_body') }}</p>
-          <RouterLink to="/" class="text-emerald-600 dark:text-emerald-400 hover:underline">
+          <p class="mt-2 text-[15px] text-gray-500 dark:text-gray-400">{{ t('share_curve.not_found_body') }}</p>
+          <RouterLink
+            to="/"
+            class="btn-3d cta-shadow-sm mt-6 inline-flex min-h-11 items-center justify-center rounded-full border-2 border-edge bg-white px-6 text-sm font-semibold text-gray-800 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15"
+          >
             {{ t('share_curve.to_start') }}
           </RouterLink>
         </div>
 
         <article v-else>
-          <div class="flex items-start gap-3 mb-1">
-            <BoltIcon class="w-6 h-6 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" aria-hidden="true" />
-            <h1 class="text-2xl md:text-4xl font-bold text-gray-900 dark:text-gray-100">
-              {{ curve.carModel || t('share_curve.fallback_title') }}
-            </h1>
-          </div>
-          <p v-if="subtitle" class="text-sm text-gray-500 dark:text-gray-400 mb-6 ml-9">{{ subtitle }}</p>
+          <!-- Kopf wie im Ladekurven-Sheet: Label, Modell als Titel, Satz statt Kacheln -->
+          <p class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+            {{ t('dashboard.power_curve_title') }}<template v-if="subtitle"> · {{ subtitle }}</template>
+          </p>
+          <h1 class="mt-2 text-[28px] md:text-[36px] font-bold leading-[1.1] text-gray-900 dark:text-gray-100">
+            {{ curve.carModel || t('share_curve.fallback_title') }}
+          </h1>
+          <p v-if="headline" class="mt-2 text-lg font-semibold tabular-nums text-gray-700 dark:text-gray-300">
+            {{ headline }}
+          </p>
 
-          <!-- Kennzahlen zuerst: auf Mobile beantwortet die Zeile die Frage
-               "wie schnell war die Ladung" ohne Interaktion mit der Kurve. -->
-          <div v-if="tiles.length" class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-5">
-            <div
-              v-for="tile in tiles"
-              :key="tile.key"
-              class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-3 py-2"
-            >
-              <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ tile.label }}</div>
-              <div class="text-base font-semibold text-gray-900 dark:text-gray-100 tabular-nums whitespace-nowrap">{{ tile.value }}</div>
+          <div class="mt-6 edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 md:p-4">
+            <PowerCurveChart
+              :points="curve.points"
+              :height="240"
+              :height-desktop="320"
+              x-axis-mode="duration"
+              :aria-label="t('dashboard.power_curve_title')"
+              :soc-before-percent="curve.socBefore ?? null"
+              :soc-after-percent="curve.socAfter ?? null"
+              :soc-axis-label="t('dashboard.power_curve_soc_axis')"
+              :readout="t('dashboard.power_curve_readout_peak')"
+            />
+          </div>
+
+          <div v-if="statsRow.length" class="mt-6 grid grid-cols-3 gap-3">
+            <div v-for="stat in statsRow" :key="stat.key" class="min-w-0">
+              <p class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ stat.label }}</p>
+              <p class="mt-0.5 whitespace-nowrap tabular-nums text-gray-900 dark:text-gray-100">
+                <span class="text-[26px] font-bold">{{ stat.value }}</span>
+                <span class="ml-1 text-[13px] text-gray-500 dark:text-gray-400">{{ stat.unit }}</span>
+              </p>
             </div>
           </div>
 
-          <PowerCurveChart
-            :points="curve.points"
-            :height="260"
-            :height-desktop="340"
-            x-axis-mode="duration"
-            :aria-label="t('dashboard.power_curve_title')"
-            :soc-before-percent="curve.socBefore ?? null"
-            :soc-after-percent="curve.socAfter ?? null"
-            :soc-axis-label="t('dashboard.power_curve_soc_axis')"
-            :readout="t('dashboard.power_curve_readout_peak')"
-          />
-
-          <div class="mt-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 text-sm text-gray-600 dark:text-gray-300">
-            {{ t('share_curve.cta_text') }}
-            <RouterLink to="/register" class="text-emerald-600 dark:text-emerald-400 font-semibold hover:underline">
+          <!-- Einladung: einzige grüne Fläche der Seite -->
+          <div class="mt-10 edge-box rounded-xl bg-white dark:bg-gray-700/50 p-4 md:p-5">
+            <p class="text-[15px] leading-relaxed text-gray-700 dark:text-gray-300">{{ t('share_curve.cta_text') }}</p>
+            <RouterLink
+              to="/register"
+              class="btn-3d cta-shadow-sm mt-4 flex min-h-11 w-full items-center justify-center rounded-full border-2 border-edge bg-green-600 px-4 text-sm font-semibold text-white md:w-auto md:inline-flex md:px-8 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+            >
               {{ t('common.free_start') }}
             </RouterLink>
           </div>
@@ -68,11 +78,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useHead } from '@unhead/vue'
-import { BoltIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import PowerCurveChart from '../components/charging/PowerCurveChart.vue'
 import { curveShareService, type PublicCurve } from '../api/curveShareService'
-import { formatDuration } from '../components/charging/powerCurveScrub'
+import { computeCurveStats } from '../components/charging/powerCurveStats'
+import { chargeHeadline, chargeHeadlineText } from '../components/charging/powerCurveHeadline'
 import { useAuthStore } from '../stores/auth'
 
 /**
@@ -109,28 +119,33 @@ const subtitle = computed(() => {
   return [c.cpoName, chargedOnLabel.value].filter(Boolean).join(' · ')
 })
 
-interface Tile { key: string; label: string; value: string }
+/** Kopfsatz wie im Sheet: "In 16 Min von 8 auf 66 %". Dauer aus der Freigabe, wie in der og-Beschreibung. */
+const headline = computed(() => {
+  const c = curve.value
+  if (!c) return null
+  const h = chargeHeadline({
+    durationMs: c.durationMinutes != null ? c.durationMinutes * 60_000 : null,
+    socBefore: c.socBefore,
+    socAfter: c.socAfter,
+    kwh: c.kwhCharged,
+  })
+  return chargeHeadlineText(h, t, (v: number) => round(v, 1))
+})
 
-const tiles = computed<Tile[]>(() => {
+interface Stat { key: string; label: string; value: string; unit: string }
+
+/** Spitze und Schnitt aus den Kurvenpunkten, geladene Menge aus der Freigabe. Dauer und Ladestand stehen im Kopfsatz. */
+const statsRow = computed<Stat[]>(() => {
   const c = curve.value
   if (!c) return []
-  const out: Tile[] = []
-  if (c.peakKw != null) {
-    out.push({ key: 'peak', label: t('dashboard.power_curve_peak'), value: `${round(c.peakKw, 0)} kW` })
+  const fromCurve = computeCurveStats(c.points)
+  const out: Stat[] = []
+  const peak = c.peakKw ?? fromCurve?.peakKw
+  if (peak != null) out.push({ key: 'peak', label: t('dashboard.power_curve_peak'), value: round(peak, 0), unit: 'kW' })
+  if (fromCurve && fromCurve.durationMs > 0) {
+    out.push({ key: 'avg', label: t('dashboard.power_curve_avg'), value: round(fromCurve.avgKw, 0), unit: 'kW' })
   }
-  if (c.kwhCharged != null) {
-    out.push({ key: 'energy', label: t('dashboard.power_curve_energy'), value: `${round(c.kwhCharged, 1)} kWh` })
-  }
-  if (c.durationMinutes != null) {
-    out.push({ key: 'duration', label: t('dashboard.power_curve_duration'), value: formatDuration(c.durationMinutes * 60_000) })
-  }
-  if (c.socBefore != null && c.socAfter != null) {
-    out.push({
-      key: 'soc',
-      label: t('dashboard.power_curve_soc'),
-      value: `${round(c.socBefore, 0)} → ${round(c.socAfter, 0)} %`,
-    })
-  }
+  if (c.kwhCharged != null) out.push({ key: 'energy', label: t('dashboard.power_curve_energy'), value: round(c.kwhCharged, 1), unit: 'kWh' })
   return out
 })
 

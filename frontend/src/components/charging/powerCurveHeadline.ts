@@ -36,3 +36,15 @@ export function addedRangeKm(kwh: number | null | undefined, consumptionKwhPer10
   if (kwh == null || kwh <= 0 || consumptionKwhPer100km == null || consumptionKwhPer100km <= 0) return null
   return Math.round((kwh * 100) / consumptionKwhPer100km)
 }
+
+type Translate = (key: string, params: Record<string, unknown>) => string
+
+/** Übersetzter Kopfsatz - gemeinsam für das Ladekurven-Sheet und die öffentliche Teilen-Seite. */
+export function chargeHeadlineText(h: ChargeHeadline | null, t: Translate, formatKwh: (kwh: number) => string): string | null {
+  if (!h) return null
+  switch (h.key) {
+    case 'soc': return t('dashboard.power_curve_headline_soc', { duration: h.duration, from: h.from, to: h.to })
+    case 'energy': return t('dashboard.power_curve_headline_energy', { duration: h.duration, kwh: formatKwh(h.kwh) })
+    default: return t('dashboard.power_curve_headline_duration', { duration: h.duration })
+  }
+}
