@@ -58,4 +58,13 @@ describe('wattForNewLog', () => {
   it('ohne Katalog keine Zahl', () => {
     expect(wattForNewLog(null, false)).toBe(0)
   })
+  it('erste Ladung überhaupt: der Erst-Bonus, solange er nicht verbraucht ist', () => {
+    const fresh: WattCatalog = { ...logCatalog,
+      MANUAL_LOG_FIRST: { amount: 25, oneTime: false, claimed: false },
+      MANUAL_LOG_FIRST_OCR: { amount: 27, oneTime: false, claimed: false } }
+    expect(wattForNewLog(fresh, false)).toBe(25)
+    expect(wattForNewLog(fresh, true)).toBe(27)
+    const used = { ...fresh, MANUAL_LOG_FIRST: { amount: 25, oneTime: false, claimed: true } }
+    expect(wattForNewLog(used, false)).toBe(5)
+  })
 })

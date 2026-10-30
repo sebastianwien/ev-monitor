@@ -32,6 +32,7 @@ public class CoinLogService {
      */
     public enum CoinEvent {
         // Manual charging logs — FIRST/SUBSEQUENT chosen by caller; oneTime handled via caller logic
+        // New FIRST variants also belong in FIRST_BONUSES, otherwise the catalog never reports them as claimed
         MANUAL_LOG_FIRST            ("Ladevorgang erfasst",                          25, false),
         MANUAL_LOG_SUBSEQUENT       ("Ladevorgang erfasst",                           5, false),
         MANUAL_LOG_FIRST_OCR        ("Ladevorgang erfasst (OCR)",                    27, false),
@@ -154,15 +155,19 @@ public class CoinLogService {
     /** One catalogue row: what an action pays, and whether a one-time bonus is already used up. */
     public record CatalogEntry(String event, int amount, boolean oneTime, boolean claimed) {}
 
+    /** First-time bonuses decided by the caller (FIRST vs. SUBSEQUENT): claimed once their description was ever awarded. */
+    private static final java.util.Set<CoinEvent> FIRST_BONUSES =
+            java.util.EnumSet.of(CoinEvent.MANUAL_LOG_FIRST, CoinEvent.MANUAL_LOG_FIRST_OCR, CoinEvent.CAR_CREATED_FIRST);
+
     /**
      * The reward catalogue for the UI, so "+3 Watt" badges can be shown BEFORE the action
-     * without duplicating the amounts in the frontend. Only one-time events carry a claimed
-     * flag - per-entity events are checked at award time.
+     * without duplicating the amounts in the frontend. One-time events and first-time bonuses
+     * carry a claimed flag - per-entity events are checked at award time.
      */
     public List<CatalogEntry> catalog(UUID userId) {
         return java.util.Arrays.stream(CoinEvent.values())
                 .map(e -> new CatalogEntry(e.name(), e.getDefaultAmount(), e.isOneTime(),
-                        e.isOneTime() && hasEverReceivedCoinForAction(userId, e.getDescription())))
+                        (e.isOneTime() || FIRST_BONUSES.contains(e)) && hasEverReceivedCoinForAction(userId, e.getDescription())))
                 .toList();
     }
 

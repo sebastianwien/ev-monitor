@@ -57,10 +57,12 @@ export function wattPossiblePerLogMax(catalog: WattCatalog | null): number {
 }
 
 /**
- * Was eine neu erfasste Ladung bringt (Speichern-Knopf im Wizard). Der Regelbetrag: der Katalog sagt nicht,
- * ob es die allererste Ladung ist - dann gibt das Backend mehr, der Toast nennt den echten Betrag.
+ * Was eine neu erfasste Ladung bringt (Speichern-Knopf im Wizard): der Erst-Bonus, solange der Katalog ihn
+ * nicht als verbraucht meldet, sonst der Regelbetrag. Mit Foto-Erkennung jeweils die OCR-Variante.
  */
 export function wattForNewLog(catalog: WattCatalog | null, ocrUsed: boolean): number {
   if (!catalog) return 0
+  const first = catalog[ocrUsed ? 'MANUAL_LOG_FIRST_OCR' : 'MANUAL_LOG_FIRST']
+  if (first && !first.claimed) return first.amount
   return amountOf(catalog, ocrUsed ? 'MANUAL_LOG_OCR' : 'MANUAL_LOG_SUBSEQUENT')
 }
