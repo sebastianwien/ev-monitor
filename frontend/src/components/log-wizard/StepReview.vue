@@ -25,7 +25,7 @@ const body = ref<HTMLElement | null>(null)
 const mapHeight = useFillHeight(root, body, 112, MINIMAP_MAX_PX)
 const TILE_FLAGS: VoiceFlag[] = ['energy', 'odometer', 'soc', 'cost']
 const flagged = computed(() => (props.voice?.flags ?? []).filter((f): f is RequiredField => TILE_FLAGS.includes(f)))
-const stepFor: Record<SummarySection, WizardStep> = { place: 1, energy: 2, vehicle: 2, cost: 2, time: 3 }
+const stepFor: Record<SummarySection, WizardStep> = { place: 1, energy: 2, vehicle: 2, cost: 2 }
 </script>
 
 <template>

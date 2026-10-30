@@ -8,7 +8,7 @@ import OptionalPanel from './OptionalPanel.vue'
 import type { CostMetric } from './costMetrics'
 import { CARD, CARD_EDGE, CARD_SURFACE, CARD_MISSING } from './chipClass'
 
-export type SummarySection = 'place' | 'energy' | 'vehicle' | 'cost' | 'time'
+export type SummarySection = 'place' | 'energy' | 'vehicle' | 'cost'
 
 const props = defineProps<{
   placeLabel: string

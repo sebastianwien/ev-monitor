@@ -21,7 +21,10 @@
         <!-- Erst die Ladung sehen: der Ort als Kartenkopf wie auf der Prüfseite des Wizards, ein Tipp darauf bearbeitet ihn -->
         <!-- Der Zeitpunkt steht im Kopf statt als fünfte Kachel: das Raster bleibt 2x2 wie auf der Prüfseite -->
         <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" :time="timeLabel" clickable class="-mt-4" data-testid="summary-place"
-          @click="section = 'place'" @time="section = 'time'" />
+          @click="section = 'place'" @time="openNativePicker(timeInput)" />
+        <!-- Tipp auf die Zeit öffnet direkt den Picker des Geräts, wie "Wählen" im Wizard; das Feld selbst bleibt unsichtbar -->
+        <input ref="timeInput" id="wizard-time" v-model="formData.loggedAt" type="datetime-local" :max="nowLocal()"
+          :aria-label="t('logfields.timestamp')" class="sr-only" tabindex="-1" />
         <!-- Sprache: nur Handy, Knopf in der Fußleiste neben Speichern; danach Vorher/Nachher mit Rückgängig hier oben -->
         <VoiceCapture v-if="showVoice && !confirmingDelete" entry="edit" variant="footer" :host="footerId" :car-id="log.carId" @draft="onVoiceDraft" />
         <div v-if="voiceChanges" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2" data-testid="edit-voice-changes" aria-live="polite">
@@ -78,11 +81,6 @@
       <StepEnergy v-else-if="section === 'energy'" v-model="formData" @ocr="onOcr" />
       <StepVehicle v-else-if="section === 'vehicle'" v-model="formData" :last-odometer-km="null" :effective-capacity-kwh="null" />
       <StepCost v-else-if="section === 'cost'" v-model="formData" v-model:providers="providers" :cost="cost" />
-      <div v-else-if="section === 'time'">
-        <label for="wizard-time" class="mb-1 block text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('logfields.timestamp') }}</label>
-        <input id="wizard-time" v-model="formData.loggedAt" type="datetime-local"
-          class="min-h-12 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
-      </div>
 
       <!-- Standort aendern: nur im Ort-Editor, ohne Live-Position (es gibt nur den Geohash) -->
       <div v-if="section === 'place'" class="pt-2">
@@ -154,6 +152,7 @@ import { buildLogUpdatePayload, missingRequired, applyPlace, type PlaceChoice, t
 import LogSummary, { type SummarySection } from '../log-wizard/LogSummary.vue'
 import PlaceHeader, { type NumbersContext } from '../log-wizard/PlaceHeader.vue'
 import { privateArea } from '../log-wizard/minimapTiles'
+import { nowLocal, openNativePicker } from '../log-wizard/useTimePick'
 import BigInput from '../log-wizard/BigInput.vue'
 import StepPlace from '../log-wizard/StepPlace.vue'
 import { useNearbyStations } from '../../composables/useNearbyStations'
@@ -266,8 +265,9 @@ const formData = ref<LogFormData>({
 
 // Bearbeiten heisst meist "eins aendern": Uebersicht zuerst, Editor je Abschnitt darunter.
 const section = ref<SummarySection | null>(props.startSection ?? null)
+const timeInput = ref<HTMLInputElement | null>(null)
 const sectionTitles: Record<SummarySection, string> = {
-  place: 'logwizard.q_place', energy: 'logwizard.q_energy', vehicle: 'logwizard.q_vehicle', cost: 'logwizard.q_cost', time: 'logfields.timestamp',
+  place: 'logwizard.q_place', energy: 'logwizard.q_energy', vehicle: 'logwizard.q_vehicle', cost: 'logwizard.q_cost',
 }
 // Einmal beim Oeffnen bestimmt: der Block "Noch offen" soll nicht unter den Fingern verschwinden.
 const missingAtOpen = ref<RequiredField[]>(missingRequired(formData.value))

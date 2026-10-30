@@ -6,7 +6,7 @@ import type { LogFormData } from '../log-form/logFormData'
 import RouteIcon from '../icons/RouteIcon.vue'
 import { ROUTE_CHIPS, TIRE_CHIPS } from './optionalChips'
 import { SEG_GROUP, segClass } from './segments'
-import { useTimePick, nowLocal } from './useTimePick'
+import { useTimePick, nowLocal, openNativePicker } from './useTimePick'
 
 /**
  * Zeit, Strecke und Reifen als drei Pillen in einer Zeile (Schritt 2). Tipp auf eine Pille verwandelt
@@ -49,8 +49,7 @@ const segTimeChips = computed(() => timeChips.filter(c => c.value !== 'yesterday
 const onTime = (p: typeof timeChips[number]['value']) => {
   pickTime(p)
   if (p !== 'other') { editing.value = null; return }
-  const el = timeInput.value; if (!el) return
-  try { el.showPicker() } catch { el.focus(); el.click() }
+  openNativePicker(timeInput.value)
 }
 const onTimePicked = () => { editing.value = null }
 </script>

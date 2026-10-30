@@ -58,9 +58,27 @@ describe('LogEditPanel: Zeitpunkt im Kopf', () => {
     const time = document.body.querySelector<HTMLButtonElement>('[data-testid="summary-place"] [data-testid="summary-time"]')
     expect(time?.textContent).toMatch(/16\.8\..*10:00/)
     expect(document.body.querySelector('[data-testid="summary-energy"]')!.parentElement!.children.length).toBe(4)
-    time!.click()
-    await tick()
-    expect(document.body.querySelector('#wizard-time')).not.toBeNull()
+  })
+
+  it('Tipp auf die Zeit öffnet direkt den nativen Picker, ohne Unterseite; der Kopf zeigt den neuen Wert', async () => {
+    const showPicker = vi.fn()
+    HTMLInputElement.prototype.showPicker = showPicker
+    try {
+      app = createApp(defineComponent({ render: () => h(LogEditPanel, { log }) }))
+      app.use(i18n).use(createPinia()); app.directive('haptic', {})
+      app.mount(document.body.appendChild(document.createElement('div')))
+      await tick()
+      const time = () => document.body.querySelector<HTMLButtonElement>('[data-testid="summary-time"]')!
+      time().click()
+      await tick()
+      expect(showPicker).toHaveBeenCalledTimes(1)
+      expect(document.body.querySelector('[data-testid="edit-done"]')).toBeNull()
+      const input = document.body.querySelector<HTMLInputElement>('#wizard-time')!
+      input.value = '2026-08-16T11:30'
+      input.dispatchEvent(new Event('input'))
+      await tick()
+      expect(time().textContent).toMatch(/11:30/)
+    } finally { delete (HTMLInputElement.prototype as Partial<HTMLInputElement>).showPicker }
   })
 })
 
