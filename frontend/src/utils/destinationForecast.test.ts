@@ -18,10 +18,10 @@ describe('weatherKind', () => {
     expect(weatherKind(code, 20)).toBe(kind)
   })
 
-  it('sehr windig ab 60 km/h Böen, außer bei Niederschlag', () => {
-    expect(weatherKind(1, 60)).toBe('wind')
+  it('sehr windig ab 40 km/h Böen, außer bei Niederschlag', () => {
+    expect(weatherKind(1, 40)).toBe('wind')
     expect(weatherKind(3, 75)).toBe('wind')
-    expect(weatherKind(1, 59)).toBe('sun')
+    expect(weatherKind(1, 39)).toBe('sun')
     expect(weatherKind(61, 80)).toBe('rain')
     expect(weatherKind(73, 80)).toBe('snow')
   })

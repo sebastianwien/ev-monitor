@@ -3,8 +3,8 @@ import geohash from 'ngeohash'
 export type WeatherKind = 'sun' | 'partly' | 'cloudy' | 'rain' | 'showers' | 'snow' | 'wind'
 export interface DayForecast { minC: number; maxC: number; kind: WeatherKind }
 
-/** Ab diesen Böen (km/h, Beaufort 8) gilt ein trockener Tag als sehr windig. */
-const WIND_GUST_KMH = 60
+/** Ab diesen Böen (km/h, Beaufort 6) gilt ein trockener Tag als sehr windig. */
+const WIND_GUST_KMH = 40
 
 /** WMO-Wettercode des Tages plus Böen: Niederschlag geht vor Wind, Wind vor Wolken. */
 export function weatherKind(code: number, gustKmh: number): WeatherKind {
