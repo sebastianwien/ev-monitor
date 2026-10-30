@@ -130,6 +130,8 @@ const sheetIds = computed(() => tiles.value.map(x => x.id))
 const showFeed = computed(() => !!monthStats.value && !error.value && (hasCharges.value || liveActive.value))
 /** Steht der Monatssatz (StoryHero)? Dann sitzen die Monatspfeile in ihm, sonst als eigene Zeile darüber. */
 const monthHero = computed(() => !(loading.value && !monthStats.value) && !error.value && hasCharges.value && heroMode.value === 'month')
+/** Steht der Live-Hero? Dann sitzen die Monatspfeile in seiner Kopfzeile. */
+const liveHero = computed(() => !(loading.value && !monthStats.value) && !error.value && heroMode.value === 'live')
 
 
 // Monatswechsel: Segment-Schalter oder horizontaler Wisch auf dem Hero.
@@ -370,7 +372,7 @@ onUnmounted(() => unregisterReload?.())
         </header>
         <div ref="monthMain" class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7" :class="switching ? monthWaiting : ''">
           <!-- Monatspfeile neben dem Monatssatz; ohne ihn (leer, Laden, Fehler, Live) als eigene Zeile mit Monat -->
-          <div v-if="!monthHero" class="flex justify-end">
+          <div v-if="!monthHero && !liveHero" class="flex justify-end">
             <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
           </div>
 
@@ -410,7 +412,11 @@ onUnmounted(() => unregisterReload?.())
           <template v-else>
             <div @pointerdown="onPointerDown" @pointerup="onPointerUp">
               <Transition name="story-hero" mode="out-in">
-                <StoryLiveHero v-if="heroMode === 'live' && live" key="live" :live="live" />
+                <StoryLiveHero v-if="heroMode === 'live' && live" key="live" :live="live">
+                  <template #nav>
+                    <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
+                  </template>
+                </StoryLiveHero>
                 <StoryHero
                   v-else
                   key="month"

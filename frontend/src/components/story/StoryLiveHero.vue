@@ -36,13 +36,17 @@ watch(() => props.live.powerKw, v => tickTo(v ?? 0))
 </script>
 
 <template>
-  <section class="pt-3 pb-5 border-b border-gray-200 dark:border-gray-700" data-testid="story-live-hero">
-    <p class="flex items-center gap-2 text-xs uppercase tracking-wider text-story-accent dark:text-story-accent-dark">
-      <span class="w-1.5 h-1.5 rounded-full bg-current motion-safe:animate-pulse" />
-      {{ t('story.live_eyebrow') }}<span v-if="live.chargingType" class="text-gray-400">{{ live.chargingType }}</span>
-    </p>
+  <section class="pb-5 border-b border-gray-200 dark:border-gray-700" data-testid="story-live-hero">
+    <!-- Monatspfeile in der Zeile des Hinweises statt als eigene Zeile darüber, wie im Monatssatz -->
+    <div class="flex min-h-[44px] items-center justify-between gap-3">
+      <p class="flex items-center gap-2 text-xs uppercase tracking-wider text-story-accent dark:text-story-accent-dark">
+        <span class="w-1.5 h-1.5 rounded-full bg-current motion-safe:animate-pulse" />
+        {{ t('story.live_eyebrow') }}<span v-if="live.chargingType" class="text-gray-400">{{ live.chargingType }}</span>
+      </p>
+      <slot name="nav" />
+    </div>
 
-    <div class="mt-3 flex items-center gap-5 md:gap-8">
+    <div class="mt-2 flex items-center gap-5 md:gap-8">
       <!-- Ohne Ladestand keinen Ring: 0 % wäre eine Zahl, die das Auto nie gemeldet hat. -->
       <SocRing v-if="live.socPercent != null" :soc="live.socPercent" :soc-start="live.socAtSessionStart" :limit="live.chargeLimitSoc">
         <span class="block font-extrabold text-4xl md:text-5xl tabular-nums leading-none text-gray-900 dark:text-gray-50">
@@ -58,11 +62,11 @@ watch(() => props.live.powerKw, v => tickTo(v ?? 0))
         <p v-if="live.powerKw != null" class="font-extrabold tracking-tight leading-none text-gray-900 dark:text-gray-50 tabular-nums text-[44px] md:text-[56px]">
           {{ formatDecimal(shownKw, 0) }}<span class="text-lg font-semibold text-gray-500 ml-1">kW</span>
         </p>
-        <p v-if="live.timeToFullMinutes != null" class="mt-2 flex items-center gap-1.5 text-[15px] text-gray-800 dark:text-gray-200">
-          <BoltIcon class="w-4 h-4 text-story-accent dark:text-story-accent-dark shrink-0" />
+        <p v-if="live.timeToFullMinutes != null" class="mt-2 flex items-start gap-1.5 text-[15px] leading-snug text-balance text-gray-800 dark:text-gray-200">
+          <BoltIcon class="mt-0.5 w-4 h-4 text-story-accent dark:text-story-accent-dark shrink-0" />
           {{ t('story.live_eta', { min: live.timeToFullMinutes, limit: Math.round(live.chargeLimitSoc ?? 100) }) }}
         </p>
-        <p v-if="live.estRangeKm != null" class="mt-1 text-sm text-gray-600 dark:text-gray-300">
+        <p v-if="live.estRangeKm != null" class="mt-1 text-sm leading-snug text-balance text-gray-600 dark:text-gray-300">
           {{ t('story.live_range', { km: formatDistance(live.estRangeKm) }) }}
         </p>
       </div>
