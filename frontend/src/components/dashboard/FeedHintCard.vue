@@ -13,7 +13,7 @@ import { getPricing } from '../../config/pricingConfig'
 import { purchasesAvailable } from '../../utils/iapPolicy'
 import { wattPossiblePerLogMax } from '../../utils/wattPreview'
 import { feedHints, tripsHintVisible } from '../../utils/feedHints'
-import { hasFreeDataSource, isAutoSyncUnsupported, brandDeliversTrips, tripsComeByImport, normalizeBrand } from '../../composables/useCarAutoSyncProvider'
+import { isAutoSyncUnsupported, brandDeliversTrips, tripsComeByImport, normalizeBrand } from '../../composables/useCarAutoSyncProvider'
 import polestarService from '../../api/polestarService'
 import { subscriptionService, type SubscriptionTier } from '../../api/subscriptionService'
 import { analytics } from '../../services/analytics'
@@ -35,11 +35,11 @@ const wattForAllPriceless = computed(() => wattPossiblePerLogMax(coinStore.catal
 
 const subscriptionTier = ref<SubscriptionTier | null>(null)
 
-// Ob das ausgewaehlte Auto bereits kostenlos Daten liefert (Tesla/XPeng) - dreht die
+// Ob das ausgewaehlte Auto bereits kostenlos Daten liefert (Tesla, Polestar, XPeng; Regel wie analyticsUpsellTarget) - dreht die
 // AutoSync- vs. Supporter-Weiche fuer alle drei Banner unten. Kein Auto ausgewaehlt
 // zaehlt als "keine freie Quelle", wie zuvor bei den einzelnen Brand-Checks.
 const selectedCarHasFreeSource = computed(() =>
-  selectedCar.value != null && hasFreeDataSource(selectedCar.value)
+  selectedCar.value != null && brandDeliversTrips(selectedCar.value)
 )
 
 // Marke ohne AutoSync-Weg (Zeekr, Leapmotor, Lucid, Rivian): ein Abo wuerde ihre Daten nicht
@@ -202,12 +202,12 @@ onMounted(async () => {
         <i18n-t keypath="logs.hints.live" tag="span"><template #product><b class="font-semibold">AutoSync Live</b></template></i18n-t>
         <template #sub>{{ t('logs.hints.more') }}</template>
       </FeedHintRow>
-      <FeedHintRow v-else-if="hint === 'autosync'" data-testid="autosync-banner" :icon="ArrowPathIcon" to="/upgrade"
+      <FeedHintRow v-else-if="hint === 'autosync'" data-testid="autosync-banner" :icon="ArrowPathIcon" to="/upgrade?from=feed_hint"
         :dismiss-label="t('dashboard.autosync_banner_dismiss')" @dismiss="dismissAutoSyncBanner">
         <i18n-t keypath="logs.hints.autosync" tag="span"><template #product><b class="font-semibold">AutoSync</b></template></i18n-t>
         <template #sub>{{ t('logs.hints.per_month', { price: autoSyncPrice }) }} &middot; {{ t('logs.hints.more') }}</template>
       </FeedHintRow>
-      <FeedHintRow v-else-if="hint === 'supporter'" data-testid="supporter-banner" :icon="HeartIcon" to="/supporter"
+      <FeedHintRow v-else-if="hint === 'supporter'" data-testid="supporter-banner" :icon="HeartIcon" to="/supporter?from=feed_hint"
         :dismiss-label="t('dashboard.supporter_banner_dismiss')" @dismiss="dismissSupporterBanner">
         <i18n-t keypath="logs.hints.supporter" tag="span"><template #pack><b class="font-semibold">{{ t('dashboard.supporter_banner_pack') }}</b></template></i18n-t>
         <template #sub>{{ t('logs.hints.per_month', { price: supporterPrice }) }} &middot; {{ t('logs.hints.more') }}</template>

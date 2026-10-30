@@ -49,9 +49,12 @@ export interface StoryCarContext {
   /** Fahrzeugklasse (VehicleCategory) für den Benziner im Vergleich */
   vehicleCategory: string | null
   effectiveBatteryCapacityKwh: number | null
-  canViewLiveAnalytics: boolean
+  /** Stand sichtbar: Analytics oder Energie-Split-Probemonat. */
+  canViewEnergySplit: boolean
   /** Marke hat einen AutoSync-Weg und das Auto ist nicht verbunden. */
   autoSync: boolean
+  /** Daten kommen gratis, kein Abo, Kaufen möglich: Meilenstein bittet ums Supporter-Pack. */
+  supporterAsk: boolean
 }
 
 export const STORY_MONTH_OFFSETS = [-2, -1, 0] as const
@@ -207,9 +210,18 @@ export interface PetrolPrice {
   live: boolean
 }
 
+/** Heimlade-Ersparnis: gesperrt (Probemonat vorbei, kein Tarif) oder bis wann der Probemonat läuft. */
+export interface SavingsAccess { locked: boolean; trialEndsAt: string | null }
+
+/** Meilenstein mit Supporter-Bitte, wenn sie passt. */
+function withSupport(m: Moment | null, ask: boolean): Moment | null {
+  return m?.kind === 'milestone' && ask ? { ...m, support: true } : m
+}
+
 /** Was je Auto einmal geladen wird, unabhaengig vom Monat: Basis von Moment-Hero, Zuletzt-Karten und Reichweite. */
 interface CarBundle {
   savingsEur: number | null
+  savingsAccess: SavingsAccess
   amortisationYearsRemaining: number | null
   peerModels: PeerModelComparisonResponse | null
   pricelessLogs: MomentLog[]
@@ -273,6 +285,9 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
       ? { eurPerLitre: prices.petrolEurPerLitre, live: prices.updatedAt != null }
       : { eurPerLitre: PETROL_EUR_PER_L_DE, live: false },
     savingsEur: savings.status === 'fulfilled' ? savings.value.savings?.savingsEur ?? null : null,
+    savingsAccess: savings.status === 'fulfilled'
+      ? { locked: savings.value.locked, trialEndsAt: savings.value.viaTrial ? savings.value.trialEndsAt : null }
+      : { locked: false, trialEndsAt: null },
     amortisationYearsRemaining: savings.status === 'fulfilled' ? savings.value.savings?.amortisationYearsRemaining ?? null : null,
     peerModels: models.status === 'fulfilled' ? models.value : null,
     pricelessLogs: priceless.status === 'fulfilled' && Array.isArray(priceless.value.data) ? priceless.value.data : [],
@@ -316,6 +331,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const placeBenchmarks = ref<Record<string, ChargingBenchmark | null>>({})
   const placeRows = computed<PlaceRow[]>(() => toPlaceRows(places.value, placeBenchmarks.value))
   const savingsEur = ref<number | null>(null)
+  const savingsAccess = ref<SavingsAccess>({ locked: false, trialEndsAt: null })
   const amortisationYearsRemaining = ref<number | null>(null)
   const peerModels = ref<PeerModelComparisonResponse | null>(null)
   /** Alle Ladungen ohne Preis, auch "Weiß ich nicht mehr": die Kosten des Monats bleiben unvollständig. */
@@ -366,7 +382,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       loading.value = true
     }
     error.value = false
-    const bundle = await fetchMonthBundle(carId, m, ctx().canViewLiveAnalytics)
+    const bundle = await fetchMonthBundle(carId, m, ctx().canViewEnergySplit)
     if (id !== requestId) return
     if (!bundle) {
       // Hintergrund-Reload gescheitert: der gecachte Stand bleibt stehen, sonst Fehlerzustand.
@@ -395,7 +411,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       const key = monthKey(carId, m)
       if (monthCache.has(key)) continue
       if (carId !== selectedCarId.value) return
-      const b = await fetchMonthBundle(carId, m, ctx().canViewLiveAnalytics)
+      const b = await fetchMonthBundle(carId, m, ctx().canViewEnergySplit)
       if (b) monthCache.set(key, b)
     }
   }
@@ -403,6 +419,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   function applyCar(b: CarBundle) {
     petrol.value = b.petrol
     savingsEur.value = b.savingsEur
+    savingsAccess.value = b.savingsAccess
     amortisationYearsRemaining.value = b.amortisationYearsRemaining
     peerModels.value = b.peerModels
     pricelessLogs.value = b.pricelessLogs
@@ -529,7 +546,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     elapsedDays: month.value.offset === 0 ? new Date().getDate() : new Date(month.value.year, month.value.month, 0).getDate(),
     recent: recentStats.value ? { distanceKm: recentStats.value.totalDistanceKm, days: RECENT_DAYS } : null,
     weather: weather.value,
-    tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewLiveAnalytics,
+    tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewEnergySplit,
       { charges: charges.value, avgCostPerKwh: monthStats.value?.avgCostPerKwh ?? null }),
   } : null)
 
@@ -565,7 +582,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       detectBattery({ history: sohHistory.value, now }),
       running ? detectRankClosing({ ranks: previousRanks.value, now }) : null,
       detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
-      detectMilestone({ series: lifetimeSeries.value, now, petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory) }),
+      withSupport(detectMilestone({ series: lifetimeSeries.value, now, petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory) }), c.supporterAsk),
       detectGap({ logs: pricelessLogs.value, now, skipLogId: today }),
     ].filter((m): m is Moment => m != null)
     return pickCards(candidates, now, seen.value)
@@ -608,6 +625,6 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     offset, month, months, setOffset, switching, placeRows, dataMonths, minOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
     layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, cards, benchmark,
-    reload, markPriceUnknown,
+    reload, markPriceUnknown, savingsAccess,
   }
 }

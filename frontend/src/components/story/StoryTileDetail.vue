@@ -25,6 +25,8 @@ export interface StorySheetContext {
   hasFixedCosts: boolean
   /** Strom und Fixkosten je Monat der sechs Balken, erst auf Abruf. */
   loadMonthlyCosts: () => Promise<MonthCosts[] | null>
+  /** Heimlade-Ersparnis gesperrt oder im Probemonat, für die Zeile im Kosten-Sheet. */
+  savings: { locked: boolean; trialEndsAt: string | null }
 }
 
 /** Titel des Details, auch als Beschriftung des Sheets. */
@@ -75,7 +77,7 @@ const title = useTileTitle(props)
     <SheetWltp v-else-if="tile.id === 'wltp'" :tile="tile" :month-labels="context.monthLabels" :month-name="context.monthName" :running-month="context.runningMonth" :temperature="context.temperature" />
     <SheetCost
       v-else-if="tile.id === 'cost'" :tile="tile" :stats="context.stats" :month-labels="context.monthLabels" :month-name="context.monthName"
-      :running-month="context.runningMonth" :has-fixed-costs="context.hasFixedCosts" :load-monthly-costs="context.loadMonthlyCosts" />
+      :running-month="context.runningMonth" :has-fixed-costs="context.hasFixedCosts" :load-monthly-costs="context.loadMonthlyCosts" :savings="context.savings" />
     <SheetGeneric v-else :tile="tile" :month-labels="context.monthLabels" :running-month="context.runningMonth" />
   </div>
 </template>

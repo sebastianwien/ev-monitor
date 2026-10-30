@@ -37,7 +37,7 @@ export type MomentData =
   | { kind: 'rank'; year: number; month: number; places: RankPlace[] }
   | { kind: 'silence'; days: number; kwh: number | null; autoSync: boolean }
   | { kind: 'gap'; logId: string; count: number; kwh: number | null; since: number }
-  | { kind: 'milestone'; metric: MilestoneMetric; value: number; charges: number; km: number; co2Kg: number | null }
+  | { kind: 'milestone'; metric: MilestoneMetric; value: number; charges: number; km: number; co2Kg: number | null; /** Bitte ums Supporter-Pack mitzeigen */ support?: boolean }
 
 export type Moment = MomentBase & MomentData
 

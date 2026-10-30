@@ -15,7 +15,7 @@ const tile: StoryTile = { id: 'trips', value: 18.2, delta: null, deltaPercent: n
 const context: StorySheetContext = {
   stats: null, monthLabels: ['Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt'], monthName: 'Oktober', runningMonth: true,
   modelPeers: null, modelName: 'Model 3', temperature: null, sohHistory: [], effectiveCapacityKwh: 60,
-  hasFixedCosts: false, loadMonthlyCosts: async () => null,
+  hasFixedCosts: false, loadMonthlyCosts: async () => null, savings: { locked: false, trialEndsAt: null },
 }
 
 function mount(events: unknown[][] = []) {

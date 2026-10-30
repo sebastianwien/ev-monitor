@@ -14,7 +14,7 @@ import ReassignCarSheet from '../components/dashboard/ReassignCarSheet.vue'
 import { useCarContext } from '../composables/useCarContext'
 import { useDataFeedback } from '../composables/useDataFeedback'
 import { useIsMobile } from '../composables/useIsMobile'
-import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
+import { useAnalyticsUpsellLink } from '../composables/useUpsellTarget'
 import { usePricelessDeepLink } from '../composables/usePricelessDeepLink'
 import { useAutoOlder } from '../composables/useAutoOlder'
 import { useChargingProviderNames } from '../composables/useChargingProviderNames'
@@ -26,7 +26,6 @@ import { monthsOf, chargeMonthsOf, type ChargeLog } from '../utils/logbook'
 import { phantomTeaserId, showsDrain, phantomEurFor } from '../utils/phantomDrain'
 import { tripsCredit } from '../utils/tripMap'
 import { buildTripCostPerKwhMap, tripGroupCostPer100km, tripFacts } from '../utils/tripCalculations'
-import { purchasesAvailable } from '../utils/iapPolicy'
 
 /**
  * /logs im neuen Design: das Logbuch. Der Monat ist ein Kapitel mit klebendem Kopf, darin ein Blatt je Tag
@@ -35,7 +34,7 @@ import { purchasesAvailable } from '../utils/iapPolicy'
  */
 const { t, locale } = useI18n()
 const authStore = useAuthStore()
-const upsellTarget = useAnalyticsUpsellTarget()
+const drainLink = useAnalyticsUpsellLink('logbook_drain')
 const wide = useIsMobile('(min-width: 1024px)')
 
 const {
@@ -60,7 +59,7 @@ const drains = computed(() => {
     .filter((e: any) => showsDrain(e, canView, teaser))
     .map((e: any) => [e.id, { kwh: e._phantomDrain.kwh, eur: phantomEurFor(e._phantomDrain, avgCpk) }]))
 })
-const unlockTo = computed(() => !authStore.canViewLiveAnalytics && purchasesAvailable() ? upsellTarget.value : null)
+const unlockTo = computed(() => authStore.canViewLiveAnalytics ? null : drainLink.value)
 /** Je Fahrt Kosten und Verbrauch wie in der alten Liste (utils/tripCalculations). */
 const facts = computed(() => {
   const cap = selectedCar.value?.effectiveBatteryCapacityKwh ?? null

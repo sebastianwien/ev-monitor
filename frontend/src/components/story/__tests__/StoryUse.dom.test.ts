@@ -79,9 +79,10 @@ describe('Sheet "Wo bleibt mein Strom?" mit Fahren, Stand, Laden', () => {
     expect(t).toMatch(/Stand ~9,86\s*€, Laden ~0,87\s*€/)
   })
 
-  it('Stand gesperrt: Hinweis auf Analytics statt Zahl', () => {
+  it('Stand gesperrt: Schloss statt Zahl, darunter das Angebot', () => {
     const t = text(mount(SheetFlow, { use: use({ standbyKwh: null, standbyEur: null, shares: [{ key: 'drive', pct: 92 }, { key: 'standby', pct: null }, { key: 'charge', pct: 8 }] }) }))
-    expect(t).toContain('Analytics zeigt dir, wie viel dein Auto im Stand verbraucht')
+    expect(t).toContain('Stand gesperrt')
+    expect(t).toContain('Sieh, was dein Auto im Stand verliert')
     expect(t).not.toContain('34')
   })
 })

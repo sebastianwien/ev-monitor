@@ -19,7 +19,7 @@ const stats = (totalCostEur: number) => ({
   chargingTypeSplit: null, locationSplit: null, peerBenchmark: null, chargingEfficiencySplit: null,
 })
 
-const ctx = () => ({ wltpConsumption: null, sohPercent: null, odometerKm: null, vehicleCategory: null, effectiveBatteryCapacityKwh: null, canViewLiveAnalytics: false, autoSync: false })
+const ctx = () => ({ wltpConsumption: null, sohPercent: null, odometerKm: null, vehicleCategory: null, effectiveBatteryCapacityKwh: null, canViewEnergySplit: false, autoSync: false, supporterAsk: false })
 
 const flush = async () => { for (let i = 0; i < 6; i++) await nextTick(); await new Promise(r => setTimeout(r, 0)) }
 
@@ -356,5 +356,27 @@ describe('wantsWeatherOutlook', () => {
     expect(wantsWeatherOutlook(new Date(2026, 9, 15))).toBe(true)
     expect(wantsWeatherOutlook(new Date(2026, 8, 30))).toBe(false)
     expect(wantsWeatherOutlook(new Date(2026, 10, 1))).toBe(false)
+  })
+})
+
+describe('useDashboardStory - Heimlade-Ersparnis gesperrt oder im Probemonat', () => {
+  beforeEach(() => {
+    clearStoryCache()
+    getMock.mockReset()
+    getMock.mockImplementation((url: string) => Promise.resolve({ data: url.includes('/logs/statistics') ? stats(10) : [] }))
+  })
+
+  it('reicht Sperre und Probemonat-Ende an das Kosten-Sheet weiter', async () => {
+    const savings = (await import('../api/chargingSavingsService')).default
+    vi.mocked(savings.get).mockResolvedValueOnce({ savings: null, entitled: false, locked: true, viaTrial: false, trialEndsAt: null })
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    expect(story.savingsAccess.value).toEqual({ locked: true, trialEndsAt: null })
+
+    clearStoryCache()
+    vi.mocked(savings.get).mockResolvedValueOnce({ savings: null, entitled: true, locked: false, viaTrial: true, trialEndsAt: '2026-11-15' })
+    const trial = useDashboardStory(ref<string | null>('car-2'), ctx)
+    await flush()
+    expect(trial.savingsAccess.value).toEqual({ locked: false, trialEndsAt: '2026-11-15' })
   })
 })

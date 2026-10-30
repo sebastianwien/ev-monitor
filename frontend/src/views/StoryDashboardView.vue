@@ -17,6 +17,7 @@ import { useIsMobile } from '../composables/useIsMobile'
 import { analytics } from '../services/analytics'
 import { petrolCostEur, petrolLitersPer100km, type TileId } from '../composables/storyModel'
 import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
+import { purchasesAvailable } from '../utils/iapPolicy'
 import { connectionsOf } from '../api/smartcarService'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
@@ -54,7 +55,9 @@ const { t, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const { haptic } = useHaptic()
-const upsellTo = useAnalyticsUpsellTarget()
+// Supporter-Bitte am Meilenstein: nur wer die Daten schon gratis hat (Ziel /supporter) und kaufen kann
+const upsellTarget = useAnalyticsUpsellTarget()
+const supporterAsk = computed(() => purchasesAvailable() && upsellTarget.value === '/supporter')
 const { set: setOptIn } = useStoryOptIn()
 
 // Das Template hat genau ein Wurzelelement, ohne Kommentar davor: die Routen-Transition in App.vue
@@ -87,8 +90,10 @@ const storyCtx = (): StoryCarContext => ({
   odometerKm: currentOdometerKm.value,
   vehicleCategory: selectedCar.value?.category ?? null,
   effectiveBatteryCapacityKwh: effectiveCapacity.value,
-  canViewLiveAnalytics: authStore.canViewLiveAnalytics,
+  // Stand wie die Energie-Split-Kachel des alten Dashboards: Analytics oder Probemonat
+  canViewEnergySplit: authStore.canViewEnergySplit,
   autoSync: autoSyncOffer.value,
+  supporterAsk: supporterAsk.value,
 })
 const story = useDashboardStory(selectedCarId, storyCtx)
 const { month, offset, tiles, feed, days, monthStats, hasCharges, loading, error, layers, switching } = story
@@ -302,6 +307,7 @@ const sheetContext = computed(() => ({
   effectiveCapacityKwh: effectiveCapacity.value,
   hasFixedCosts: story.hasFixedCosts.value,
   loadMonthlyCosts: story.loadMonthlyCosts,
+  savings: story.savingsAccess.value,
 }))
 
 const noteSeen = ref(false)
@@ -393,6 +399,12 @@ onUnmounted(() => unregisterReload?.())
           <div v-else-if="!hasCharges && heroMode === 'month'" class="py-4 text-center">
             <p class="text-lg font-bold text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
             <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ t('story.empty_body') }}</p>
+            <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
+            <template v-if="autoSyncOffer">
+              <p data-testid="story-empty-autosync" class="mt-3 text-sm text-gray-700 dark:text-gray-200">{{ t('story.moment_silence_autosync', { car: carName }) }}</p>
+              <router-link to="/imports" class="mt-1 inline-flex min-h-11 items-center text-[15px] font-semibold text-green-700 dark:text-green-400"
+                @click="analytics.track('story_empty_autosync')">{{ t('story.moment_action_autosync') }}</router-link>
+            </template>
           </div>
 
           <template v-else>
@@ -470,7 +482,6 @@ onUnmounted(() => unregisterReload?.())
       :month="month"
       :month-name="monthLabel(month)"
       :can-view-live-analytics="authStore.canViewLiveAnalytics"
-      :upsell-to="upsellTo"
       @close="openMap = false"
       @operator="openOperator" />
     <PricelessLogsModal v-if="showPriceless" :car-id="selectedCarId" open @close="showPriceless = false" @updated="story.reload()" />

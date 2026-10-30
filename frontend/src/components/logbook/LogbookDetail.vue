@@ -13,7 +13,7 @@ import { isRateableLogSource } from '../../composables/useDataFeedback'
 import { useCarContext } from '../../composables/useCarContext'
 import { usePowerCurve } from '../../composables/usePowerCurve'
 import { useAuthStore } from '../../stores/auth'
-import { useAnalyticsUpsellTarget } from '../../composables/useUpsellTarget'
+import { useAnalyticsUpsellLink } from '../../composables/useUpsellTarget'
 import type { DayLog, DayTrip } from '../../composables/storyDay'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { tripDetailKeys, chargeDetailKeys } from '../../utils/logbook'
@@ -46,7 +46,7 @@ const { t } = useI18n()
 const { stats, formatLogDate } = useCarContext()
 const curve = usePowerCurve(stats, formatLogDate)
 const authStore = useAuthStore()
-const upsellTarget = useAnalyticsUpsellTarget()
+const upsellTarget = useAnalyticsUpsellLink('logbook_curve')
 
 const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
 /** Auf dem Handy erst das Sheet zufahren lassen, es meldet dann `close`. */
@@ -151,7 +151,7 @@ const chargeMore = computed(() => props.selection?.kind === 'charge'
     :kwh-charged="curve.entry.value.kwhAtVehicle ?? curve.entry.value.kwhCharged"
     :charge-duration-minutes="curve.entry.value.chargeDurationMinutes"
     :locked="!authStore.canViewLiveAnalytics"
-    :upsell-target="upsellTarget"
+    :upsell-target="upsellTarget ?? undefined"
     :log-id="curve.entry.value.id"
     @close="curve.entry.value = null"
   />

@@ -122,7 +122,12 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
               : t('story.moment_milestone_years_plain', { years: m.value, n: n(m.charges) }, m.value),
           }),
         }
-        return { eyebrow: t('story.moment_milestone_eyebrow'), ...byMetric[m.metric](), action: { id: 'share', label: t('story.moment_action_share') } }
+        return {
+          eyebrow: t('story.moment_milestone_eyebrow'), ...byMetric[m.metric](),
+          action: { id: 'share', label: t('story.moment_action_share') },
+          // Am Hochpunkt statt am Schloss: das Pack ist als Unterstützung verkauft
+          secondary: m.support ? { id: 'supporter', label: t('story.moment_action_support'), to: '/supporter?from=story_milestone' } : undefined,
+        }
       }
       case 'gap': {
         const date = shortDate(m.at)

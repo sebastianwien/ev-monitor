@@ -66,4 +66,15 @@ describe('StoryNewsCard', () => {
     expect(text(host)).toMatch(/Platz 1 bei .+ · Platz 3 bei .+/)
     expect(host.querySelector('a.text-green-700')!.getAttribute('href')).toBe('/leaderboard')
   })
+
+  it('Meilenstein mit Supporter-Bitte: leiser Link zum Pack mit Herkunft, ohne Bitte keiner', () => {
+    const ms = { ...base, kind: 'milestone' as const, key: 'm', metric: 'km' as const, value: 20000, charges: 400, km: 20000, co2Kg: 2400 }
+    let host = mount({ ...ms, support: true })
+    const link = [...host.querySelectorAll('a')].find(a => a.getAttribute('href')?.startsWith('/supporter'))
+    expect(link?.getAttribute('href')).toBe('/supporter?from=story_milestone')
+    expect(text(link!)).toBe('Projekt unterstützen')
+    app?.unmount(); document.body.innerHTML = ''
+    host = mount(ms)
+    expect(host.querySelector('a[href^="/supporter"]')).toBeNull()
+  })
 })

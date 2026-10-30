@@ -1,6 +1,7 @@
 import { computed, type ComputedRef } from 'vue'
 import type { Car } from '../api/carService'
-import { hasFreeDataSource } from './useCarAutoSyncProvider'
+import { brandDeliversTrips } from './useCarAutoSyncProvider'
+import { purchasesAvailable } from '../utils/iapPolicy'
 import { useAuthStore } from '../stores/auth'
 import { useCarStore } from '../stores/car'
 
@@ -12,8 +13,8 @@ export type UpsellTarget = '/supporter' | '/upgrade'
  * Die Frage dahinter ist nicht "welches Abo ist teurer", sondern **was diesem User
  * gerade fehlt**:
  *
- * - **Datenquelle vorhanden** (`hasFreeDataSource` - aktuell Tesla via Fleet
- *   Telemetry): es fehlt nur die Auswertungsebene, und die kostet 2 EUR im
+ * - **Datenquelle vorhanden** (`brandDeliversTrips`: Tesla via Fleet Telemetry, Polestar
+ *   via Data Portal, XPeng via Data-Act-Import): es fehlt nur die Auswertungsebene, und die kostet 2 EUR im
  *   Supporter-Pack. Ihn auf die AutoSync-Preistabelle zu schicken verkauft ihm
  *   Datensammlung, die er laengst hat.
  * - **Keine Datenquelle** (Smartcar-Marke ohne Abo, oder Marke ohne Connector): ohne
@@ -35,7 +36,7 @@ export function analyticsUpsellTarget(
     tier: string,
 ): UpsellTarget {
     if (tier !== 'NONE') return '/upgrade'
-    return cars.some(hasFreeDataSource) ? '/supporter' : '/upgrade'
+    return cars.some(brandDeliversTrips) ? '/supporter' : '/upgrade'
 }
 
 /** Bindet die Regel an Auth- und Car-Store. */
@@ -46,4 +47,18 @@ export function useAnalyticsUpsellTarget(): ComputedRef<UpsellTarget> {
         carStore.cars,
         authStore.user?.subscriptionTier ?? 'NONE',
     ))
+}
+
+/**
+ * Kauf-Link mit Herkunft (`?from=`), damit Plausible zeigt, welcher Platz verkauft.
+ * Ohne Kaufrecht (native App, Guideline 3.1.1) kein Link: der Platz zeigt dann nur den Satz.
+ */
+export function upsellLink(target: string, from: string, canBuy: boolean): string | null {
+    return canBuy ? `${target}?from=${from}` : null
+}
+
+/** Analytics-Kauf-Link für einen Platz, null in der nativen App. */
+export function useAnalyticsUpsellLink(from: string): ComputedRef<string | null> {
+    const target = useAnalyticsUpsellTarget()
+    return computed(() => upsellLink(target.value, from, purchasesAvailable()))
 }

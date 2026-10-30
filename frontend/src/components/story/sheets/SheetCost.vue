@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
 import MonthBars from '../MonthBars.vue'
+import StoryUpsellRow from '../StoryUpsellRow.vue'
 import ChoiceChip from '../../shared/ChoiceChip.vue'
 import Collapse from '../../shared/Collapse.vue'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
@@ -18,7 +19,7 @@ import type { StatisticsData } from '../../../composables/useDashboardStats'
  * merkt sich das Gerät. Beide Ansichten sind dieselbe Grafik: die Fixkosten wachsen auf die
  * Strombalken, Satz und Legende klappen auf. Die Fixkosten je Monat kommen erst beim Umschalten.
  */
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   tile: StoryTile
   /** Gewählter Monat, Basis des Satzes unter den Balken. */
   stats: StatisticsData | null
@@ -28,14 +29,16 @@ const props = defineProps<{
   /** Fixkosten oder Einnahmen irgendwo in den sechs Monaten: die Zeile unten führt dann zu allen Kosten. */
   hasFixedCosts: boolean
   loadMonthlyCosts: () => Promise<MonthCosts[] | null>
-}>()
+  /** Heimlade-Ersparnis: gesperrt nach dem Probemonat, sonst das Ende des Probemonats (null ohne). */
+  savings?: { locked: boolean; trialEndsAt: string | null }
+}>(), { savings: () => ({ locked: false, trialEndsAt: null }) })
 
 const STORAGE_KEY = 'story_cost_fixed'
 function readChoice(): boolean {
   try { return localStorage.getItem(STORAGE_KEY) === 'true' } catch { return false }
 }
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { formatCurrency } = useLocaleFormat()
 const eur = (v: number) => formatCurrency(v, { decimals: 0 })
 
@@ -74,6 +77,11 @@ const split = computed(() => {
   }
 })
 
+const trialUntil = computed(() => {
+  const end = props.savings.trialEndsAt
+  return end ? new Date(`${end.slice(0, 10)}T00:00:00`).toLocaleDateString(locale.value, { day: 'numeric', month: 'long' }) : null
+})
+
 const partialLabel = computed(() => props.runningMonth ? t('story.sheet_partial', { month: props.monthLabels[props.monthLabels.length - 1] ?? '' }) : '')
 </script>
 
@@ -92,6 +100,9 @@ const partialLabel = computed(() => props.runningMonth ? t('story.sheet_partial'
       <p data-testid="story-cost-split" class="mt-4 text-sm text-gray-600 tabular-nums text-pretty dark:text-gray-300">{{ split.line }}</p>
       <p v-if="split.income" data-testid="story-cost-income" class="mt-1 text-sm text-gray-600 tabular-nums text-pretty dark:text-gray-300">{{ split.income }}</p>
     </Collapse>
+    <StoryUpsellRow v-if="savings.locked" data-testid="story-upsell-cost" class="mt-4 border-t border-gray-200 pt-2 dark:border-gray-700"
+      :text="t('story.upsell_cost_text')" from="story_cost" />
+    <p v-else-if="trialUntil" data-testid="story-trial-cost" class="mt-4 text-xs text-gray-500 dark:text-gray-400">{{ t('story.trial_until_savings', { date: trialUntil }) }}</p>
     <RouterLink
       to="/cars"
       data-testid="story-cost-cars"

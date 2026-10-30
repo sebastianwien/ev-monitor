@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, defineAsyncComponent } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, LockClosedIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../../../api/axios'
 import { useChargingPlaces } from '../../../composables/useChargingPlaces'
 import BottomSheet from '../../shared/BottomSheet.vue'
 import ChoiceChip from '../../shared/ChoiceChip.vue'
 import ToggleSwitch from '../../shared/ToggleSwitch.vue'
 import PlacesList from './PlacesList.vue'
+import StoryUpsellRow from '../StoryUpsellRow.vue'
 import type { MapPin, MapView } from './PlacesMap.vue'
 import { PLACE_FILL, PIN_EDGE } from './placeStyle'
 import {
@@ -30,7 +31,6 @@ const props = defineProps<{
   month: { year: number; month: number }
   monthName: string
   canViewLiveAnalytics: boolean
-  upsellTo: string
 }>()
 const emit = defineEmits<{ close: []; operator: [logId: string] }>()
 const period = defineModel<PlacePeriod>('period', { default: '12m' })
@@ -141,15 +141,8 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
             </div>
           </div>
 
-          <div v-if="tripsLocked" data-testid="places-trips-locked" class="mx-4 mt-2 flex min-h-11 items-center justify-between gap-3 lg:mx-6">
-            <span class="flex items-center gap-1.5 text-sm text-gray-800 dark:text-gray-200">
-              <LockClosedIcon class="h-4 w-4 shrink-0" aria-hidden="true" />{{ t('story.places_trips_locked') }}
-            </span>
-            <router-link :to="upsellTo"
-              class="inline-flex min-h-[44px] shrink-0 items-center rounded-full bg-story-accent px-4 py-2.5 text-sm font-semibold text-white dark:bg-story-accent-dark dark:text-gray-900">
-              {{ t('story.places_trips_cta') }}
-            </router-link>
-          </div>
+          <StoryUpsellRow v-if="tripsLocked" data-testid="places-trips-locked" class="mx-4 mt-2 lg:mx-6"
+            :text="t('story.places_trips_locked')" from="story_places" />
 
           <div class="mt-3 grid min-h-0 flex-1" :class="showMap ? 'grid-rows-[40%_1fr] lg:grid-cols-[1.4fr_1fr] lg:grid-rows-1' : 'grid-rows-1'">
             <div v-if="showMap" class="relative min-h-0 border-y-2 border-edge lg:border-b-0 lg:border-r-2 dark:border-gray-800">

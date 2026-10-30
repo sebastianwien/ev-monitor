@@ -5,8 +5,10 @@ import { LockClosedIcon } from '@heroicons/vue/24/outline'
 import FlowBar from '../FlowBar.vue'
 import SheetStandby from './SheetStandby.vue'
 import UseBar from '../UseBar.vue'
+import StoryUpsellRow from '../StoryUpsellRow.vue'
 import { USE_STYLE, LOCKED_CLS } from '../energyUseStyle'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
+import { useAuthStore } from '../../../stores/auth'
 import type { EnergyFlow as Flow, EnergyUse, UseKey } from '../../../composables/storyEnergy'
 import type { StandbyGap } from '../../../composables/storyInsights'
 
@@ -16,8 +18,14 @@ import type { StandbyGap } from '../../../composables/storyInsights'
  */
 const props = withDefaults(defineProps<{ flow?: Flow; use?: EnergyUse; standbyGaps?: StandbyGap[] }>(), { standbyGaps: () => [] })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { formatDecimal, formatCurrency } = useLocaleFormat()
+const authStore = useAuthStore()
+/** Stand im Probemonat sichtbar: dann das Enddatum statt eines Kauf-Knopfs. */
+const trialUntil = computed(() => {
+  const end = authStore.energySplitViaTrial ? authStore.energySplitTrialEndsAt : null
+  return end ? end.toLocaleDateString(locale.value, { day: 'numeric', month: 'long' }) : null
+})
 const kwh = (v: number) => `${formatDecimal(v, 0)} kWh`
 // Im Sheet mit Cent, auf der Kachel ganze Euro
 const eur = (v: number) => formatCurrency(v)
@@ -72,6 +80,9 @@ const rows = computed(() => {
           <LockClosedIcon v-else class="mt-0.5 h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
         </li>
       </ul>
+      <StoryUpsellRow v-if="use.standbyKwh == null" data-testid="story-upsell-flow" class="mt-1 border-t border-gray-100 pt-2 dark:border-gray-800"
+        :text="t('story.upsell_flow_text')" from="story_flow" />
+      <p v-else-if="trialUntil" data-testid="story-trial-flow" class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('story.trial_until', { date: trialUntil }) }}</p>
       <template v-if="standbyGaps.length">
         <h4 class="mt-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('story.sheet_use_standby_gaps') }}</h4>
         <SheetStandby :gaps="standbyGaps" />

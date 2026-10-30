@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { analyticsUpsellTarget } from '../useUpsellTarget'
+import { analyticsUpsellTarget, upsellLink } from '../useUpsellTarget'
 
 const tesla = { brand: 'Tesla' }
 const xpeng = { brand: 'XPeng' }
@@ -12,12 +12,10 @@ describe('analyticsUpsellTarget', () => {
         expect(analyticsUpsellTarget([tesla], 'NONE')).toBe('/supporter')
     })
 
-    it('schickt XPeng-Fahrer ohne Abo auf die Upgrade-Seite', () => {
-        // Seit der Verengung von FREE_DATA_SOURCE_BRANDS auf Tesla zaehlt XPeng nicht
-        // mehr als vorhandene Datenquelle. Wenn der EU-Data-Act-Weg dort weiterhin
-        // gratis Daten liefert, ist das die falsche Seite - dann gehoert XPeng zurueck
-        // ins Set und der Hinweistext auf der Supporter-Seite muss beide nennen.
-        expect(analyticsUpsellTarget([xpeng], 'NONE')).toBe('/upgrade')
+    it('schickt Polestar- und XPeng-Fahrer ohne Abo auf die Supporter-Seite', () => {
+        // Ihre Fahrten kommen gratis (Data Portal, Data-Act-Import) - es fehlt nur die Auswertung.
+        expect(analyticsUpsellTarget([xpeng], 'NONE')).toBe('/supporter')
+        expect(analyticsUpsellTarget([{ brand: 'Polestar' }], 'NONE')).toBe('/supporter')
     })
 
     it('schickt Marken ohne Datenquelle auf die Upgrade-Seite', () => {
@@ -41,5 +39,15 @@ describe('analyticsUpsellTarget', () => {
         // Der Car-Store ist erst nach dem ersten Laden gefuellt - dann lieber die
         // allgemeine Seite als ein Pack, das der User vielleicht nicht nutzen kann.
         expect(analyticsUpsellTarget([], 'NONE')).toBe('/upgrade')
+    })
+})
+
+describe('upsellLink', () => {
+    it('hängt die Herkunft an, damit Plausible den Platz kennt', () => {
+        expect(upsellLink('/supporter', 'story_flow', true)).toBe('/supporter?from=story_flow')
+    })
+
+    it('liefert ohne Kaufrecht (native App) keinen Link', () => {
+        expect(upsellLink('/upgrade', 'story_cost', false)).toBeNull()
     })
 })
