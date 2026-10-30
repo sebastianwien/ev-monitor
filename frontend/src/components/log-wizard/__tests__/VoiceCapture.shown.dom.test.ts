@@ -76,6 +76,6 @@ describe('VoiceCapture: Beispiel-Blase schließen', () => {
     mount('footer')
     await new Promise(r => setTimeout(r))
     expect(note()).toBeNull()
-    expect(document.querySelector('[data-testid="voice-mic"]')?.textContent).toContain(i18n.global.t('voicelog.footer_cta'))
+    expect(document.querySelector('[data-testid="voice-mic"]')?.textContent).toContain('Einsprechen')
   })
 })
