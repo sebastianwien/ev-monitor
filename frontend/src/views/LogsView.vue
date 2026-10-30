@@ -2,7 +2,6 @@
 import { ref, computed, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  TruckIcon,
   MapIcon,
   BoltIcon,
   PencilSquareIcon,
@@ -60,7 +59,7 @@ import FeedActionMenu from '../components/dashboard/FeedActionMenu.vue'
 import FeedMenuItem from '../components/dashboard/FeedMenuItem.vue'
 import ChoiceChip from '../components/shared/ChoiceChip.vue'
 import Collapse from '../components/shared/Collapse.vue'
-import BottomSheet from '../components/shared/BottomSheet.vue'
+import ReassignCarSheet from '../components/dashboard/ReassignCarSheet.vue'
 import PeriodChargeLine from '../components/dashboard/PeriodChargeLine.vue'
 import ComparisonChip from '../components/dashboard/ComparisonChip.vue'
 import { FEED_GRID_COLS } from '../components/dashboard/feedGridCols'
@@ -85,7 +84,6 @@ import { useCarContext } from '../composables/useCarContext'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { useHaptic } from '../composables/useHaptic'
 import { useAnalyticsUpsellTarget } from '../composables/useUpsellTarget'
-import { carDisplayName } from '../utils/enumLabel'
 import {
   computeRealCostHint,
   chargingEfficiencyPercent,
@@ -117,8 +115,8 @@ const {
   logs, logsLoading, editingLog, priceAmendingLog,
   feedResolution, feedNextOlder, loadOlderFeed,
   expandedGroups, toggleLadegruppe, hasAnyLogs, showOdometer,
-  openTooltipLogId, reassignModalEntry, reassignSelectedCarId, reassignSaving,
-  reassignError, reassignSuccessMessage, deleteError, otherCars, openReassignModal, saveReassign,
+  openTooltipLogId,
+  reassignSuccessMessage, deleteError, otherCars, openReassignModal,
   mergeModalEntry, mergeSaving, mergeError, openMergeModal, mergeCandidates, saveMerge,
   refreshLogsAndGroups, deleteLog,
   formatLogDate, formatTripTimeRange, tripTimeParts, toggleOdometerDisplay, sourceInfo, mergedLogFeed,
@@ -455,9 +453,7 @@ async function doMergeTrip(survivingId: string, previousId: string) {
   }
 }
 
-// saveReassign needs fetchStatistics, so wrap it
-const doSaveReassign = () => saveReassign(fetchStatistics)
-const reassignSheet = ref<InstanceType<typeof BottomSheet> | null>(null)
+// saveMerge needs fetchStatistics, so wrap it
 const doSaveMerge = ({ sourceLogId, preferSource }: { sourceLogId: string; preferSource: boolean }) =>
   saveMerge(sourceLogId, preferSource, fetchStatistics)
 
@@ -2317,39 +2313,8 @@ function toggleAllFeed() {
     @updated="() => { fetchPricelessCount(); refreshLogsAndGroups() }"
   />
 
-  <!-- Fahrzeug-Zuordnung: Sheet mit Kante wie die Story-Sheets (App-CI) -->
-  <BottomSheet v-if="reassignModalEntry" ref="reassignSheet" edge :label="t('dashboard.reassign_car')" panel-class="sm:max-w-sm"
-    testid="reassign-sheet" @close="reassignModalEntry = null">
-    <div class="grid gap-5 p-5">
-      <div>
-        <h3 class="text-[17px] font-bold text-gray-900 dark:text-gray-50">{{ t('dashboard.reassign_car') }}</h3>
-        <p class="mt-1 text-[14px] text-gray-600 dark:text-gray-300">
-          <template v-if="reassignModalEntry?._isLadegruppe">{{ t('dashboard.reassign_car_hint_group', { count: reassignModalEntry._topUps?.length ?? 0 }) }}</template>
-          <template v-else>{{ t('dashboard.reassign_car_hint') }}</template>
-        </p>
-      </div>
-      <div role="radiogroup" :aria-label="t('dashboard.reassign_car')" class="grid gap-2">
-        <button v-for="car in otherCars" :key="car.id" type="button" role="radio" :aria-checked="reassignSelectedCarId === car.id"
-          @click="reassignSelectedCarId = car.id; reassignError = null"
-          class="flex min-h-12 w-full items-center gap-3 rounded-xl border-2 px-3 text-left transition-colors"
-          :class="reassignSelectedCarId === car.id ? 'border-gray-900 bg-gray-50 dark:border-gray-100 dark:bg-white/10' : 'border-gray-200 hover:border-gray-400 dark:border-gray-700 dark:hover:border-gray-500'">
-          <TruckIcon class="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
-          <span class="font-semibold text-gray-900 dark:text-gray-100">{{ carDisplayName(car) }}</span>
-          <CheckIcon v-if="reassignSelectedCarId === car.id" class="ml-auto h-5 w-5 shrink-0 text-gray-900 dark:text-gray-100" aria-hidden="true" />
-        </button>
-      </div>
-      <p v-if="reassignError" role="alert" class="rounded-xl bg-amber-50 px-3 py-2 text-[14px] text-amber-900 dark:bg-amber-400/10 dark:text-amber-200">{{ reassignError }}</p>
-      <div class="flex gap-2">
-        <button type="button" class="min-h-12 flex-1 rounded-xl px-3 text-[15px] font-semibold text-gray-600 dark:text-gray-300" @click="reassignSheet?.requestClose()">
-          {{ t('common.cancel') }}
-        </button>
-        <button type="button" :disabled="!reassignSelectedCarId || reassignSaving" @click="doSaveReassign"
-          class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white disabled:opacity-40">
-          {{ reassignSaving ? t('common.saving') : t('common.save') }}
-        </button>
-      </div>
-    </div>
-  </BottomSheet>
+  <!-- Fahrzeug-Zuordnung: geteilt mit dem Logbuch -->
+  <ReassignCarSheet />
 
   <MergeLogModal
     v-if="mergeModalEntry"
