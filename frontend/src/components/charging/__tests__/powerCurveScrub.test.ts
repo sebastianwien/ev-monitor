@@ -50,6 +50,14 @@ describe('formatDuration', () => {
   it('zeigt Stunden mit Minutenanteil', () => {
     expect(formatDuration(80 * 60_000)).toBe('1h 20')
   })
+
+  it('zeigt Sekunden nach dem Start nicht als 0 Min', () => {
+    expect(formatDuration(10_000)).toBe('< 1 Min')
+  })
+
+  it('lässt den Startpunkt bei 0 Min', () => {
+    expect(formatDuration(0)).toBe('0 Min')
+  })
 })
 
 describe('peakIndex', () => {

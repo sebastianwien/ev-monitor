@@ -23,9 +23,11 @@ export function nearestIndexByX(xs: number[], x: number): number {
   return x - xs[lo] <= xs[hi] - x ? lo : hi
 }
 
-/** Verstrichene Dauer als "45 Min", "2 h" oder "1h 20". */
+/** Verstrichene Dauer als "< 1 Min", "45 Min", "2 h" oder "1h 20". */
 export function formatDuration(ms: number): string {
   const totalMin = Math.round(ms / 60000)
+  // Die Spitze liegt oft Sekunden nach dem Start - "0 Min" sähe wie der Start selbst aus
+  if (ms > 0 && totalMin === 0) return '< 1 Min'
   if (totalMin < 60) return `${totalMin} Min`
   const h = Math.floor(totalMin / 60)
   const m = totalMin % 60
