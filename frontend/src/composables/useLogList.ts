@@ -7,6 +7,7 @@ import { sourceInfo } from '../utils/logSource'
 import { formatTripDateTimeRange, tripDateTimeParts } from '../utils/tripTimeFormat'
 import { annotatePhantomDrains } from '../utils/phantomDrain'
 import { aggregateGroupCost, costBasisKwh } from './useChargingEfficiency'
+import { chargeGroupsOf } from '../utils/chargeGroups'
 import { useFeedWindow, type FeedResolution } from './useFeedWindow'
 import { useLogUndo } from './useLogUndo'
 import { tripFormFrom, newTripFormAt, tripFormError, tripPayload, type TripFormValues } from '../utils/tripForm'
@@ -398,59 +399,14 @@ export function useLogList(
       }
     }
 
-    // Step 1: WALLBOX_GOE/API_UPLOAD ohne Odometer - group by day
-    const goeLogs = safeLogs.filter((l: any) =>
-      (l.dataSource === 'WALLBOX_GOE' || l.dataSource === 'API_UPLOAD') && l.odometerKm == null
-    )
-    const goeByDay = new Map<string, any[]>()
-    for (const log of goeLogs) {
-      const d = new Date(log.loggedAt as string)
-      const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-      if (!goeByDay.has(day)) goeByDay.set(day, [])
-      goeByDay.get(day)!.push(log)
-    }
-    const goeGroupedIds = new Set<string>()
-    const goeDayGroupEntries: any[] = []
-    for (const [, dayLogs] of goeByDay) {
-      if (dayLogs.length < 2) continue
-      for (const l of dayLogs) goeGroupedIds.add(l.id)
-      goeDayGroupEntries.push(makeLadegruppe(dayLogs, dayLogs[0].dataSource))
-    }
-
-    // Step 2: Remaining logs - same-odometer grouping
-    const remainingLogs = safeLogs
-      .filter((l: any) => !goeGroupedIds.has(l.id))
-      .filter((l: any) => l.includeInStatistics || !l.consumptionImplausible)
-    const sorted = remainingLogs.sort((a: any, b: any) =>
-      new Date(b.loggedAt).getTime() - new Date(a.loggedAt).getTime()
-    )
-    const topUpChildren = new Map<number, any[]>()
-    const skipIndices = new Set<number>()
-    let i = 0
-    while (i < sorted.length) {
-      if (sorted[i].odometerKm == null) { i++; continue }
-      let j = i + 1
-      while (j < sorted.length && sorted[j].odometerKm != null && sorted[j].odometerKm === sorted[i].odometerKm) { j++ }
-      if (j > i + 1) {
-        const parentIdx = j - 1
-        topUpChildren.set(parentIdx, [])
-        for (let k = i; k < j - 1; k++) {
-          topUpChildren.get(parentIdx)!.push({ ...sorted[k], _isTopUp: true })
-          skipIndices.add(k)
-        }
-        i = j
-      } else { i++ }
-    }
-    const odometerGroupEntries: any[] = []
-    for (let idx = 0; idx < sorted.length; idx++) {
-      if (skipIndices.has(idx)) continue
-      const topUps: any[] = topUpChildren.get(idx) ?? []
-      if (topUps.length > 0) {
-        odometerGroupEntries.push(makeLadegruppe([...topUps, sorted[idx]]))
-      } else {
-        odometerGroupEntries.push({ ...sorted[idx], _isTopUp: false, _isLadegruppe: false, _isTrip: false, _topUps: [] })
-      }
-    }
+    // Step 1+2: Ladegruppen (go-e/API je Tag, gleicher km-Stand), dieselbe Regel wie Logbuch und Story
+    const { byDay, byOdometer, singles } = chargeGroupsOf(safeLogs)
+    const goeDayGroupEntries = byDay.map((dayLogs: any[]) => makeLadegruppe(dayLogs, dayLogs[0].dataSource))
+    const odometerGroupEntries: any[] = [
+      // neueste zuerst: die älteste ist die Ladung, die anderen sind Nachladen am selben km-Stand
+      ...byOdometer.map((g: any[]) => makeLadegruppe([...g.slice(0, -1).map((l: any) => ({ ...l, _isTopUp: true })), g[g.length - 1]])),
+      ...singles.map((l: any) => ({ ...l, _isTopUp: false, _isLadegruppe: false, _isTrip: false, _topUps: [] })),
+    ]
 
     // Step 3: Build charge entries (sorted by date)
     const chargeEntries = [...goeDayGroupEntries, ...odometerGroupEntries].sort((a: any, b: any) => {
