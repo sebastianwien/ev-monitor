@@ -622,7 +622,6 @@ const selectedCarCharging = computed(() => {
 })
 
 // Daten-Reload bei Auto-Wechsel liegt zentral im CarContextLayout.
-  for (const x of trip.loadExtras ?? []) parts.push(t('storyday.form_extra_' + String(x).toLowerCase()))
 const authStore = useAuthStore()
 const isAdmin   = computed(() => authStore.isAdmin)
 
@@ -704,13 +703,14 @@ function tripSubline(trip: any): string {
   return parts.join(' · ')
 }
 
-/** Weitere Angaben einer Fahrt fuer den aufgeklappten Bereich: Tempo und Streckentyp. */
+/** Weitere Angaben einer Fahrt fuer den aufgeklappten Bereich: Tempo, Streckentyp und Besonderheiten. */
 function tripFacts(trip: any): string {
   const parts: string[] = []
   if (trip.maxSpeedKmh != null) {
     parts.push(t('dashboard.trip_speed_summary', { avg: Math.round(Number(trip.avgSpeedKmh)), max: Math.round(Number(trip.maxSpeedKmh)) }))
   }
   if (trip.routeType) parts.push(t('dashboard.trip_route_' + String(trip.routeType).toLowerCase()))
+  for (const x of trip.loadExtras ?? []) parts.push(t('storyday.form_extra_' + String(x).toLowerCase()))
   return parts.join(' · ')
 }
 
