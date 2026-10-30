@@ -4,7 +4,7 @@ import { useLocaleFormat } from './useLocaleFormat'
 import { heroLine } from './storyModel'
 import { DAY, type Moment } from './storyMoments'
 import { CAT_LABEL } from './useTickerItems'
-import { fetchDestinationForecast, type DayForecast } from '../utils/destinationForecast'
+import { fetchDestinationForecast, type DayForecast, type WeatherKind } from '../utils/destinationForecast'
 
 /**
  * Text und Handlung je Moment, geteilt von Moment-Hero und Feed. Links fuehren selbst weiter
@@ -20,7 +20,7 @@ export interface MomentView {
   secondary?: MomentAction
   dismiss?: boolean
   /** Wetter am Ziel einer langen Fahrt: Satz für Screenreader, Kacheln fürs Auge. */
-  forecast?: { sentence: string; days: Array<{ label: string; range: string; rain: boolean }> }
+  forecast?: { sentence: string; days: Array<{ label: string; range: string; kind: WeatherKind; state: string }> }
 }
 
 export function useMomentView(props: { moment: Moment; carId: string | null; carName: string; now?: number }): ComputedRef<MomentView> {
@@ -46,7 +46,8 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
     const f = await fetchDestinationForecast(gh)
     if ((props.moment.kind === 'long_trip' ? props.moment.endGeohash : null) === gh) forecast.value = f
   }, { immediate: true })
-  const dayForecast = (f: DayForecast) => t(f.rain ? 'story.moment_trip_day_rain' : 'story.moment_trip_day', { min: formatDecimal(f.minC, 0), max: formatDecimal(f.maxC, 0) })
+  const tempRange = (f: DayForecast) => t('story.moment_trip_day', { min: formatDecimal(f.minC, 0), max: formatDecimal(f.maxC, 0) })
+  const dayForecast = (f: DayForecast) => `${t(`story.weather_${f.kind}`)}, ${tempRange(f)}`
   const shortDate = (at: number) => new Date(at).toLocaleDateString(locale.value, { day: 'numeric', month: 'numeric' })
 
   return computed<MomentView>(() => {
@@ -68,7 +69,7 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
         const f = forecast.value
         const forecastView = f ? {
           sentence: t('story.moment_trip_forecast', { today: dayForecast(f[0]), tomorrow: dayForecast(f[1]) }),
-          days: f.map((d, i) => ({ label: cap(rtf.value.format(i, 'day')), range: t('story.moment_trip_day', { min: formatDecimal(d.minC, 0), max: formatDecimal(d.maxC, 0) }), rain: d.rain })),
+          days: f.map((d, i) => ({ label: cap(rtf.value.format(i, 'day')), range: tempRange(d), kind: d.kind, state: t(`story.weather_${d.kind}`) })),
         } : undefined
         return { eyebrow: t('story.moment_trip_eyebrow'), sentence: t(`story.${key}`, p, m.stops), forecast: forecastView, action: { id: 'trips', label: t('story.moment_action_trips'), to: '/logs' } }
       }

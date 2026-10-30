@@ -108,7 +108,7 @@ const CASES: Case[] = [
       await expect(sentence(page, 'long_trip')).toContainText(/Gestern: 420\skm, 2\sLadestopps für 31\s€\./);
       const forecast = card(page, 'long_trip').getByTestId('story-news-forecast');
       await expect(forecast.getByRole('heading', { name: 'Wetter am Ziel' })).toBeVisible();
-      await expect(forecast).toContainText(/Am Ziel heute 4 bis 12\s°C, morgen Regen bei 2 bis 9\s°C\./);
+      await expect(forecast).toContainText(/Heute: Teils bewölkt, 4 bis 12\s°C\. Morgen: Sonne und Schauer, 2 bis 9\s°C\./);
       await expect(card(page, 'long_trip').getByRole('link', { name: 'Fahrten ansehen' })).toBeVisible();
     },
   },
@@ -203,7 +203,7 @@ test.describe('Story: Katalog der Hero-Zustände', () => {
         page.on('pageerror', (err) => errors.push(err.message));
         // Wetterprognose am Ziel kommt direkt von Open-Meteo: feste Antwort statt Netz.
         await page.route('https://api.open-meteo.com/**', route => route.fulfill({ json: {
-          daily: { temperature_2m_min: [4, 2], temperature_2m_max: [12, 9], precipitation_probability_max: [10, 80] },
+          daily: { weather_code: [2, 81], temperature_2m_min: [4, 2], temperature_2m_max: [12, 9], wind_gusts_10m_max: [20, 30] },
         } }));
         await openStory(page, c.data(), { theme, keep: c.keep });
 

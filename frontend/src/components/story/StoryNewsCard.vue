@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, ShareIcon, ChevronRightIcon, SunIcon } from '@heroicons/vue/24/outline'
-import CloudRainIcon from '../icons/CloudRainIcon.vue'
+import { XMarkIcon, ShareIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import WeatherIcon from '../icons/WeatherIcon.vue'
 import type { Moment } from '../../composables/storyMoments'
 import { useMomentView, type MomentAction } from '../../composables/useMomentView'
 import { keepUnits } from '../../utils/modelStory'
@@ -51,12 +51,11 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
       <p class="sr-only">{{ view.forecast.sentence }}</p>
       <ul class="grid grid-cols-2 gap-2" aria-hidden="true">
         <li v-for="d in view.forecast.days" :key="d.label" class="edge-box flex items-start gap-2 rounded-lg bg-white px-3 py-2 dark:bg-gray-800">
-          <CloudRainIcon v-if="d.rain" class="mt-0.5 h-6 w-6 shrink-0 text-sky-600 dark:text-sky-400" />
-          <SunIcon v-else class="mt-0.5 h-6 w-6 shrink-0 text-amber-500 dark:text-amber-400" />
+          <WeatherIcon :kind="d.kind" class="mt-0.5 h-7 w-7 shrink-0" />
           <span class="grid min-w-0">
             <span class="text-[12px] font-semibold text-gray-600 dark:text-gray-300">{{ d.label }}</span>
             <span class="whitespace-nowrap text-[15px] font-bold text-gray-900 tabular-nums dark:text-gray-50">{{ keepUnits(d.range) }}</span>
-            <span v-if="d.rain" class="text-[12px] text-sky-700 dark:text-sky-300">{{ t('story.moment_trip_rain') }}</span>
+            <span class="text-[12px] text-gray-600 dark:text-gray-300">{{ d.state }}</span>
           </span>
         </li>
       </ul>
