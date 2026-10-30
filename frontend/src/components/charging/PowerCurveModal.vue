@@ -2,25 +2,23 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
-import { XMarkIcon, BoltIcon, LockOpenIcon, ShareIcon, PhotoIcon, LinkSlashIcon } from '@heroicons/vue/24/outline'
+import { LockOpenIcon, ShareIcon, PhotoIcon } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
+import SheetCloseButton from '../story/SheetCloseButton.vue'
 import PowerCurveChart from './PowerCurveChart.vue'
 import SocCurveChart from './SocCurveChart.vue'
 import { computeCurveStats } from './powerCurveStats'
-import { buildSocSeries } from './powerCurveSeries'
-import { formatDuration } from './powerCurveScrub'
-import { formatSocRange } from '../../utils/socRange'
+import { chargeHeadline, addedRangeKm } from './powerCurveHeadline'
 import { useCurveShare } from '../../composables/useCurveShare'
 
 /**
- * Ladekurve im Overlay statt inline im Log-Feed.
+ * Ladekurve im Sheet (App-CI): Kopfsatz, Kurve mit fester Ablese-Zeile, drei
+ * Kennzahlen, Teilen.
  *
- * Inline stand der Kurve nur die Resthoehe einer Feed-Zeile zur Verfuegung, was
- * sie gestaucht wirken liess. Im Sheet bekommt sie die volle Breite und - auch
- * auf Mobile - eine Hoehe, in der die Ladephasen ablesbar sind.
- *
- * Die Kennzahlen im Kopf kommen aus den Kurvenpunkten (siehe computeCurveStats),
- * nur SoC und die abgerechnete kWh-Menge stammen aus dem Log.
+ * Der Kopfsatz ("In 16 Min von 8 auf 66 %") und die nachgeladene Reichweite
+ * beantworten die Frage ohne kWh-Wissen. Spitze und Schnitt kommen aus den
+ * Kurvenpunkten (siehe computeCurveStats), SoC und die geladene Menge aus dem
+ * Log - dieselbe Zahl, die der Eintrag im Feed zeigt.
  */
 const props = defineProps<{
   loading: boolean
@@ -113,61 +111,58 @@ async function onRevoke() {
 }
 
 const stats = computed(() => computeCurveStats(props.points))
-const socRange = computed(() => formatSocRange(props.socBeforeChargePercent, props.socAfterChargePercent))
 
-// Nur relevant fuer den Hinweis unter der Kurve: bei Bestandskurven ohne
-// gemessenen SoC ist die zweite Achse rekonstruiert, und das muss dranstehen.
-const socSeries = computed(() =>
-  buildSocSeries(props.points, props.socBeforeChargePercent, props.socAfterChargePercent))
+/** Dauer: aus der Kurve, beim Ladeverlauf aus dessen Spanne, sonst (Teaser) aus dem Log. */
+const durationMs = computed<number | null>(() => {
+  if (stats.value && stats.value.durationMs > 0) return stats.value.durationMs
+  const soc = props.socPoints ?? []
+  if (socOnly.value && soc.length > 1) return soc[soc.length - 1].ts - soc[0].ts
+  return props.chargeDurationMinutes ? props.chargeDurationMinutes * 60_000 : null
+})
 
-function kw(value: number): string {
-  return `${value.toLocaleString(undefined, { maximumFractionDigits: value < 10 ? 1 : 0 })} kW`
+/** Geladene Menge: der Log-Wert, nur ohne ihn das Kurven-Integral. */
+const energyKwh = computed<number | null>(() =>
+  props.kwhCharged != null ? Number(props.kwhCharged) : stats.value?.energyKwh ?? null)
+
+const headline = computed(() => {
+  const h = chargeHeadline({
+    durationMs: durationMs.value,
+    socBefore: props.socBeforeChargePercent,
+    socAfter: props.socAfterChargePercent,
+    kwh: energyKwh.value,
+  })
+  if (!h) return null
+  switch (h.key) {
+    case 'soc': return t('dashboard.power_curve_headline_soc', { duration: h.duration, from: h.from, to: h.to })
+    case 'energy': return t('dashboard.power_curve_headline_energy', { duration: h.duration, kwh: kwhText(h.kwh) })
+    default: return t('dashboard.power_curve_headline_duration', { duration: h.duration })
+  }
+})
+
+/** Im Teaser bleibt die Reichweite weg - sie ist Teil dessen, was freigeschaltet wird. */
+const rangeKm = computed(() =>
+  props.locked ? null : addedRangeKm(energyKwh.value, props.consumptionKwhPer100km))
+
+function kwhText(value: number): string {
+  return value.toLocaleString(undefined, { maximumFractionDigits: 1 })
 }
 
-interface Tile { key: string; label: string; value: string }
+interface Stat { key: string; label: string; value: string; unit: string }
 
-const tiles = computed<Tile[]>(() => {
-  const s = stats.value
-  if (!s && !props.locked && !socOnly.value) return []
-  const out: Tile[] = []
-  // Ladeverlauf: die Spitze fehlt naturgemaess, der Schnitt ist die einzige
-  // Leistungsaussage die die Daten hergeben.
-  if (socOnly.value && socAvgKw.value != null) {
-    out.push({ key: 'avg', label: t('dashboard.power_curve_avg'), value: kw(socAvgKw.value) })
+/** Ohne Dauer und Ladestand, die stehen im Kopfsatz. */
+const statsRow = computed<Stat[]>(() => {
+  const out: Stat[] = []
+  const round = (v: number) => v.toLocaleString(undefined, { maximumFractionDigits: v < 10 ? 1 : 0 })
+  if (stats.value) {
+    out.push({ key: 'peak', label: t('dashboard.power_curve_peak'), value: round(stats.value.peakKw), unit: 'kW' })
+    out.push({ key: 'avg', label: t('dashboard.power_curve_avg'), value: round(stats.value.avgKw), unit: 'kW' })
+  } else if (socOnly.value && socAvgKw.value != null) {
+    // Ladeverlauf: die Spitze fehlt naturgemaess, der Schnitt ist die einzige
+    // Leistungsaussage, die die Daten hergeben.
+    out.push({ key: 'avg', label: t('dashboard.power_curve_avg'), value: round(socAvgKw.value), unit: 'kW' })
   }
-  if (socOnly.value && props.chargeDurationMinutes) {
-    out.push({
-      key: 'duration',
-      label: t('dashboard.power_curve_duration'),
-      value: formatDuration(props.chargeDurationMinutes * 60_000),
-    })
-  }
-  // Spitze und Schnitt stecken nur in der Kurve - im Teaser sind sie genau das,
-  // was noch fehlt, und bleiben deshalb weg statt als Platzhalter zu erscheinen.
-  if (s) {
-    out.push({ key: 'peak', label: t('dashboard.power_curve_peak'), value: kw(s.peakKw) })
-    out.push({ key: 'avg', label: t('dashboard.power_curve_avg'), value: kw(s.avgKw) })
-  }
-  if (s && s.durationMs > 0) {
-    out.push({ key: 'duration', label: t('dashboard.power_curve_duration'), value: formatDuration(s.durationMs) })
-  } else if (props.locked && props.chargeDurationMinutes) {
-    out.push({
-      key: 'duration',
-      label: t('dashboard.power_curve_duration'),
-      value: formatDuration(props.chargeDurationMinutes * 60_000),
-    })
-  }
-  // Bewusst der Log-Wert und nicht das Kurven-Integral: die Kurve kann Luecken
-  // haben, und der Feed-Eintrag dahinter zeigt genau diese Zahl.
-  if (props.kwhCharged != null) {
-    out.push({
-      key: 'energy',
-      label: t('dashboard.power_curve_energy'),
-      value: `${Number(props.kwhCharged).toLocaleString(undefined, { maximumFractionDigits: 1 })} kWh`,
-    })
-  }
-  if (socRange.value) {
-    out.push({ key: 'soc', label: t('dashboard.power_curve_soc'), value: socRange.value })
+  if (energyKwh.value != null) {
+    out.push({ key: 'energy', label: t('dashboard.power_curve_energy'), value: kwhText(energyKwh.value), unit: 'kWh' })
   }
   return out
 })
@@ -182,9 +177,8 @@ const tiles = computed<Tile[]>(() => {
  * keine Anfahrrampe, kein Taper in Stufen, ein linearer Abfall den es so nicht
  * gibt. Eine echte Kurve zeigt, was man bekommt.
  *
- * Bewusst nicht verwischt und klar als fremde Ladung beschriftet: die eigenen
- * Punkte liegen hinter dem Server-Gate, und eine unscharfe Fremdkurve wuerde
- * so wirken, als sei es die eigene.
+ * Grau und klar als fremde Ladung beschriftet: die eigenen Punkte liegen hinter
+ * dem Server-Gate, und die Beispielkurve darf nicht wie die eigene wirken.
  */
 const DEMO_SOC_BEFORE = 8
 const DEMO_SOC_AFTER = 66
@@ -196,10 +190,6 @@ const DEMO_POINTS = [
   [696, 109.9], [731.5, 105.5], [766.5, 102.5], [801.5, 99.2], [836.5, 96.1],
   [868.5, 93.1], [908.5, 90.5], [938.5, 87.8], [974.5, 84.7],
 ].map(([sec, kw]) => ({ ts: sec * 1_000, kw }))
-
-/** Zeiger sitzt im Teaser dort, wo die Kurve abknickt - genau die Stelle, um
- *  die es beim Abtasten geht. */
-const DEMO_SCRUB_INDEX = 11
 
 /**
  * Escape schliesst das Sheet. Der Listener haengt am document, damit er auch
@@ -228,201 +218,148 @@ onBeforeUnmount(() => {
 <template>
   <BottomSheet
     ref="sheetRef"
-    :label="t('dashboard.power_curve_title')"
-    panel-class="sm:max-w-3xl"
+    :label="socOnly ? t('soc_curve.title') : t('dashboard.power_curve_title')"
+    panel-class="sm:max-w-2xl"
     testid="power-curve-modal"
+    edge
     @close="emit('close')"
   >
     <template #default="{ close }">
-      <div class="flex flex-col max-h-[90vh]">
-        <!-- Kopf: bleibt stehen, damit die Kurve beim Scrollen nicht den Kontext verliert -->
-        <div class="flex items-start gap-3 px-4 pt-4 pb-3 border-b border-gray-200 dark:border-gray-700">
-          <BoltIcon class="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-0.5" />
-          <div class="min-w-0 flex-1">
-            <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100 leading-tight">
-              {{ socOnly ? t('soc_curve.title') : t('dashboard.power_curve_title') }}
-            </h2>
-            <p v-if="subtitle" class="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{{ subtitle }}</p>
+      <div class="max-h-[90vh] overflow-y-auto px-4 pt-3 pb-5 sm:px-6 sm:pt-5">
+        <div class="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mx-auto mb-3 sm:hidden" />
+
+        <!-- Kopf: Label mit Datum, Satz statt Kacheln, Reichweite als Ergebnis -->
+        <p class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">
+          {{ socOnly ? t('soc_curve.title') : t('dashboard.power_curve_title') }}<template v-if="subtitle"> · {{ subtitle }}</template>
+        </p>
+        <h2 v-if="headline" class="mt-2 text-[28px] sm:text-[36px] font-bold leading-[1.1] text-gray-900 dark:text-gray-100 tabular-nums">
+          {{ headline }}
+        </h2>
+        <p v-if="rangeKm" data-testid="power-curve-range" class="mt-1 text-lg font-semibold tabular-nums text-story-accent dark:text-story-accent-dark">
+          {{ t('dashboard.power_curve_range_added', { km: rangeKm }) }}
+        </p>
+
+        <template v-if="locked">
+          <p class="mt-3 text-[15px] leading-relaxed text-gray-700 dark:text-gray-300">
+            {{ t('dashboard.power_curve_teaser_body') }}
+          </p>
+          <!-- Fremde Beispieldaten: grau, nicht abtastbar, fuer Screenreader unsichtbar -->
+          <div class="mt-5 edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 sm:p-4">
+            <p class="mb-3 text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">
+              {{ t('dashboard.power_curve_teaser_example') }}
+            </p>
+            <div class="pointer-events-none opacity-50" aria-hidden="true">
+              <PowerCurveChart
+                :points="DEMO_POINTS"
+                :height="180"
+                :height-desktop="230"
+                x-axis-mode="duration"
+                :soc-before-percent="DEMO_SOC_BEFORE"
+                :soc-after-percent="DEMO_SOC_AFTER"
+              />
+            </div>
           </div>
-          <button
-            type="button"
-            :aria-label="t('common.close')"
-            class="p-1.5 -mr-1 -mt-1 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 flex-shrink-0"
+
+          <RouterLink
+            v-if="upsellTarget"
+            :to="upsellTarget"
+            class="btn-3d cta-shadow-sm mt-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border-2 border-edge bg-green-600 px-4 text-sm font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
             @click="close"
           >
-            <XMarkIcon class="w-5 h-5" />
-          </button>
-        </div>
+            <LockOpenIcon class="w-4 h-4" aria-hidden="true" />
+            {{ t('dashboard.power_curve_locked') }}
+          </RouterLink>
+        </template>
 
-        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          <template v-if="locked">
-            <div v-if="tiles.length" class="grid grid-cols-3 gap-2">
-              <div
-                v-for="tile in tiles"
-                :key="tile.key"
-                class="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-2 py-1.5"
-              >
-                <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ tile.label }}</div>
-                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 tabular-nums whitespace-nowrap">{{ tile.value }}</div>
-              </div>
-            </div>
-
-            <p class="text-sm text-gray-700 dark:text-gray-200 leading-relaxed">
-              {{ t('dashboard.power_curve_teaser_body') }}
-            </p>
-
-            <div class="relative rounded-sm border border-gray-200 dark:border-gray-700 p-2 pt-6">
-              <span class="absolute top-1.5 left-2 rounded-sm bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 px-1.5 py-0.5 text-[10px] uppercase tracking-wide font-semibold">
-                {{ t('dashboard.power_curve_teaser_example') }}
-              </span>
-              <!-- Fremde Beispieldaten: nicht abtastbar, fuer Screenreader unsichtbar -->
-              <div class="relative">
-                <div class="pointer-events-none opacity-70" aria-hidden="true">
-                  <PowerCurveChart
-                    :points="DEMO_POINTS"
-                    :height="180"
-                    :height-desktop="230"
-                    x-axis-mode="duration"
-                    :consumption-kwh-per100km="18"
-                    :soc-before-percent="DEMO_SOC_BEFORE"
-                    :soc-after-percent="DEMO_SOC_AFTER"
-                    :preview-scrub-index="DEMO_SCRUB_INDEX"
-                  />
-                </div>
-                <!-- Diagonales Wasserzeichen: macht auch bei vollfarbiger Kurve sofort klar,
-                     dass es fremde Beispieldaten sind - nicht die eigene Ladung. -->
-                <svg class="pointer-events-none absolute inset-0 h-full w-full text-gray-500 dark:text-gray-300" aria-hidden="true">
-                  <defs>
-                    <pattern id="pc-example-watermark" width="210" height="76" patternUnits="userSpaceOnUse" patternTransform="rotate(-28)">
-                      <text x="0" y="38" fill="currentColor" font-size="15" font-weight="700" letter-spacing="3" class="uppercase">{{ t('dashboard.power_curve_teaser_example') }}</text>
-                    </pattern>
-                  </defs>
-                  <rect width="100%" height="100%" fill="url(#pc-example-watermark)" opacity="0.16" />
-                </svg>
-              </div>
-              <p class="mt-2 text-[11px] text-gray-500 dark:text-gray-400">
-                {{ t('dashboard.power_curve_teaser_example_caption') }}
-              </p>
-            </div>
-
-            <RouterLink
-              v-if="upsellTarget"
-              :to="upsellTarget"
-              class="flex items-center justify-center gap-2 w-full rounded-full bg-story-accent px-4 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:bg-story-accent-dark dark:text-gray-900"
-              @click="close"
-            >
-              <LockOpenIcon class="w-4 h-4" />
-              {{ t('dashboard.power_curve_locked') }}
-            </RouterLink>
-          </template>
-
-          <div v-else-if="loading" class="text-sm text-gray-500 dark:text-gray-400 text-center py-16">
-            {{ t('live.loading_data') }}
-          </div>
-          <div v-else-if="points.length === 0 && !socOnly" class="text-sm text-gray-500 dark:text-gray-400 text-center py-16">
-            {{ t('dashboard.no_power_curve') }}
-          </div>
-          <template v-else>
-            <!-- Kennzahlen zuerst: auf Mobile beantwortet die Zeile die Frage
-                 "wie schnell war die Ladung" schon ohne Interaktion mit der Kurve. -->
-            <div v-if="tiles.length" class="grid grid-cols-3 sm:grid-cols-5 gap-2">
-              <div
-                v-for="tile in tiles"
-                :key="tile.key"
-                class="rounded-sm border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40 px-2 py-1.5"
-              >
-                <div class="text-[10px] uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ tile.label }}</div>
-                <div class="text-sm font-semibold text-gray-900 dark:text-gray-100 tabular-nums whitespace-nowrap">{{ tile.value }}</div>
-              </div>
-            </div>
-
+        <p v-else-if="loading" class="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
+          {{ t('live.loading_data') }}
+        </p>
+        <p v-else-if="points.length === 0 && !socOnly" class="py-16 text-center text-sm text-gray-500 dark:text-gray-400">
+          {{ t('dashboard.no_power_curve') }}
+        </p>
+        <template v-else>
+          <div class="mt-5 edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 sm:p-4">
             <SocCurveChart
               v-if="socOnly"
               :points="socPoints ?? []"
-              :height="260"
-              :height-desktop="340"
+              :height="220"
+              :height-desktop="300"
               :aria-label="t('soc_curve.title')"
+              :readout="t('soc_curve.readout_end')"
             />
             <PowerCurveChart
               v-else
               :points="points"
-              :height="260"
-              :height-desktop="340"
+              :height="220"
+              :height-desktop="300"
               x-axis-mode="duration"
               :aria-label="t('dashboard.power_curve_title')"
               :consumption-kwh-per100km="consumptionKwhPer100km ?? null"
+              :range-total-kwh="kwhCharged ?? null"
               :soc-before-percent="socBeforeChargePercent ?? null"
               :soc-after-percent="socAfterChargePercent ?? null"
               :soc-axis-label="t('dashboard.power_curve_soc_axis')"
+              :readout="t('dashboard.power_curve_readout_peak')"
             />
+          </div>
+          <p v-if="socOnly" class="mt-2 text-[13px] text-gray-500 dark:text-gray-400">
+            {{ t('soc_curve.explainer') }}
+          </p>
 
-            <p v-if="socOnly" class="text-[11px] text-gray-400 dark:text-gray-500">
-              {{ t('soc_curve.explainer') }}
-            </p>
-            <div v-if="!socOnly" class="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-              <span class="inline-flex items-center gap-1.5">
-                <span class="w-3 h-0.5 rounded-full bg-emerald-500 flex-shrink-0" />
-                {{ t('dashboard.power_curve_legend_kw') }}
-              </span>
-              <span v-if="consumptionKwhPer100km" class="inline-flex items-center gap-1.5">
-                <span class="w-3 h-0.5 rounded-full bg-sky-500 flex-shrink-0" />
-                {{ t('dashboard.power_curve_legend_km') }}
-              </span>
-              <span v-if="socSeries" class="inline-flex items-center gap-1.5">
-                <span class="w-3 border-b border-dashed border-gray-400 dark:border-gray-500 flex-shrink-0" />
-                {{ t('dashboard.power_curve_legend_soc') }}
-              </span>
-            </div>
-            <p class="text-[11px] text-gray-400 dark:text-gray-500">{{ t('dashboard.power_curve_scrub_hint') }}</p>
-            <p v-if="socSeries?.derived" class="text-[11px] text-gray-400 dark:text-gray-500">
-              {{ t('dashboard.power_curve_soc_derived_hint') }}
-            </p>
-
-            <!-- Teilen. Mobile-first: zwei volle Buttons untereinander, ab sm nebeneinander. -->
-            <div v-if="canShare" class="pt-3 border-t border-gray-200 dark:border-gray-700 space-y-2">
-              <div class="flex flex-col sm:flex-row gap-2">
-                <button
-                  type="button"
-                  :disabled="shareBusy"
-                  class="flex-1 inline-flex items-center justify-center gap-2 rounded-sm bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 px-4 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                  @click="onShare"
-                >
-                  <ShareIcon class="w-4 h-4" aria-hidden="true" />
-                  {{ share ? t('share_curve.share_again') : t('share_curve.share') }}
-                </button>
-                <button
-                  type="button"
-                  :disabled="shareBusy"
-                  class="flex-1 inline-flex items-center justify-center gap-2 rounded-sm border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-60 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400"
-                  @click="onShareImage"
-                >
-                  <PhotoIcon class="w-4 h-4" aria-hidden="true" />
-                  {{ t('share_curve.share_image') }}
-                </button>
-              </div>
-
-              <p v-if="!share" class="text-[11px] text-gray-400 dark:text-gray-500">
-                {{ t('share_curve.privacy_hint') }}
+          <div v-if="statsRow.length" class="mt-5 grid grid-cols-3 gap-3">
+            <div v-for="stat in statsRow" :key="stat.key" class="min-w-0">
+              <p class="text-[12px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 truncate">{{ stat.label }}</p>
+              <p class="mt-0.5 whitespace-nowrap tabular-nums text-gray-900 dark:text-gray-100">
+                <span class="text-[26px] font-bold">{{ stat.value }}</span>
+                <span class="ml-1 text-[13px] text-gray-500 dark:text-gray-400">{{ stat.unit }}</span>
               </p>
-
-              <div v-else class="flex items-center justify-between gap-3">
-                <span class="text-[11px] text-gray-500 dark:text-gray-400 truncate" :title="share.url">{{ share.url }}</span>
-                <button
-                  type="button"
-                  :disabled="shareBusy"
-                  class="inline-flex items-center gap-1.5 flex-shrink-0 text-[11px] text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-60 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded"
-                  @click="onRevoke"
-                >
-                  <LinkSlashIcon class="w-3.5 h-3.5" aria-hidden="true" />
-                  {{ t('share_curve.revoke') }}
-                </button>
-              </div>
-
-              <p v-if="shareHint" class="text-[11px] text-emerald-600 dark:text-emerald-400" role="status">{{ shareHint }}</p>
-              <p v-if="shareErrorText" class="text-[11px] text-red-600 dark:text-red-400" role="alert">{{ shareErrorText }}</p>
             </div>
-          </template>
-        </div>
+          </div>
+
+          <!-- Teilen: zwei Knoepfe nebeneinander, auch auf dem Handy (44 px hoch, kurze Labels) -->
+          <div v-if="canShare" class="mt-6">
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                :disabled="shareBusy"
+                class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center gap-2 rounded-full border-2 border-edge bg-green-600 px-3 text-sm font-semibold text-white disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                @click="onShare"
+              >
+                <ShareIcon class="w-4 h-4 shrink-0" aria-hidden="true" />
+                {{ share ? t('share_curve.share_again') : t('share_curve.share') }}
+              </button>
+              <button
+                type="button"
+                :disabled="shareBusy"
+                class="btn-3d cta-shadow-sm inline-flex min-h-11 items-center justify-center gap-2 rounded-full border-2 border-edge bg-white px-3 text-sm font-semibold text-gray-800 hover:bg-gray-50 disabled:opacity-60 dark:bg-white/10 dark:text-gray-200 dark:hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
+                @click="onShareImage"
+              >
+                <PhotoIcon class="w-4 h-4 shrink-0" aria-hidden="true" />
+                {{ t('share_curve.share_image') }}
+              </button>
+            </div>
+
+            <p v-if="!share" class="mt-3 text-[13px] text-gray-500 dark:text-gray-400">
+              {{ t('share_curve.privacy_hint') }}
+            </p>
+            <div v-else class="mt-3 flex items-center justify-between gap-3 text-[13px] text-gray-500 dark:text-gray-400">
+              <span class="truncate" :title="share.url">{{ share.url }}</span>
+              <button
+                type="button"
+                :disabled="shareBusy"
+                class="shrink-0 min-h-11 underline underline-offset-2 hover:text-gray-900 dark:hover:text-gray-100 disabled:opacity-60"
+                @click="onRevoke"
+              >
+                {{ t('share_curve.revoke') }}
+              </button>
+            </div>
+
+            <p v-if="shareHint" class="mt-2 text-[13px] font-semibold text-gray-900 dark:text-gray-100" role="status">{{ shareHint }}</p>
+            <p v-if="shareErrorText" class="mt-2 text-[13px] font-semibold text-gray-900 dark:text-gray-100" role="alert">{{ shareErrorText }}</p>
+          </div>
+        </template>
+
+        <SheetCloseButton class="mt-6" @click="close" />
       </div>
     </template>
   </BottomSheet>
