@@ -5,6 +5,7 @@ import lombok.Builder;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Builder
@@ -29,6 +30,10 @@ public record EvTripResponse(
         String status,
         String dataSource,
         String feedback,
+        /** Besonderheiten aus {@code TripLoadExtra}, nie null. */
+        List<String> loadExtras,
+        /** Vom Auto gemessen: Zeit, Strecke und Akku sind dann nur Anzeige. */
+        boolean measured,
         ClimateSummary climate,
         String locationStartGeohash,
         String routePolyline,
@@ -131,6 +136,8 @@ public record EvTripResponse(
                 .routeType(trip.getRouteType())
                 .status(trip.getStatus())
                 .dataSource(trip.getDataSource())
-                .feedback(trip.getFeedback());
+                .feedback(trip.getFeedback())
+                .loadExtras(trip.getLoadExtras() == null ? List.of() : List.copyOf(trip.getLoadExtras()))
+                .measured(!trip.isUserCreated());
     }
 }

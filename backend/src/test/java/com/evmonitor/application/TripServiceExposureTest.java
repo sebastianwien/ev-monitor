@@ -161,7 +161,7 @@ class TripServiceExposureTest {
         stubTrips(List.of(newest));
 
         EvTripResponse response = tripService.updateTrip(older.getId(), user,
-                new UpdateTripRequest(null, null, null, null, null, null, null));
+                new UpdateTripRequest(null, null, null, null, null, null, null, null));
 
         assertThat(response.avgSpeedKmh()).isNull();
         assertThat(response.climate()).isNull();
@@ -177,7 +177,7 @@ class TripServiceExposureTest {
         stubTrips(List.of(newest));
 
         EvTripResponse response = tripService.updateTrip(newest.getId(), user,
-                new UpdateTripRequest(null, null, null, null, null, null, null));
+                new UpdateTripRequest(null, null, null, null, null, null, null, null));
 
         assertThat(response.avgSpeedKmh()).isEqualByComparingTo("42.00");
         assertThat(response.climate()).isNotNull();

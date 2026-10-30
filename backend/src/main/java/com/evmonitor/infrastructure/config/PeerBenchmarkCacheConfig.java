@@ -12,7 +12,8 @@ import java.time.Duration;
 /**
  * Peer-Seite des Dashboard-Vergleichs (Verbrauch und Preis fremder Autos derselben Spec): 24 h statt
  * des globalen 4-h-Defaults. Ein Schnitt über fremde Autos darf einen Tag alt sein; die eigene Seite
- * wird immer live gerechnet. Ein Eintrag je Nutzer, Spec und Zeitraum.
+ * wird immer live gerechnet. Ein Eintrag je Nutzer, Spec und Zeitraum, dazu je Nutzer und Modell
+ * für den Variantenvergleich (peer-model-comparison).
  */
 @Configuration
 public class PeerBenchmarkCacheConfig {

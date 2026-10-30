@@ -212,11 +212,11 @@ public class EvLogStatisticsService {
                 .min(BigDecimal::compareTo)
                 .orElse(BigDecimal.ZERO);
 
-        BigDecimal mostExpensiveCharge = logs.stream()
-                .map(EvLog::getCostEur)
-                .filter(Objects::nonNull)
-                .max(BigDecimal::compareTo)
-                .orElse(BigDecimal.ZERO);
+        EvLog mostExpensiveLog = logs.stream()
+                .filter(l -> l.getCostEur() != null)
+                .max(java.util.Comparator.comparing(EvLog::getCostEur))
+                .orElse(null);
+        BigDecimal mostExpensiveCharge = mostExpensiveLog != null ? mostExpensiveLog.getCostEur() : BigDecimal.ZERO;
 
         Integer avgChargeDuration = (int) logs.stream()
                 .map(EvLog::getChargeDurationMinutes)
@@ -310,7 +310,8 @@ public class EvLogStatisticsService {
                 chargingTypeSplit,
                 locationSplit,
                 peerBenchmark,
-                efficiencySplit
+                efficiencySplit,
+                mostExpensiveLog != null ? mostExpensiveLog.getId() : null
         );
     }
 
@@ -326,7 +327,7 @@ public class EvLogStatisticsService {
                 BigDecimal.ZERO, BigDecimal.ZERO, fixedCosts.cost(), fixedCosts.income(), fixedCosts.net(),
                 BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
-                distanceKm, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit
+                distanceKm, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit, null
         );
     }
 
@@ -968,93 +969,99 @@ public class EvLogStatisticsService {
         VehicleSpecification userSpec = vehicleSpecificationRepository.findById(userCar.getVehicleSpecificationId())
                 .orElseThrow(() -> new IllegalArgumentException("Vehicle spec not found"));
 
-        // 1. Hol alle specs mit dem gleichen car_model
-        List<VehicleSpecification> allSpecsOfModel = vehicleSpecificationRepository
-                .findByCarModelOrderByBatteryCapacityKwhAsc(userSpec.getCarModel());
-
+        ModelPeerSide peers = cachedModelPeerSide(userSpec, user.getId());
         List<PeerModelComparisonItem> items = new ArrayList<>();
-        List<Car> allPeerCars = new ArrayList<>();
+        for (VariantPeers variant : peers.variants()) {
+            boolean isUserSpec = variant.specId().equals(userSpec.getId());
+            PeerMetrics p = variant.peers();
+            // Skip specs with no peer data at all (unless it's the user's spec)
+            if (!isUserSpec && p.avgConsumptionKwhPer100km() == null && p.avgCostPerKwh() == null) continue;
+            items.add(new PeerModelComparisonItem(variant.specId(), variant.displayName(), isUserSpec,
+                    variant.netBatteryCapacityKwh(), isUserSpec ? userMetrics(userCar) : null, p));
+        }
+        return new PeerModelComparisonResponse(items, peers.allVariants(), peers.allVariantsWinter());
+    }
 
-        // 2. Für jede spec: aggregiere logs
-        for (VehicleSpecification spec : allSpecsOfModel) {
-            // Alle cars mit dieser spec (außer des Users)
+    /** Fremde Seite des Variantenvergleichs: je Variante des Modells die Peer-Metriken, dazu alle Varianten zusammen. */
+    private record ModelPeerSide(List<VariantPeers> variants, PeerMetrics allVariants, BigDecimal allVariantsWinter) {}
+
+    private record VariantPeers(UUID specId, String displayName, BigDecimal netBatteryCapacityKwh, PeerMetrics peers) {}
+
+    /** Schlüssel im {@link #PEER_SIDE_CACHE}; ownerId, weil die eigenen Autos aller Varianten ausgeschlossen sind. */
+    private record ModelPeerKey(String carModel, UUID ownerId) {}
+
+    /**
+     * Die fremde Seite liest alle Ladungen aller Autos des Modells (einige tausend) und ist wie die
+     * Peer-Seite des Dashboard-Vergleichs 24 h gecacht. Die eigene Seite rechnet {@link #userMetrics} live.
+     */
+    private ModelPeerSide cachedModelPeerSide(VehicleSpecification userSpec, UUID ownerId) {
+        String carModel = userSpec.getCarModel();
+        Cache cache = cacheManager.getCache(PEER_SIDE_CACHE);
+        if (cache == null) return computeModelPeerSide(carModel, ownerId);
+        ModelPeerKey key = new ModelPeerKey(carModel, ownerId);
+        ModelPeerSide cached = cache.get(key, () -> computeModelPeerSide(carModel, ownerId));
+        // Variante nach dem Cachen angelegt: neu rechnen, sonst fehlte die eigene Zeile bis zu einem Tag
+        if (cached.variants().stream().anyMatch(v -> v.specId().equals(userSpec.getId()))) return cached;
+        ModelPeerSide fresh = computeModelPeerSide(carModel, ownerId);
+        cache.put(key, fresh);
+        return fresh;
+    }
+
+    private ModelPeerSide computeModelPeerSide(String carModel, UUID ownerId) {
+        List<VariantPeers> variants = new ArrayList<>();
+        List<Car> allPeerCars = new ArrayList<>();
+        for (VehicleSpecification spec : vehicleSpecificationRepository.findByCarModelOrderByBatteryCapacityKwhAsc(carModel)) {
             List<Car> peerCars = carRepository.findAllByVehicleSpecificationId(spec.getId()).stream()
-                    .filter(c -> !c.isOwnedBy(user.getId()))
+                    .filter(c -> !c.isOwnedBy(ownerId))
                     .toList();
             allPeerCars.addAll(peerCars);
-
-            // Peer-Metriken
-            BigDecimal peerConsumption = null;
-            BigDecimal peerCostPerKwh = null;
-            int peerCarCount = 0;
-
-            if (!peerCars.isEmpty()) {
-                CommunityConsumptionResult consumption = calculateCommunityAvgConsumption(peerCars, false);
-                peerConsumption = consumption.value();
-
-                // Cost-Berechnung (analog zu buildPeerBenchmark)
-                peerCostPerKwh = calculateAvgCostPerKwhForCars(peerCars);
-                peerCarCount = peerCars.size();
-            }
-
-            // Skip specs with no peer data at all (unless it's the user's spec)
-            boolean isUserSpec = spec.getId().equals(userSpec.getId());
-            if (!isUserSpec && peerConsumption == null && peerCostPerKwh == null) {
-                continue;
-            }
-
-            // User-Metriken (nur wenn es die user spec ist)
-            UserMetrics userMetrics = null;
-            if (spec.getId().equals(userSpec.getId())) {
-                // Hol alle logs des users für dieses auto
-                List<EvLog> userLogs = evLogRepository.findAllByCarId(userCar.getId());
-                List<EvLog> statsLogs = userLogs.stream()
-                        .filter(l -> l.isIncludeInStatistics())
-                        .toList();
-
-                BigDecimal userConsumption = null;
-                if (!statsLogs.isEmpty()) {
-                    List<PlausibleEntry> entries = getPlausibleEntriesForCar(userCar, userLogs, statsLogs);
-                    if (!entries.isEmpty()) {
-                        BigDecimal weighted = BigDecimal.ZERO;
-                        int totalDist = 0;
-                        for (PlausibleEntry e : entries) {
-                            weighted = weighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
-                            totalDist += e.distanceKm();
-                        }
-                        userConsumption = ConsumptionMath.weightedAverage(weighted, totalDist);
-                    }
-                }
-
-                BigDecimal userCostPerKwh = null;
-                BigDecimal totalCost = BigDecimal.ZERO;
-                BigDecimal totalKwh = BigDecimal.ZERO;
-                for (EvLog log : statsLogs) {
-                    if (log.getCostEur() == null) continue;
-                    BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
-                    if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
-                    totalCost = totalCost.add(log.getCostEur());
-                    totalKwh = totalKwh.add(kwh);
-                }
-                if (totalKwh.compareTo(BigDecimal.ZERO) > 0) {
-                    userCostPerKwh = totalCost.divide(totalKwh, 4, RoundingMode.HALF_UP);
-                }
-
-                userMetrics = new UserMetrics(userConsumption, userCostPerKwh);
-            }
-
-            // Add to results (already filtered for empty specs above)
-            items.add(new PeerModelComparisonItem(
-                    spec.getId(),
+            PeerMetrics peers = peerCars.isEmpty()
+                    ? new PeerMetrics(null, null, 0)
+                    : new PeerMetrics(calculateCommunityAvgConsumption(peerCars, false).value(),
+                            calculateAvgCostPerKwhForCars(peerCars), peerCars.size());
+            variants.add(new VariantPeers(spec.getId(),
                     spec.getVariantName() + " (" + spec.getBatteryCapacityKwh() + "kWh)",
-                    isUserSpec,
-                    spec.getNetBatteryCapacityKwh(),
-                    userMetrics,
-                    new PeerMetrics(peerConsumption, peerCostPerKwh, peerCarCount)
-            ));
+                    spec.getNetBatteryCapacityKwh(), peers));
+        }
+        return new ModelPeerSide(variants, allVariantsMetrics(allPeerCars), allVariantsWinter(allPeerCars));
+    }
+
+    /** Verbrauch und Preis je kWh über alle Statistik-Ladungen des eigenen Autos. */
+    private UserMetrics userMetrics(Car userCar) {
+        List<EvLog> userLogs = evLogRepository.findAllByCarId(userCar.getId());
+        List<EvLog> statsLogs = userLogs.stream()
+                .filter(EvLog::isIncludeInStatistics)
+                .toList();
+
+        BigDecimal userConsumption = null;
+        if (!statsLogs.isEmpty()) {
+            List<PlausibleEntry> entries = getPlausibleEntriesForCar(userCar, userLogs, statsLogs);
+            if (!entries.isEmpty()) {
+                BigDecimal weighted = BigDecimal.ZERO;
+                int totalDist = 0;
+                for (PlausibleEntry e : entries) {
+                    weighted = weighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
+                    totalDist += e.distanceKm();
+                }
+                userConsumption = ConsumptionMath.weightedAverage(weighted, totalDist);
+            }
         }
 
-        return new PeerModelComparisonResponse(items, allVariantsMetrics(allPeerCars), allVariantsWinter(allPeerCars));
+        BigDecimal userCostPerKwh = null;
+        BigDecimal totalCost = BigDecimal.ZERO;
+        BigDecimal totalKwh = BigDecimal.ZERO;
+        for (EvLog log : statsLogs) {
+            if (log.getCostEur() == null) continue;
+            BigDecimal kwh = calculationService.gridSideKwhEstimate(log);
+            if (kwh == null || kwh.compareTo(BigDecimal.ZERO) <= 0) continue;
+            totalCost = totalCost.add(log.getCostEur());
+            totalKwh = totalKwh.add(kwh);
+        }
+        if (totalKwh.compareTo(BigDecimal.ZERO) > 0) {
+            userCostPerKwh = totalCost.divide(totalKwh, 4, RoundingMode.HALF_UP);
+        }
+
+        return new UserMetrics(userConsumption, userCostPerKwh);
     }
 
     /** Ab so vielen Winterladungen von so vielen Fahrern ersetzt ihr Winterwert im Story-Dashboard den fehlenden eigenen. */

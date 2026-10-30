@@ -8,6 +8,8 @@ import org.hibernate.type.SqlTypes;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Supplier;
@@ -202,6 +204,12 @@ public class EvTrip {
 
     @Column(name = "feedback", columnDefinition = "TEXT")
     private String feedback;
+
+    /** Namen aus {@link TripLoadExtra}, vom Nutzer angegeben, ohne Duplikate. Nie null. */
+    @JdbcTypeCode(SqlTypes.ARRAY)
+    @Column(name = "load_extras", nullable = false)
+    @Builder.Default
+    private List<String> loadExtras = new ArrayList<>();
 
     @Column(name = "deleted_at")
     private OffsetDateTime deletedAt;
