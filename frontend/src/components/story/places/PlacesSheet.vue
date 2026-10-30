@@ -141,10 +141,6 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
             </div>
           </div>
 
-          <!-- Unter dem Schalter: mobil volle Breite, ab sm rechts unter dem Schalter -->
-          <StoryUpsellRow v-if="tripsLocked" data-testid="places-trips-locked" class="mx-4 mt-2 sm:ml-auto sm:w-96 lg:mr-6"
-            :text="t('story.places_trips_locked')" from="story_places" />
-
           <div class="mt-3 grid min-h-0 flex-1" :class="showMap ? 'grid-rows-[40%_1fr] lg:grid-cols-[1.4fr_1fr] lg:grid-rows-1' : 'grid-rows-1'">
             <div v-if="showMap" class="relative min-h-0 border-y-2 border-edge lg:border-b-0 lg:border-r-2 dark:border-gray-800">
               <PlacesMap ref="mapRef" :pins="pins" :lines="lines" :active="selection.active" @tap="gh => onTap(gh, true)" />
@@ -167,8 +163,13 @@ const panelClass = computed(() => showMap.value ? 'h-[88dvh] sm:max-w-2xl lg:h-[
                 {{ t('story.error') }}
                 <button type="button" class="ml-2 min-h-[44px] font-semibold underline" @click="load">{{ t('story.retry') }}</button>
               </p>
-              <PlacesList v-else :rows="rows" :active="selection.active"
-                @tap="gh => onTap(gh, false)" @operator="logId => emit('operator', logId)" />
+              <template v-else>
+                <PlacesList :rows="rows" :active="selection.active"
+                  @tap="gh => onTap(gh, false)" @operator="logId => emit('operator', logId)" />
+                <!-- Wie ein weiterer Eintrag unten in der Liste: Karte und Schalter bleiben frei -->
+                <StoryUpsellRow v-if="tripsLocked" data-testid="places-trips-locked" class="mx-4 my-3 lg:mx-6"
+                  :text="t('story.places_trips_locked')" from="story_places" />
+              </template>
             </div>
           </div>
         </div>

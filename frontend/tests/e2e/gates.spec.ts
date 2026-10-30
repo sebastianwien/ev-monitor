@@ -106,7 +106,7 @@ for (const v of VIEWS) {
       d.monthStats = stats({ totalCharges: 0, totalKwhCharged: 0, energyCostEur: 0, totalCostEur: 0, totalDistanceKm: 0, chargesOverTime: [] });
       d.logs = [log(NOW_MID, { loggedAt: iso(NOW_MID - 10 * DAY), createdAt: iso(NOW_MID - 10 * DAY) })];
       await openStory(page, d);
-      await expect(page.getByTestId('story-empty-autosync')).toContainText('trägt jede Ladung und Fahrt selbst ein');
+      await expect(page.getByTestId('story-empty-autosync')).toContainText('direkt an EV Monitor schicken');
       await shot(page, v.name, '06-leerer-monat-autosync');
     });
 

@@ -4502,7 +4502,7 @@ story:
   upsell_offer_autosync: "AutoSync · {price} per måned"
   trial_until: "Gratis prøve til {date}"
   savings_sub: "sammenlignet med offentlig lading"
-  empty_autosync: "Slutt på å taste: {car} registrerer hver lading og tur selv, med kostnader og kilometer. Du trenger ikke holde oversikt."
+  empty_autosync: "Vil du slippe å føre inn hver lading for hånd? {car} kan sende ladinger direkte til EV Monitor - med AutoSync."
   sheet_use_charge_sub: "fra {n} lading | fra {n} ladinger"
   sheet_use_charge_estimated: "fra {n} ladinger, {e} av dem anslått"
   sheet_use_charged: "Ladet"

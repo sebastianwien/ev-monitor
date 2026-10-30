@@ -4660,7 +4660,7 @@ story:
   upsell_offer_autosync: "AutoSync · {price} per month"
   trial_until: "Free trial until {date}"
   savings_sub: "compared to public charging"
-  empty_autosync: "No more typing: your {car} logs every charge and trip by itself, with costs and kilometres. Nothing left to keep track of."
+  empty_autosync: "Don't want to enter every charge by hand? Your {car} can send charging sessions straight to EV Monitor - with AutoSync."
   sheet_use_charge_sub: "from {n} charge | from {n} charges"
   sheet_use_charge_estimated: "from {n} charges, {e} of them estimated"
   sheet_use_charged: "Charged"

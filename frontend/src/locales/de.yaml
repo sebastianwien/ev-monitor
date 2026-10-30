@@ -4666,7 +4666,7 @@ story:
   upsell_offer_autosync: "AutoSync · {price} im Monat"
   trial_until: "Gratis-Test bis {date}"
   savings_sub: "gegenüber öffentlichem Laden"
-  empty_autosync: "Schluss mit Abtippen: Dein {car} trägt jede Ladung und Fahrt selbst ein, mit Kosten und Kilometern. Du musst nichts mehr nachhalten."
+  empty_autosync: "Du möchtest nicht jede Ladung per Hand eintragen? Dein {car} kann Ladevorgänge auch direkt an EV Monitor schicken - mit AutoSync."
   sheet_use_charge_sub: "aus {n} Ladung | aus {n} Ladungen"
   sheet_use_charge_estimated: "aus {n} Ladungen, {e} davon geschätzt"
   sheet_use_charged: "Geladen"
