@@ -72,7 +72,7 @@ for (const v of VIEWS) {
       ]);
       await openStory(page, d);
       await page.getByTestId('story-tile-flow').click();
-      await expect(page.getByTestId('story-trial-flow')).toContainText(/Gratis-Test bis/);
+      await expect(page.getByTestId('story-trial-flow')).toContainText(/Inklusive bis/);
       await page.getByTestId('story-trial-flow').scrollIntoViewIfNeeded();
       await shot(page, v.name, '03-strom-probemonat');
     });

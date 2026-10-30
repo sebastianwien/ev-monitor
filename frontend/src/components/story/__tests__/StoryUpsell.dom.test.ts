@@ -60,7 +60,7 @@ describe('Strom-Sheet: Stand gesperrt', () => {
     const pinia = setup('NONE', 'TESLA', new Date().toISOString())
     mount(SheetFlow, { use: { ...lockedUse(), standbyKwh: 12, standbyEur: 3.5 } }, pinia)
     expect($('story-upsell-flow')).toBeNull()
-    expect(text($('story-trial-flow'))).toMatch(/^Gratis-Test bis /)
+    expect(text($('story-trial-flow'))).toMatch(/^Inklusive bis /)
   })
 })
 
@@ -81,7 +81,7 @@ describe('Kosten-Sheet: Heimlade-Ersparnis', () => {
   it('im Probemonat: "Gratis bis", kein Knopf', () => {
     mount(SheetCost, costProps({ locked: false, trialEndsAt: '2026-11-15', eur: 84 }), setup('NONE', 'TESLA'))
     expect($('story-upsell-cost')).toBeNull()
-    expect(text($('story-trial-cost'))).toMatch(/^Gratis-Test bis /)
+    expect(text($('story-trial-cost'))).toMatch(/^Inklusive bis /)
     expect(text($('story-savings-cost'))).toMatch(/Heimladen-Ersparnis.*84\s?€/)
   })
 
