@@ -103,3 +103,24 @@ describe('SocCurveChart', () => {
     expect(host.querySelectorAll('path')).toHaveLength(0)
   })
 })
+
+const readoutOf = (host: HTMLElement) => host.querySelector('[data-testid="soc-curve-readout"]')
+
+describe('SocCurveChart - feste Ablese-Zeile', () => {
+  it('zeigt im Ruhezustand den Endstand mit Praefix', () => {
+    const { host } = mountChart({ readout: 'Ende' })
+    expect(readoutOf(host)?.textContent).toContain('Ende')
+    expect(readoutOf(host)?.textContent).toContain('65 %')
+  })
+
+  it('folgt dem Zeiger und blendet keinen Tooltip ein', async () => {
+    const { host, svg } = mountChart({ readout: 'Ende' })
+
+    svg.dispatchEvent(pointerEvent('pointermove', 150))
+    await nextTick()
+
+    expect(readoutOf(host)?.textContent).toContain('45 %')
+    expect(readoutOf(host)?.textContent).not.toContain('Ende')
+    expect(tooltipOf(host)).toBeNull()
+  })
+})

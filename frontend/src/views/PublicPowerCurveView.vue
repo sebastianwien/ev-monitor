@@ -48,21 +48,8 @@
             :soc-before-percent="curve.socBefore ?? null"
             :soc-after-percent="curve.socAfter ?? null"
             :soc-axis-label="t('dashboard.power_curve_soc_axis')"
+            :readout="t('dashboard.power_curve_readout_peak')"
           />
-
-          <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[11px] text-gray-500 dark:text-gray-400">
-            <span class="inline-flex items-center gap-1.5">
-              <span class="w-3 h-0.5 rounded-full bg-emerald-500 flex-shrink-0" />
-              {{ t('dashboard.power_curve_legend_kw') }}
-            </span>
-            <span v-if="socSeries" class="inline-flex items-center gap-1.5">
-              <span class="w-3 border-b border-dashed border-gray-400 dark:border-gray-500 flex-shrink-0" />
-              {{ t('dashboard.power_curve_legend_soc') }}
-            </span>
-          </div>
-          <p v-if="socSeries?.derived" class="mt-1 text-[11px] text-gray-400 dark:text-gray-500">
-            {{ t('dashboard.power_curve_soc_derived_hint') }}
-          </p>
 
           <div class="mt-10 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 text-sm text-gray-600 dark:text-gray-300">
             {{ t('share_curve.cta_text') }}
@@ -84,7 +71,6 @@ import { useHead } from '@unhead/vue'
 import { BoltIcon } from '@heroicons/vue/24/outline'
 import PublicNav from '../components/shared/PublicNav.vue'
 import PowerCurveChart from '../components/charging/PowerCurveChart.vue'
-import { buildSocSeries } from '../components/charging/powerCurveSeries'
 import { curveShareService, type PublicCurve } from '../api/curveShareService'
 import { formatDuration } from '../components/charging/powerCurveScrub'
 import { useAuthStore } from '../stores/auth'
@@ -108,8 +94,6 @@ const curve = ref<PublicCurve | null>(null)
 const loading = ref(true)
 
 const isAuthenticated = computed(() => !!authStore.token)
-const socSeries = computed(() =>
-  curve.value ? buildSocSeries(curve.value.points, curve.value.socBefore, curve.value.socAfter) : null)
 
 const chargedOnLabel = computed(() => {
   const iso = curve.value?.chargedOn

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nearestIndexByX, formatDuration } from '../powerCurveScrub'
+import { nearestIndexByX, formatDuration, peakIndex } from '../powerCurveScrub'
 
 describe('nearestIndexByX', () => {
   const xs = [0, 100, 200, 300, 600]
@@ -49,5 +49,19 @@ describe('formatDuration', () => {
 
   it('zeigt Stunden mit Minutenanteil', () => {
     expect(formatDuration(80 * 60_000)).toBe('1h 20')
+  })
+})
+
+describe('peakIndex', () => {
+  it('liefert -1 ohne Punkte', () => {
+    expect(peakIndex([])).toBe(-1)
+  })
+
+  it('findet den hoechsten Wert', () => {
+    expect(peakIndex([{ kw: 50 }, { kw: 250 }, { kw: 100 }])).toBe(1)
+  })
+
+  it('nimmt bei gleichen Spitzen die erste', () => {
+    expect(peakIndex([{ kw: 250 }, { kw: 250 }])).toBe(0)
   })
 })

@@ -1,78 +1,83 @@
 <template>
-  <div class="relative">
-    <svg
-      ref="svgRef"
-      viewBox="0 0 600 200"
-      :style="svgHeightStyle"
-      class="w-full h-[var(--sc-h-mobile)] md:h-[var(--sc-h-desktop)] touch-pan-y focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-400 rounded"
-      preserveAspectRatio="none"
-      role="img"
-      :aria-label="ariaLabel"
-      tabindex="0"
-      data-no-swipe
-      data-testid="soc-curve-chart"
-      @pointermove="onPointerMove"
-      @pointerdown="onPointerDown"
-      @pointerup="onPointerUp"
-      @pointercancel="endScrub"
-      @pointerleave="endScrub"
-      @blur="endScrub"
-      @keydown="onKeydown"
+  <div>
+    <!-- Feste Ablese-Zeile wie bei der Ladekurve: ueber der Kurve, nicht unter dem Finger -->
+    <p
+      v-if="readout && scrubPoint"
+      data-testid="soc-curve-readout"
+      class="mb-3 min-h-6 text-[15px] leading-6 tabular-nums text-gray-900 dark:text-gray-100"
+      aria-live="polite"
     >
-      <defs>
-        <linearGradient :id="fillId" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#0ea5e9" stop-opacity="0.35" />
-          <stop offset="100%" stop-color="#0ea5e9" stop-opacity="0" />
-        </linearGradient>
-      </defs>
-      <g stroke="currentColor" class="text-gray-300 dark:text-slate-700" stroke-width="1" stroke-dasharray="2 4" opacity="0.6">
-        <line v-for="tick in yTicks" :key="`g-${tick.soc}`" x1="0" :y1="tick.y" x2="600" :y2="tick.y" />
-      </g>
-      <path v-if="fillPath" :d="fillPath" :fill="`url(#${fillId})`" />
-      <!-- Stufenlinie statt geglaetteter Kurve: der Ladestand kommt in
-           1-%-Schritten alle vier bis fuenf Minuten. Eine weiche Linie wuerde
-           eine Aufloesung vortaeuschen, die die Daten nicht haben. -->
-      <path v-if="strokePath" :d="strokePath" fill="none" stroke="#0ea5e9" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-      <!-- Punkt liegt als HTML darueber: preserveAspectRatio="none" streckt die
-           Achsen unterschiedlich und zieht einen <circle> zur Ellipse. -->
-      <template v-if="scrubPoint">
-        <line :x1="scrubPoint.x" y1="0" :x2="scrubPoint.x" y2="200" stroke="currentColor" class="text-gray-400 dark:text-slate-500" stroke-width="1" stroke-dasharray="3 3" />
-      </template>
-    </svg>
+      <span v-if="scrubPoint.resting" class="mr-1 text-gray-500 dark:text-gray-400">{{ readout }}</span>
+      <span class="font-bold">{{ scrubPoint.soc }} %</span>
+      <span class="text-gray-500 dark:text-gray-400"> · {{ scrubPoint.label }}</span>
+    </p>
+    <div class="relative">
+      <svg
+        ref="svgRef"
+        viewBox="0 0 600 200"
+        :style="svgHeightStyle"
+        class="block w-full h-[var(--sc-h-mobile)] md:h-[var(--sc-h-desktop)] touch-pan-y focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 dark:focus-visible:ring-gray-100 rounded"
+        preserveAspectRatio="none"
+        role="img"
+        :aria-label="ariaLabel"
+        tabindex="0"
+        data-no-swipe
+        data-testid="soc-curve-chart"
+        @pointermove="onPointerMove"
+        @pointerdown="onPointerDown"
+        @pointerup="onPointerUp"
+        @pointercancel="endScrub"
+        @pointerleave="endScrub"
+        @blur="endScrub"
+        @keydown="onKeydown"
+      >
+        <g stroke="currentColor" class="text-gray-200 dark:text-gray-700">
+          <line v-for="tick in yTicks" :key="`g-${tick.soc}`" x1="0" :y1="tick.y" x2="600" :y2="tick.y" vector-effect="non-scaling-stroke" />
+        </g>
+        <path v-if="fillPath" :d="fillPath" class="fill-gray-100 dark:fill-white/10" />
+        <!-- Stufenlinie statt geglaetteter Kurve: der Ladestand kommt in
+             1-%-Schritten alle vier bis fuenf Minuten. Eine weiche Linie wuerde
+             eine Aufloesung vortaeuschen, die die Daten nicht haben. -->
+        <path v-if="strokePath" :d="strokePath" fill="none" stroke="currentColor" class="text-gray-900 dark:text-gray-100" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        <!-- Punkt liegt als HTML darueber: preserveAspectRatio="none" streckt die
+             Achsen unterschiedlich und zieht einen <circle> zur Ellipse. -->
+        <line v-if="scrubPoint && !scrubPoint.resting" :x1="scrubPoint.x" y1="0" :x2="scrubPoint.x" y2="200" stroke="currentColor" class="text-gray-900 dark:text-gray-100" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+      </svg>
 
-    <div
-      v-if="scrubPoint"
-      data-testid="soc-curve-tooltip"
-      class="pointer-events-none absolute top-1 z-10 flex items-baseline gap-1.5 whitespace-nowrap rounded-md border border-sky-200/70 dark:border-sky-800/50 bg-white/95 dark:bg-gray-900/95 px-2 py-1 text-[11px] leading-none shadow-sm tabular-nums"
-      :style="tooltipStyle"
-    >
-      <span class="font-semibold text-sky-700 dark:text-sky-300">{{ scrubPoint.soc }} %</span>
-      <span class="text-gray-500 dark:text-gray-400">{{ scrubPoint.label }}</span>
+      <div
+        v-if="!readout && scrubPoint"
+        data-testid="soc-curve-tooltip"
+        class="pointer-events-none absolute top-1 z-10 flex items-baseline gap-1.5 whitespace-nowrap rounded-md border-2 border-edge bg-white dark:bg-gray-900 px-2 py-1 text-[12px] leading-none tabular-nums text-gray-900 dark:text-gray-100"
+        :style="tooltipStyle"
+      >
+        <span class="font-bold">{{ scrubPoint.soc }} %</span>
+        <span class="text-gray-500 dark:text-gray-400">{{ scrubPoint.label }}</span>
+      </div>
+      <span v-if="!readout" class="sr-only" aria-live="polite">{{ scrubPoint ? `${scrubPoint.soc} %, ${scrubPoint.label}` : '' }}</span>
+
+      <div class="pointer-events-none absolute inset-0">
+        <span
+          v-if="scrubPoint"
+          class="absolute w-3 h-3 rounded-full bg-gray-900 dark:bg-gray-100 ring-2 ring-white dark:ring-gray-900"
+          :style="dotStyle(scrubPoint.x, scrubPoint.y)"
+        />
+        <span
+          v-for="tick in yTicks"
+          :key="`yt-${tick.soc}`"
+          class="absolute left-0 -translate-y-full pb-0.5 text-[11px] text-gray-500 dark:text-gray-400 tabular-nums leading-none"
+          :style="`top: ${(tick.y / 200) * 100}%;`"
+        >{{ tick.soc }} %</span>
+      </div>
     </div>
-    <span class="sr-only" aria-live="polite">{{ scrubPoint ? `${scrubPoint.soc} %, ${scrubPoint.label}` : '' }}</span>
 
-    <div class="pointer-events-none absolute inset-0">
-      <span
-        v-if="scrubPoint"
-        class="absolute w-[9px] h-[9px] rounded-full bg-sky-600 ring-2 ring-white"
-        :style="dotStyle(scrubPoint.x, scrubPoint.y)"
-      />
-      <span
-        v-for="tick in yTicks"
-        :key="`yt-${tick.soc}`"
-        class="absolute left-1.5 text-[9px] text-gray-500 dark:text-slate-400 tabular-nums leading-none rounded-sm bg-white/80 dark:bg-gray-900/80 px-1 py-px"
-        :style="`top: calc(${(tick.y / 200) * 100}% - 0.3em);`"
-      >{{ tick.soc }} %</span>
-    </div>
-
-    <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-500 px-1 tabular-nums mt-1">
+    <div class="flex justify-between text-[11px] text-gray-700 dark:text-gray-300 tabular-nums mt-1">
       <span v-for="(label, i) in xLabels" :key="`x-${i}`">{{ label }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, ref, useId } from 'vue'
+import { computed, ref } from 'vue'
 import { nearestIndexByX, formatDuration } from './powerCurveScrub'
 import type { SocPoint } from './powerCurveSeries'
 
@@ -80,19 +85,22 @@ import type { SocPoint } from './powerCurveSeries'
  * Ladeverlauf: gemessener Ladestand ueber die Zeit.
  *
  * Bewusst eine eigene Komponente und kein Modus des PowerCurveChart. Die beiden
- * zeigen Verschiedenes - dort gemessene Leistung, hier gemessener Ladestand -
- * und sollen auch verschieden aussehen, damit niemand den groberen Verlauf fuer
- * eine Ladekurve haelt.
+ * zeigen Verschiedenes - dort gemessene Leistung, hier gemessener Ladestand.
+ * Unterscheidbar bleiben sie ueber die Prozent-Achse und die Stufenlinie.
  */
 const props = withDefaults(defineProps<{
   points: SocPoint[]
   height?: number
   heightDesktop?: number
   ariaLabel?: string
+  /** Wenn gesetzt: feste Ablese-Zeile ueber der Kurve statt Tooltip. Ohne
+   *  Zeiger zeigt sie den Endstand, mit diesem Text als Praefix ("Ende"). */
+  readout?: string
 }>(), {
   height: 234,
   heightDesktop: 0,
   ariaLabel: 'Ladeverlauf',
+  readout: '',
 })
 
 const CURVE_W = 600
@@ -139,7 +147,7 @@ const fillPath = computed(() => {
 })
 
 const yTicks = computed(() =>
-  [25, 50, 75, 100].map(soc => ({ soc, y: CURVE_H - (soc / 100) * CURVE_H })))
+  [25, 50, 75].map(soc => ({ soc, y: CURVE_H - (soc / 100) * CURVE_H })))
 
 const xLabels = computed<string[]>(() => {
   const buf = props.points
@@ -201,12 +209,14 @@ function onKeydown(e: KeyboardEvent) {
 }
 
 const scrubPoint = computed(() => {
-  const i = scrubIndex.value
+  const resting = scrubIndex.value === null
   const pts = plotted.value
+  const i = scrubIndex.value ?? (props.readout ? pts.length - 1 : null)
   if (i === null || i < 0 || i >= pts.length) return null
   const src = props.points[Math.min(i, props.points.length - 1)]
   if (!src) return null
   return {
+    resting,
     x: pts[i].x,
     y: pts[i].y,
     soc: Math.round(src.soc),
@@ -231,6 +241,4 @@ function dotStyle(x: number, y: number) {
   }
 }
 
-const uid = useId()
-const fillId = `sc-fill-${uid}`
 </script>

@@ -159,8 +159,9 @@ describe('PowerCurveChart - SoC-Achse', () => {
 
     const labels = [...socAxisOf(host)!.querySelectorAll('span')].map(s => s.textContent)
     expect(labels).toHaveLength(5)
-    expect(labels[0]).toBe('10 %')
-    expect(labels[4]).toBe('80 %')
+    // Abgeleitet heisst geschaetzt - die Tilde ersetzt den frueheren Hinweistext
+    expect(labels[0]).toBe('~10 %')
+    expect(labels[4]).toBe('~80 %')
   })
 
   it('zeigt den SoC am Zeiger im Tooltip', async () => {
@@ -173,20 +174,67 @@ describe('PowerCurveChart - SoC-Achse', () => {
   })
 })
 
-describe('PowerCurveChart - Vorschau-Zeiger', () => {
-  it('zeigt den Zeiger ohne Interaktion auf dem gesetzten Index', () => {
-    const { host } = mountChart({ previewScrubIndex: 2 })
-    expect(tooltipOf(host)?.textContent).toContain('250')
+const readoutOf = (host: HTMLElement) => host.querySelector('[data-testid="power-curve-readout"]')
+
+describe('PowerCurveChart - feste Ablese-Zeile', () => {
+  it('zeigt im Ruhezustand die Spitze mit Praefix', () => {
+    const { host } = mountChart({ readout: 'Spitze' })
+    expect(readoutOf(host)?.textContent).toContain('Spitze')
+    expect(readoutOf(host)?.textContent).toContain('250 kW')
   })
 
-  it('laesst echte Interaktion den Vorschau-Zeiger ueberschreiben', async () => {
-    const { host, svg } = mountChart({ previewScrubIndex: 2 })
+  it('folgt dem Zeiger und ersetzt dabei den Ruhezustand', async () => {
+    const { host, svg } = mountChart({ readout: 'Spitze' })
 
-    svg.dispatchEvent(pointerEvent('pointermove', 0))
+    svg.dispatchEvent(pointerEvent('pointermove', 190))
     await nextTick()
 
-    expect(tooltipOf(host)?.textContent).toContain('50')
-    expect(tooltipOf(host)?.textContent).not.toContain('250')
+    expect(readoutOf(host)?.textContent).toContain('150 kW')
+    expect(readoutOf(host)?.textContent).not.toContain('Spitze')
+  })
+
+  it('kehrt zur Spitze zurueck, wenn der Zeiger den Chart verlaesst', async () => {
+    const { host, svg } = mountChart({ readout: 'Spitze' })
+
+    svg.dispatchEvent(pointerEvent('pointermove', 190))
+    await nextTick()
+    svg.dispatchEvent(pointerEvent('pointerleave', 190))
+    await nextTick()
+
+    expect(readoutOf(host)?.textContent).toContain('Spitze')
+  })
+
+  it('blendet statt der Zeile keinen schwebenden Tooltip ein', async () => {
+    const { host, svg } = mountChart({ readout: 'Spitze' })
+
+    svg.dispatchEvent(pointerEvent('pointermove', 400))
+    await nextTick()
+
+    expect(tooltipOf(host)).toBeNull()
+  })
+
+  it('markiert einen abgeleiteten Ladestand als Schaetzung', async () => {
+    const { host, svg } = mountChart({ readout: 'Spitze', socBeforePercent: 10, socAfterPercent: 80 })
+
+    svg.dispatchEvent(pointerEvent('pointermove', 600))
+    await nextTick()
+
+    expect(readoutOf(host)?.textContent).toContain('~80 %')
+  })
+})
+
+const rangeEndOf = (host: HTMLElement) => host.querySelector('[data-testid="power-curve-range-end"]')
+
+describe('PowerCurveChart - nachgeladene Reichweite', () => {
+  // Trapezregel ueber POINTS: (100 + 200 + 175) / 60 = 7,92 kWh -> bei 20 kWh/100 km rund 40 km
+  it('beschriftet das Ende der Linie mit der integrierten Reichweite', () => {
+    const { host } = mountChart({ consumptionKwhPer100km: 20 })
+    expect(rangeEndOf(host)?.textContent).toContain('+40 km')
+  })
+
+  it('skaliert die Linie auf die Energie aus dem Log, wenn sie vorliegt', () => {
+    const { host } = mountChart({ consumptionKwhPer100km: 20, rangeTotalKwh: 10 })
+    expect(rangeEndOf(host)?.textContent).toContain('+50 km')
   })
 })
 

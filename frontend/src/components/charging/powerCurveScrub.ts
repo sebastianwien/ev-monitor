@@ -1,6 +1,6 @@
 /**
  * Hilfsfunktionen fuer die Ladekurve: Zuordnung einer Zeigerposition zum naechsten
- * Messpunkt und die gemeinsame Dauer-Formatierung von X-Achse und Scrub-Tooltip.
+ * Messpunkt und die gemeinsame Dauer-Formatierung von X-Achse und Ablese-Zeile.
  */
 
 /**
@@ -30,4 +30,12 @@ export function formatDuration(ms: number): string {
   const h = Math.floor(totalMin / 60)
   const m = totalMin % 60
   return m === 0 ? `${h} h` : `${h}h ${m}`
+}
+
+/** Index des hoechsten Messwerts (bei Gleichstand der erste), -1 ohne Punkte.
+ *  Ruhezustand der Ablese-Zeile: ohne Zeiger zeigt sie die Spitze. */
+export function peakIndex(points: { kw: number }[]): number {
+  let best = -1
+  points.forEach((p, i) => { if (best < 0 || p.kw > points[best].kw) best = i })
+  return best
 }

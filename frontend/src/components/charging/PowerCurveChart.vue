@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, useId } from 'vue'
-import { nearestIndexByX, formatDuration } from './powerCurveScrub'
+import { computed, ref } from 'vue'
+import { nearestIndexByX, formatDuration, peakIndex } from './powerCurveScrub'
 import { cumulativeKwh, buildSocSeries, socAtTs, yTickStepKw } from './powerCurveSeries'
 
 interface PowerPoint { ts: number; kw: number; soc?: number | null }
@@ -27,10 +27,13 @@ const props = withDefaults(defineProps<{
   /** a11y - Beschriftung der SoC-Achsenzeile. Die Uebersetzung liegt beim
    *  Aufrufer, damit die Chart-Komponente i18n-frei bleibt. */
   socAxisLabel?: string
-  /** Zeigt den Zeiger ohne Interaktion auf diesem Punkt-Index. Fuer den
-   *  Teaser, der die Abtast-Funktion vorfuehren soll, ohne bedienbar zu sein.
-   *  Echte Interaktion ueberschreibt ihn. */
-  previewScrubIndex?: number | null
+  /** Wenn gesetzt: feste Ablese-Zeile ueber der Kurve statt schwebendem
+   *  Tooltip. Ohne Zeiger zeigt sie die Spitze, mit diesem Text als Praefix
+   *  ("Spitze"). Ein Tooltip verschwindet auf dem Handy unter dem Finger. */
+  readout?: string
+  /** Energie aus dem Log. Skaliert die km-Linie, damit ihr Endwert zur Zahl
+   *  daneben passt - die Kurve kann Luecken haben, das Log ist massgeblich. */
+  rangeTotalKwh?: number | null
 }>(), {
   height: 234,
   heightDesktop: 0,
@@ -43,7 +46,8 @@ const props = withDefaults(defineProps<{
   socBeforePercent: null,
   socAfterPercent: null,
   socAxisLabel: 'SoC',
-  previewScrubIndex: null,
+  readout: '',
+  rangeTotalKwh: null,
 })
 
 const svgHeightStyle = computed(() => ({
@@ -115,7 +119,12 @@ const rangePoints = computed<RangePoint[]>(() => {
   const cons = props.consumptionKwhPer100km
   const buf = props.points
   if (!cons || cons <= 0 || buf.length < 2) return []
-  const km = cumulativeKwh(buf).map(kwh => (kwh * 100) / cons)
+  const cum = cumulativeKwh(buf)
+  const curveTotal = cum[cum.length - 1]
+  const scale = props.rangeTotalKwh && props.rangeTotalKwh > 0 && curveTotal > 0
+    ? props.rangeTotalKwh / curveTotal
+    : 1
+  const km = cum.map(kwh => (kwh * scale * 100) / cons)
   // 30 % Headroom oben, damit die km-Linie nicht in das kW-Overlay
   // rechts oben laeuft. Endpunkt liegt dann bei ~70 % Hoehe.
   const maxKm = (km[km.length - 1] || 1) / 0.70
@@ -143,7 +152,9 @@ const curveYTicks = computed(() => {
   const max = curveMaxKw.value
   const step = props.yStepKw > 0 ? props.yStepKw : yTickStepKw(max)
   const ticks: { kw: number; y: number }[] = []
-  for (let kw = step; kw < max; kw += step) {
+  // Die Beschriftung sitzt ueber ihrer Linie; ganz oben kollidierte sie mit
+  // der Spitze, die bei DC-Ladungen fast immer links oben liegt.
+  for (let kw = step; kw < max * 0.88; kw += step) {
     ticks.push({ kw, y: CURVE_H - (kw / max) * CURVE_H })
   }
   return ticks
@@ -193,7 +204,7 @@ const socXLabels = computed<string[] | null>(() => {
   const span = buf[buf.length - 1].ts - first
   return Array.from({ length: 5 }, (_, i) => {
     const soc = socAtTs(buf, series.values, first + (span * i) / 4)
-    return soc === null ? '' : `${Math.round(soc)} %`
+    return soc === null ? '' : `${series.derived ? '~' : ''}${Math.round(soc)} %`
   })
 })
 
@@ -256,10 +267,16 @@ function onKeydown(e: KeyboardEvent) {
   }
 }
 
-interface ScrubInfo { x: number; y: number; kw: string; label: string; km: number | null; rangeY: number | null; soc: number | null }
+interface ScrubInfo {
+  x: number; y: number; kw: string; label: string; km: number | null; rangeY: number | null
+  soc: string | null
+  /** Ohne Zeiger: Ablese-Zeile zeigt die Spitze. */
+  resting: boolean
+}
 
 const scrubPoint = computed<ScrubInfo | null>(() => {
-  const i = scrubIndex.value ?? props.previewScrubIndex ?? null
+  const resting = scrubIndex.value === null
+  const i = scrubIndex.value ?? (props.readout ? peakIndex(props.points) : null)
   const pts = curvePoints.value
   if (i === null || i < 0 || i >= pts.length) return null
   // Bei einem einzelnen Messpunkt spannt curvePoints eine Linie ueber zwei
@@ -270,10 +287,11 @@ const scrubPoint = computed<ScrubInfo | null>(() => {
   const series = socSeries.value
   const soc = series ? series.values[Math.min(i, series.values.length - 1)] ?? null : null
   return {
-    soc: soc === null ? null : Math.round(soc),
+    resting,
+    soc: soc === null ? null : `${series?.derived ? '~' : ''}${Math.round(soc)} %`,
     x: pts[i].x,
     y: pts[i].y,
-    kw: src.kw.toLocaleString(undefined, { maximumFractionDigits: 1 }),
+    kw: src.kw.toLocaleString(undefined, { maximumFractionDigits: src.kw < 10 ? 1 : 0 }),
     label: props.xAxisMode === 'duration'
       ? formatDuration(src.ts - props.points[0].ts)
       : new Date(src.ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
@@ -291,9 +309,6 @@ const scrubTooltipStyle = computed(() => {
   return { left: `${pct}%`, transform: `translateX(${shift})` }
 })
 
-// Unique id-Suffix damit mehrere Instanzen auf einer Seite keine Gradient-IDs
-// teilen und sich gegenseitig "verlieren". Vue 3.5 useId() ist SSR-stabil
-// (waehrend Math.random() Hydration-Mismatch ausloesen wuerde).
 /** Punktposition im HTML-Overlay - die viewBox ist 600x200. */
 function dotStyle(x: number, y: number) {
   return {
@@ -302,15 +317,25 @@ function dotStyle(x: number, y: number) {
     transform: 'translate(-50%, -50%)',
   }
 }
-
-const uid = useId()
-const fillId = `pc-fill-${uid}`
-const strokeId = `pc-stroke-${uid}`
-const glowId = `pc-glow-${uid}`
 </script>
 
 <template>
   <div>
+    <!-- Feste Ablese-Zeile: steht ueber der Kurve, wo der Finger sie nicht verdeckt -->
+    <p
+      v-if="readout && scrubPoint"
+      data-testid="power-curve-readout"
+      class="mb-3 min-h-6 text-[15px] leading-6 tabular-nums text-gray-900 dark:text-gray-100"
+      aria-live="polite"
+    >
+      <span v-if="scrubPoint.resting" class="mr-1 text-gray-500 dark:text-gray-400">{{ readout }}</span>
+      <span class="font-bold">{{ scrubPoint.kw }} kW</span>
+      <template v-if="scrubPoint.soc !== null"> · {{ scrubPoint.soc }}</template>
+      <template v-if="scrubPoint.km !== null">
+        · <span class="inline-block w-3 h-0.5 align-middle rounded-full bg-story-accent dark:bg-story-accent-dark" aria-hidden="true" /> +{{ scrubPoint.km }} km
+      </template>
+      <span class="text-gray-500 dark:text-gray-400"> · {{ scrubPoint.label }}</span>
+    </p>
     <!-- Bezugsrahmen der Overlays: genau die SVG-Flaeche. Die Achsenzeilen
          darunter duerfen nicht mit hineinzaehlen - die Punkte und die
          kW-Beschriftung sitzen prozentual zur viewBox-Hoehe und rutschten sonst
@@ -321,7 +346,7 @@ const glowId = `pc-glow-${uid}`
         ref="svgRef"
         viewBox="0 0 600 200"
         :style="svgHeightStyle"
-        class="block w-full h-[var(--pc-h-mobile)] md:h-[var(--pc-h-desktop)] touch-pan-y focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 rounded"
+        class="block w-full h-[var(--pc-h-mobile)] md:h-[var(--pc-h-desktop)] touch-pan-y focus:outline-none focus-visible:ring-2 focus-visible:ring-gray-900 dark:focus-visible:ring-gray-100 rounded"
         preserveAspectRatio="none"
         role="img"
         :aria-label="ariaLabel"
@@ -335,100 +360,81 @@ const glowId = `pc-glow-${uid}`
         @blur="endScrub"
         @keydown="onKeydown"
       >
-        <defs>
-          <linearGradient :id="fillId" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#10b981" stop-opacity="0.45" />
-            <stop offset="60%" stop-color="#10b981" stop-opacity="0.12" />
-            <stop offset="100%" stop-color="#10b981" stop-opacity="0" />
-          </linearGradient>
-          <linearGradient :id="strokeId" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#059669" />
-            <stop offset="100%" stop-color="#34d399" />
-          </linearGradient>
-          <filter :id="glowId" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        <g stroke="currentColor" class="text-gray-300 dark:text-slate-700" stroke-width="1" stroke-dasharray="2 4" opacity="0.6">
-          <line v-for="(tick, i) in curveYTicks" :key="`g-${i}`" x1="0" :y1="tick.y" x2="600" :y2="tick.y" />
+        <g stroke="currentColor" class="text-gray-200 dark:text-gray-700">
+          <line v-for="(tick, i) in curveYTicks" :key="`g-${i}`" x1="0" :y1="tick.y" x2="600" :y2="tick.y" vector-effect="non-scaling-stroke" />
         </g>
-        <path v-if="curveFillPath" :d="curveFillPath" :fill="`url(#${fillId})`" />
-        <path v-if="curveStrokePath" :d="curveStrokePath" fill="none" :stroke="`url(#${strokeId})`" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" :filter="`url(#${glowId})`" />
-        <!-- Reichweite-Overlay (km), eigene Y-Skala, blaue Linie zur Abgrenzung -->
-        <path v-if="rangeStrokePath" :d="rangeStrokePath" fill="none" stroke="#0ea5e9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.85" />
-        <!-- Scrub-Marker: Fadenkreuz auf dem angepeilten Messpunkt -->
+        <!-- CI: flache Flaeche und Linie in gray-900, kein Verlauf, kein Glow -->
+        <path v-if="curveFillPath" :d="curveFillPath" class="fill-gray-100 dark:fill-white/10" />
+        <path v-if="curveStrokePath" :d="curveStrokePath" fill="none" stroke="currentColor" class="text-gray-900 dark:text-gray-100" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+        <!-- Nachgeladene Reichweite: eigene Y-Skala, gruen wie das Ergebnis im Kopf -->
+        <path v-if="rangeStrokePath" :d="rangeStrokePath" fill="none" stroke="currentColor" class="text-story-accent dark:text-story-accent-dark" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
         <!-- Nur die Linie bleibt im SVG. Punkte liegen als HTML darueber, weil
              preserveAspectRatio="none" die Achsen unterschiedlich streckt und
              einen <circle> damit zur Ellipse zieht - dasselbe Problem, das
              Beschriftungen schon ausserhalb des SVG loesen. -->
-        <template v-if="scrubPoint">
-          <line :x1="scrubPoint.x" y1="0" :x2="scrubPoint.x" y2="200" stroke="currentColor" class="text-gray-400 dark:text-slate-500" stroke-width="1" stroke-dasharray="3 3" />
-        </template>
-        <template v-if="showLiveMarker && curveLastPoint">
-          <line :x1="curveLastPoint.x" :y1="curveLastPoint.y" :x2="curveLastPoint.x" y2="200" stroke="#10b981" stroke-width="1" stroke-dasharray="2 3" opacity="0.5" />
-        </template>
+        <line v-if="scrubPoint && !scrubPoint.resting" :x1="scrubPoint.x" y1="0" :x2="scrubPoint.x" y2="200" stroke="currentColor" class="text-gray-900 dark:text-gray-100" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke" />
+        <line v-if="showLiveMarker && curveLastPoint" :x1="curveLastPoint.x" :y1="curveLastPoint.y" :x2="curveLastPoint.x" y2="200" stroke="currentColor" class="text-story-accent dark:text-story-accent-dark" stroke-width="1" stroke-dasharray="2 3" opacity="0.6" vector-effect="non-scaling-stroke" />
       </svg>
-      <!-- Momentanwert am Zeiger. HTML statt SVG-Text, sonst wuerde
-           preserveAspectRatio="none" die Schrift verzerren. -->
+      <!-- Ohne feste Ablese-Zeile (Live-Karte): Momentanwert am Zeiger. HTML
+           statt SVG-Text, sonst wuerde preserveAspectRatio="none" die Schrift verzerren. -->
       <div
-        v-if="scrubPoint"
+        v-if="!readout && scrubPoint"
         data-testid="power-curve-tooltip"
-        class="pointer-events-none absolute top-1 z-10 flex items-baseline gap-1.5 whitespace-nowrap rounded-md border border-emerald-200/70 dark:border-emerald-800/50 bg-white/95 dark:bg-gray-900/95 px-2 py-1 text-[11px] leading-none shadow-sm tabular-nums"
+        class="pointer-events-none absolute top-1 z-10 flex items-baseline gap-1.5 whitespace-nowrap rounded-md border-2 border-edge bg-white dark:bg-gray-900 px-2 py-1 text-[12px] leading-none tabular-nums text-gray-900 dark:text-gray-100"
         :style="scrubTooltipStyle"
       >
-        <span class="font-semibold text-emerald-700 dark:text-emerald-300">{{ scrubPoint.kw }} kW</span>
-        <span v-if="scrubPoint.km !== null" class="font-medium text-sky-600 dark:text-sky-400">+{{ scrubPoint.km }} km</span>
-        <span v-if="scrubPoint.soc !== null" class="font-medium text-gray-700 dark:text-gray-300">{{ scrubPoint.soc }} %</span>
+        <span class="font-bold">{{ scrubPoint.kw }} kW</span>
+        <span v-if="scrubPoint.km !== null" class="inline-flex items-center gap-1">
+          <span class="inline-block w-2.5 h-0.5 rounded-full bg-story-accent dark:bg-story-accent-dark" aria-hidden="true" />+{{ scrubPoint.km }} km
+        </span>
+        <span v-if="scrubPoint.soc !== null">{{ scrubPoint.soc }}</span>
         <span class="text-gray-500 dark:text-gray-400">{{ scrubPoint.label }}</span>
       </div>
-      <span class="sr-only" aria-live="polite">{{ scrubPoint ? `${scrubPoint.kw} kW, ${scrubPoint.soc !== null ? `${scrubPoint.soc} %, ` : ''}${scrubPoint.label}` : '' }}</span>
+      <span v-if="!readout" class="sr-only" aria-live="polite">{{ scrubPoint ? `${scrubPoint.kw} kW, ${scrubPoint.soc !== null ? `${scrubPoint.soc}, ` : ''}${scrubPoint.label}` : '' }}</span>
       <!-- Y-Achse als HTML-Overlay (vermeidet preserveAspectRatio="none"-Stretching von SVG-Text) -->
       <div data-testid="power-curve-overlay" class="pointer-events-none absolute inset-0">
+        <span
+          v-for="(tick, i) in curveYTicks"
+          :key="`yt-${i}`"
+          class="absolute left-0 -translate-y-full pb-0.5 text-[11px] text-gray-500 dark:text-gray-400 tabular-nums leading-none"
+          :style="`top: ${(tick.y / 200) * 100}%;`"
+        >{{ tick.kw }} kW</span>
+        <!-- Endwert der km-Linie, rechtsbuendig ueber ihrem Ende -->
+        <span
+          v-if="rangeLastPoint"
+          data-testid="power-curve-range-end"
+          class="absolute right-0 -translate-y-full pb-1 text-[13px] font-bold text-story-accent dark:text-story-accent-dark tabular-nums whitespace-nowrap leading-none"
+          :style="`top: ${(rangeLastPoint.y / 200) * 100}%;`"
+        >+{{ Math.round(rangeLastPoint.km) }} km</span>
         <template v-if="scrubPoint">
           <span
-            v-if="scrubPoint.rangeY !== null"
-            class="absolute w-[7px] h-[7px] rounded-full bg-sky-500 ring-[1.5px] ring-white"
+            v-if="scrubPoint.rangeY !== null && !scrubPoint.resting"
+            class="absolute w-2.5 h-2.5 rounded-full bg-story-accent dark:bg-story-accent-dark ring-2 ring-white dark:ring-gray-900"
             :style="dotStyle(scrubPoint.x, scrubPoint.rangeY)"
           />
           <span
-            class="absolute w-[9px] h-[9px] rounded-full bg-emerald-600 ring-2 ring-white"
+            class="absolute w-3 h-3 rounded-full bg-gray-900 dark:bg-gray-100 ring-2 ring-white dark:ring-gray-900"
             :style="dotStyle(scrubPoint.x, scrubPoint.y)"
           />
         </template>
         <template v-if="showLiveMarker && curveLastPoint">
-          <span class="absolute w-4 h-4 rounded-full bg-emerald-500/25" :style="dotStyle(curveLastPoint.x, curveLastPoint.y)" />
-          <span class="absolute w-2 h-2 rounded-full bg-emerald-500 marker-pulse" :style="dotStyle(curveLastPoint.x, curveLastPoint.y)" />
-          <span class="absolute w-1 h-1 rounded-full bg-white" :style="dotStyle(curveLastPoint.x, curveLastPoint.y)" />
+          <span class="absolute w-4 h-4 rounded-full bg-story-accent/25 dark:bg-story-accent-dark/25" :style="dotStyle(curveLastPoint.x, curveLastPoint.y)" />
+          <span class="absolute w-2 h-2 rounded-full bg-story-accent dark:bg-story-accent-dark marker-pulse" :style="dotStyle(curveLastPoint.x, curveLastPoint.y)" />
         </template>
-        <span
-          v-for="(tick, i) in curveYTicks"
-          :key="`yt-${i}`"
-          class="absolute left-1.5 text-[9px] text-gray-500 dark:text-slate-400 tabular-nums leading-none rounded-sm bg-white/80 dark:bg-gray-900/80 px-1 py-px"
-          :style="`top: calc(${(tick.y / 200) * 100}% - 0.3em);`"
-        >{{ tick.kw }} kW</span>
-        <!-- Reichweite-Label am Endpunkt der km-Linie. Y aus rangeLastPoint,
-             rechtsbuendig am rechten Rand. Bei 25% Headroom liegt y ~75%, also
-             weit unter dem kW-Overlay rechts oben. -->
-        <span
-          v-if="rangeLastPoint"
-          class="absolute text-[10px] font-semibold text-sky-600 dark:text-sky-400 tabular-nums whitespace-nowrap leading-none px-1.5 py-0.5 rounded bg-white/85 dark:bg-gray-900/85 border border-sky-200/60 dark:border-sky-800/40"
-          :style="`top: calc(${(rangeLastPoint.y / 200) * 100}% - 1.6em); right: 4px;`"
-        >+{{ Math.round(rangeLastPoint.km) }} km</span>
       </div>
     </div>
-    <div class="flex justify-between text-[10px] text-gray-500 dark:text-gray-500 px-1 tabular-nums mt-1">
+    <div class="flex justify-between text-[11px] text-gray-700 dark:text-gray-300 tabular-nums mt-1">
       <span
         v-for="(lab, i) in curveXLabels"
         :key="`x-${i}`"
-        :class="lab.isNow ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : ''"
+        :class="lab.isNow ? 'font-semibold' : ''"
       >{{ lab.text }}</span>
     </div>
     <!-- Zweite Achsenzeile: Ladestand an denselben Stuetzstellen -->
     <div
       v-if="socXLabels"
       data-testid="power-curve-soc-axis"
-      class="flex justify-between text-[10px] text-gray-400 dark:text-gray-500 px-1 tabular-nums mt-0.5"
+      class="flex justify-between text-[11px] text-gray-500 dark:text-gray-400 tabular-nums mt-0.5"
       :aria-label="socAxisLabel"
     >
       <span v-for="(lab, i) in socXLabels" :key="`soc-${i}`">{{ lab }}</span>
