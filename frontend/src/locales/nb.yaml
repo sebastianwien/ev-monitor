@@ -3531,7 +3531,6 @@ logwizard:
   d_tire_winter: "Vinter"
   d_duration: "Ladetid"
   d_peak: "Høyeste ladeeffekt"
-  watt_hint: "Watt gis ved lagring."
   ask_highway: "Var det en motorveitur?"
   ask_highway_yes: "Ja, motorvei"
   ask_highway_no: "Nei"

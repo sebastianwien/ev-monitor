@@ -31,6 +31,7 @@ import StepNumbers, { type NumbersContext } from './StepNumbers.vue'
 import { consumptionPreview, type PreviousLogRef } from '../../utils/consumptionPreview'
 import { shouldAskHighway } from './routeTypeHint'
 import { costMetrics } from './costMetrics'
+import { wattForNewLog } from '../../utils/wattPreview'
 import geohashLib from 'ngeohash'
 import type { CardChoice, CommunityPrice } from './CardStrip.vue'
 import { providerPriceForType } from '../../utils/chargingProviderPricing'
@@ -55,6 +56,7 @@ const { formatNumber, formatDecimal } = useLocaleFormat()
 const carStore = useCarStore()
 const countryStore = useCountryStore()
 const coinStore = useCoinStore()
+coinStore.ensureCatalog()
 const logsRefreshStore = useLogsRefreshStore()
 
 // ── Auto ──────────────────────────────────────────────────────────────────────
@@ -70,6 +72,8 @@ const step = ref<WizardStep>(1)
 /** Für das Sheet: mit Eingaben minimiert ein Zug nach unten, statt alles zu verwerfen */
 defineExpose({ hasInput: computed(() => hasInput(form.value, state.value)) })
 const ocrUsed = ref(false)
+/** Speichern-Knopf zeigt, was die Ladung an Watt bringt */
+const wattOnSave = computed(() => wattForNewLog(coinStore.catalog, ocrUsed.value))
 const saving = ref(false)
 const error = ref<string | null>(null)
 
@@ -536,7 +540,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
 
     <WizardShell v-else-if="hasCars" :embedded="embedded" :step="step" :question="t(questions[step])" :hint="hint"
       :can-proceed="proceedAllowed && !!selectedCarId" :saving="saving"
-      :primary-label="step === LAST_STEP ? t('common.save') : t('common.next')"
+      :primary-label="step === LAST_STEP ? t('common.save') : t('common.next')" :primary-watt="step === LAST_STEP ? wattOnSave : 0"
       @back="back" @next="next" @blocked="onBlocked" @cancel="emit('cancel')">
       <div v-if="cars.length > 1 && step === 1" class="mb-4"><CarSelector v-model="selectedCarId" /></div>
 

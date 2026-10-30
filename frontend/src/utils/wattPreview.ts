@@ -55,3 +55,12 @@ export function wattPossibleForLog(catalog: WattCatalog | null, log: {
 export function wattPossiblePerLogMax(catalog: WattCatalog | null): number {
   return wattPreview(catalog, { addsPrice: true, addsCard: true, addsCpo: true, batchCount: 0 })
 }
+
+/**
+ * Was eine neu erfasste Ladung bringt (Speichern-Knopf im Wizard). Der Regelbetrag: der Katalog sagt nicht,
+ * ob es die allererste Ladung ist - dann gibt das Backend mehr, der Toast nennt den echten Betrag.
+ */
+export function wattForNewLog(catalog: WattCatalog | null, ocrUsed: boolean): number {
+  if (!catalog) return 0
+  return amountOf(catalog, ocrUsed ? 'MANUAL_LOG_OCR' : 'MANUAL_LOG_SUBSEQUENT')
+}

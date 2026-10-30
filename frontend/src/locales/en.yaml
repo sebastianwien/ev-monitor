@@ -3648,7 +3648,6 @@ logwizard:
   d_tire_winter: "Winter"
   d_duration: "Charging time"
   d_peak: "Peak charging power"
-  watt_hint: "Watt are awarded on save."
   ask_highway: "Was that a motorway trip?"
   ask_highway_yes: "Yes, motorway"
   ask_highway_no: "No"

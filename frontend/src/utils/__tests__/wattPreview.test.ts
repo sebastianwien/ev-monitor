@@ -43,3 +43,19 @@ describe('wattPossibleForLog', () => {
     expect(wattPossibleForLog(catalog, { costEur: null, chargingProviderId: 'c', cpoName: 'Aldi', isPublicCharging: true })).toBe(3)
   })
 })
+
+import { wattForNewLog } from '../wattPreview'
+
+describe('wattForNewLog', () => {
+  const logCatalog: WattCatalog = {
+    MANUAL_LOG_SUBSEQUENT: { amount: 5, oneTime: false, claimed: false },
+    MANUAL_LOG_OCR: { amount: 7, oneTime: false, claimed: false },
+  }
+  it('neue Ladung bringt den Regelbetrag, mit Foto-Erkennung den OCR-Betrag', () => {
+    expect(wattForNewLog(logCatalog, false)).toBe(5)
+    expect(wattForNewLog(logCatalog, true)).toBe(7)
+  })
+  it('ohne Katalog keine Zahl', () => {
+    expect(wattForNewLog(null, false)).toBe(0)
+  })
+})

@@ -590,7 +590,8 @@ test.describe('Wizard nur mit Tastatur', () => {
 
     // Schritt 3: Fokus auf Speichern
     await expect(focused).toHaveAttribute('data-testid', 'wizard-next');
-    await expect(focused).toHaveText('Speichern');
+    // Speichern, daneben ggf. die Watt der Ladung (Katalog lädt asynchron)
+    await expect(focused).toHaveText(/^Speichern/);
     await page.keyboard.press('Enter');
 
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });

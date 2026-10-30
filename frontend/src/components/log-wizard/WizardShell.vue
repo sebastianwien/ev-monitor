@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { INPUT_STEPS, type WizardStep } from './wizardLogic'
 import { useIsMobile } from '../../composables/useIsMobile'
+import WattBadge from '../shared/WattBadge.vue'
 import { useVisualViewportBox } from '../../composables/useVisualViewportBox'
 
 const props = defineProps<{
@@ -12,6 +13,8 @@ const props = defineProps<{
   hint?: string
   canProceed: boolean
   primaryLabel: string
+  /** Watt, die die Hauptaktion bringt (Speichern im letzten Schritt); 0 = kein Badge */
+  primaryWatt?: number
   saving?: boolean
   /** Im Erfassen-Sheet: füllt das Panel statt den Viewport, Safe-Area und Tastatur übernimmt das Sheet. */
   embedded?: boolean
@@ -84,7 +87,7 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
       <button type="button" data-testid="wizard-next" :disabled="saving" :aria-disabled="!canProceed" @click="onPrimary"
         :class="['flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white transition-colors',
                  !canProceed || saving ? 'opacity-40 cursor-not-allowed' : 'hover:bg-green-700']">
-        {{ saving ? t('common.saving') : primaryLabel }}
+        <span class="inline-flex items-center justify-center gap-2">{{ saving ? t('common.saving') : primaryLabel }}<WattBadge v-if="!saving && primaryWatt" :amount="primaryWatt" on-dark size="md" /></span>
       </button>
       </template>
       </div>
