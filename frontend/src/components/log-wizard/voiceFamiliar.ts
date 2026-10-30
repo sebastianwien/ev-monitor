@@ -14,3 +14,14 @@ export const voiceFamiliar = () => uses() >= FAMILIAR_AFTER
 export function recordVoiceUse() {
   try { localStorage.setItem(USES_KEY, String(uses() + 1)) } catch { /* privater Modus */ }
 }
+
+/** Wer die Beispiel-Blase wegklickt, sieht sie nicht wieder. Knopftext bleibt, bis zwei Aufnahmen geklappt haben. */
+const EXAMPLE_DISMISSED_KEY = 'voicelog_example_dismissed'
+
+export const voiceExampleDismissed = () => {
+  try { return localStorage.getItem(EXAMPLE_DISMISSED_KEY) === 'true' } catch { return false }
+}
+
+export function dismissVoiceExample() {
+  try { localStorage.setItem(EXAMPLE_DISMISSED_KEY, 'true') } catch { /* privater Modus: dann nur bis zum nächsten Öffnen */ }
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { recordVoiceUse, voiceFamiliar } from '../voiceFamiliar'
+import { dismissVoiceExample, recordVoiceUse, voiceExampleDismissed, voiceFamiliar } from '../voiceFamiliar'
 
 describe('voiceFamiliar', () => {
   beforeEach(() => localStorage.clear())
@@ -17,5 +17,12 @@ describe('voiceFamiliar', () => {
     expect(voiceFamiliar()).toBe(false)
     recordVoiceUse()
     expect(localStorage.getItem('voicelog_uses')).toBe('1')
+  })
+
+  it('remembers a closed example bubble without making the user familiar', () => {
+    expect(voiceExampleDismissed()).toBe(false)
+    dismissVoiceExample()
+    expect(voiceExampleDismissed()).toBe(true)
+    expect(voiceFamiliar()).toBe(false)
   })
 })

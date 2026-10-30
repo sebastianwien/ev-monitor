@@ -3763,6 +3763,7 @@ voicelog:
   edit_changed: "Ändrat med rösten"
   edit_card: "Laddkort"
   edit_undo: "Ångra"
+  example_close: "Stäng tipset"
   edit_nothing: "Inget ändrat: inget nytt värde hittades."
   address_found: "Adress hittad: {name}"
   address_not_found: "Adressen ”{q}” hittades inte. Välj platsen."

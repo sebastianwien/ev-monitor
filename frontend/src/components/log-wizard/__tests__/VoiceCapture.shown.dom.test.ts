@@ -59,3 +59,23 @@ describe('VoiceCapture: Fußleiste beim Bearbeiten', () => {
     expect(document.querySelector('#edit-footer-note [data-testid="voice-note"]')?.textContent).toContain('Neue Werte ersetzen die alten')
   })
 })
+
+// Beispiel-Blase lässt sich wegklicken und bleibt weg; der Knopftext bleibt für Neue
+describe('VoiceCapture: Beispiel-Blase schließen', () => {
+  const note = () => document.querySelector('[data-testid="voice-note"]')
+  it('verschwindet nach Klick auf das X', async () => {
+    mount('footer')
+    await new Promise(r => setTimeout(r))
+    ;(document.querySelector('[data-testid="voice-example-close"]') as HTMLButtonElement).click()
+    await new Promise(r => setTimeout(r))
+    expect(note()).toBeNull()
+    expect(localStorage.getItem('voicelog_example_dismissed')).toBe('true')
+  })
+  it('kommt nach dem Schließen beim nächsten Öffnen nicht wieder', async () => {
+    localStorage.setItem('voicelog_example_dismissed', 'true')
+    mount('footer')
+    await new Promise(r => setTimeout(r))
+    expect(note()).toBeNull()
+    expect(document.querySelector('[data-testid="voice-mic"]')?.textContent).toContain(i18n.global.t('voicelog.footer_cta'))
+  })
+})

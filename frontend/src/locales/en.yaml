@@ -3880,6 +3880,7 @@ voicelog:
   edit_changed: "Changed by voice"
   edit_card: "Charging card"
   edit_undo: "Undo"
+  example_close: "Close hint"
   edit_nothing: "Nothing changed: no new value recognised."
   address_found: "Address found: {name}"
   address_not_found: "Address “{q}” not found. Please pick the place."

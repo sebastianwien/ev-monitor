@@ -3886,6 +3886,7 @@ voicelog:
   edit_changed: "Per Sprache geändert"
   edit_card: "Ladekarte"
   edit_undo: "Rückgängig"
+  example_close: "Hinweis schließen"
   edit_nothing: "Nichts geändert: kein neuer Wert erkannt."
   address_found: "Adresse gefunden: {name}"
   address_not_found: "Adresse „{q}“ nicht gefunden. Bitte den Ort wählen."

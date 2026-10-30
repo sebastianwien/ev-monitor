@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { MicrophoneIcon, ArrowPathIcon } from '@heroicons/vue/24/outline'
+import { MicrophoneIcon, ArrowPathIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../../api/axios'
 import { useVoiceRecorder, pickMimeType } from '../../composables/useVoiceRecorder'
 import { analytics } from '../../services/analytics'
@@ -13,7 +13,7 @@ import { useVoiceQuota } from './useVoiceQuota'
 import { quotaFromLimit, quotaFromUsage } from './voiceQuota'
 import { getPricing } from '../../config/pricingConfig'
 import { useCountryStore } from '../../stores/country'
-import { recordVoiceUse, voiceFamiliar } from './voiceFamiliar'
+import { dismissVoiceExample, recordVoiceUse, voiceExampleDismissed, voiceFamiliar } from './voiceFamiliar'
 import { useKeyboardOpen } from '../../composables/useKeyboardOpen'
 
 const props = withDefaults(defineProps<{
@@ -51,6 +51,8 @@ const extension = (type: string) => type.startsWith('audio/mp4') ? 'm4a' : type.
 const again = computed(() => props.variant === 'inline')
 // Neu: Knopf mit Text und Beispielsatz; nach zwei Aufnahmen nur das Symbol. Beim Öffnen festgelegt, nichts springt mitten im Ablauf.
 const stage: 'new' | 'familiar' = voiceFamiliar() ? 'familiar' : 'new'
+const exampleHidden = ref(voiceExampleDismissed())
+const hideExample = () => { dismissVoiceExample(); exampleHidden.value = true }
 const footer = props.variant === 'footer'
 // Nenner für den Trichter: Mikrofon gezeigt, noch nicht angetippt (nur der Einstieg im Wizard)
 if (footer) analytics.trackVoice('shown', { entry: props.entry, stage })
@@ -132,7 +134,7 @@ const note = computed(() => {
   if (showConsent.value) return 'consent'
   if (status.value) return 'status'
   if (notice.value) return notice.value.kind
-  if (stage === 'new' && !keyboardOpen.value) return 'example'
+  if (stage === 'new' && !keyboardOpen.value && !exampleHidden.value) return 'example'
   return null
 })
 /** Spitze zum Knopf nur, wenn es den Knopf gibt */
@@ -203,8 +205,15 @@ if (footer) {
                 class="whitespace-nowrap underline underline-offset-2 font-semibold text-gray-900 dark:text-gray-100">{{ t('voicelog.quota_low_cta') }}</router-link></template>
           </p>
           <!-- Ein kurzes Beispiel statt Bedienanleitung: ein lockerer Halbsatz reicht. Die volle Liste steht im Vollbild. -->
-          <p v-else-if="note === 'example' && entry === 'edit'"><span class="font-semibold text-gray-900 dark:text-gray-50">{{ t('voicelog.edit_title') }}.</span> {{ t('voicelog.again_hint') }}</p>
-          <p v-else-if="note === 'example'"><span class="font-semibold text-gray-900 dark:text-gray-50">{{ t('voicelog.title') }}</span> {{ t('voicelog.card_example') }}</p>
+          <template v-else-if="note === 'example'">
+            <p v-if="entry === 'edit'" class="pr-7"><span class="font-semibold text-gray-900 dark:text-gray-50">{{ t('voicelog.edit_title') }}.</span> {{ t('voicelog.again_hint') }}</p>
+            <p v-else class="pr-7"><span class="font-semibold text-gray-900 dark:text-gray-50">{{ t('voicelog.title') }}</span> {{ t('voicelog.card_example') }}</p>
+            <!-- Sichtbar klein, Trefferfläche 44 px über die Blasenecke hinaus -->
+            <button type="button" data-testid="voice-example-close" :aria-label="t('voicelog.example_close')" @click="hideExample"
+              class="absolute right-0 top-0 inline-flex h-11 w-11 items-center justify-center rounded-xl text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100">
+              <XMarkIcon class="h-5 w-5" />
+            </button>
+          </template>
           <!-- Spitze: gedrehtes Quadrat mit Rand nur unten/rechts, deckt den unteren Rand der Blase ab.
                Mitte des Knopfs: neu die linke von zwei gleich breiten Spalten (gap-3), vertraut 48 px rund. -->
           <span v-if="tail" aria-hidden="true" :style="tailLeft != null ? { left: `${tailLeft}px` } : undefined"
