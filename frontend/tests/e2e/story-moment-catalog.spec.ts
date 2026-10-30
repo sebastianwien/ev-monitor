@@ -96,7 +96,7 @@ const CASES: Case[] = [
     data: () => ({
       ...calmMonth(),
       trips: [
-        trip(NOW_MID, { id: '00000000-0000-0000-0000-0000000f0002', tripStartedAt: iso(NOW_MID - 16 * HOUR), tripEndedAt: iso(NOW_MID - 14 * HOUR), distanceKm: 190, outsideTempCelsius: 13 }),
+        trip(NOW_MID, { id: '00000000-0000-0000-0000-0000000f0002', tripStartedAt: iso(NOW_MID - 16 * HOUR), tripEndedAt: iso(NOW_MID - 14 * HOUR), distanceKm: 190, outsideTempCelsius: 13, locationEndGeohash: 'u0yjjd6j' }),
         trip(NOW_MID, { id: '00000000-0000-0000-0000-0000000f0001', tripStartedAt: iso(NOW_MID - 20 * HOUR), tripEndedAt: iso(NOW_MID - 17 * HOUR), distanceKm: 230, outsideTempCelsius: 14 }),
       ],
       logs: [
@@ -106,6 +106,9 @@ const CASES: Case[] = [
     }),
     check: async (page) => {
       await expect(sentence(page, 'long_trip')).toContainText(/Gestern: 420\skm, 2\sLadestopps für 31\s€\./);
+      const forecast = card(page, 'long_trip').getByTestId('story-news-forecast');
+      await expect(forecast.getByRole('heading', { name: 'Wetter am Ziel' })).toBeVisible();
+      await expect(forecast).toContainText(/Am Ziel heute 4 bis 12\s°C, morgen Regen bei 2 bis 9\s°C\./);
       await expect(card(page, 'long_trip').getByRole('link', { name: 'Fahrten ansehen' })).toBeVisible();
     },
   },
@@ -198,6 +201,10 @@ test.describe('Story: Katalog der Hero-Zustände', () => {
       test(`${c.name} (${theme === 'light' ? 'hell' : 'dunkel'})`, async ({ page }, testInfo) => {
         const errors: string[] = [];
         page.on('pageerror', (err) => errors.push(err.message));
+        // Wetterprognose am Ziel kommt direkt von Open-Meteo: feste Antwort statt Netz.
+        await page.route('https://api.open-meteo.com/**', route => route.fulfill({ json: {
+          daily: { temperature_2m_min: [4, 2], temperature_2m_max: [12, 9], precipitation_probability_max: [10, 80] },
+        } }));
         await openStory(page, c.data(), { theme, keep: c.keep });
 
         await c.check(page);

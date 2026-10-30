@@ -19,6 +19,8 @@ export interface MomentView {
   action?: MomentAction
   secondary?: MomentAction
   dismiss?: boolean
+  /** Wetter am Ziel einer langen Fahrt: Satz für Screenreader, Kacheln fürs Auge. */
+  forecast?: { sentence: string; days: Array<{ label: string; range: string; rain: boolean }> }
 }
 
 export function useMomentView(props: { moment: Moment; carId: string | null; carName: string; now?: number }): ComputedRef<MomentView> {
@@ -64,8 +66,11 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
         const p = { when: dayWord(m.at), km: km(m.km), n: m.stops, eur: m.costEur != null ? eur(m.costEur) : '' }
         const key = m.stops === 0 ? 'moment_trip_no_stop' : m.costEur != null ? 'moment_trip_stops_cost' : 'moment_trip_stops'
         const f = forecast.value
-        const sub = f ? t('story.moment_trip_forecast', { today: dayForecast(f[0]), tomorrow: dayForecast(f[1]) }) : undefined
-        return { eyebrow: t('story.moment_trip_eyebrow'), sentence: t(`story.${key}`, p, m.stops), sub, action: { id: 'trips', label: t('story.moment_action_trips'), to: '/logs' } }
+        const forecastView = f ? {
+          sentence: t('story.moment_trip_forecast', { today: dayForecast(f[0]), tomorrow: dayForecast(f[1]) }),
+          days: f.map((d, i) => ({ label: cap(rtf.value.format(i, 'day')), range: t('story.moment_trip_day', { min: formatDecimal(d.minC, 0), max: formatDecimal(d.maxC, 0) }), rain: d.rain })),
+        } : undefined
+        return { eyebrow: t('story.moment_trip_eyebrow'), sentence: t(`story.${key}`, p, m.stops), forecast: forecastView, action: { id: 'trips', label: t('story.moment_action_trips'), to: '/logs' } }
       }
       case 'first_frost':
         return {

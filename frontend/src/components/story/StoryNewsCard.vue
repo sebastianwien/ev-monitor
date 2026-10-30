@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, ShareIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ShareIcon, ChevronRightIcon, SunIcon, CloudIcon } from '@heroicons/vue/24/outline'
 import type { Moment } from '../../composables/storyMoments'
 import { useMomentView, type MomentAction } from '../../composables/useMomentView'
 import { keepUnits } from '../../utils/modelStory'
@@ -45,6 +45,21 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
       {{ keepUnits(view.sentence) }}
       <span v-if="view.badge" class="ml-1 inline-block rounded-full border border-gray-300 px-2 py-0.5 align-middle text-[12px] font-semibold tracking-normal text-gray-600 dark:border-gray-600 dark:text-gray-300">{{ view.badge }}</span>
     </p>
+    <section v-if="view.forecast" class="mt-1 grid gap-1.5" data-testid="story-news-forecast">
+      <h3 class="text-[13px] font-semibold text-gray-700 dark:text-gray-200">{{ t('story.moment_trip_forecast_title') }}</h3>
+      <p class="sr-only">{{ view.forecast.sentence }}</p>
+      <ul class="grid grid-cols-2 gap-2" aria-hidden="true">
+        <li v-for="d in view.forecast.days" :key="d.label" class="edge-box flex items-start gap-2 rounded-lg bg-white px-3 py-2 dark:bg-gray-800">
+          <CloudIcon v-if="d.rain" class="mt-0.5 h-6 w-6 shrink-0 text-sky-600 dark:text-sky-400" />
+          <SunIcon v-else class="mt-0.5 h-6 w-6 shrink-0 text-amber-500 dark:text-amber-400" />
+          <span class="grid min-w-0">
+            <span class="text-[12px] font-semibold text-gray-600 dark:text-gray-300">{{ d.label }}</span>
+            <span class="whitespace-nowrap text-[15px] font-bold text-gray-900 tabular-nums dark:text-gray-50">{{ keepUnits(d.range) }}</span>
+            <span v-if="d.rain" class="text-[12px] text-sky-700 dark:text-sky-300">{{ t('story.moment_trip_rain') }}</span>
+          </span>
+        </li>
+      </ul>
+    </section>
     <p v-if="view.sub" class="text-pretty text-[14px] text-gray-600 tabular-nums dark:text-gray-300">{{ keepUnits(view.sub) }}</p>
     <div v-if="primary || view.secondary || view.dismiss" class="mt-1 grid gap-1" :class="primary && !primaryIsView ? '' : 'justify-items-start'">
       <template v-if="primary">
