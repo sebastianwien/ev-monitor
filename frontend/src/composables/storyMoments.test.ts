@@ -30,6 +30,11 @@ describe('detectLongTrip', () => {
     expect(detectLongTrip({ trips: [trip('a', 20, 180), trip('b', 15, 160)], logs, now: NOW })).toMatchObject({ stops: 2, costEur: null })
   })
 
+  it('merkt sich das Ziel der zuletzt beendeten Fahrt für die Wetterprognose', () => {
+    const trips = [{ ...trip('a', 20, 180), locationEndGeohash: 'u0yjjd6j' }, { ...trip('b', 15, 160), locationEndGeohash: 'u1hcvz8x' }]
+    expect(detectLongTrip({ trips, logs: [], now: NOW })).toMatchObject({ endGeohash: 'u1hcvz8x' })
+  })
+
   it('bleibt unter 250 km still', () => {
     expect(detectLongTrip({ trips: [trip('a', 3, 120), trip('b', 30, 300)], logs: [], now: NOW })).toBeNull()
   })

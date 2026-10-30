@@ -1,9 +1,10 @@
-import { computed, type ComputedRef } from 'vue'
+import { computed, ref, watch, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from './useLocaleFormat'
 import { heroLine } from './storyModel'
 import { DAY, type Moment } from './storyMoments'
 import { CAT_LABEL } from './useTickerItems'
+import { fetchDestinationForecast, type DayForecast } from '../utils/destinationForecast'
 
 /**
  * Text und Handlung je Moment, geteilt von Moment-Hero und Feed. Links fuehren selbst weiter
@@ -36,6 +37,14 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
     const n = new Date(now.value); n.setHours(0, 0, 0, 0)
     return cap(rtf.value.format(Math.round((a.getTime() - n.getTime()) / DAY), 'day'))
   }
+  const forecast = ref<DayForecast[] | null>(null)
+  watch(() => (props.moment.kind === 'long_trip' ? props.moment.endGeohash : null), async gh => {
+    forecast.value = null
+    if (!gh) return
+    const f = await fetchDestinationForecast(gh)
+    if ((props.moment.kind === 'long_trip' ? props.moment.endGeohash : null) === gh) forecast.value = f
+  }, { immediate: true })
+  const dayForecast = (f: DayForecast) => t(f.rain ? 'story.moment_trip_day_rain' : 'story.moment_trip_day', { min: formatDecimal(f.minC, 0), max: formatDecimal(f.maxC, 0) })
   const shortDate = (at: number) => new Date(at).toLocaleDateString(locale.value, { day: 'numeric', month: 'numeric' })
 
   return computed<MomentView>(() => {
@@ -54,7 +63,9 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
       case 'long_trip': {
         const p = { when: dayWord(m.at), km: km(m.km), n: m.stops, eur: m.costEur != null ? eur(m.costEur) : '' }
         const key = m.stops === 0 ? 'moment_trip_no_stop' : m.costEur != null ? 'moment_trip_stops_cost' : 'moment_trip_stops'
-        return { eyebrow: t('story.moment_trip_eyebrow'), sentence: t(`story.${key}`, p, m.stops), action: { id: 'trips', label: t('story.moment_action_trips'), to: '/logs' } }
+        const f = forecast.value
+        const sub = f ? t('story.moment_trip_forecast', { today: dayForecast(f[0]), tomorrow: dayForecast(f[1]) }) : undefined
+        return { eyebrow: t('story.moment_trip_eyebrow'), sentence: t(`story.${key}`, p, m.stops), sub, action: { id: 'trips', label: t('story.moment_action_trips'), to: '/logs' } }
       }
       case 'first_frost':
         return {

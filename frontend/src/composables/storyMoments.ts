@@ -30,7 +30,7 @@ interface MomentBase {
 
 export type MomentData =
   | { kind: 'expensive'; logId: string; cpoName: string; pricePerKwh: number; medianPricePerKwh: number; cardFromPricePerKwh: number | null }
-  | { kind: 'long_trip'; km: number; stops: number; costEur: number | null }
+  | { kind: 'long_trip'; km: number; stops: number; costEur: number | null; /** Ziel der letzten Fahrt, für die Wetterprognose */ endGeohash?: string | null }
   | { kind: 'first_frost'; tempC: number; winterKm: number; summerKm: number }
   | { kind: 'month_change'; year: number; month: number; km: number | null; eur: number | null; charges: number; petrolEur: number | null }
   | { kind: 'battery'; sohPercent: number; estimated: boolean; previousSohPercent: number | null; previousAt: number | null }
@@ -84,6 +84,7 @@ export interface MomentTrip {
   tripEndedAt?: string | null
   distanceKm?: number | null
   outsideTempCelsius?: number | null
+  locationEndGeohash?: string | null
 }
 
 /** Juenger als die Zuletzt-Karte ("Heute geladen") ist keine Luecke. */
@@ -167,10 +168,11 @@ export function detectLongTrip(input: { trips: MomentTrip[]; logs: MomentLog[]; 
   const costEur = stops.length > 0 && stops.every(l => l.costEur != null)
     ? stops.reduce((s, l) => s + l.costEur!, 0)
     : null
+  const last = recent.find(t => ms(tripTimestamp(t)) === to)
   const d = new Date(to)
   return {
     ...base(`long_trip:${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`, to, DAY),
-    kind: 'long_trip', km, stops: stops.length, costEur,
+    kind: 'long_trip', km, stops: stops.length, costEur, endGeohash: last?.locationEndGeohash ?? null,
   }
 }
 

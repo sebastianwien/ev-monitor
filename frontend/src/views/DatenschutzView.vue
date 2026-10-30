@@ -206,13 +206,18 @@ onMounted(async () => {
         </section>
 
         <section>
-          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">8. Wetter- und Kartendienste (serverseitig)</h2>
+          <h2 class="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">8. Wetter- und Kartendienste</h2>
           <p>
             Zur Berechnung temperaturabhängiger Verbrauchswerte fragt unser Server die Außentemperatur zum
             Ladezeitpunkt bei <strong>Open-Meteo</strong> (OpenMeteo GmbH, Bürglen, Schweiz) ab. Übermittelt werden dabei nur
             der vergröberte Standort (Geohash) und der Zeitpunkt, keine Kontodaten und nicht Ihre IP-Adresse.
             Für die Berechnung von Fahrtstrecken nutzt unser Server in gleicher Weise
             <strong>openrouteservice</strong> (HeiGIT gGmbH, Heidelberg, Deutschland).
+          </p>
+          <p class="mt-4">
+            Nach einer langen Fahrt zeigt die App das Wetter am Ziel für heute und morgen. Diese Prognose ruft Ihr
+            Browser direkt bei Open-Meteo ab. Übermittelt werden dabei Ihre IP-Adresse und der ungefähre Zielort
+            (auf rund 5 km gerundet), keine Kontodaten.
           </p>
           <p class="mt-4">
             <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Bestandteil der Verbrauchsauswertung).
