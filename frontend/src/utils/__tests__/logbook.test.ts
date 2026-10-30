@@ -90,6 +90,26 @@ describe('monthsOf', () => {
     expect(months[0].totals).toEqual({ trips: 2, km: 20, charges: 1, eur: 12.4, costPer100km: 6 })
   })
 
+  // go-e ohne km-Stand am selben Tag: eine Ladegruppe wie in der Liste
+  const goe = (id: string, d: string, h: number) => ({ ...log(id, d, h, { chargeDurationMinutes: 30 }), dataSource: 'WALLBOX_GOE' })
+
+  it('Teilladungen eines Tages: im Ablauf ein Eintrag, im Diagramm und in den Summen jede', () => {
+    const months = monthsOf([trip('t', '2026-10-05', 18)], [goe('a', '2026-10-05', 9), goe('b', '2026-10-05', 11), goe('c', '2026-10-05', 13)])
+    const day = months[0].items[0]
+    expect(day.kind === 'day' && day.rows.map(e => e.id)).toEqual(['a', 't'])
+    expect(day.kind === 'day' && day.events).toHaveLength(4)
+    expect(months[0].totals.charges).toBe(3)
+  })
+
+  it('Standzeit vor dem Bündel: der Standverlust hängt an der ältesten Teilladung', () => {
+    const drains = new Map([['a', { kwh: 0.4, eur: 0.12 }]])
+    const months = monthsOf([trip('t', '2026-10-05', 7)], [goe('a', '2026-10-05', 9), goe('b', '2026-10-05', 11)], { drains })
+    const day = months[0].items[0]
+    expect(day.kind === 'day' && day.rows.map(e => e.id)).toEqual(['t', 'a'])
+    // 07:30 bis 09:00
+    expect(day.kind === 'day' && day.standing.a).toEqual({ minutes: 90, kwh: 0.4, eur: 0.12 })
+  })
+
   it('ohne Einträge kein Monat', () => {
     expect(monthsOf([], [])).toEqual([])
   })
@@ -124,9 +144,11 @@ describe('chargeDetailKeys', () => {
 })
 
 describe('chargeMonthsOf (Logbuch nur mit Ladungen)', () => {
-  // Ladung mit km-Stand und dem, was das Backend je Ladung liefert (EvLogService)
+  // Ladung mit km-Stand und dem, was das Backend je Ladung liefert (EvLogService). Je Ladung ein neuer km-Stand:
+  // gleiche km-Stände hintereinander sind Nachladen und werden ein Bündel
+  let odo = 1000
   const charge = (id: string, d: string, h: number, over: Record<string, unknown> = {}) => ({
-    ...log(id, d, h), odometerKm: 1000, distanceSinceLastChargeKm: null, consumptionKwhPer100km: null, ...over,
+    ...log(id, d, h), odometerKm: odo += 100, distanceSinceLastChargeKm: null, consumptionKwhPer100km: null, ...over,
   })
 
   it('neueste zuerst, dazwischen die Strecke der neueren Ladung mit Tagen, km, Verbrauch und € pro 100 km', () => {
@@ -163,12 +185,37 @@ describe('chargeMonthsOf (Logbuch nur mit Ladungen)', () => {
     expect(months[0].rhythmDays).toBe(1)
   })
 
-  it('Nachladen am selben km-Stand: keine Strecke; unter der ältesten geladenen Ladung keine', () => {
+  it('Nachladen am selben km-Stand: ein Bündel ohne Strecke dazwischen; unter der ältesten geladenen Ladung keine', () => {
     const months = chargeMonthsOf([
-      charge('l1', '2026-10-21', 12),
-      charge('l2', '2026-10-21', 14, { distanceSinceLastChargeKm: 0 }),
+      charge('l1', '2026-10-21', 12, { odometerKm: 900 }),
+      charge('l2', '2026-10-21', 14, { odometerKm: 900, distanceSinceLastChargeKm: 0 }),
     ])
-    expect(months[0].entries.map(e => e.kind)).toEqual(['charge', 'charge'])
+    expect(months[0].entries.map(e => e.kind)).toEqual(['charge'])
+  })
+
+  it('Teilladungen: eine Zeile mit den Teilen; die Strecke darunter kommt von der ältesten, € pro 100 km aus der Summe', () => {
+    const months = chargeMonthsOf([
+      charge('l0', '2026-10-20', 12, { odometerKm: 900 }),
+      charge('a', '2026-10-25', 9, { odometerKm: 1200, distanceSinceLastChargeKm: 300, consumptionKwhPer100km: 17, costEur: 3 }),
+      charge('b', '2026-10-25', 11, { odometerKm: 1200, distanceSinceLastChargeKm: 0, costEur: 3 }),
+      charge('c', '2026-10-25', 13, { odometerKm: 1200, distanceSinceLastChargeKm: 0, costEur: 3 }),
+    ])
+    expect(months[0].entries.map(e => e.kind)).toEqual(['charge', 'stretch', 'charge'])
+    const bundle = months[0].entries[0]
+    expect(bundle.key).toBe('a')
+    expect(bundle.kind === 'charge' && bundle.parts?.map(p => p.id)).toEqual(['a', 'b', 'c'])
+    expect(months[0].entries[1]).toEqual({ kind: 'stretch', key: 's-a', days: 5, km: 300, kwhPer100km: 17, eurPer100km: 3, fix: null })
+    // Summen und Zahl der Ladungen zählen jedes Teil
+    expect(months[0].totals).toMatchObject({ charges: 4, eur: 18 })
+  })
+
+  it('Teilladungen, denen ein Preis fehlt: keine € pro 100 km', () => {
+    const months = chargeMonthsOf([
+      charge('l0', '2026-10-20', 12, { odometerKm: 900 }),
+      charge('a', '2026-10-25', 9, { odometerKm: 1200, distanceSinceLastChargeKm: 300, costEur: 3 }),
+      charge('b', '2026-10-25', 11, { odometerKm: 1200, distanceSinceLastChargeKm: 0, costEur: null }),
+    ])
+    expect(months[0].entries[1]).toMatchObject({ km: 300, eurPer100km: null })
   })
 
   it('Monate nach der Ladung, die Strecke bei der neueren; Summen je Monat', () => {

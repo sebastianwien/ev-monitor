@@ -1,19 +1,22 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, PencilSquareIcon } from '@heroicons/vue/24/outline'
 import LogbookMonthHead from './LogbookMonthHead.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { chargeKwh, chargePlace } from '../../composables/storyDay'
+import { bundleTotals, chargeKwh, chargePlace, type DayLog } from '../../composables/storyDay'
 import { chargePricePerKwh } from '../../composables/useChargingEfficiency'
-import type { ChargeLog, ChargeMonth } from '../../utils/logbook'
+import type { ChargeEntry, ChargeLog, ChargeMonth } from '../../utils/logbook'
 
 /**
  * Logbuch für Autos ohne Fahrten: eine Ladung je Zeile, dazwischen die Strecke aus den km-Ständen. Die Höhe
  * der Strecke folgt den Tagen dazwischen, so wird der Laderhythmus sichtbar; der Monatskopf sagt ihn als Satz.
- * Fehlt etwas, steht dort die Handlung in Amber (Preis, km-Stand).
+ * Fehlt etwas, steht dort die Handlung in Amber (Preis, km-Stand). Teilladungen stehen als eine Zeile (Bündel).
  */
-defineProps<{ months: ChargeMonth[]; selectedId: string | null }>()
-const emit = defineEmits<{ select: [log: ChargeLog]; amend: [log: ChargeLog]; fix: [logId: string] }>()
+const props = defineProps<{ months: ChargeMonth[]; selectedId: string | null }>()
+const emit = defineEmits<{
+  select: [log: ChargeLog]; 'select-bundle': [id: string, parts: ChargeLog[]]; amend: [log: DayLog]; fix: [logId: string]
+}>()
 const { t, locale } = useI18n()
 const { formatCurrency, formatDecimal, formatDistance, formatConsumption, formatCostPerKwh } = useLocaleFormat()
 
@@ -36,12 +39,28 @@ function placeName(log: ChargeLog) {
   const p = chargePlace(log)
   return p.kind === 'operator' ? p.name : t(`storyday.place_${p.kind}`)
 }
-function chargeSub(log: ChargeLog) {
-  const k = chargeKwh(log)
-  const type = log.chargingType && log.chargingType !== 'UNKNOWN' ? log.chargingType : null
-  return [type, k != null ? `${formatDecimal(k, 1)} kWh` : null].filter(Boolean).join(' · ')
+/** Summen je Bündel, einmal je Buch */
+const totals = computed(() => new Map(props.months.flatMap(m => m.entries.flatMap(e =>
+  e.kind === 'charge' && e.parts ? [[e.key, bundleTotals(e.parts)] as const] : []))))
+type ChargeRow = ChargeEntry & { kind: 'charge' }
+function chargeSub(e: ChargeRow) {
+  const b = totals.value.get(e.key)
+  const k = b ? b.kwh : chargeKwh(e.log)
+  const raw = b ? b.chargingType : e.log.chargingType
+  const type = raw && raw !== 'UNKNOWN' ? raw : null
+  return [e.parts ? t('storyday.parts', { n: e.parts.length }, e.parts.length) : null, type, k != null ? `${formatDecimal(k, 1)}\u00a0kWh` : null]
+    .filter(Boolean).join(' · ')
 }
-const pricePerKwh = (log: ChargeLog) => { const p = chargePricePerKwh(log); return p != null ? formatCostPerKwh(p) : null }
+const costOf = (e: ChargeRow) => e.parts ? totals.value.get(e.key)?.costEur ?? null : e.log.costEur
+const pricePerKwh = (e: ChargeRow) => {
+  const p = e.parts ? totals.value.get(e.key)?.pricePerKwh ?? null : chargePricePerKwh(e.log)
+  return p != null ? formatCostPerKwh(p) : null
+}
+/** Preis fehlt: bei einer Ladung sie selbst, beim Bündel die älteste Teilladung ohne Preis */
+const pricelessOf = (e: ChargeRow): DayLog[] => e.parts
+  ? totals.value.get(e.key)?.priceless ?? []
+  : e.log.costEur == null && !e.log.priceUnknown ? [e.log] : []
+const pick = (e: ChargeRow) => e.parts ? emit('select-bundle', e.key, e.parts) : emit('select', e.log)
 /** Mehr Tage, längere Strecke; gedeckelt, damit ein Monat Pause nicht den Bildschirm füllt */
 const stretchHeight = (days: number) => `${Math.min(150, 44 + days * 11)}px`
 </script>
@@ -56,10 +75,10 @@ const stretchHeight = (days: number) => `${Math.min(150, 44 + days * 11)}px`
     <ul class="py-2">
       <template v-for="e in m.entries" :key="e.key">
         <li v-if="e.kind === 'charge'">
-          <div class="flex items-start gap-3 px-4 py-2.5 transition-colors"
+          <div class="flex flex-wrap items-start gap-x-3 gap-y-1 px-4 py-2.5 transition-colors"
             :class="e.log.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : 'hover:bg-gray-50 dark:hover:bg-white/5'">
-            <button type="button" class="flex min-w-0 flex-1 items-start gap-3 text-left" data-testid="chargebook-row"
-              :aria-current="e.log.id === selectedId" @click="emit('select', e.log)">
+            <button type="button" class="flex min-w-0 flex-1 items-start gap-3 text-left" :data-testid="e.parts ? 'chargebook-bundle' : 'chargebook-row'"
+              :aria-current="e.log.id === selectedId" @click="pick(e)">
               <span class="w-14 shrink-0 pt-0.5 text-[13px] font-semibold leading-tight tabular-nums">
                 {{ dateParts(e.log.loggedAt).day }}
                 <span class="block text-[12px] font-normal text-gray-500 dark:text-gray-400">{{ dateParts(e.log.loggedAt).sub }}</span>
@@ -69,18 +88,20 @@ const stretchHeight = (days: number) => `${Math.min(150, 44 + days * 11)}px`
               </span>
               <span class="min-w-0 flex-1 pt-0.5">
                 <span class="block truncate text-[15px] font-semibold leading-snug">{{ placeName(e.log) }}</span>
-                <span class="block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ chargeSub(e.log) }}</span>
+                <span class="block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ chargeSub(e) }}</span>
               </span>
-              <span v-if="e.log.costEur != null" class="shrink-0 pt-0.5 text-right tabular-nums">
-                <b class="block text-[15px] font-semibold">{{ formatCurrency(e.log.costEur) }}</b>
-                <span v-if="pricePerKwh(e.log)" class="block text-[12px] text-gray-500 dark:text-gray-400">{{ pricePerKwh(e.log) }}</span>
+              <span v-if="costOf(e) != null" class="shrink-0 pt-0.5 text-right tabular-nums">
+                <b class="block text-[15px] font-semibold">{{ formatCurrency(costOf(e)!) }}</b>
+                <span v-if="pricePerKwh(e)" class="block text-[12px] text-gray-500 dark:text-gray-400">{{ pricePerKwh(e) }}</span>
               </span>
             </button>
-            <!-- Preis fehlt: führt zum Nachtragen, wie in der alten Liste -->
-            <button v-if="e.log.costEur == null && !e.log.priceUnknown" type="button" :class="AMBER_CHIP" class="mt-0.5 shrink-0"
-              data-testid="chargebook-amend" @click="emit('amend', e.log)">
-              <PencilSquareIcon class="h-3.5 w-3.5" aria-hidden="true" />{{ t('storyday.missing_price') }}
-            </button>
+            <!-- Preis fehlt: führt zum Nachtragen, wie in der alten Liste; beim Bündel bei der ältesten Teilladung ohne Preis.
+                 Steht daneben schon ein Betrag (Bündel mit Teilpreisen), unter dem Text, sonst wird die Zeile zu eng -->
+            <div v-if="pricelessOf(e).length" :class="costOf(e) != null ? 'basis-full pl-[7.25rem]' : 'mt-0.5 shrink-0'">
+              <button type="button" :class="AMBER_CHIP" data-testid="chargebook-amend" @click="emit('amend', pricelessOf(e)[0])">
+                <PencilSquareIcon class="h-3.5 w-3.5" aria-hidden="true" />{{ e.parts ? t('storyday.missing_price_n', { n: pricelessOf(e).length }) : t('storyday.missing_price') }}
+              </button>
+            </div>
           </div>
         </li>
         <li v-else class="flex items-center gap-3 px-4" :style="{ height: stretchHeight(e.days) }" data-testid="chargebook-stretch">

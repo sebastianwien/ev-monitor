@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChevronDownIcon, PlusIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon, PlusIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 import CarSwitch from '../components/car/CarSwitch.vue'
 import FeedHintCard from '../components/dashboard/FeedHintCard.vue'
 import DeletedLogsEntry from '../components/dashboard/DeletedLogsEntry.vue'
@@ -10,6 +10,7 @@ import PricelessLogsModal from '../components/dashboard/PricelessLogsModal.vue'
 import LogbookMonth from '../components/logbook/LogbookMonth.vue'
 import ChargeBook from '../components/logbook/ChargeBook.vue'
 import LogbookDetail, { type LogbookSelection } from '../components/logbook/LogbookDetail.vue'
+import ReassignCarSheet from '../components/dashboard/ReassignCarSheet.vue'
 import { useCarContext } from '../composables/useCarContext'
 import { useDataFeedback } from '../composables/useDataFeedback'
 import { useIsMobile } from '../composables/useIsMobile'
@@ -18,7 +19,7 @@ import { usePricelessDeepLink } from '../composables/usePricelessDeepLink'
 import { useAutoOlder } from '../composables/useAutoOlder'
 import { useChargingProviderNames } from '../composables/useChargingProviderNames'
 import { formatOlderWindow } from '../composables/useFeedWindow'
-import type { DayEvent } from '../composables/storyDay'
+import type { DayEvent, DayLog } from '../composables/storyDay'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
 import { monthsOf, chargeMonthsOf, type ChargeLog } from '../utils/logbook'
@@ -42,6 +43,7 @@ const {
   logs, trips, logsLoading, mergedLogFeed, hasAnyLogs,
   feedNextOlder, loadOlderFeed, refreshLogsAndGroups, mergeTripEntry, latestTrip, priceAmendingLog,
   fetchImplausibleCount, fetchStatistics, fetchPricelessCount,
+  otherCars, openReassignModal, reassignSuccessMessage,
 } = useCarContext()
 
 // ── Bücher: Monate, Tage, Standverlust, Ladezyklen ───────────────────────────
@@ -75,14 +77,49 @@ const credit = computed(() => tripsCredit(trips.value))
 
 // ── Auswahl und Bearbeiten ──────────────────────────────────────────────────
 const selection = ref<LogbookSelection | null>(null)
-const selectedId = computed(() => selection.value?.kind === 'charge' ? selection.value.log.id : selection.value?.trip.id ?? null)
+/** Bündel je id aus dem Buch: das Detail zeigt nach Nachtragen oder Löschen die frischen Teile */
+const bundles = computed(() => {
+  const byId = new Map<string, DayLog[]>()
+  for (const m of months.value) for (const item of m.items) {
+    if (item.kind === 'day') for (const r of item.rows) if (r.kind === 'charge' && r.parts) byId.set(r.id, r.parts)
+  }
+  for (const m of chargeMonths.value) for (const e of m.entries) if (e.kind === 'charge' && e.parts) byId.set(e.key, e.parts)
+  return byId
+})
+const shown = computed<LogbookSelection | null>(() => {
+  const s = selection.value
+  if (s?.kind !== 'bundle') return s
+  const parts = bundles.value.get(s.id)
+  return parts ? { ...s, parts } : null
+})
+// Gibt es das Bündel nach dem Laden nicht mehr (umgebucht, Teil gelöscht), ist nichts mehr gewählt
+watch([shown, logsLoading], ([s, busy]) => { if (!s && !busy && selection.value) selection.value = null })
+const selectedId = computed(() => {
+  const s = selection.value
+  return s?.kind === 'charge' ? s.bundleId ?? s.log.id : s?.kind === 'bundle' ? s.id : s?.trip.id ?? null
+})
 function select(e: DayEvent) {
+  if (e.kind === 'charge' && e.parts) return selectBundle(e.id, e.parts)
   selection.value = e.kind === 'charge' ? { kind: 'charge', log: e.log as any } : { kind: 'trip', trip: e.trip }
   analytics.track('logbook_detail', { kind: e.kind === 'charge' ? 'ladung' : 'fahrt' })
 }
 const selectCharge = (log: ChargeLog) => {
   selection.value = { kind: 'charge', log: log as any }
   analytics.track('logbook_detail', { kind: 'ladung' })
+}
+function selectBundle(id: string, parts: DayLog[]) {
+  selection.value = { kind: 'bundle', id, parts }
+  analytics.track('logbook_detail', { kind: 'buendel' })
+}
+function backToBundle() {
+  const s = selection.value
+  if (s?.kind === 'charge' && s.bundleId) selection.value = { kind: 'bundle', id: s.bundleId, parts: bundles.value.get(s.bundleId) ?? [] }
+}
+/** Umbuchen: beim Bündel alle Teile, wie die Ladegruppe der Liste */
+function reassign() {
+  const s = shown.value
+  if (s?.kind === 'bundle') openReassignModal({ _isLadegruppe: true, _topUps: [...s.parts].reverse() })
+  else if (s?.kind === 'charge') openReassignModal(s.log)
 }
 /** km-Stand nachtragen: die Ladung im Bearbeiten öffnen */
 function fixOdometer(logId: string) {
@@ -156,6 +193,9 @@ onMounted(() => { dataFeedback.load() })
           <CarSwitch v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
         </header>
         <FeedHintCard class="mx-3 my-3 md:mx-4" @open-implausible="showImplausibleModal = true" @open-priceless="showPricelessModal = true" />
+        <p v-if="reassignSuccessMessage" role="status" class="mx-3 mb-3 flex items-center gap-2 rounded-xl bg-green-50 px-3 py-2.5 text-[14px] font-semibold text-green-800 md:mx-4 dark:bg-green-400/10 dark:text-green-300">
+          <ArrowsRightLeftIcon class="h-4 w-4 shrink-0" aria-hidden="true" />{{ reassignSuccessMessage }}
+        </p>
 
         <div :ref="setLogsSection" class="scroll-mt-4" :aria-busy="logsLoading">
           <div v-if="logsLoading && !hasAnyLogs" class="grid animate-pulse gap-3 px-4 py-4" aria-hidden="true">
@@ -174,7 +214,7 @@ onMounted(() => { dataFeedback.load() })
           </p>
 
           <ChargeBook v-if="!hasTrips" :months="chargeMonths" :selected-id="selectedId"
-            @select="selectCharge" @amend="log => { priceAmendingLog = log }" @fix="fixOdometer" />
+            @select="selectCharge" @select-bundle="selectBundle" @amend="log => { priceAmendingLog = log }" @fix="fixOdometer" />
           <template v-else>
             <LogbookMonth v-for="m in months" :key="m.key" :month="m" :unlock-to="unlockTo" :facts="facts" :card-names="cardNames"
               :selected-id="selectedId" :merging="merging" :wide="wide" @select="select" @merge="merge" />
@@ -192,8 +232,9 @@ onMounted(() => { dataFeedback.load() })
         <DeletedLogsEntry class="mx-1 mt-4" />
       </div>
 
-      <LogbookDetail :selection="selection" :car-id="selectedCarId ?? ''" :wide="wide"
-        :trip-facts="selection?.kind === 'trip' ? facts[selection.trip.id] ?? null : null" @close="selection = null" @changed="changed" />
+      <LogbookDetail :selection="shown" :car-id="selectedCarId ?? ''" :wide="wide" :can-reassign="otherCars.length > 0"
+        :trip-facts="shown?.kind === 'trip' ? facts[shown.trip.id] ?? null : null" @close="selection = null" @changed="changed"
+        @back="backToBundle" @open="s => { selection = s }" @amend="log => { priceAmendingLog = log }" @reassign="reassign" />
     </div>
 
     <ImplausibleLogsModal
@@ -202,6 +243,7 @@ onMounted(() => { dataFeedback.load() })
       @close="() => { showImplausibleModal = false; if (implausibleModalDirty) { fetchStatistics(); implausibleModalDirty = false } }"
       @updated="() => { fetchImplausibleCount(); implausibleModalDirty = true }"
     />
+    <ReassignCarSheet @saved="selection = null" />
     <PricelessLogsModal
       :car-id="selectedCarId"
       :open="showPricelessModal"

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { BoltIcon, MapIcon, ChevronRightIcon, LinkIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import {
-  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, type DayEvent, type DayLog,
+  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, bundleTotals, type DayEvent,
 } from '../../../composables/storyDay'
 import { hasTripThumb, tripsCredit } from '../../../utils/tripMap'
 import StandingText from './StandingText.vue'
@@ -22,6 +22,8 @@ const ActivityLocationMap = defineAsyncComponent(() => import('../../dashboard/A
  *
  * Das Logbuch auf /logs gibt mehr mit (die Story nicht): die Standzeit vor jedem Eintrag samt Standverlust,
  * auch über Nacht vor dem ersten, die Reihenfolge neueste zuerst und je Fahrt eine Zeile mit Kosten (Slot `trip-extra`).
+ * Ein Bündel (Lade-Ereignis mit `parts`) steht als eine Zeile: "09:12 | Zu Hause", darunter "6 Teilladungen · 50 → 73 %",
+ * rechts die Summen. Die Zahl steht unten, weil oben auf dem Handy sonst der Ort abgeschnitten wird.
  */
 export interface StandingRow { minutes: number; kwh: number | null; eur?: number | null; unlockTo?: string | null }
 const props = defineProps<{
@@ -46,16 +48,29 @@ function placeName(e: DayEvent & { kind: 'charge' }) {
   const p = chargePlace(e.log)
   return p.kind === 'operator' ? p.name : t(`storyday.place_${p.kind}`)
 }
+/** Summen je Bündel, einmal je Liste */
+const totals = computed(() => new Map(props.events.flatMap(e => e.kind === 'charge' && e.parts ? [[e.id, bundleTotals(e.parts)] as const] : [])))
+const partsOf = (e: DayEvent) => e.kind === 'charge' ? e.parts?.length ?? 0 : 0
+const costOf = (e: DayEvent & { kind: 'charge' }) => totals.value.get(e.id)?.costEur ?? (e.parts ? null : e.log.costEur)
 /** Rechts unter dem Preis: Ladeart und Energie */
 function chargeSide(e: DayEvent & { kind: 'charge' }) {
-  const k = chargeKwh(e.log)
-  const type = e.log.chargingType && e.log.chargingType !== 'UNKNOWN' ? e.log.chargingType : null
+  const b = totals.value.get(e.id)
+  const k = b ? b.kwh : chargeKwh(e.log)
+  const raw = b ? b.chargingType : e.log.chargingType
+  const type = raw && raw !== 'UNKNOWN' ? raw : null
   return [type, k != null ? `${formatDecimal(k, 1)} kWh` : null].filter(Boolean).join(' · ')
 }
-/** Preis je kWh einer Ladung, auf der Abrechnungsbasis wie in der alten Liste */
-function pricePerKwh(log: DayLog): string | null {
-  const p = chargePricePerKwh(log)
+/** Preis je kWh einer Ladung, auf der Abrechnungsbasis wie in der alten Liste; beim Bündel nur, wenn alle Teile einen Preis haben */
+function pricePerKwh(e: DayEvent & { kind: 'charge' }): string | null {
+  const b = totals.value.get(e.id)
+  const p = b ? b.pricePerKwh : chargePricePerKwh(e.log)
   return p != null ? formatCostPerKwh(p) : null
+}
+/** Was fehlt, als Chips; beim Bündel nur der Preis, mit der Zahl der Teile */
+function missingChips(e: DayEvent & { kind: 'charge' }): string[] {
+  const b = totals.value.get(e.id)
+  if (b) return b.priceless.length ? [t('storyday.missing_price_n', { n: b.priceless.length })] : []
+  return missingOf(e.log).map(m => t(`storyday.missing_${m}`))
 }
 /** Die Minikarten tragen keine eigene Attribution - sie steht einmal unter der Liste. */
 const credit = computed(() => props.noCredit ? null : tripsCredit(props.events.flatMap(e => e.kind === 'trip' ? [e.trip] : [])))
@@ -125,7 +140,7 @@ const items = computed<Item[]>(() => {
       </li>
 
       <li v-else :class="lineClass(idx, true)">
-        <button type="button" :data-testid="`day-row-${e.kind}`" :aria-current="e.id === selectedId"
+        <button type="button" :data-testid="partsOf(e) ? 'day-row-bundle' : `day-row-${e.kind}`" :aria-current="e.id === selectedId"
           class="relative flex min-h-14 w-full items-start gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
           :class="e.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : ''"
           @click="emit('select', e)" @mouseenter="emit('hover', e.id)" @mouseleave="emit('hover', null)">
@@ -137,7 +152,7 @@ const items = computed<Item[]>(() => {
           </span>
           <span class="min-w-0 flex-1 pt-2">
             <span class="flex items-baseline gap-2 text-[15px] font-semibold leading-snug">
-              <span class="shrink-0 whitespace-nowrap tabular-nums text-gray-500 dark:text-gray-400">{{ hm(e.from) }} · {{ dur(e.to - e.from) }}</span>
+              <span class="shrink-0 whitespace-nowrap tabular-nums text-gray-500 dark:text-gray-400">{{ hm(e.from) }}<template v-if="!partsOf(e)"> · {{ dur(e.to - e.from) }}</template></span>
               <span class="h-3.5 w-px shrink-0 self-center bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
               <span class="truncate">
                 <template v-if="e.kind === 'trip' && e.trip.distanceKm != null"><span class="sr-only">{{ t('storyday.trip') }} </span><span class="tabular-nums">{{ formatDistance(e.trip.distanceKm) }}</span></template>
@@ -145,8 +160,11 @@ const items = computed<Item[]>(() => {
                 <template v-else>{{ placeName(e) }}</template>
               </span>
             </span>
-            <span v-if="e.socTo != null || (e.kind === 'trip' && e.trip.outsideTempCelsius != null) || $slots['line2-end']"
+            <span v-if="partsOf(e) || e.socTo != null || (e.kind === 'trip' && e.trip.outsideTempCelsius != null) || $slots['line2-end']"
               class="flex flex-wrap items-center gap-x-1.5 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">
+              <template v-if="partsOf(e)">
+                <span class="whitespace-nowrap" data-testid="day-parts">{{ t('storyday.parts', { n: partsOf(e) }, partsOf(e)) }}</span><template v-if="e.socTo != null">·</template>
+              </template>
               <template v-if="e.socFrom != null && e.socTo != null">
                 <span class="whitespace-nowrap text-gray-600 dark:text-gray-300" data-testid="day-soc"><span class="sr-only">{{ t('storyday.soc') }} </span>{{ t('storyday.soc_range', { from: Math.round(e.socFrom), to: Math.round(e.socTo) }) }}</span>
               </template>
@@ -163,9 +181,9 @@ const items = computed<Item[]>(() => {
             </span>
             <!-- Logbuch: Kosten, Verbrauch und Verbraucher einer Fahrt -->
             <slot v-if="e.kind === 'trip'" name="trip-extra" :trip="e.trip" />
-            <span v-if="e.kind === 'charge' && missingOf(e.log).length" class="mt-1 flex gap-1">
-              <span v-for="m in missingOf(e.log)" :key="m" data-testid="day-missing"
-                class="rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{{ t(`storyday.missing_${m}`) }}</span>
+            <span v-if="e.kind === 'charge' && missingChips(e).length" class="mt-1 flex gap-1">
+              <span v-for="m in missingChips(e)" :key="m" data-testid="day-missing"
+                class="rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{{ m }}</span>
             </span>
           </span>
           <!-- Logbuch ab 768 px: Kosten und Verbrauch rechts wie der Preis einer Ladung -->
@@ -178,9 +196,9 @@ const items = computed<Item[]>(() => {
               :route-polyline="e.trip.routePolyline" :route-kind="e.trip.routeKind" :trace-polyline="e.trip.tracePolyline" />
           </span>
           <span v-else-if="e.kind === 'charge'" class="shrink-0 pt-2 text-right tabular-nums">
-            <span class="block text-[15px] font-bold leading-snug">{{ e.log.costEur != null ? formatCurrency(e.log.costEur) : '' }}</span>
+            <span class="block text-[15px] font-bold leading-snug">{{ costOf(e) != null ? formatCurrency(costOf(e)!) : '' }}</span>
             <span class="block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400">{{ chargeSide(e) }}</span>
-            <span v-if="pricePerKwh(e.log)" class="block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400" data-testid="day-price-kwh">{{ pricePerKwh(e.log) }}</span>
+            <span v-if="pricePerKwh(e)" class="block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400" data-testid="day-price-kwh">{{ pricePerKwh(e) }}</span>
           </span>
           <ChevronRightIcon class="-ml-1 mt-2.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
         </button>

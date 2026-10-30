@@ -13,11 +13,11 @@ const trip = (id: string, h: number, socStart: number, socEnd: number): DayTrip 
   id, tripStartedAt: at(h), tripEndedAt: at(h, 40), distanceKm: 10, socStart, socEnd,
 })
 
-async function mount(highlightId: string | null) {
+async function mount(highlightIds: string[] | null) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  const events = eventsOfDay('2026-08-16', [trip('a', 9, 80, 76), trip('b', 15, 76, 70)], [])
-  app = createApp(DayRibbon, { events, selectedId: null, interactive: false, highlightId })
+  const events = eventsOfDay('2026-08-16', [trip('a', 9, 80, 76), trip('b', 15, 76, 70), trip('c', 20, 70, 66)], [])
+  app = createApp(DayRibbon, { events, selectedId: null, interactive: false, highlightIds })
   app.use(i18n)
   app.mount(host)
   await nextTick()
@@ -26,10 +26,15 @@ async function mount(highlightId: string | null) {
 
 describe('DayRibbon Hervorheben (Hover im Logbuch)', () => {
   it('die Balken des Eintrags bleiben kräftig, die übrigen treten zurück', async () => {
-    const bars = await mount('a')
+    const bars = await mount(['a'])
     const dimmed = bars.map(b => b.classList.contains('opacity-25'))
-    // a (9:00 bis 9:40) liegt auf den ersten beiden Fahrt-Balken, b danach
-    expect(dimmed).toEqual([false, false, true, true])
+    // a (9:00 bis 9:40) liegt auf den ersten beiden Fahrt-Balken, b und c danach
+    expect(dimmed).toEqual([false, false, true, true, true, true])
+  })
+
+  it('ein Bündel hebt die Balken aller seiner Teile hervor', async () => {
+    const bars = await mount(['a', 'c'])
+    expect(bars.map(b => b.classList.contains('opacity-25'))).toEqual([false, false, true, true, false, false])
   })
 
   it('ohne Hover tritt nichts zurück', async () => {

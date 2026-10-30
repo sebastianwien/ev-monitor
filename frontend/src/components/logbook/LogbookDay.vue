@@ -6,7 +6,7 @@ import DayRibbon from '../story/day/DayRibbon.vue'
 import DayTimeline, { type StandingRow } from '../story/day/DayTimeline.vue'
 import { tripDetailKeys, chargeDetailKeys, type Standing } from '../../utils/logbook'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { daySummary, type DayEvent, type DayLog, type DayTrip } from '../../composables/storyDay'
+import { daySummary, type DayEvent, type DayTrip } from '../../composables/storyDay'
 import { tripDayLabel } from '../../utils/tripTimeFormat'
 
 import type { TripFacts } from '../../utils/tripCalculations'
@@ -14,11 +14,14 @@ import type { TripFacts } from '../../utils/tripCalculations'
 /**
  * Ein Tag im Logbuch: Kopf mit Tag links und Summe rechts (klebt beim Scrollen), darunter Akku-Diagramm und
  * Ablauf aus dem Tagesblatt der Story. Der Ablauf steht neueste zuerst, wie das Buch. Das Diagramm nur, wenn
- * sich der Akku bewegt hat; eine flache Linie sagt nichts.
+ * sich der Akku bewegt hat; eine flache Linie sagt nichts. Teilladungen stehen im Ablauf als ein Bündel
+ * (`rows`), im Diagramm und in der Summe jede für sich (`events`).
  */
 const props = defineProps<{
   dayKey: string
   events: DayEvent[]
+  /** Ablauf: wie `events`, Teilladungen als ein Bündel */
+  rows: DayEvent[]
   standing: Record<string, Standing>
   unlockTo: string | null
   facts: Record<string, TripFacts>
@@ -40,21 +43,33 @@ const showRibbon = computed(() => {
   return socs.length > 0 && Math.max(...socs) > Math.min(...socs)
 })
 const stickyTop = { top: 'var(--content-top, var(--top-nav-h))' }
-/** Zeile unter dem Mauszeiger: ihre Balken im Diagramm treten hervor (Desktop) */
+/** Zeile unter dem Mauszeiger: ihre Balken im Diagramm treten hervor (Desktop), beim Bündel die aller Teile */
 const hovered = ref<string | null>(null)
+const hoveredIds = computed(() => {
+  const row = props.rows.find(e => e.id === hovered.value)
+  if (!row) return null
+  return row.kind === 'charge' && row.parts ? row.parts.map(p => p.id) : [row.id]
+})
 /** Ab 768 px klebt das Diagramm im Tageskopf, darunter steht es im Blatt: immer nur eins im DOM */
 const md = useIsMobile('(min-width: 768px)')
 /** Ab 768 px hinter Akku und Temperatur: Tempo, Streckentyp, Besonderheiten */
 const tripDetails = (trip: DayTrip) => tripDetailKeys(trip).map(k => t(k.key, k.params ?? {}))
-/** Ladekarte der Ladung, überall (auf dem Handy in eigener Zeile); der Preis je kWh steht rechts unter dem Betrag */
-const cardOf = (log: DayLog): string | null => log.chargingProviderId ? props.cardNames.get(log.chargingProviderId) ?? null : null
-/** Ladung, ab 768 px: höchste Ladeleistung und Effizienz (auf dem Handy im Detail) */
-const chargeMore = (log: DayLog) => chargeDetailKeys(log).map(k => t(k.key, k.params ?? {}))
+/**
+ * Ladekarte der Ladung, überall (auf dem Handy in eigener Zeile); der Preis je kWh steht rechts unter dem Betrag.
+ * Beim Bündel nur, wenn alle Teile mit derselben Karte geladen wurden.
+ */
+function cardOf(e: DayEvent & { kind: 'charge' }): string | null {
+  const ids = new Set((e.parts ?? [e.log]).map(l => l.chargingProviderId ?? null))
+  const [id] = ids
+  return ids.size === 1 && id ? props.cardNames.get(id) ?? null : null
+}
+/** Ladung, ab 768 px: höchste Ladeleistung und Effizienz (auf dem Handy im Detail); beim Bündel je Teil im Detail */
+const chargeMore = (e: DayEvent & { kind: 'charge' }) => e.parts ? [] : chargeDetailKeys(e.log).map(k => t(k.key, k.params ?? {}))
 const costPer100 = (id: string) => `${formatCurrency(props.facts[id].eurPer100km!)}/100km`
 const consumption = (id: string) => `${props.facts[id].estimated ? '~' : ''}${formatConsumption(props.facts[id].kwhPer100km)}`
 const label = computed(() => tripDayLabel(props.dayKey, locale.value, new Date()))
 /** Am sichtbaren Standverlust der Link zum Freischalten, solange er nur Vorgeschmack ist */
-const rows = computed<Record<string, StandingRow>>(() => Object.fromEntries(Object.entries(props.standing)
+const standingRows = computed<Record<string, StandingRow>>(() => Object.fromEntries(Object.entries(props.standing)
   .map(([id, s]) => [id, { ...s, unlockTo: s.kwh != null ? props.unlockTo : null }])))
 /** Mit Fahrten: Fahrten, km, verbrauchte Energie, € pro 100 km wie die Zeilen. Nur Ladungen: Ladungen, geladene Energie, Betrag. */
 const sum = computed(() => {
@@ -86,11 +101,11 @@ const sum = computed(() => {
         <span class="text-right text-[12px] tabular-nums text-gray-500 dark:text-gray-400">{{ sum }}</span>
       </div>
       <!-- Desktop: das Diagramm klebt mit dem Tageskopf, Hover über einer Zeile hebt ihre Balken hervor -->
-      <DayRibbon v-if="showRibbon && md" :highlight-id="hovered" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
+      <DayRibbon v-if="showRibbon && md" :highlight-ids="hoveredIds" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
     </div>
     <DayRibbon v-if="showRibbon && !md" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />
     <div class="mt-2">
-      <DayTimeline :events="events" :selected-id="selectedId" :merging="merging" :standing="rows" newest-first no-credit
+      <DayTimeline :events="rows" :selected-id="selectedId" :merging="merging" :standing="standingRows" newest-first no-credit
         @select="emit('select', $event)" @merge="(a, b) => emit('merge', a, b)" @hover="id => { hovered = id }">
         <template #line2-end="{ event }">
           <template v-if="event.kind === 'trip'">
@@ -99,11 +114,11 @@ const sum = computed(() => {
           </template>
           <template v-else>
             <!-- Ladekarte: auf dem Handy eigene Zeile, ab 768 px weiter in der Zeile -->
-            <template v-if="cardOf(event.log)">
+            <template v-if="cardOf(event)">
               <span class="basis-full md:hidden" aria-hidden="true" />
-              <span class="whitespace-nowrap"><span class="hidden md:inline">· </span>{{ cardOf(event.log) }}</span>
+              <span class="whitespace-nowrap"><span class="hidden md:inline">· </span>{{ cardOf(event) }}</span>
             </template>
-            <span v-for="text in chargeMore(event.log)" :key="text" class="hidden whitespace-nowrap md:inline">· {{ text }}</span>
+            <span v-for="text in chargeMore(event)" :key="text" class="hidden whitespace-nowrap md:inline">· {{ text }}</span>
           </template>
         </template>
         <!-- Handy: dritte Zeile; ab 768 px rechts neben der Karte -->

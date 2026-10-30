@@ -4,7 +4,7 @@ import { createApp, nextTick, type App } from 'vue'
 import { createPinia } from 'pinia'
 import { i18n } from '../../../../i18n'
 import DayTimeline from '../DayTimeline.vue'
-import { eventsOfDay, type DayTrip } from '../../../../composables/storyDay'
+import { eventsOfDay, bundleEvents, type DayTrip } from '../../../../composables/storyDay'
 
 // Leaflet läuft nicht in jsdom: die Karte ist hier ein Platzhalter, der zeigt, was sie bekommt
 vi.mock('../../../dashboard/ActivityLocationMap.vue', () => ({
@@ -112,5 +112,38 @@ describe('DayTimeline Hover (Logbuch, Desktop)', () => {
     row.dispatchEvent(new MouseEvent('mouseenter'))
     row.dispatchEvent(new MouseEvent('mouseleave'))
     expect(hovered).toEqual(['t1', null])
+  })
+})
+
+describe('DayTimeline Bündel', () => {
+  // Überschussladen: drei Teile zu Hause, einem fehlt der Preis
+  const part = (id: string, h: number, costEur: number | null) => ({ id, loggedAt: at(h), chargeDurationMinutes: 40,
+    socBeforeChargePercent: 40 + h, socAfterChargePercent: 44 + h, kwhCharged: 3, kwhAtVehicle: null, costEur,
+    isPublicCharging: false, cpoName: null, chargingType: 'AC' as const })
+  const parts = [part('a', 9, 0.9), part('b', 11, null), part('c', 13, 0.9)]
+  const bundle = () => bundleEvents(eventsOfDay('2026-08-16', [], parts), new Map(parts.map(p => [p.id, 'g'])))
+
+  it('eine Zeile: Beginn und Ort, darunter Zahl der Teile und Akku von der ersten bis zur letzten; Summe und was fehlt', async () => {
+    const host = await mountWith({ events: bundle() })
+    expect(rowsOf(host)).toEqual(['day-row-bundle'])
+    const row = host.querySelector('[data-testid="day-row-bundle"]')!
+    // Auf dem Handy passt "09:00 · 3 Teilladungen | Zu Hause" nicht in eine Zeile: die Zahl steht unten
+    expect(row.textContent).not.toContain('09:00 ·')
+    expect(row.textContent).toContain('Zu Hause')
+    expect(row.querySelector('[data-testid="day-parts"]')?.textContent).toBe('3 Teilladungen')
+    expect(row.querySelector('[data-testid="day-soc"]')?.textContent).toContain('49 → 57 %')
+    expect(row.textContent).toContain('1,80 €')
+    expect(row.textContent).toContain('AC · 9,0 kWh')
+    expect(row.querySelector('[data-testid="day-missing"]')?.textContent).toBe('Preis fehlt bei 1')
+    // Preis je kWh nur, wenn jedes Teil einen Preis hat
+    expect(row.querySelector('[data-testid="day-price-kwh"]')).toBeNull()
+  })
+
+  it('Tipp auf das Bündel meldet es mit seinen Teilen', async () => {
+    const picked: { id: string; parts?: { id: string }[] }[] = []
+    const host = await mountWith({ events: bundle(), onSelect: (e: { id: string; parts?: { id: string }[] }) => picked.push(e) })
+    ;(host.querySelector('[data-testid="day-row-bundle"]') as HTMLButtonElement).click()
+    expect(picked[0].id).toBe('a')
+    expect(picked[0].parts?.map(p => p.id)).toEqual(['a', 'b', 'c'])
   })
 })

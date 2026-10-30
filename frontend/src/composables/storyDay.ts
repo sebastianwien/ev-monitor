@@ -1,4 +1,5 @@
 import type { ClimateSummary } from '../utils/tripClimate'
+import { aggregateGroupCost } from './useChargingEfficiency'
 
 /**
  * Tagesblatt der Story: was an einem Tag war (Fahrten und Ladungen), als Ablauf und Tagesband.
@@ -49,7 +50,8 @@ export interface DayLog {
 interface EventBase { id: string; from: number; to: number; socFrom: number | null; socTo: number | null }
 export type DayEvent =
   | (EventBase & { kind: 'trip'; trip: DayTrip })
-  | (EventBase & { kind: 'charge'; log: DayLog })
+  /** `parts`: Teilladungen eines Bündels, älteste zuerst; `log` ist dann die älteste. */
+  | (EventBase & { kind: 'charge'; log: DayLog; parts?: DayLog[] })
 
 const DAY_MIN = 1440
 /** Halt, bis zu dem zwei Fahrten als eine gelten können. */
@@ -129,6 +131,59 @@ export function chargePlace(l: DayLog): ChargePlace {
   if (l.isPublicCharging === false) return { kind: 'home' }
   if (l.isPublicCharging === true) return { kind: 'public' }
   return { kind: 'unknown' }
+}
+
+/**
+ * Teilladungen als ein Eintrag (Überschussladen, Nachladen): die Ladegruppen der Liste (`groupKeysOf`), je Tag
+ * und erst ab zwei Teilen. Steht etwas dazwischen, etwa eine Fahrt, trennt es das Bündel, damit der Ablauf in
+ * seiner Reihenfolge bleibt. Das Akku-Diagramm bekommt weiter die Teile.
+ */
+export function bundleEvents(events: DayEvent[], groupOf: Map<string, string>): DayEvent[] {
+  const out: DayEvent[] = []
+  let run: (DayEvent & { kind: 'charge' })[] = []
+  const flush = () => {
+    if (run.length > 1) {
+      const parts = run.map(e => e.log)
+      out.push({
+        kind: 'charge', id: run[0].id, from: run[0].from, to: Math.max(...run.map(e => e.to)),
+        socFrom: run[0].socFrom, socTo: run[run.length - 1].socTo, log: run[0].log, parts,
+      })
+    } else out.push(...run)
+    run = []
+  }
+  for (const e of events) {
+    const key = e.kind === 'charge' ? groupOf.get(e.id) : undefined
+    if (run.length && (!key || groupOf.get(run[0].id) !== key)) flush()
+    if (key && e.kind === 'charge') run.push(e)
+    else out.push(e)
+  }
+  flush()
+  return out
+}
+
+export interface BundleTotals {
+  costEur: number | null
+  kwh: number | null
+  /** auf der Abrechnungsbasis wie bei einer Ladung, nur wenn jedes Teil einen Preis hat */
+  pricePerKwh: number | null
+  /** Teile, denen der Preis fehlt, älteste zuerst */
+  priceless: DayLog[]
+  chargingType: 'AC' | 'DC' | null
+}
+
+/** Summen eines Bündels aus seinen Teilen; Betrag und Preis je kWh wie die Ladegruppe der Liste (aggregateGroupCost). */
+export function bundleTotals(parts: DayLog[]): BundleTotals {
+  const cost = aggregateGroupCost(parts.map(p => ({ ...p, chargingProviderId: p.chargingProviderId ?? null })))
+  const kwhs = parts.map(chargeKwh).filter((k): k is number => k != null)
+  const types = new Set(parts.map(p => p.chargingType))
+  const [type] = types
+  return {
+    costEur: cost.totalCostEur,
+    kwh: kwhs.length ? kwhs.reduce((a, k) => a + k, 0) : null,
+    pricePerKwh: cost.isFullyPriced && cost.costBasisKwhTotal > 0 ? cost.totalCostEur! / cost.costBasisKwhTotal : null,
+    priceless: parts.filter(p => missingOf(p).includes('price')),
+    chargingType: types.size === 1 && (type === 'AC' || type === 'DC') ? type : null,
+  }
 }
 
 export const gapMinutes = (a: DayEvent, b: DayEvent) => b.from - a.to

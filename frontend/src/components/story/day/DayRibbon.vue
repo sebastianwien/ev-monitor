@@ -8,9 +8,9 @@ import { ribbonSegments, batteryBars, barOfEvent, type BatteryBar, type DayEvent
  * grün beim Laden, dunkel beim Fahren, grau im Stand. Wo es keinen Messwert gibt, kein Balken.
  * Raster in 25-%-Stufen und Sechs-Stunden-Schritten als Skala; Start, Ende und tiefsten Stand nennt die Bildunterschrift.
  * aria-hidden, die Liste darunter sagt dasselbe vollständig. Antippbar nur, wenn `interactive`.
- * `highlightId` (Logbuch, Hover über einer Zeile): dessen Balken bleiben kräftig, die übrigen treten zurück.
+ * `highlightIds` (Logbuch, Hover über einer Zeile, beim Bündel alle Teile): deren Balken bleiben kräftig, die übrigen treten zurück.
  */
-const props = defineProps<{ events: DayEvent[]; selectedId: string | null; interactive: boolean; highlightId?: string | null }>()
+const props = defineProps<{ events: DayEvent[]; selectedId: string | null; interactive: boolean; highlightIds?: string[] | null }>()
 const emit = defineEmits<{ select: [event: DayEvent] }>()
 const { t } = useI18n()
 
@@ -20,8 +20,8 @@ const barClass = (b: BatteryBar) => b.kind === 'charge'
   ? 'bg-green-600 dark:bg-green-400'
   : b.kind === 'trip' ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-300 dark:bg-gray-600'
 const pct = (v: number) => `${Math.round(v)} %`
-const highlighted = computed(() => props.events.find(e => e.id === props.highlightId) ?? null)
-const dimmed = (b: BatteryBar) => !!highlighted.value && !barOfEvent(b, highlighted.value)
+const highlighted = computed(() => props.events.filter(e => props.highlightIds?.includes(e.id)))
+const dimmed = (b: BatteryBar) => highlighted.value.length > 0 && !highlighted.value.some(e => barOfEvent(b, e))
 function pick(b: BatteryBar) {
   const over = props.events.filter(e => barOfEvent(b, e))
   const e = over.find(v => v.kind === 'charge') ?? over[0]

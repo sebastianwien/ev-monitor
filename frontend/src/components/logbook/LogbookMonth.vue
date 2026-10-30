@@ -51,7 +51,7 @@ const idleLabel = (from: string, to: string) => from === to
       :right="month.totals.costPer100km != null ? t('logbook.per_100km', { cost: formatCurrency(month.totals.costPer100km) }) : null" />
 
     <template v-for="item in month.items" :key="item.kind === 'day' ? item.key : `idle-${item.from}`">
-      <LogbookDay v-if="item.kind === 'day'" :day-key="item.key" :events="item.events" :standing="item.standing" :unlock-to="unlockTo" :facts="facts" :card-names="cardNames" :cost-per100km="item.costPer100km"
+      <LogbookDay v-if="item.kind === 'day'" :day-key="item.key" :events="item.events" :rows="item.rows" :standing="item.standing" :unlock-to="unlockTo" :facts="facts" :card-names="cardNames" :cost-per100km="item.costPer100km"
         :selected-id="selectedId" :merging="merging" :wide="wide" @select="emit('select', $event)" @merge="(a, b) => emit('merge', a, b)" />
       <section v-else class="border-t border-gray-200 px-4 py-3 dark:border-gray-700" data-testid="logbook-idle">
         <div class="flex items-baseline justify-between gap-3">

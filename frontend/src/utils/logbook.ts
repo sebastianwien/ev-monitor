@@ -1,6 +1,7 @@
 import {
-  eventsOfDay, dayKeyOf, shiftDay, daySummary, chargeKwh, type DayEvent, type DayLog, type DayTrip,
+  eventsOfDay, dayKeyOf, shiftDay, daySummary, chargeKwh, bundleEvents, bundleTotals, type DayEvent, type DayLog, type DayTrip,
 } from '../composables/storyDay'
+import { groupKeysOf } from './chargeGroups'
 import { chargingEfficiencyPercent } from '../composables/useChargingEfficiency'
 import { tripSpeedKeyAndArgs } from './recentActivity'
 
@@ -13,7 +14,8 @@ import { tripSpeedKeyAndArgs } from './recentActivity'
 export interface Standing { minutes: number; kwh: number | null; eur: number | null }
 
 export type LogbookItem =
-  | { kind: 'day'; key: string; events: DayEvent[]; standing: Record<string, Standing>; costPer100km: number | null }
+  /** `events` für Diagramm und Summen, `rows` für den Ablauf: darin Teilladungen als ein Bündel */
+  | { kind: 'day'; key: string; events: DayEvent[]; rows: DayEvent[]; standing: Record<string, Standing>; costPer100km: number | null }
   | { kind: 'idle'; from: string; to: string; standing: Standing | null }
 
 export interface LogbookTotals { trips: number; km: number; charges: number; eur: number; costPer100km: number | null }
@@ -68,8 +70,10 @@ export function monthsOf(trips: DayTrip[], logs: DayLog[], opts: LogbookOptions 
   const keys = [...byDay.keys()].sort()
   if (!keys.length) return []
   const days = keys.map(key => ({ key, events: eventsOfDay(key, byDay.get(key)!.trips, byDay.get(key)!.logs) }))
+  // Standzeit vor den Teilen: vor dem Bündel steht die seiner ältesten Teilladung, sie trägt im Feed den Standverlust
   const before = standingBefore(days, opts.drains)
   const byKey = new Map(days.map(d => [d.key, d]))
+  const groupOf = groupKeysOf(logs)
 
   const items: LogbookItem[] = []
   let newer: (LogbookItem & { kind: 'day' }) | null = null
@@ -87,7 +91,7 @@ export function monthsOf(trips: DayTrip[], logs: DayLog[], opts: LogbookOptions 
       run = []
     }
     newer = {
-      kind: 'day', key, events: day.events,
+      kind: 'day', key, events: day.events, rows: bundleEvents(day.events, groupOf),
       standing: Object.fromEntries(day.events.flatMap(e => before.has(e.id) ? [[e.id, before.get(e.id)!]] : [])),
       costPer100km: opts.costPer100km?.(day.events.flatMap(e => e.kind === 'trip' ? [e.trip] : [])) ?? null,
     }
@@ -141,9 +145,11 @@ export interface ChargeLog extends DayLog {
   odometerKm?: number | null
   distanceSinceLastChargeKm?: number | null
   consumptionKwhPer100km?: number | null
+  dataSource?: string | null
 }
 export type ChargeEntry =
-  | { kind: 'charge'; key: string; log: ChargeLog }
+  /** `parts`: Teilladungen eines Bündels, älteste zuerst; `log` ist dann die älteste. */
+  | { kind: 'charge'; key: string; log: ChargeLog; parts?: ChargeLog[] }
   /** Strecke zwischen zwei Ladungen, gehört zur neueren. `fix`: Ladung, der der km-Stand fehlt. */
   | { kind: 'stretch'; key: string; days: number; km: number | null; kwhPer100km: number | null; eurPer100km: number | null; fix: string | null }
 export interface ChargeMonth {
@@ -172,21 +178,35 @@ function median(values: number[]): number | null {
  */
 export function chargeMonthsOf(logs: ChargeLog[]): ChargeMonth[] {
   const sorted = [...logs].sort((a, b) => Date.parse(b.loggedAt) - Date.parse(a.loggedAt))
+  // Teilladungen desselben Tages hintereinander werden eine Zeile (Ladegruppen wie in der Liste)
+  const groupOf = groupKeysOf(logs)
+  const units: ChargeLog[][] = []
+  for (const log of sorted) {
+    const last = units[units.length - 1]
+    const key = groupOf.get(log.id)
+    if (last && key && groupOf.get(last[0].id) === key && dayKeyOf(last[0].loggedAt) === dayKeyOf(log.loggedAt)) last.unshift(log)
+    else units.push([log])
+  }
   const months: ChargeMonth[] = []
   const gaps = new Map<string, number[]>()
-  sorted.forEach((log, i) => {
+  units.forEach((parts, i) => {
+    const log = parts[0]
     const key = monthOf(dayKeyOf(log.loggedAt))
     let month = months[months.length - 1]
     if (month?.key !== key) {
       month = { key, entries: [], totals: { charges: 0, kwh: 0, eur: 0 }, rhythmDays: null }
       months.push(month)
     }
-    month.entries.push({ kind: 'charge', key: log.id, log })
-    month.totals.charges++
-    month.totals.kwh += chargeKwh(log) ?? 0
-    month.totals.eur += log.costEur ?? 0
+    month.entries.push(parts.length > 1 ? { kind: 'charge', key: log.id, log, parts } : { kind: 'charge', key: log.id, log })
+    for (const p of parts) {
+      month.totals.charges++
+      month.totals.kwh += chargeKwh(p) ?? 0
+      month.totals.eur += p.costEur ?? 0
+    }
 
-    const older = sorted[i + 1]
+    // Die Strecke trägt die älteste Teilladung, bis zur jüngsten der Zeile darunter
+    const olderParts = units[i + 1]
+    const older = olderParts?.[olderParts.length - 1]
     const km = log.distanceSinceLastChargeKm ?? null
     if (!older || km === 0) return
     const days = Math.round((Date.parse(log.loggedAt) - Date.parse(older.loggedAt)) / DAY_MS)
@@ -198,10 +218,13 @@ export function chargeMonthsOf(logs: ChargeLog[]): ChargeMonth[] {
     const shownKm = direct ? km : null
     const fix = shownKm != null ? null : log.odometerKm == null ? log.id : older.odometerKm == null ? older.id : null
     if (shownKm == null && !fix) return
+    // Betrag der Zeile: bei einem Bündel die Summe, nur wenn jedes Teil einen Preis hat
+    const totals = parts.length > 1 ? bundleTotals(parts) : null
+    const cost = totals ? (totals.pricePerKwh != null ? totals.costEur : null) : log.costEur
     month.entries.push({
       kind: 'stretch', key: `s-${log.id}`, days, km: shownKm,
       kwhPer100km: shownKm != null ? log.consumptionKwhPer100km ?? null : null,
-      eurPer100km: shownKm && log.costEur != null ? log.costEur / shownKm * 100 : null,
+      eurPer100km: shownKm && cost != null ? cost / shownKm * 100 : null,
       fix,
     })
   })

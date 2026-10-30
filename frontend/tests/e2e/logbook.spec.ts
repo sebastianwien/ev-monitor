@@ -85,3 +85,66 @@ test('ohne Fahrten: Ladeseiten mit Strecke, Rhythmus und fehlendem Preis', async
   await expect(book.getByTestId('chargebook-rhythm')).toContainText('Du lädst etwa alle');
   await expect(book.getByTestId('chargebook-amend')).toHaveCount(1);
 });
+
+test('Überschussladen: sechs Teilladungen als eine Zeile, im Detail sechs Teile, im Diagramm sechs Ladebalken', async ({ page }) => {
+  const errors: string[] = [];
+  page.on('pageerror', e => errors.push(e.message));
+  const d = calmMonth(NOW_MID);
+  d.trips = [trip(NOW_MID, { id: id(1), tripStartedAt: iso(at(9, 12, 17)), tripEndedAt: iso(at(9, 12, 17, 30)), distanceKm: 15, socStart: 74, socEnd: 70 })];
+  // go-e ohne km-Stand, stündlich 20 min; der dritten fehlt der Preis
+  d.logs = [9, 10, 11, 12, 13, 14].map((h, i) => log(NOW_MID, {
+    id: id(10 + i), loggedAt: iso(at(9, 12, h)), chargeDurationMinutes: 20, dataSource: 'WALLBOX_GOE', odometerKm: null,
+    kwhCharged: 2, kwhAtVehicle: 1.9, costEur: i === 2 ? null : 0.6, socBeforeChargePercent: 50 + i * 4, socAfterChargePercent: 53 + i * 4,
+  }));
+  await openLogbook(page, d);
+
+  const day = page.getByTestId('logbook-day').first();
+  const row = day.getByTestId('day-row-bundle');
+  await expect(row).toHaveCount(1);
+  await expect(day.getByTestId('day-row-charge')).toHaveCount(0);
+  await expect(row).toContainText('6 Teilladungen');
+  await expect(row).toContainText('Preis fehlt bei 1');
+  await expect(day.locator('[data-testid="day-bar"][data-kind="charge"]')).toHaveCount(6);
+
+  await row.click();
+  const bundle = page.getByTestId('logbook-bundle');
+  await expect(bundle).toBeVisible();
+  await expect(bundle.getByTestId('day-row-charge')).toHaveCount(6);
+  await expect(bundle.getByTestId('bundle-amend')).toContainText('Preis fehlt bei 1');
+  // Tipp auf ein Teil öffnet das Bearbeiten, der Pfeil führt zurück zum Bündel
+  await bundle.getByTestId('day-row-charge').first().click();
+  await page.getByTestId('edit-back').click();
+  await expect(page.getByTestId('logbook-bundle')).toBeVisible();
+  expect(errors).toEqual([]);
+});
+
+test('Bündel umbuchen: das Sheet bucht alle Teile auf das andere Auto, das Detail schließt', async ({ page }) => {
+  const d = calmMonth(NOW_MID);
+  d.trips = [trip(NOW_MID, { id: id(1), tripStartedAt: iso(at(9, 12, 17)), tripEndedAt: iso(at(9, 12, 17, 30)), distanceKm: 15, socStart: 74, socEnd: 70 })];
+  d.logs = [9, 10, 11].map((h, i) => log(NOW_MID, {
+    id: id(10 + i), loggedAt: iso(at(9, 12, h)), chargeDurationMinutes: 20, dataSource: 'WALLBOX_GOE', odometerKm: null,
+    socBeforeChargePercent: 50 + i * 4, socAfterChargePercent: 53 + i * 4,
+  }));
+  // Zweites Auto zum Testnutzer, damit Umbuchen angeboten wird
+  await page.route(/\/api\/cars$/, async route => {
+    const res = await route.fetch();
+    const cars = await res.json();
+    await route.fulfill({ response: res, json: [...cars, { ...cars[0], id: '00000000-0000-0000-0000-0000000caa02' }] });
+  });
+  const moved: string[] = [];
+  await page.route(/\/api\/logs\/[^/]+\/car$/, route => {
+    moved.push(new URL(route.request().url()).pathname.split('/')[3]);
+    return route.fulfill({ json: {} });
+  });
+  await openLogbook(page, d);
+
+  await page.getByTestId('day-row-bundle').click();
+  await page.getByTestId('bundle-reassign').click();
+  const sheet = page.getByTestId('reassign-sheet');
+  await expect(sheet).toContainText('Alle 3 Ladungen');
+  await sheet.getByRole('radio').first().click();
+  await sheet.getByRole('button', { name: 'Speichern' }).click();
+  await expect.poll(() => [...moved].sort()).toEqual([id(10), id(11), id(12)]);
+  await expect(page.getByTestId('logbook-bundle')).toHaveCount(0);
+  await expect(page.getByTestId('day-row-bundle')).toHaveCount(0);
+});

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { barOfEvent,
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
-  gapMinutes, canMerge, showStanding, ribbonSegments, dayAtNow, batteryBars,
+  gapMinutes, canMerge, showStanding, ribbonSegments, dayAtNow, batteryBars, bundleEvents, bundleTotals,
   type DayLog, type DayTrip, type DayEvent,
 } from './storyDay'
 
@@ -170,5 +170,49 @@ describe('barOfEvent', () => {
   })
   it('kurzer Eintrag innerhalb eines Balkens', () => {
     expect(barOfEvent({ from: 480 }, { from: 495, to: 496 })).toBe(true)
+  })
+})
+
+describe('Bündel (Teilladungen eines Tages)', () => {
+  // Überschussladen zu Hause: je 40 min, der Akku steigt von Teil zu Teil
+  const part = (id: string, h: number, over: Partial<DayLog> = {}) => log({
+    id, loggedAt: at(16, h), chargeDurationMinutes: 40, isPublicCharging: false, cpoName: null, chargingType: 'AC',
+    kwhCharged: 4, costEur: 1.2, socBeforeChargePercent: 50 + (h - 9) * 5, socAfterChargePercent: 54 + (h - 9) * 5, ...over,
+  })
+  const keys = (m: Record<string, string>) => new Map(Object.entries(m))
+
+  it('Teile einer Ladegruppe werden ein Eintrag: Beginn der ersten, Ende der letzten, Akku von der ersten bis zur letzten', () => {
+    const rows = bundleEvents(eventsOfDay('2026-08-16', [], [part('b', 11), part('a', 9), part('c', 13)]), keys({ a: 'g', b: 'g', c: 'g' }))
+    expect(rows).toHaveLength(1)
+    expect(rows[0]).toMatchObject({ kind: 'charge', id: 'a', from: 540, to: 820, socFrom: 50, socTo: 74 })
+    expect(rows[0].kind === 'charge' && rows[0].parts?.map(p => p.id)).toEqual(['a', 'b', 'c'])
+  })
+
+  it('erst ab zwei Teilen: eine Ladung, deren Gruppe an einem anderen Tag weitergeht, bleibt, wie sie ist', () => {
+    const rows = bundleEvents(eventsOfDay('2026-08-16', [], [part('a', 9), part('b', 11)]), keys({ a: 'g', x: 'g' }))
+    expect(rows.map(r => r.id)).toEqual(['a', 'b'])
+    expect(rows.every(r => r.kind === 'charge' && r.parts === undefined)).toBe(true)
+  })
+
+  it('eine Fahrt dazwischen trennt das Bündel, der Ablauf bleibt in seiner Reihenfolge', () => {
+    const t = trip({ id: 't', tripStartedAt: at(16, 11), tripEndedAt: at(16, 12) })
+    const ev = eventsOfDay('2026-08-16', [t], [part('a', 9), part('b', 10), part('c', 13), part('d', 14)])
+    const rows = bundleEvents(ev, keys({ a: 'g', b: 'g', c: 'g', d: 'g' }))
+    expect(rows.map(r => r.id)).toEqual(['a', 't', 'c'])
+    expect(rows[2].kind === 'charge' && rows[2].parts?.map(p => p.id)).toEqual(['c', 'd'])
+  })
+
+  it('Summen der Teile: Betrag, Energie, Ladeart; Preis je kWh nur, wenn alle einen Preis haben', () => {
+    const full = bundleTotals([part('a', 9), part('b', 11, { costEur: 2, kwhCharged: 5 })])
+    expect(full).toMatchObject({ kwh: 9, chargingType: 'AC', priceless: [] })
+    expect(full.costEur).toBeCloseTo(3.2)
+    expect(full.pricePerKwh).toBeCloseTo(3.2 / 9)
+
+    const open = bundleTotals([part('a', 9, { chargingType: 'DC' }), part('b', 11, { costEur: null }), part('c', 13, { costEur: null, priceUnknown: true })])
+    expect(open.costEur).toBeCloseTo(1.2)
+    expect(open.pricePerKwh).toBeNull()
+    expect(open.chargingType).toBeNull()
+    // "Preis unbekannt" fehlt nicht, wie bei einer einzelnen Ladung
+    expect(open.priceless.map(p => p.id)).toEqual(['b'])
   })
 })
