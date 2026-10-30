@@ -8,19 +8,22 @@ import LogEditPanel, { type EvLogResponse } from '../../dashboard/LogEditPanel.v
 import DayRibbon from './DayRibbon.vue'
 import DayTimeline from './DayTimeline.vue'
 import DayTripPanel from './DayTripPanel.vue'
+import LogbookBundle from '../../logbook/LogbookBundle.vue'
 import { useIsMobile } from '../../../composables/useIsMobile'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import { useLogsRefreshStore } from '../../../stores/logsRefresh'
 import { analytics } from '../../../services/analytics'
 import { toLocalDatetimeInput } from '../../../utils/tripForm'
 import {
-  dayRange, shiftDay, eventsOfDay, daySummary, dayAtNow, type DayEvent, type DayLog, type DayTrip,
+  dayRange, shiftDay, eventsOfDay, daySummary, dayAtNow, bundleEvents, type DayEvent, type DayLog, type DayTrip,
 } from '../../../composables/storyDay'
+import { groupKeysOf } from '../../../utils/chargeGroups'
 
 /**
  * Tagesblatt: alles, was an einem Tag war. Handy und Tablet: Sheet mit zwei Ebenen (Tag, dann
  * Eintrag von rechts). Ab 1024 px Fenster mit zwei Spalten. Die Zurück-Taste geht erst eine Ebene
- * zurück, dann schließt sie das Sheet, nie die Seite.
+ * zurück, dann schließt sie das Sheet, nie die Seite. Teilladungen stehen im Ablauf als ein Bündel;
+ * eine Teilladung daraus führt zurück zum Bündel.
  */
 const props = defineProps<{ carId: string; today: string }>()
 const day = defineModel<string>('day', { required: true })
@@ -29,7 +32,10 @@ const { t, locale } = useI18n()
 const { formatDistance, formatCurrency, formatDecimal } = useLocaleFormat()
 const wide = useIsMobile('(min-width: 1024px)')
 
-type Detail = { kind: 'charge'; log: EvLogResponse } | { kind: 'trip'; trip: DayTrip | null }
+type Detail =
+  | { kind: 'charge'; log: EvLogResponse; bundleId?: string }
+  | { kind: 'trip'; trip: DayTrip | null }
+  | { kind: 'bundle'; id: string }
 const detail = ref<Detail | null>(null)
 
 // ── Daten des Tages ──────────────────────────────────────────────────────────
@@ -61,6 +67,8 @@ async function load() {
   }
 }
 const events = computed(() => eventsOfDay(day.value, trips.value, logs.value))
+/** Ablauf: Teilladungen als ein Bündel; das Diagramm zeigt weiter jede */
+const rows = computed(() => bundleEvents(events.value, groupKeysOf(logs.value)))
 const summary = computed(() => daySummary(events.value))
 watch(day, () => { detail.value = null; void load() }, { immediate: true })
 // Rückgängig im Lösch-Toast stellt wieder her, auch wenn wir offen sind
@@ -91,7 +99,8 @@ function pushLayer() {
 function onPop() {
   if (layers === 0) return
   layers--
-  if (detail.value) detail.value = null
+  const d = detail.value
+  if (d) detail.value = d.kind === 'charge' && d.bundleId ? { kind: 'bundle', id: d.bundleId } : null
   else sheet.value?.requestClose()
 }
 onMounted(() => { pushLayer(); window.addEventListener('popstate', onPop) })
@@ -107,7 +116,21 @@ function openDetail(d: Detail) {
 }
 const back = () => history.back()
 function select(e: DayEvent) {
-  openDetail(e.kind === 'charge' ? { kind: 'charge', log: e.log as EvLogResponse & DayLog } : { kind: 'trip', trip: e.trip })
+  if (e.kind === 'charge' && e.parts) openDetail({ kind: 'bundle', id: e.id })
+  else openDetail(e.kind === 'charge' ? { kind: 'charge', log: e.log as EvLogResponse & DayLog } : { kind: 'trip', trip: e.trip })
+}
+/** Teile des gewählten Bündels, aus dem frisch geladenen Tag */
+const bundleParts = computed(() => {
+  const d = detail.value
+  const row = d?.kind === 'bundle' ? rows.value.find(r => r.id === d.id) : null
+  return row?.kind === 'charge' ? row.parts ?? null : null
+})
+// Ist das Bündel nach dem Laden keins mehr (Teil gelöscht), zurück zum Tag
+watch([bundleParts, loading], ([parts, busy]) => { if (detail.value?.kind === 'bundle' && !parts && !busy) back() })
+function openPart(log: DayLog) {
+  if (detail.value?.kind !== 'bundle') return
+  detail.value = { kind: 'charge', log: log as EvLogResponse & DayLog, bundleId: detail.value.id }
+  pushLayer()
 }
 
 // ── Aktionen ─────────────────────────────────────────────────────────────────
@@ -137,7 +160,10 @@ function addCharge() {
   analytics.track('story_day_action', { action: 'add_charge' })
   emit('add-charge', toLocalDatetimeInput(dayAtNow(day.value).toISOString()))
 }
-const selectedId = computed(() => detail.value?.kind === 'charge' ? detail.value.log.id : detail.value?.trip?.id ?? null)
+const selectedId = computed(() => {
+  const d = detail.value
+  return d?.kind === 'charge' ? d.bundleId ?? d.log.id : d?.kind === 'bundle' ? d.id : d?.trip?.id ?? null
+})
 </script>
 
 <template>
@@ -186,7 +212,7 @@ const selectedId = computed(() => detail.value?.kind === 'charge' ? detail.value
             <DayRibbon :events="events" :selected-id="selectedId" :interactive="wide" @select="select" />
             <h3 class="mb-1 mt-5 text-[13px] font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">{{ t('storyday.flow') }}</h3>
             <p v-if="mergeFailed" class="text-sm text-gray-700 dark:text-gray-200">{{ t('storyday.merge_failed') }}</p>
-            <DayTimeline :events="events" :selected-id="selectedId" :merging="merging" @select="select" @merge="merge" />
+            <DayTimeline :events="rows" :selected-id="selectedId" :merging="merging" @select="select" @merge="merge" />
           </template>
           <div v-else-if="!loading" class="grid place-items-center gap-2 py-10 text-center" data-testid="day-empty">
             <p class="text-[17px] font-semibold">{{ t('storyday.empty_title') }}</p>
@@ -212,7 +238,10 @@ const selectedId = computed(() => detail.value?.kind === 'charge' ? detail.value
       <Transition :name="wide ? '' : 'day-detail'">
         <section v-if="detail" :key="selectedId ?? 'new'" data-testid="day-detail"
           class="absolute inset-0 z-10 flex min-h-0 flex-col bg-white dark:bg-gray-900 lg:static lg:border-l-2 lg:border-gray-100 lg:dark:border-gray-800">
-          <LogEditPanel v-if="detail.kind === 'charge'" :log="detail.log" dismiss="back"
+          <template v-if="detail.kind === 'bundle'">
+            <LogbookBundle v-if="bundleParts" :parts="bundleParts" dismiss="back" @cancel="back" @select="openPart" />
+          </template>
+          <LogEditPanel v-else-if="detail.kind === 'charge'" :log="detail.log" dismiss="back"
             @cancel="back" @saved="done('edit_charge')" @deleted="done('delete')" />
           <DayTripPanel v-else :trip="detail.trip" :car-id="carId" :new-end="newEnd"
             @back="back" @saved="done" @deleted="done('delete')" />

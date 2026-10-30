@@ -111,3 +111,41 @@ for (const [width, height, voice] of [[390, 844, true], [820, 1180, true], [1440
     });
   });
 }
+
+test.describe('Tagesblatt Teilladungen 390 px', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('Bündel als eine Zeile; Teil öffnen, Zurück-Taste führt zum Bündel, dann zum Tag', async ({ page }) => {
+    const errors: string[] = [];
+    page.on('pageerror', e => errors.push(e.message));
+    const d = data();
+    d.logs = [10, 11, 12].map((h, i) => log(NOW_MID, {
+      id: `00000000-0000-0000-0000-0000000d02${String(i).padStart(2, '0')}`, loggedAt: iso(day(h)), chargeDurationMinutes: 20,
+      dataSource: 'WALLBOX_GOE', odometerKm: null, kwhCharged: 2, kwhAtVehicle: 1.9, costEur: 0.6,
+      socBeforeChargePercent: 60 + i * 4, socAfterChargePercent: 63 + i * 4,
+    }));
+    await openStory(page, d);
+    await mockDay(page, d);
+    await openDay12(page);
+
+    const row = inSheet(page).getByTestId('day-row-bundle');
+    await expect(row).toContainText('3 Teilladungen');
+    await expect(inSheet(page).getByTestId('day-row-charge')).toHaveCount(0);
+    await expect(inSheet(page).locator('[data-testid="day-bar"][data-kind="charge"]')).toHaveCount(3);
+
+    await row.click();
+    const bundle = inSheet(page).getByTestId('logbook-bundle');
+    await expect(bundle.getByTestId('day-row-charge')).toHaveCount(3);
+    await bundle.getByTestId('day-row-charge').first().click();
+    await expect(inSheet(page).getByTestId('edit-back')).toBeVisible();
+
+    await page.goBack();
+    await expect(inSheet(page).getByTestId('logbook-bundle')).toBeVisible();
+    await page.goBack();
+    await expect(inSheet(page).getByTestId('day-detail')).toHaveCount(0);
+    await page.goBack();
+    await expect(page.getByTestId('story-day-sheet')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/story/);
+    expect(errors).toEqual([]);
+  });
+});
