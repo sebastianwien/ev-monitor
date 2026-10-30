@@ -47,3 +47,29 @@ describe('LogEditPanel: fehlender Wert nachgetragen', () => {
     expect(document.body.querySelector('[data-testid="edit-missing"]')).not.toBeNull()
   })
 })
+
+// Zeitpunkt steht im Kartenkopf statt als fünfte Kachel: das Raster bleibt 2x2 wie im Wizard
+describe('LogEditPanel: Zeitpunkt im Kopf', () => {
+  it('zeigt den Zeitpunkt im Kopf, nicht als Kachel, und öffnet per Tipp die Zeit', async () => {
+    app = createApp(defineComponent({ render: () => h(LogEditPanel, { log }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+    await tick()
+    const time = document.body.querySelector<HTMLButtonElement>('[data-testid="summary-place"] [data-testid="summary-time"]')
+    expect(time?.textContent).toMatch(/16\.8\..*10:00/)
+    expect(document.body.querySelector('[data-testid="summary-energy"]')!.parentElement!.children.length).toBe(4)
+    time!.click()
+    await tick()
+    expect(document.body.querySelector('#wizard-time')).not.toBeNull()
+  })
+})
+
+describe('LogEditPanel: Ladung ohne Zeitpunkt', () => {
+  it('zeigt trotzdem den Zeit-Tipp, damit sich die Zeit setzen lässt', async () => {
+    app = createApp(defineComponent({ render: () => h(LogEditPanel, { log: { ...log, loggedAt: null as unknown as string } }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+    await tick()
+    expect(document.body.querySelector('[data-testid="summary-time"]')).not.toBeNull()
+  })
+})

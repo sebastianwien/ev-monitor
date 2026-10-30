@@ -19,9 +19,9 @@
       <!-- Uebersicht: was da ist, was fehlt, Optionales -->
       <template v-if="!section">
         <!-- Erst die Ladung sehen: der Ort als Kartenkopf wie auf der Prüfseite des Wizards, ein Tipp darauf bearbeitet ihn -->
-        <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" clickable class="-mt-4" data-testid="summary-place" @click="section = 'place'" />
-        <!-- Ergänzungen des Rahmens zur Ladung, z. B. Ladekurve und "Korrekt erkannt?" im Logbuch -->
-        <slot name="extra" />
+        <!-- Der Zeitpunkt steht im Kopf statt als fünfte Kachel: das Raster bleibt 2x2 wie auf der Prüfseite -->
+        <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" :time="timeLabel" clickable class="-mt-4" data-testid="summary-place"
+          @click="section = 'place'" @time="section = 'time'" />
         <!-- Sprache: nur Handy, Knopf in der Fußleiste neben Speichern; danach Vorher/Nachher mit Rückgängig hier oben -->
         <VoiceCapture v-if="showVoice && !confirmingDelete" entry="edit" variant="footer" :host="footerId" :car-id="log.carId" @draft="onVoiceDraft" />
         <div v-if="voiceChanges" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2" data-testid="edit-voice-changes" aria-live="polite">
@@ -39,7 +39,7 @@
             </ul>
           </template>
         </div>
-        <LogSummary v-model="formData" :place-label="placeLabel" :missing="missingNow" show-time-tile hide-place @edit="s => section = s" />
+        <LogSummary v-model="formData" :place-label="placeLabel" :missing="missingNow" hide-time hide-place @edit="s => section = s" />
 
         <div v-if="missingAtOpen.length" class="rounded-xl bg-amber-50 dark:bg-amber-400/10 p-3 space-y-4" data-testid="edit-missing">
           <p class="text-[14px] font-semibold text-amber-900 dark:text-amber-200">{{ t('logwizard.still_open') }}</p>
@@ -60,6 +60,8 @@
             <BigInput id="wizard-cost" v-model="cost.costLocalTotal.value" :unit="currencySymbol" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" />
           </div>
         </div>
+        <!-- Ergänzungen des Rahmens zur Ladung, z. B. Ladekurve und "Korrekt erkannt?" im Logbuch: zuletzt, direkt über Speichern -->
+        <slot name="extra" />
       </template>
 
       <!-- Unteransichten: dieselben Schritte wie beim Anlegen -->
@@ -208,7 +210,7 @@ const props = withDefaults(defineProps<{
   dismiss?: 'close' | 'back'
 }>(), { dismiss: 'close' })
 const emit = defineEmits<{ cancel: []; saved: [log: EvLogResponse]; deleted: [logId: string] }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const countryStore = useCountryStore()
 
 const confirmingDelete = ref(false)
@@ -310,6 +312,10 @@ const place = computed<PlaceKind | null>(() => !formData.value.isPublicCharging 
 const pickedName = ref<string | null>(null)
 // Die gewählte Adresse selbst: Untertitel von "Hier privat", auch wenn danach eine Säule gewählt wurde
 const pickedAddress = ref<string | null>(null)
+/** Zeitpunkt für den Kartenkopf, mit Wochentag: man sieht sofort, welche Ladung man bearbeitet. Alte Ladungen ohne Zeit: der Feldname, damit sie sich setzen lässt. */
+const timeLabel = computed(() => formData.value.loggedAt
+  ? new Date(formData.value.loggedAt).toLocaleString(locale.value === 'en' ? 'en-GB' : 'de-DE', { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
+  : t('logfields.timestamp'))
 const placeLabel = computed(() => pickedName.value ?? (formData.value.isPublicCharging
   ? (formData.value.cpoName ?? t('logwizard.place_public'))
   : t('logwizard.place_private')))

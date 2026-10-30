@@ -98,7 +98,7 @@ const chargeMore = computed(() => props.selection?.kind === 'charge'
         @cancel="selection.bundleId ? emit('back') : dismiss()" @saved="done" @deleted="done">
         <template #extra>
           <p v-if="chargeMore" class="text-[13px] tabular-nums md:hidden text-gray-600 dark:text-gray-300" data-testid="logbook-charge-more">{{ chargeMore }}</p>
-          <div v-if="curve.available(selection.log) || isRateableLogSource(selection.log.dataSource) || canReassign"
+          <div v-if="curve.available(selection.log) || canReassign"
             class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-gray-500 dark:text-gray-400">
             <button v-if="curve.available(selection.log)" type="button" data-testid="logbook-curve" aria-haspopup="dialog"
               :aria-label="curve.canOpen(selection.log) ? t('dashboard.show_power_curve') : t('dashboard.power_curve_locked')"
@@ -111,11 +111,13 @@ const chargeMore = computed(() => props.selection?.kind === 'charge'
               class="inline-flex min-h-11 items-center gap-1.5 rounded-full font-semibold text-gray-800 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-green-600 dark:text-gray-200">
               <ArrowsRightLeftIcon class="h-4 w-4" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
             </button>
-            <span v-if="isRateableLogSource(selection.log.dataSource)" class="ml-auto inline-flex items-center gap-0.5">
-              <span class="mr-1">{{ t('dashboard.data_feedback_label') }}</span>
-              <DataFeedbackButtons subject-type="LOG" :subject-id="selection.log.id" />
-            </span>
           </div>
+          <!-- Letzte Zeile über Speichern, linksbündig: rechts stehend ließ sie links eine leere Zeile -->
+          <p v-if="isRateableLogSource(selection.log.dataSource)" role="group" :aria-label="t('dashboard.data_feedback_label')"
+            class="flex items-center gap-0.5 text-[13px] text-gray-500 dark:text-gray-400" data-testid="logbook-feedback">
+            <span class="mr-1">{{ t('dashboard.data_feedback_label') }}</span>
+            <DataFeedbackButtons subject-type="LOG" :subject-id="selection.log.id" />
+          </p>
           <DataFeedbackPanel v-if="isRateableLogSource(selection.log.dataSource)" subject-type="LOG" :subject-id="selection.log.id" />
         </template>
       </LogEditPanel>

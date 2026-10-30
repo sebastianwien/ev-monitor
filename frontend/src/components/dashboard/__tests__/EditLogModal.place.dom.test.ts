@@ -46,7 +46,8 @@ describe('EditLogModal - Übersicht zeigt die Ladung', () => {
 
     const heads = document.body.querySelectorAll<HTMLElement>('[data-testid="summary-place"]')
     expect(heads).toHaveLength(1)
-    expect(heads[0].getAttribute('role')).toBe('button')
+    // Mit Zeitpunkt im Kopf ist der Ortsname das Tastaturziel, nicht der ganze Kopf (kein Knopf im Knopf)
+    expect(heads[0].querySelector('[role="button"]')?.textContent).toContain('Tesla')
     expect(heads[0].style.height).not.toBe('') // mit gespeicherter Zelle: Minimap
     expect(heads[0].textContent).toContain('Tesla')
     heads[0].click()

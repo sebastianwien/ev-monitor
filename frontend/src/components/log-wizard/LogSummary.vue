@@ -14,8 +14,8 @@ const props = defineProps<{
   placeLabel: string
   /** Pflichtwerte, die noch fehlen - ihre Kacheln zeigen "offen" statt eines Werts */
   missing?: RequiredField[]
-  /** Zeit als eigene Kachel (Bearbeiten); beim Anlegen steht sie unter "Mehr Details" */
-  showTimeTile?: boolean
+  /** Bearbeiten: die Zeit steht im Kartenkopf, nicht unter "Mehr Details" */
+  hideTime?: boolean
   /** Wizard: der Ort steht als Kartenkopf darüber, die Ort-Kachel entfällt und es bleiben vier im Raster */
   hidePlace?: boolean
   /** Wizard: "Mehr Details" nur mit Akku vorher, Ladedauer, Leistung - Zeit, Strecke, Reifen wurden in Schritt 2 gesetzt */
@@ -29,13 +29,8 @@ const props = defineProps<{
 }>()
 const form = defineModel<LogFormData>({ required: true })
 const emit = defineEmits<{ edit: [section: SummarySection] }>()
-const { t, locale } = useI18n()
+const { t } = useI18n()
 const { formatDistance, formatCurrency, formatNumber } = useLocaleFormat()
-
-const timeLabel = computed(() => {
-  if (!form.value.loggedAt) return t('logwizard.time_now')
-  return new Date(form.value.loggedAt).toLocaleString(locale.value === 'en' ? 'en-GB' : 'de-DE', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' })
-})
 
 /** Kosten-Kachel: Preis je kWh leise neben dem Betrag */
 const perKwh = computed(() => props.costMetrics?.find(m => m.unit.endsWith('/kWh')) ?? null)
@@ -52,7 +47,6 @@ const energy = computed(() => {
 interface Tile { label: string; value: string | null; section: SummarySection; testid: string; field?: RequiredField }
 const tiles = computed<Tile[]>(() => [
   ...(props.hidePlace ? [] : [{ label: t('logwizard.place'), value: props.placeLabel, section: 'place' as SummarySection, testid: 'summary-place' }]),
-  ...(props.showTimeTile ? [{ label: t('logfields.timestamp'), value: timeLabel.value, section: 'time' as SummarySection, testid: 'summary-time' }] : []),
   { label: t('logfields.energy'), value: isMissing('energy') ? null : energy.value, section: 'energy', testid: 'summary-energy', field: 'energy' },
   { label: t('logfields.odometer'), value: isMissing('odometer') || form.value.odometerKm == null ? null : formatDistance(form.value.odometerKm), section: 'vehicle', testid: 'summary-odometer', field: 'odometer' },
   { label: t('logfields.soc_after'), value: isMissing('soc') || form.value.socAfterChargePercent == null ? null : `${form.value.socAfterChargePercent} %`, section: 'vehicle', testid: 'summary-soc', field: 'soc' },
@@ -81,7 +75,7 @@ const tiles = computed<Tile[]>(() => [
       </button>
     </div>
 
-    <OptionalPanel v-model="form" :show-time="!showTimeTile" :numbers-only="detailsNumbersOnly" />
+    <OptionalPanel v-model="form" :show-time="!hideTime" :numbers-only="detailsNumbersOnly" />
   </div>
 </template>
 
