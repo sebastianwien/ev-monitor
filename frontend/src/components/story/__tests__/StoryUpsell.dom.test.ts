@@ -44,23 +44,23 @@ describe('Strom-Sheet: Stand gesperrt', () => {
   it('Tesla ohne Abo: Knopf zum Supporter-Pack mit Herkunft', () => {
     mount(SheetFlow, { use: lockedUse() }, setup('NONE', 'TESLA'))
     const row = $('story-upsell-flow')!
-    expect(text(row)).toContain('Sieh, was dein Auto im Stand verliert')
-    expect(row.querySelector('a')!.getAttribute('href')).toBe('/supporter?from=story_flow')
-    expect(text(row.querySelector('a'))).toBe('Mit dem Supporter-Pack ansehen')
+    expect(text(row)).toContain('Sieh, was dein Auto parkend verliert')
+    expect(row.getAttribute('href')).toBe('/supporter?from=story_flow')
+    expect(text(row)).toMatch(/Supporter-Pack · 1,99\s?€ im Monat/)
   })
 
   it('andere Marke ohne Abo: Knopf zu AutoSync', () => {
     mount(SheetFlow, { use: lockedUse() }, setup('NONE', 'VW'))
-    const link = $('story-upsell-flow')!.querySelector('a')!
+    const link = $('story-upsell-flow')!
     expect(link.getAttribute('href')).toBe('/upgrade?from=story_flow')
-    expect(text(link)).toBe('Mit AutoSync ansehen')
+    expect(text(link)).toContain('AutoSync ·')
   })
 
   it('im Probemonat: Stand sichtbar und "Gratis bis" statt Knopf', () => {
     const pinia = setup('NONE', 'TESLA', new Date().toISOString())
     mount(SheetFlow, { use: { ...lockedUse(), standbyKwh: 12, standbyEur: 3.5 } }, pinia)
     expect($('story-upsell-flow')).toBeNull()
-    expect(text($('story-trial-flow'))).toMatch(/^Gratis bis /)
+    expect(text($('story-trial-flow'))).toMatch(/^gratis bis /)
   })
 })
 
@@ -74,8 +74,8 @@ describe('Kosten-Sheet: Heimlade-Ersparnis', () => {
   it('gesperrt: Zeile mit Knopf, Ziel nach Marke', () => {
     mount(SheetCost, costProps({ locked: true, trialEndsAt: null }), setup('NONE', 'VW'))
     const row = $('story-upsell-cost')!
-    expect(text(row)).toContain('Was dir das Laden zu Hause spart')
-    expect(row.querySelector('a')!.getAttribute('href')).toBe('/upgrade?from=story_cost')
+    expect(text(row)).toContain('Was du zu Hause gegenüber öffentlichem Laden sparst')
+    expect(row.getAttribute('href')).toBe('/upgrade?from=story_cost')
   })
 
   it('im Probemonat: "Gratis bis", kein Knopf', () => {

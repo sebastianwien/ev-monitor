@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { LockClosedIcon } from '@heroicons/vue/24/outline'
 import FlowBar from '../FlowBar.vue'
 import SheetStandby from './SheetStandby.vue'
 import UseBar from '../UseBar.vue'
@@ -24,7 +23,7 @@ const authStore = useAuthStore()
 /** Stand im Probemonat sichtbar: dann das Enddatum statt eines Kauf-Knopfs. */
 const trialUntil = computed(() => {
   const end = authStore.energySplitViaTrial ? authStore.energySplitTrialEndsAt : null
-  return end ? end.toLocaleDateString(locale.value, { day: 'numeric', month: 'long' }) : null
+  return end ? end.toLocaleDateString(locale.value, { day: 'numeric', month: 'numeric' }) : null
 })
 const kwh = (v: number) => `${formatDecimal(v, 0)} kWh`
 // Im Sheet mit Cent, auf der Kachel ganze Euro
@@ -68,21 +67,26 @@ const rows = computed(() => {
       </div>
       <ul class="mt-3 divide-y divide-gray-100 dark:divide-gray-800">
         <li v-for="r in rows" :key="r.key" class="flex items-start gap-3 py-2.5">
+          <!-- Stand gesperrt: die Zeile selbst ist das Angebot -->
+          <StoryUpsellRow v-if="r.key === 'standby' && r.kwh == null" data-testid="story-upsell-flow" class="flex-1"
+            :title="r.label" :text="t('story.upsell_flow_text')" from="story_flow" />
+          <template v-else>
           <i class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full" :class="r.dot" aria-hidden="true" />
           <div class="min-w-0 flex-1">
-            <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ r.label }}</div>
+            <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {{ r.label }}
+              <span v-if="r.key === 'standby' && trialUntil" data-testid="story-trial-flow"
+                class="ml-1.5 rounded-full bg-green-50 px-2 py-0.5 align-[1px] text-[11.5px] font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-400">{{ t('story.trial_until', { date: trialUntil }) }}</span>
+            </div>
             <div class="text-[13px] text-gray-500 dark:text-gray-400">{{ r.sub }}</div>
           </div>
           <div v-if="r.kwh != null" class="text-right tabular-nums">
             <div class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ r.kwh }} kWh</div>
             <div v-if="r.pct != null" class="text-[13px] text-gray-500 dark:text-gray-400">{{ r.pct }} %</div>
           </div>
-          <LockClosedIcon v-else class="mt-0.5 h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
+          </template>
         </li>
       </ul>
-      <StoryUpsellRow v-if="use.standbyKwh == null" data-testid="story-upsell-flow" class="mt-1 border-t border-gray-100 pt-2 dark:border-gray-800"
-        :text="t('story.upsell_flow_text')" from="story_flow" />
-      <p v-else-if="trialUntil" data-testid="story-trial-flow" class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ t('story.trial_until', { date: trialUntil }) }}</p>
       <template v-if="standbyGaps.length">
         <h4 class="mt-5 text-[11.5px] font-semibold uppercase tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ t('story.sheet_use_standby_gaps') }}</h4>
         <SheetStandby :gaps="standbyGaps" />

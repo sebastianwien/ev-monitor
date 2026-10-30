@@ -308,7 +308,7 @@ onBeforeUnmount(() => {
             <RouterLink
               v-if="upsellTarget"
               :to="upsellTarget"
-              class="flex items-center justify-center gap-2 w-full rounded-sm bg-amber-500 hover:bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
+              class="flex items-center justify-center gap-2 w-full rounded-full bg-story-accent px-4 py-2.5 text-sm font-semibold text-white transition focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:bg-story-accent-dark dark:text-gray-900"
               @click="close"
             >
               <LockOpenIcon class="w-4 h-4" />

@@ -100,8 +100,8 @@ const partialLabel = computed(() => props.runningMonth ? t('story.sheet_partial'
       <p data-testid="story-cost-split" class="mt-4 text-sm text-gray-600 tabular-nums text-pretty dark:text-gray-300">{{ split.line }}</p>
       <p v-if="split.income" data-testid="story-cost-income" class="mt-1 text-sm text-gray-600 tabular-nums text-pretty dark:text-gray-300">{{ split.income }}</p>
     </Collapse>
-    <StoryUpsellRow v-if="savings.locked" data-testid="story-upsell-cost" class="mt-4 border-t border-gray-200 pt-2 dark:border-gray-700"
-      :text="t('story.upsell_cost_text')" from="story_cost" />
+    <StoryUpsellRow v-if="savings.locked" data-testid="story-upsell-cost" class="mt-4"
+      :title="t('story.upsell_cost_title')" :text="t('story.upsell_cost_text')" from="story_cost" />
     <p v-else-if="trialUntil" data-testid="story-trial-cost" class="mt-4 text-xs text-gray-500 dark:text-gray-400">{{ t('story.trial_until_savings', { date: trialUntil }) }}</p>
     <RouterLink
       to="/cars"

@@ -46,7 +46,7 @@ for (const v of VIEWS) {
       await openStory(page, { ...calmMonth(), trips: trips() });
       await page.getByTestId('story-tile-flow').click();
       const row = page.getByTestId('story-upsell-flow');
-      await expect(row.getByRole('link')).toHaveAttribute('href', '/supporter?from=story_flow');
+      await expect(row).toHaveAttribute('href', '/supporter?from=story_flow');
       await row.scrollIntoViewIfNeeded();
       await shot(page, v.name, '01-strom-gesperrt-tesla');
     });
@@ -56,7 +56,7 @@ for (const v of VIEWS) {
       await openStory(page, { ...calmMonth(), trips: trips() });
       await page.getByTestId('story-tile-flow').click();
       const row = page.getByTestId('story-upsell-flow');
-      await expect(row.getByRole('link')).toHaveAttribute('href', '/upgrade?from=story_flow');
+      await expect(row).toHaveAttribute('href', '/upgrade?from=story_flow');
       await row.scrollIntoViewIfNeeded();
       await shot(page, v.name, '02-strom-gesperrt-vw');
     });
@@ -72,7 +72,7 @@ for (const v of VIEWS) {
       ]);
       await openStory(page, d);
       await page.getByTestId('story-tile-flow').click();
-      await expect(page.getByTestId('story-trial-flow')).toContainText(/Gratis bis/);
+      await expect(page.getByTestId('story-trial-flow')).toContainText(/gratis bis/);
       await page.getByTestId('story-trial-flow').scrollIntoViewIfNeeded();
       await shot(page, v.name, '03-strom-probemonat');
     });
@@ -84,7 +84,7 @@ for (const v of VIEWS) {
       await page.reload();
       await page.getByTestId('story-tile-cost').click();
       const row = page.getByTestId('story-upsell-cost');
-      await expect(row.getByRole('link')).toHaveAttribute('href', '/upgrade?from=story_cost');
+      await expect(row).toHaveAttribute('href', '/upgrade?from=story_cost');
       await row.scrollIntoViewIfNeeded();
       await shot(page, v.name, '04-kosten-gesperrt');
     });
@@ -137,7 +137,7 @@ for (const v of VIEWS) {
       await page.getByTestId('story-map-open').first().click();
       await page.getByRole('switch').first().click();
       const row = page.getByTestId('places-trips-locked');
-      await expect(row.getByRole('link')).toHaveAttribute('href', '/supporter?from=story_places');
+      await expect(row).toHaveAttribute('href', '/supporter?from=story_places');
       await row.scrollIntoViewIfNeeded();
       await shot(page, v.name, '08-ladeorte-gesperrt');
     });
@@ -162,7 +162,9 @@ for (const v of VIEWS) {
         await shot(page, v.name, '10-logbuch-standverlust');
       }
       await page.getByTestId('day-row-charge').first().click();
+      await expect(page.getByTestId('logbook-detail')).toBeVisible();
       await expect(page.getByTestId('logbook-curve')).toBeVisible();
+      await page.waitForTimeout(500); // Sheet eingefahren
       await shot(page, v.name, '11-logbuch-ladekurve-schloss');
       await page.getByTestId('logbook-curve').click();
       await page.waitForTimeout(500);

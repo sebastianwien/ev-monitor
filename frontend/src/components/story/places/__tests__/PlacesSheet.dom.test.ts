@@ -138,7 +138,7 @@ describe('PlacesSheet', () => {
     ;(document.querySelector('[data-testid="places-trips"] [role="switch"]') as HTMLButtonElement).click()
     await flush()
     expect(norm($('places-trips-locked')?.textContent)).toContain('Alle Fahrten auf der Karte')
-    expect($('places-trips-locked')?.querySelector('a')?.getAttribute('href')).toBe('/upgrade?from=story_places')
+    expect($('places-trips-locked')?.getAttribute('href')).toBe('/upgrade?from=story_places')
   })
 
   it('ohne Kaufrecht (native App): gesperrte Zeile ohne Kauf-Link', async () => {
@@ -148,7 +148,7 @@ describe('PlacesSheet', () => {
     ;(document.querySelector('[data-testid="places-trips"] [role="switch"]') as HTMLButtonElement).click()
     await flush()
     expect(norm($('places-trips-locked')?.textContent)).toContain('Alle Fahrten auf der Karte')
-    expect($('places-trips-locked')?.querySelector('a')).toBeNull()
+    expect($('places-trips-locked')?.tagName).not.toBe('A')
     iap.buy = true
   })
 
