@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, CurrencyEuroIcon, CheckCircleIcon, ChevronRightIcon, HomeIcon } from '@heroicons/vue/24/outline'
+import { CurrencyEuroIcon, CheckCircleIcon, ChevronRightIcon, HomeIcon } from '@heroicons/vue/24/outline'
 import WattBadge from '../shared/WattBadge.vue'
 import { wattPossibleForLog } from '@/utils/wattPreview'
 import { amendKwh } from '@/utils/priceAmend'
@@ -127,10 +127,6 @@ function formatDate(iso: string) {
               {{ logs.length }}
             </span>
           </div>
-          <button type="button" @click="emit('close')" :aria-label="t('priceless.close')"
-            class="btn-3d cta-shadow-sm grid h-10 w-10 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-gray-800 dark:bg-white/10 dark:text-gray-200">
-            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
-          </button>
         </div>
 
         <p class="px-5 pt-3 pb-1 text-[14px] text-gray-600 dark:text-gray-300">{{ t('priceless.info') }}</p>
