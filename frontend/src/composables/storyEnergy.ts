@@ -165,7 +165,7 @@ export interface RangeSeason {
 }
 
 export interface RangeEstimate {
-  /** Verbrauch der letzten 4 Wochen in kWh/100 km, Basis der Kachel. */
+  /** Verbrauch der letzten 4 Wochen in kWh/100 km, Basis der Kachel: Antrieb aus den Fahrten, sonst aus den Ladungen. */
   consumption: number
   windows: RangeWindow[]
   /** Reichweite im empfohlenen Fenster. */
@@ -190,17 +190,20 @@ function seasonRow(effectiveCapacityKwh: number, consumption: number | null): Ra
 }
 
 /**
- * Kachelwert aus dem Verbrauch der uebergebenen Statistik (letzte 4 Wochen), Sommer und Winter
- * als eigene Zeilen fuer das Sheet. Kein Jahresmittel, keine Saisonzuordnung des Monats: ein
- * Monat mit zwei Ladungen hatte sonst 450 km ergeben. Null ohne Kapazitaet oder ohne Verbrauch.
+ * Kachelwert aus dem Verbrauch der letzten 4 Wochen, Sommer und Winter als eigene Zeilen für das
+ * Sheet. Kein Jahresmittel, keine Saisonzuordnung des Monats: ein Monat mit zwei Ladungen hätte
+ * sonst 450 km ergeben. Mit Fahrdaten zählt der Antrieb laut Fahrzeug (driveKwhPer100km): der
+ * Verbrauch aus den Ladungen enthält den Verlust im Stand, und der verkürzt keine Fahrt. Ohne
+ * Fahrdaten der Verbrauch der Statistik. Null ohne Kapazität oder ohne Verbrauch.
  */
 export function buildRange(
   stats: StatisticsData,
   effectiveCapacityKwh: number | null,
   peerWinterConsumption: number | null = null,
+  driveKwhPer100km: number | null = null,
 ): RangeEstimate | null {
   if (effectiveCapacityKwh == null || effectiveCapacityKwh <= 0) return null
-  const c = stats.avgConsumptionKwhPer100km
+  const c = driveKwhPer100km != null && driveKwhPer100km > 0 ? driveKwhPer100km : stats.avgConsumptionKwhPer100km
   if (c == null || c <= 0) return null
   const windows = RANGE_SOC_WINDOWS.map(w => ({ ...w, km: kmFor(effectiveCapacityKwh, c, w.socMax, w.socMin) }))
   const winter = seasonRow(effectiveCapacityKwh, stats.winterConsumptionKwhPer100km)

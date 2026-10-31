@@ -359,6 +359,43 @@ describe('wantsWeatherOutlook', () => {
   })
 })
 
+describe('useDashboardStory - Reichweite', () => {
+  beforeEach(() => { clearStoryCache(); getMock.mockReset() })
+  const withCapacity = () => ({ ...ctx(), effectiveBatteryCapacityKwh: 60 })
+  const mock = (trips: unknown[]) => getMock.mockImplementation((url: string) => {
+    if (url.includes('/logs/statistics')) return Promise.resolve({ data: { ...stats(10), avgConsumptionKwhPer100km: 49.5 } })
+    if (url.includes('/trips?') && url.includes('from=')) {
+      // Wie das Backend: nur Fahrten im angefragten Zeitraum
+      const q = new URL(url, 'http://x').searchParams
+      const from = Date.parse(q.get('from')!), to = Date.parse(q.get('to')!)
+      return Promise.resolve({ data: (trips as { tripStartedAt: string }[]).filter(t => Date.parse(t.tripStartedAt) >= from && Date.parse(t.tripStartedAt) <= to) })
+    }
+    return Promise.resolve({ data: [] })
+  })
+  const rangeTile = (story: ReturnType<typeof useDashboardStory>) => story.tiles.value.find(t => t.id === 'range')
+
+  it('rechnet mit dem Antrieb der Fahrten der letzten 4 Wochen, nicht mit dem Verbrauch aus den Ladungen', async () => {
+    // 20 Tage alt: liegt im 4-Wochen-Fenster, nicht in den drei Tagen der Momente
+    const at = new Date(Date.now() - 20 * 86_400_000).toISOString()
+    mock([
+      { id: 't1', tripStartedAt: at, tripEndedAt: at, distanceKm: 50, estimatedConsumedKwh: 12 },
+      { id: 't2', tripStartedAt: at, tripEndedAt: at, distanceKm: 50, estimatedConsumedKwh: 12 },
+    ])
+    const story = useDashboardStory(ref<string | null>('car-1'), withCapacity)
+    await flush()
+    // 24 kWh / 100 km: 60 * 0.8 / 24 * 100 = 200 km statt 97 mit 49,5
+    expect(rangeTile(story)?.range?.consumption).toBe(24)
+    expect(rangeTile(story)?.range?.km).toBe(200)
+  })
+
+  it('ohne Fahrdaten bleibt es beim Verbrauch aus den Ladungen', async () => {
+    mock([])
+    const story = useDashboardStory(ref<string | null>('car-1'), withCapacity)
+    await flush()
+    expect(rangeTile(story)?.range?.consumption).toBe(49.5)
+  })
+})
+
 describe('useDashboardStory - Heimlade-Ersparnis gesperrt oder im Probemonat', () => {
   beforeEach(() => {
     clearStoryCache()

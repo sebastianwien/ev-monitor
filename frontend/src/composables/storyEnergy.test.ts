@@ -79,6 +79,19 @@ describe('buildRange', () => {
     expect(buildRange(stats({ winterConsumptionKwhPer100km: null }), 60)!.winter).toBeNull()
   })
 
+  it('mit Fahrdaten zählt nur der Antrieb, der Verlust im Stand verkürzt die Reichweite nicht', () => {
+    // Laden ergibt 49,5 (mit Stand), gefahren 24: 60 * 0.8 / 24 * 100 = 200 statt 97
+    const r = buildRange(stats({ avgConsumptionKwhPer100km: 49.5 }), 60, null, 24)!
+    expect(r.consumption).toBe(24)
+    expect(r.km).toBe(200)
+    expect(r.emptyKm).toBe(225)
+  })
+
+  it('ohne Fahrdaten bleibt es beim Verbrauch aus den Ladungen', () => {
+    expect(buildRange(stats(), 60, null, null)!.consumption).toBe(18)
+    expect(buildRange(stats(), 60, null, 0)!.consumption).toBe(18)
+  })
+
   it('rechnet von 90 % bis ganz leer mit dem Verbrauch der letzten 4 Wochen', () => {
     // 60 kWh * 0.9 / 18 * 100 = 300 km
     expect(buildRange(stats(), 60)!.emptyKm).toBe(300)
