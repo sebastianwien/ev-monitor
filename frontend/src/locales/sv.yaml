@@ -1396,6 +1396,7 @@ priceamend:
   batch_done: "{count} annan laddning på denna plats prissatt | {count} andra laddningar på denna plats prissatta"
 logfields:
   apply_tariff_to_location: "Använd priset även på {count} annan laddning på denna plats | Använd priset även på {count} andra laddningar på denna plats"
+  apply_operator_to_location: "Ange {name} även för {count} annan laddning på denna plats | Ange {name} även för {count} andra laddningar på denna plats"
   card_prompt_title: "Lägg till ditt laddkort"
   card_prompt_hint: "Då beräknar jag kostnaden för offentliga laddningar automatiskt framöver."
   card_prompt_cta: "Lägg till"

@@ -48,6 +48,7 @@ public class EvLogController {
     private final com.evmonitor.application.EvLogShareService evLogShareService;
     private final com.fasterxml.jackson.databind.ObjectMapper objectMapper;
     private final ChargingPlacesService chargingPlacesService;
+    private final com.evmonitor.application.OperatorAtLocationService operatorAtLocationService;
 
 
     @PostMapping
@@ -329,6 +330,37 @@ public class EvLogController {
 
         return ResponseEntity.ok(Map.of("priced", applied.priced(), "coinsAwarded", applied.coinsAwarded()));
 
+    }
+
+    /**
+     * Wie viele andere öffentliche Ladungen an genau diesem Geohash noch keinen Betreiber haben -
+     * trägt die Abfrage "Auch für N weitere Ladungen hier" beim Bearbeiten. 0, wenn der Ort nicht
+     * eindeutig ist (private Präzision oder dort schon ein anderer Betreiber).
+     */
+    @GetMapping("/operator-gaps")
+    public ResponseEntity<Map<String, Long>> countOperatorGaps(
+            @RequestParam String geohash,
+            @RequestParam String cpoName,
+            @RequestParam(required = false) UUID excludeLogId,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        long count = operatorAtLocationService.countOperatorGaps(principal.getUser().getId(), geohash, cpoName, excludeLogId);
+        return ResponseEntity.ok(Map.of("count", count));
+    }
+
+    record ApplyOperatorRequest(@jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 12) String geohash,
+                                @jakarta.validation.constraints.NotBlank @jakarta.validation.constraints.Size(max = 100) String cpoName,
+                                UUID excludeLogId) {}
+
+    /** Setzt den Betreiber auf alle anderen öffentlichen Ladungen ohne Betreiber an diesem Ort. Überschreibt nie. */
+    @PatchMapping("/apply-operator-at-location")
+    public ResponseEntity<Map<String, Integer>> applyOperatorAtLocation(
+            @jakarta.validation.Valid @RequestBody ApplyOperatorRequest body,
+            Authentication authentication) {
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        var applied = operatorAtLocationService.applyOperator(
+                principal.getUser().getId(), body.geohash(), body.cpoName(), body.excludeLogId());
+        return ResponseEntity.ok(Map.of("updated", applied.updated(), "coinsAwarded", applied.coinsAwarded()));
     }
 
     /**

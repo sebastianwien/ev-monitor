@@ -66,6 +66,11 @@
             <BigInput id="wizard-cost" v-model="cost.costLocalTotal.value" :unit="currencySymbol" :placeholder="t('logfields.cost_eur_placeholder')" step="0.01" :min="0" />
           </div>
         </div>
+        <!-- Neuer Betreiber: auch auf die anderen Ladungen ohne Betreiber an diesem Ort, wenn der Ort eindeutig ist -->
+        <label v-if="operatorGapCount > 0" data-testid="edit-operator-batch" class="flex items-start gap-2 text-sm text-gray-700 dark:text-gray-200">
+          <input v-model="applyOperatorToPlace" type="checkbox" class="mt-0.5 h-5 w-5 rounded border-2 border-edge text-gray-900 accent-gray-900 focus:ring-green-600 dark:bg-gray-800 dark:accent-gray-100" />
+          <span>{{ t('logfields.apply_operator_to_location', { name: formData.cpoName?.trim() ?? '', count: operatorGapCount }, operatorGapCount) }}</span>
+        </label>
         <!-- Ergänzungen des Rahmens zur Ladung, z. B. Ladekurve und "Korrekt erkannt?" im Logbuch: zuletzt, direkt über Speichern -->
         <slot name="extra" />
       </template>
@@ -146,6 +151,7 @@ import { useLogUndo } from '../../composables/useLogUndo'
 import type { LogFormData } from '../log-form/logFormData'
 import type { ChargingProvider } from '../../composables/useChargingProviders'
 import { applyTariffToLocationIfRequested } from '../../utils/applyTariffToLocation'
+import { operatorGapQuery, fetchOperatorGapCount, applyOperatorToLocation } from '../../utils/operatorAtLocation'
 import { useCountryStore } from '../../stores/country'
 import { useCostInput } from '../../composables/useCostInput'
 import { EUR_ZONE_COUNTRIES } from '../../config/unitSystems'
@@ -265,6 +271,18 @@ const formData = ref<LogFormData>({
   chargingProviderId: props.log.chargingProviderId ?? null,
   applyTariffToLocation: false,
 })
+
+// Betreiber auf die anderen Ladungen am selben Ort: vorausgewählt, der Server sagt, ob der Ort eindeutig ist
+const operatorQuery = computed(() => operatorGapQuery(props.log, formData.value))
+const operatorGapCount = ref(0)
+const applyOperatorToPlace = ref(true)
+let operatorRequest = 0
+watch(operatorQuery, async q => {
+  const mine = ++operatorRequest
+  if (!q) { operatorGapCount.value = 0; return }
+  const count = await fetchOperatorGapCount(q)
+  if (mine === operatorRequest) operatorGapCount.value = count
+}, { immediate: true })
 
 // Bearbeiten heisst meist "eins aendern": Uebersicht zuerst, Editor je Abschnitt darunter.
 const section = ref<SummarySection | null>(props.startSection ?? null)
@@ -516,6 +534,7 @@ async function save() {
   try {
     const res = await api.patch(`/logs/${props.log.id}`, buildLogUpdatePayload(formData.value))
     await applyTariffToLocationIfRequested(formData.value)
+    if (applyOperatorToPlace.value && operatorGapCount.value > 0 && operatorQuery.value) await applyOperatorToLocation(operatorQuery.value)
     if (beforeVoice) {
       const fields: string[] = correctedFields(spoken.value, formData.value)
       analytics.trackVoice('saved', { entry: 'edit', corrected: fields.length })

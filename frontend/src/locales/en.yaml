@@ -1438,6 +1438,7 @@ priceamend:
   batch_done: "{count} other charge at this location priced | {count} other charges at this location priced"
 logfields:
   apply_tariff_to_location: "Also apply this price to {count} other charge at this location | Also apply this price to {count} other charges at this location"
+  apply_operator_to_location: "Also set {name} for {count} other charge at this location | Also set {name} for {count} other charges at this location"
   card_prompt_title: "Add your charging card"
   card_prompt_hint: "Then I will price your public charges automatically from now on."
   card_prompt_cta: "Add"

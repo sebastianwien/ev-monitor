@@ -244,6 +244,9 @@ public interface EvLogRepository {
      */
     List<EvLog> findPricelessLogsAtGeohash(UUID userId, String geohash);
 
+    /** Alle Ladungen des Users an genau diesem Geohash (kein Präfix) - für den Betreiber-Nachtrag am Ort. */
+    List<EvLog> findAllByUserIdAndGeohash(UUID userId, String geohash);
+
     /** Alle nicht-oeffentlichen Ladungen des Users ohne Kosten - fuer den Heimtarif-Nachtrag. */
     List<EvLog> findPricelessPrivateLogs(UUID userId);
 

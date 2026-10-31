@@ -333,6 +333,14 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
         """)
     List<EvLogEntity> findPricelessByUserIdAndGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash);
 
+    @Query("""
+        SELECT e FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id AND c.deletedAt IS NULL
+        WHERE c.userId = :userId
+          AND e.geohash = :geohash
+        ORDER BY e.loggedAt DESC
+        """)
+    List<EvLogEntity> findAllByUserIdAndExactGeohash(@Param("userId") UUID userId, @Param("geohash") String geohash);
+
     /**
      * Alle nicht-oeffentlichen Ladungen des Users ohne Kosten - unabhaengig vom Ort. Der
      * ortsbasierte Nachtrag erreicht sie nicht: Import-Quellen wie XPeng liefern keinen Geohash.

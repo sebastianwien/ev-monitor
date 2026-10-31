@@ -461,6 +461,13 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public List<EvLog> findAllByUserIdAndGeohash(UUID userId, String geohash) {
+        return jpaRepository.findAllByUserIdAndExactGeohash(userId, geohash).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<EvLog> findPricelessPrivateLogs(UUID userId) {
         return jpaRepository.findPricelessPrivateByUserId(userId).stream()
                 .map(this::toDomain)

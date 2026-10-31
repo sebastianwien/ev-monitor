@@ -1441,6 +1441,7 @@ priceamend:
   batch_done: "{count} weitere Ladung an diesem Ort bepreist | {count} weitere Ladungen an diesem Ort bepreist"
 logfields:
   apply_tariff_to_location: "Preis auch auf {count} weitere Ladung an diesem Ort übernehmen | Preis auch auf {count} weitere Ladungen an diesem Ort übernehmen"
+  apply_operator_to_location: "{name} auch bei {count} weiteren Ladung an diesem Ort eintragen | {name} auch bei {count} weiteren Ladungen an diesem Ort eintragen"
   card_prompt_title: "Ladekarte hinterlegen"
   card_prompt_hint: "Dann berechne ich die Kosten öffentlicher Ladungen künftig automatisch."
   card_prompt_cta: "Anlegen"

@@ -172,3 +172,44 @@ describe('EditLogModal - private Ladung auf öffentlich umstellen', () => {
     expect(api.patch).not.toHaveBeenCalled()
   })
 })
+
+describe('EditLogModal - Betreiber auch für die anderen Ladungen am Ort', () => {
+  it('fragt nach dem Säulen-Tipp und trägt den Betreiber nach dem Speichern am alten Ort nach', async () => {
+    ;(api.get as any).mockImplementation((url: string) => Promise.resolve({ data:
+      url.includes('nearby-stations')
+        ? [{ name: 'Tesla Supercharger', known: true, distanceMeters: 40, geohash: 'u1x3k7r', address: 'Stillhorn',
+            fastCharging: true, chargePoints: 8, maxAcKw: null, maxDcKw: 250, plugTypes: [], registerId: null }]
+        : url.includes('operator-gaps') ? { count: 2 } : [] }))
+    ;(api.patch as any).mockResolvedValue({ data: {} })
+    app = createApp(defineComponent({ render: () => h(EditLogModal, { log: { ...log, geohash: 'u1x3k7q' }, startSection: 'place' }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+
+    await vi.waitFor(() => expect(document.body.textContent).toContain('Tesla Supercharger'))
+    const tile = [...document.body.querySelectorAll('button')].find(b => b.textContent?.includes('Stillhorn'))!
+    tile.click()
+    await nextTick()
+    q('[data-testid="edit-done"]')?.click()
+    await vi.waitFor(() => expect(q('[data-testid="edit-operator-batch"]')).not.toBeNull())
+    const gaps = (api.get as any).mock.calls.find((c: unknown[]) => String(c[0]).includes('operator-gaps'))
+    expect(gaps[1].params).toEqual({ geohash: 'u1x3k7q', cpoName: 'Tesla Supercharger', excludeLogId: 'log-1' })
+    expect((q('[data-testid="edit-operator-batch"] input') as HTMLInputElement).checked).toBe(true)
+
+    q('[data-testid="edit-save"]')!.click()
+    await vi.waitFor(() => expect((api.patch as any).mock.calls.some((c: unknown[]) => c[0] === '/logs/apply-operator-at-location')).toBe(true))
+    const apply = (api.patch as any).mock.calls.find((c: unknown[]) => c[0] === '/logs/apply-operator-at-location')
+    expect(apply[1]).toEqual({ geohash: 'u1x3k7q', cpoName: 'Tesla Supercharger', excludeLogId: 'log-1' })
+  })
+
+  it('unveränderter Betreiber: keine Frage', async () => {
+    ;(api.get as any).mockImplementation((url: string) => Promise.resolve({ data: url.includes('operator-gaps') ? { count: 1 } : [] }))
+    ;(api.patch as any).mockResolvedValue({ data: {} })
+    app = createApp(defineComponent({ render: () => h(EditLogModal, { log: { ...log, geohash: 'u1x3k7q', cpoName: 'IONITY' } }) }))
+    app.use(i18n).use(createPinia()); app.directive('haptic', {})
+    app.mount(document.body.appendChild(document.createElement('div')))
+    await nextTick()
+    // Unveränderter Betreiber: keine Frage
+    expect((api.get as any).mock.calls.some((c: unknown[]) => String(c[0]).includes('operator-gaps'))).toBe(false)
+    expect(q('[data-testid="edit-operator-batch"]')).toBeNull()
+  })
+})
