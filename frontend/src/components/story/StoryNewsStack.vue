@@ -114,10 +114,11 @@ const panel = 'relative mx-auto w-full max-w-lg rounded-t-2xl border-2 border-b-
                :style="mode === 'stack' ? swipe.cardStyle.value : undefined">
             <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
             <template v-if="mode === 'stack' && current">
-              <StoryNewsCard :moment="current" :car-id="carId" :car-name="carName" @act="emit('act', current!, $event)" @dismiss="swipe.fly(1)" />
-              <div v-if="count > 1" class="mt-3">
-                <button type="button" class="inline-flex min-h-11 items-center text-sm font-semibold text-gray-700 underline underline-offset-2 dark:text-gray-200" data-testid="story-news-all" @click="showList">{{ t('story.news_show_all') }}</button>
-              </div>
+              <StoryNewsCard :moment="current" :car-id="carId" :car-name="carName" @act="emit('act', current!, $event)" @dismiss="swipe.fly(1)">
+                <template v-if="count > 1" #more>
+                  <button type="button" class="inline-flex min-h-11 items-center text-sm font-semibold text-gray-700 underline underline-offset-2 dark:text-gray-200" data-testid="story-news-all" @click="showList">{{ t('story.news_show_all_news') }}</button>
+                </template>
+              </StoryNewsCard>
             </template>
             <template v-else-if="mode === 'list'">
               <div class="mb-3 flex items-center justify-between gap-3">

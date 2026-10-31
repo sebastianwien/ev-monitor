@@ -81,6 +81,9 @@ describe('StoryNewsStack', () => {
     expect(document.querySelectorAll('[data-testid="story-news-peek"]')).toHaveLength(2)
     expect(q('[data-testid="story-news-next"]')).toBeNull()
     expect(q('[data-testid="story-news-position"]')).toBeNull()
+    // Sagt, was dahinter liegt: alle Neuigkeiten, nicht alle Fahrten; steht in der Karte bei den Aktionen
+    expect(text(q('[data-testid="story-news-all"]'))).toBe('Alle Neuigkeiten zeigen')
+    expect(q('[data-testid="story-news-sentence"]')!.closest('article')!.contains(q('[data-testid="story-news-all"]'))).toBe(true)
     q('[data-testid="story-news-all"]')!.click()
     await nextTick()
     expect(text(q('[data-testid="story-news-list"]'))).toContain('Es wird kalt')

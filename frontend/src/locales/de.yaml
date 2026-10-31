@@ -4578,6 +4578,7 @@ story:
   news_all_done: "Alle erledigt"
   news_tab: "1 Neuigkeit | {n} Neuigkeiten"
   news_show_all: "Alle zeigen"
+  news_show_all_news: "Alle Neuigkeiten zeigen"
   news_done: "Erledigt"
   moment_expensive_eyebrow: "Teurer als üblich"
   moment_expensive: "{when} {price} bei {cpo}. Andere Fahrer zahlen dort im Schnitt {median}."

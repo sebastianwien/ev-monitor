@@ -4414,6 +4414,7 @@ story:
   news_all_done: "Alle ferdige"
   news_tab: "1 nyhet | {n} nyheter"
   news_show_all: "Vis alle"
+  news_show_all_news: "Vis alle nyheter"
   news_done: "Ferdig"
   moment_expensive_eyebrow: "Dyrere enn vanlig"
   moment_expensive: "{when} {price} hos {cpo}. Andre sjåfører betaler i snitt {median} der."

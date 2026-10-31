@@ -4572,6 +4572,7 @@ story:
   news_all_done: "All done"
   news_tab: "1 update | {n} updates"
   news_show_all: "Show all"
+  news_show_all_news: "Show all updates"
   news_done: "Done"
   moment_expensive_eyebrow: "Pricier than usual"
   moment_expensive: "{when} {price} at {cpo}. Other drivers pay {median} there on average."
