@@ -266,6 +266,31 @@ public interface JpaEvLogRepository extends JpaRepository<EvLogEntity, UUID> {
                                     @Param("temp") Double temp,
                                     @Param("source") com.evmonitor.domain.weather.TemperatureSource source);
 
+    @Query("SELECT c.userId FROM EvLogEntity e JOIN CarEntity c ON e.carId = c.id WHERE e.id = :id")
+    Optional<UUID> findOwnerId(@Param("id") UUID id);
+
+    // Rechte Seiten sehen die alten Werte der Zeile. Kosten und kWh-Preis kommen nur gemeinsam
+    // und nur, wenn beide fehlen - sonst passten sie nicht zu dem, was der Nutzer eingetragen hat.
+    @Modifying
+    @Query("""
+        UPDATE EvLogEntity e SET
+            e.chargingSiteId = :#{#a.siteId()},
+            e.geohash = :#{#a.geohash()},
+            e.publicCharging = true,
+            e.cpoName = CASE WHEN e.cpoName IS NULL OR TRIM(e.cpoName) = '' THEN :#{#a.cpoName()} ELSE e.cpoName END,
+            e.costEur = CASE WHEN e.costEur IS NULL AND e.pricePerKwh IS NULL THEN :#{#a.costEur()} ELSE e.costEur END,
+            e.pricePerKwh = CASE WHEN e.costEur IS NULL AND e.pricePerKwh IS NULL THEN :#{#a.pricePerKwh()} ELSE e.pricePerKwh END,
+            e.chargingProviderId = CASE WHEN e.chargingProviderId IS NULL THEN :#{#a.chargingProviderId()} ELSE e.chargingProviderId END,
+            e.updatedAt = :now
+        WHERE e.id = :#{#a.logId()}
+          AND e.geohash = :#{#a.matchedGeohash()}
+          AND e.chargingSiteId IS NULL
+          AND (e.publicCharging IS NULL OR e.publicCharging = true)
+          AND e.deletedAt IS NULL
+        """)
+    int attachChargingSite(@Param("a") com.evmonitor.domain.ChargingSiteAttachment attachment,
+                           @Param("now") java.time.LocalDateTime now);
+
     @Modifying
     @Query("UPDATE EvLogEntity e SET e.temperatureSource = :source WHERE e.id = :id")
     void updateTemperatureSource(@Param("id") UUID id,

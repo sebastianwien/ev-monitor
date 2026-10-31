@@ -59,16 +59,6 @@ public class ChargingSiteService {
         return Optional.of(repository.save(fromRegister(verified.get(), ref.geohash())));
     }
 
-    /** Register-Säulen um die Zelle (gecacht); leer, wenn das Register nicht antwortet. */
-    public Optional<List<NearbyStation>> stationsAround(String geohash) {
-        return nearbyCpoService.findNearbyStations(geohash);
-    }
-
-    /** Ob {@link #stationsAround} ohne Registerabruf auskommt. */
-    public boolean isRegisterCached(String geohash) {
-        return nearbyCpoService.isStationsCached(geohash, null);
-    }
-
     /**
      * Der Standort zu einer Säule, die das Register schon geliefert hat - für die automatische
      * Zuordnung, die kein Nutzer ausgelöst hat und deshalb kein Nutzerkontingent verbraucht.

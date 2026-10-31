@@ -16,6 +16,18 @@ public interface EvLogRepository {
 
     Optional<EvLog> findByIdAndCarId(UUID id, UUID carId);
 
+    /** Eigentümer der Ladung über ihr Auto; leer, wenn es Ladung oder Auto nicht (mehr) gibt. */
+    Optional<UUID> findOwnerId(UUID logId);
+
+    /**
+     * Hängt eine Säule gezielt an eine Ladung, statt sie komplett zu speichern: was andere
+     * Hintergrund-Schreiber parallel setzen (Temperatur, Streckentyp), bleibt erhalten, und
+     * vorhandene Werte gewinnen (siehe {@link ChargingSiteAttachment}).
+     *
+     * @return false, wenn die Ladung inzwischen eine Säule oder einen anderen Ort hat, privat oder gelöscht ist
+     */
+    boolean attachChargingSite(ChargingSiteAttachment attachment);
+
     List<EvLog> findAll();
 
     List<EvLog> findAllByCarId(UUID carId);
