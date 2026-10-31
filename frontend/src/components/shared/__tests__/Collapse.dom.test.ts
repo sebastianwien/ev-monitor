@@ -50,6 +50,16 @@ describe('Collapse', () => {
     vi.useRealTimers()
   })
 
+  it('zugeklappt während der Verzögerung: klappt nicht mehr auf', async () => {
+    vi.useFakeTimers()
+    const { open, outer } = mount(true, true, 120)
+    open.value = false
+    await nextTick()
+    await vi.advanceTimersByTimeAsync(200); await nextTick()
+    expect(outer().className).toContain('grid-rows-[0fr]')
+    vi.useRealTimers()
+  })
+
   it('ohne appear steht ein offen eingehängter Inhalt sofort offen da', () => {
     const { outer } = mount(true)
     expect(outer().className).toContain('grid-rows-[1fr]')

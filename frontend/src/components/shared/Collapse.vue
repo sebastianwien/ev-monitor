@@ -24,6 +24,7 @@ const reducedMotion = () =>
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 let settleTimer: ReturnType<typeof setTimeout> | undefined
+let delayTimer: ReturnType<typeof setTimeout> | undefined
 const expand = () => {
   requestAnimationFrame(() => {
     expanded.value = true
@@ -31,7 +32,6 @@ const expand = () => {
     if (reducedMotion()) settled.value = true
   })
 }
-let delayTimer: ReturnType<typeof setTimeout> | undefined
 onMounted(() => {
   if (!props.open || !props.appear) return
   const delay = props.appearDelay ?? 0
@@ -43,6 +43,8 @@ onUnmounted(() => { clearTimeout(settleTimer); clearTimeout(delayTimer) })
 watch(() => props.open, async (open) => {
   settled.value = false
   clearTimeout(settleTimer)
+  // Ein noch wartendes Einblenden (appearDelay) darf ein Zuklappen nicht überholen
+  clearTimeout(delayTimer)
   // Bleibt transitionend aus (Tab im Hintergrund, Browser überspringt die Transition), trotzdem freigeben
   settleTimer = setTimeout(onEnd, 400)
   if (open) {
