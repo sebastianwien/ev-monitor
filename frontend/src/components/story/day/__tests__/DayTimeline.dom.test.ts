@@ -170,6 +170,11 @@ describe('DayTimeline Kurzfahrt unter 1 km', () => {
     expect(host.querySelector('[data-testid="day-map-credit"]')).toBeNull()
   })
 
+  it('Strecke in Metern statt "0 km"', async () => {
+    const host = await mount([trip({ distanceKm: 0.43 })])
+    expect(host.querySelector('[data-testid="day-row-trip"]')?.textContent).toContain('430 m')
+  })
+
   it('ab 1 km normale Zeile mit Minikarte', async () => {
     const host = await mount([trip({ ...moved, distanceKm: 1 })])
     expect(host.querySelector('[data-testid="day-row-trip"]')?.hasAttribute('data-compact')).toBe(false)

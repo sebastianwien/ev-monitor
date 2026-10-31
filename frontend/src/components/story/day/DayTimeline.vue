@@ -37,7 +37,10 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent, later: DayEvent]; hover: [id: string | null] }>()
 const { t } = useI18n()
-const { formatDecimal, formatDistance, formatCurrency, formatCostPerKwh } = useLocaleFormat()
+const { formatDecimal, formatDistance, formatCurrency, formatCostPerKwh, distanceUnitLabel } = useLocaleFormat()
+/** Kurzfahrt in Metern (auf 10 m) statt "0 km"; Meilen mit einer Nachkommastelle */
+const tripDistance = (km: number) => km >= SHORT_TRIP_KM ? formatDistance(km)
+  : distanceUnitLabel() === 'km' ? `${Math.round(km * 100) * 10} m` : formatDistance(km, { round: false })
 
 const hm = (min: number) => min >= 1440 ? '24:00' : `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
 function dur(min: number) {
@@ -167,7 +170,7 @@ const items = computed<Item[]>(() => {
               <span class="h-3.5 w-px shrink-0 self-center bg-gray-300 dark:bg-gray-600" :class="e.kind === 'charge' ? 'hidden md:block' : ''" aria-hidden="true" />
               <!-- Ladeort auf dem Handy in eigener Zeile (unten), damit er nicht abgeschnitten wird -->
               <span class="truncate" :class="e.kind === 'charge' ? 'hidden md:inline' : ''">
-                <template v-if="e.kind === 'trip' && e.trip.distanceKm != null"><span class="sr-only">{{ t('storyday.trip') }} </span><span class="tabular-nums">{{ formatDistance(e.trip.distanceKm) }}</span></template>
+                <template v-if="e.kind === 'trip' && e.trip.distanceKm != null"><span class="sr-only">{{ t('storyday.trip') }} </span><span class="tabular-nums">{{ tripDistance(e.trip.distanceKm) }}</span></template>
                 <template v-else-if="e.kind === 'trip'">{{ t('storyday.trip') }}</template>
                 <template v-else>{{ placeName(e) }}</template>
               </span>
