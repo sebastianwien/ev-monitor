@@ -93,12 +93,15 @@ function standingBefore(prev: DayEvent | null, e: DayEvent): StandingRow | null 
  * Standzeile am Rand endet auf halber Höhe.
  */
 const LINE = 'relative before:pointer-events-none before:absolute before:left-[25px] before:w-0.5 before:bg-gray-200 dark:before:bg-gray-800'
-function lineClass(i: number, isEvent: boolean): string {
+/** Standzeit: gestrichelt, das Auto steht und lädt nicht */
+const LINE_IDLE = 'relative before:pointer-events-none before:absolute before:left-[25px] before:w-0 before:border-l-2 before:border-dashed before:border-gray-300 dark:before:border-gray-700'
+function lineClass(i: number, isEvent: boolean, idle = false): string {
   const n = items.value.length
+  const line = idle ? LINE_IDLE : LINE
   if (n < 2) return 'relative'
-  if (i === 0) return `${LINE} before:bottom-0 ${isEvent ? 'before:top-[26px]' : 'before:top-1/2'}`
-  if (i === n - 1) return `${LINE} before:top-0 ${isEvent ? 'before:h-[26px]' : 'before:h-1/2'}`
-  return `${LINE} before:inset-y-0`
+  if (i === 0) return `${line} before:bottom-0 ${isEvent ? 'before:top-[26px]' : 'before:top-1/2'}`
+  if (i === n - 1) return `${line} before:top-0 ${isEvent ? 'before:h-[26px]' : 'before:h-1/2'}`
+  return `${line} before:inset-y-0`
 }
 const items = computed<Item[]>(() => {
   const groups = props.events.map((e, i) => {
@@ -138,7 +141,7 @@ const items = computed<Item[]>(() => {
           </div>
         </div>
       </li>
-      <li v-else-if="kind === 'standing'" class="flex min-h-11 flex-wrap items-center gap-x-1.5 pl-14 text-[12px] tabular-nums text-gray-500 dark:text-gray-400" :class="lineClass(idx, false)" data-testid="day-standing">
+      <li v-else-if="kind === 'standing'" class="flex min-h-11 flex-wrap items-center gap-x-1.5 pl-14 text-[12px] tabular-nums text-gray-500 dark:text-gray-400" :class="lineClass(idx, false, true)" data-testid="day-standing">
         <StandingText v-bind="s!" />
       </li>
 
