@@ -77,6 +77,54 @@ describe('useCostInput', () => {
     expect(form.value.costEur).toBe(10)
   })
 
+  it('switchMode nimmt den Wert mit: Gesamt 30,46 € wird zu 0,5 €/kWh, costEur bleibt', async () => {
+    const { form, cost } = setup()
+    form.value.kwhCharged = 60.91
+    await nextTick()
+    cost.costLocalTotal.value = 30.46
+    await nextTick()
+    cost.switchMode('per_kwh')
+    await nextTick()
+    expect(cost.costMode.value).toBe('per_kwh')
+    expect(cost.costLocalPerKwh.value).toBe(0.5)
+    // nur umgeschaltet, nichts getippt: der Betrag ändert sich nicht durch Rundung
+    expect(form.value.costEur).toBe(30.46)
+    cost.switchMode('total')
+    await nextTick()
+    expect(cost.costLocalTotal.value).toBe(30.46)
+    expect(form.value.costEur).toBe(30.46)
+  })
+
+  it('switchMode: Energie geändert oder Preis aus Karte gesetzt, dann rechnet zurück neu', async () => {
+    const { form, cost } = setup()
+    cost.costLocalTotal.value = 20
+    await nextTick()
+    cost.switchMode('per_kwh')
+    form.value.kwhCharged = 50
+    await nextTick()
+    cost.switchMode('total')
+    await nextTick()
+    expect(cost.costLocalTotal.value).toBe(25)
+    expect(form.value.costEur).toBe(25)
+
+    cost.switchMode('per_kwh')
+    cost.setPerKwhEur(0.5)
+    await nextTick()
+    cost.switchMode('total')
+    await nextTick()
+    expect(cost.costLocalTotal.value).toBe(25)
+  })
+
+  it('switchMode ohne Energie lässt das Zielfeld leer', async () => {
+    const { form, cost } = setup()
+    form.value.kwhCharged = null
+    cost.costLocalTotal.value = 12
+    await nextTick()
+    cost.switchMode('per_kwh')
+    await nextTick()
+    expect(cost.costLocalPerKwh.value).toBeNull()
+  })
+
   it('initFromEur ohne Kosten lässt alles leer', () => {
     const { cost } = setup()
     cost.initFromEur()

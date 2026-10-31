@@ -63,8 +63,11 @@ export function useCostInput(form: Ref<CostForm>, currency: CostCurrency) {
   // Nach initFromEur feuert der Watcher einmal ohne Nutzereingabe - dieser Lauf darf den
   // gespeicherten EUR-Betrag nicht mit dem heutigen Kurs ueberschreiben.
   let skipNextSync = false
-  watch([costMode, costLocalTotal, costLocalPerKwh, effectiveKwh], () => {
+  // Umschalten (switchMode) überspringt nur, solange die Energie im selben Lauf gleich bleibt.
+  let skipToggleSync = false
+  watch([costMode, costLocalTotal, costLocalPerKwh, effectiveKwh], (now, before) => {
     if (skipNextSync) { skipNextSync = false; return }
+    if (skipToggleSync) { skipToggleSync = false; if (now[3] === before[3]) return }
     syncCostToEur()
   })
 
@@ -78,6 +81,31 @@ export function useCostInput(form: Ref<CostForm>, currency: CostCurrency) {
     costMode.value = 'per_kwh'
     costLocalTotal.value = null
     costLocalPerKwh.value = currency.isEurCountry.value ? eurPerKwh : round3(eurToLocal(eurPerKwh))
+  }
+
+  /**
+   * Umschalten Gesamt / je kWh nimmt den Wert mit: das Zielfeld zeigt den abgeleiteten Wert.
+   * Nur umgeschaltet heißt nichts geändert - costEur bleibt, und zurück steht wieder das
+   * Original statt einer zweimal gerundeten Zahl (30,46 € -> 0,5 €/kWh -> 30,45 €).
+   * `carried` hält den Stand des letzten Umschaltens; ändern Karte, Gratis, reset oder die Energie
+   * etwas, passt er nicht mehr und das Zielfeld wird neu gerechnet.
+   */
+  let carried: { mode: 'total' | 'per_kwh'; value: number; source: number; kwh: number | null } | null = null
+  const fieldOf = (mode: 'total' | 'per_kwh') => mode === 'total' ? costLocalTotal : costLocalPerKwh
+  const switchMode = (mode: 'total' | 'per_kwh') => {
+    const from = costMode.value
+    if (mode === from) return
+    const untouched = carried != null && carried.mode === from && fieldOf(from).value === carried.value
+      && fieldOf(mode).value === carried.source && effectiveKwh.value === carried.kwh
+    carried = null
+    const derived = mode === 'per_kwh' ? calculatedLocalPerKwh.value : calculatedLocalTotal.value
+    const source = fieldOf(from).value
+    if (!untouched && derived != null && source != null) {
+      fieldOf(mode).value = derived
+      carried = { mode, value: derived, source, kwh: effectiveKwh.value }
+      skipToggleSync = true
+    }
+    costMode.value = mode
   }
 
   /**
@@ -102,6 +130,6 @@ export function useCostInput(form: Ref<CostForm>, currency: CostCurrency) {
   return {
     costMode, costLocalTotal, costLocalPerKwh,
     calculatedLocalTotal, calculatedLocalPerKwh,
-    setPerKwhEur, initFromEur, reset, eurToLocal,
+    setPerKwhEur, switchMode, initFromEur, reset, eurToLocal,
   }
 }

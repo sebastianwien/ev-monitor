@@ -368,7 +368,7 @@ onMounted(async () => {
     <BigInput v-else id="wizard-cost" v-model="costLocalPerKwh" :unit="`${symbol}/kWh`" :label="t('logfields.cost_per_kwh')" :placeholder="t('logfields.cost_per_kwh_placeholder')" step="0.001" :min="0" autofocus
       :hint="calculatedLocalTotal != null ? `= ${formatDecimal(calculatedLocalTotal, 2)} ${symbol}` : null" />
     <!-- Einheit des Felds, deshalb klein und darunter -->
-    <SegmentToggle v-model="costMode" class="mx-auto w-56"
+    <SegmentToggle :model-value="costMode" @update:model-value="props.cost.switchMode" class="mx-auto w-56"
       :options="[{ value: 'total', label: t('logwizard.cost_total') }, { value: 'per_kwh', label: t('logwizard.cost_per_kwh') }]" />
     </div>
   </div>
