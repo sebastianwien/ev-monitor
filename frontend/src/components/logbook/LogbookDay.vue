@@ -122,10 +122,9 @@ const sum = computed(() => {
           </template>
         </template>
         <!-- Handy: dritte Zeile; ab 768 px rechts neben der Karte -->
-        <template #trip-extra="{ trip }">
-          <!-- Handy: Euro zuerst; Verbrauch je 100 km steht im Detail -->
-          <span v-if="facts[trip.id]?.eurPer100km != null"
-            class="block whitespace-nowrap text-[13px] tabular-nums text-gray-500 md:hidden dark:text-gray-400" data-testid="logbook-trip-facts">{{ costPer100(trip.id) }}</span>
+        <template #trip-extra="{ trip, duration }">
+          <!-- Handy: Dauer, dann Euro; Verbrauch je 100 km steht im Detail -->
+          <span class="block whitespace-nowrap text-[13px] tabular-nums text-gray-500 md:hidden dark:text-gray-400" data-testid="logbook-trip-facts">{{ [duration, facts[trip.id]?.eurPer100km != null ? costPer100(trip.id) : null].filter(Boolean).join(' · ') }}</span>
         </template>
         <template #trip-side="{ trip }">
           <span class="block whitespace-nowrap text-[15px] font-bold leading-snug">{{ facts[trip.id]?.eurPer100km != null ? costPer100(trip.id) : '' }}</span>

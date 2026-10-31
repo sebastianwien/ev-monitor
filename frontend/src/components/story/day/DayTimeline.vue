@@ -163,7 +163,7 @@ const items = computed<Item[]>(() => {
           <!-- Kurzfahrt: beide Zeilen nebeneinander, kleinere Schrift -->
           <span class="min-w-0 flex-1" :class="isShort(e) ? 'flex flex-wrap items-baseline gap-x-3 pt-1.5' : 'pt-2'">
             <span class="flex items-baseline gap-2 font-semibold leading-snug" :class="isShort(e) ? 'text-[13px]' : 'text-[15px]'">
-              <span class="shrink-0 whitespace-nowrap tabular-nums text-gray-500 dark:text-gray-400">{{ hm(e.from) }}<template v-if="!partsOf(e)"> · {{ dur(e.to - e.from) }}</template></span>
+              <span class="shrink-0 whitespace-nowrap tabular-nums text-gray-500 dark:text-gray-400">{{ hm(e.from) }}<!-- Logbuch-Fahrt auf dem Handy: die Dauer steht in der dritten Zeile, damit die km nie abgeschnitten werden --><span v-if="!partsOf(e)" :class="e.kind === 'trip' && $slots['trip-extra'] ? 'hidden md:inline' : ''"> · {{ dur(e.to - e.from) }}</span></span>
               <span class="h-3.5 w-px shrink-0 self-center bg-gray-300 dark:bg-gray-600" :class="e.kind === 'charge' ? 'hidden md:block' : ''" aria-hidden="true" />
               <!-- Ladeort auf dem Handy in eigener Zeile (unten), damit er nicht abgeschnitten wird -->
               <span class="truncate" :class="e.kind === 'charge' ? 'hidden md:inline' : ''">
@@ -193,7 +193,7 @@ const items = computed<Item[]>(() => {
             </span>
             <span v-if="e.kind === 'charge'" class="line-clamp-2 break-words text-[13px] font-semibold leading-snug text-gray-700 md:hidden dark:text-gray-200">{{ placeName(e) }}</span>
             <!-- Logbuch: Kosten, Verbrauch und Verbraucher einer Fahrt -->
-            <slot v-if="e.kind === 'trip'" name="trip-extra" :trip="e.trip" />
+            <slot v-if="e.kind === 'trip'" name="trip-extra" :trip="e.trip" :duration="dur(e.to - e.from)" />
             <span v-if="e.kind === 'charge' && missingChips(e).length" class="mt-1 flex gap-1">
               <span v-for="m in missingChips(e)" :key="m" data-testid="day-missing"
                 class="rounded-full bg-amber-100 px-2 py-0.5 text-[11.5px] font-semibold text-amber-800 dark:bg-amber-400/15 dark:text-amber-300">{{ m }}</span>
