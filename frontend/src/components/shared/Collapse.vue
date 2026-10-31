@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick, onMounted } from 'vue'
+import { ref, watch, nextTick, onMounted, onUnmounted } from 'vue'
 
 /**
  * Klappt seinen Inhalt animiert auf null Höhe zusammen statt ihn abrupt zu entfernen.
@@ -9,9 +9,10 @@ import { ref, watch, nextTick, onMounted } from 'vue'
  * overflow-hidden gilt nur während der Animation: fertig aufgeklappt dürfen
  * absolut positionierte Inhalte (z. B. Such-Dropdowns) über den Rahmen hinausragen.
  * Zuklappen ist die Umkehrung des Aufklappens: auf ease-out, zu ease-in (sonst kriecht es am Ende aus).
- * Mit `appear` klappt ein offen eingehängter Inhalt beim Einhängen auf (z. B. nachgeladene Listeneinträge).
+ * Mit `appear` klappt ein offen eingehängter Inhalt beim Einhängen auf (z. B. nachgeladene Listeneinträge),
+ * `appearDelay` (ms) versetzt das, damit eine Liste Eintrag für Eintrag einblendet.
  */
-const props = defineProps<{ open: boolean; appear?: boolean }>()
+const props = defineProps<{ open: boolean; appear?: boolean; appearDelay?: number }>()
 const startOpen = props.open && !props.appear
 const rendered = ref(props.open)
 const expanded = ref(startOpen)
@@ -30,11 +31,15 @@ const expand = () => {
     if (reducedMotion()) settled.value = true
   })
 }
+let delayTimer: ReturnType<typeof setTimeout> | undefined
 onMounted(() => {
   if (!props.open || !props.appear) return
-  settleTimer = setTimeout(onEnd, 400)
-  expand()
+  const delay = props.appearDelay ?? 0
+  settleTimer = setTimeout(onEnd, 400 + delay)
+  if (delay > 0) delayTimer = setTimeout(expand, delay)
+  else expand()
 })
+onUnmounted(() => { clearTimeout(settleTimer); clearTimeout(delayTimer) })
 watch(() => props.open, async (open) => {
   settled.value = false
   clearTimeout(settleTimer)

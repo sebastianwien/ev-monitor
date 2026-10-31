@@ -6,12 +6,12 @@ import Collapse from '../Collapse.vue'
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.unstubAllGlobals() })
 
-function mount(initialOpen: boolean) {
+function mount(initialOpen: boolean, appear = false, appearDelay = 0) {
   const host = document.createElement('div')
   document.body.appendChild(host)
   const open = ref(initialOpen)
   app = createApp(defineComponent({
-    setup: () => () => h(Collapse, { open: open.value }, () => h('div', { id: 'content' }, 'x')),
+    setup: () => () => h(Collapse, { open: open.value, appear, appearDelay }, () => h('div', { id: 'content' }, 'x')),
   }))
   app.mount(host)
   const inner = () => host.querySelector('#content')!.parentElement!
@@ -31,6 +31,28 @@ describe('Collapse', () => {
     outer().dispatchEvent(new Event('transitionend'))
     await nextTick()
     expect(inner().className).not.toContain('overflow-hidden')
+  })
+
+  it('mit appear klappt ein offen eingehängter Inhalt erst beim Einhängen auf', async () => {
+    const { outer } = mount(true, true)
+    expect(outer().className).toContain('grid-rows-[0fr]')
+    await raf(); await nextTick()
+    expect(outer().className).toContain('grid-rows-[1fr]')
+  })
+
+  it('mit appearDelay klappt es erst nach der Verzögerung auf (versetztes Einblenden einer Liste)', async () => {
+    vi.useFakeTimers()
+    const { outer } = mount(true, true, 120)
+    await vi.advanceTimersByTimeAsync(100); await nextTick()
+    expect(outer().className).toContain('grid-rows-[0fr]')
+    await vi.advanceTimersByTimeAsync(60); await nextTick()
+    expect(outer().className).toContain('grid-rows-[1fr]')
+    vi.useRealTimers()
+  })
+
+  it('ohne appear steht ein offen eingehängter Inhalt sofort offen da', () => {
+    const { outer } = mount(true)
+    expect(outer().className).toContain('grid-rows-[1fr]')
   })
 
   it('ist von Anfang an offen ohne Clipping', () => {

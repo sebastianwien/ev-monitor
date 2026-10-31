@@ -17,7 +17,8 @@ const box = { width: `${SIZE}px`, height: `${SIZE}px` }
 <template>
   <span data-testid="station-thumb" aria-hidden="true" :style="box"
     class="thumb relative block flex-shrink-0 overflow-hidden rounded-lg bg-gray-200 dark:bg-gray-700">
-    <img v-for="t in tiles" :key="t.url" :src="t.url" alt="" decoding="async" draggable="false"
+    <!-- lazy: Kacheln zugeklappter Säulen ("N weitere") lädt der Browser erst beim Aufklappen -->
+    <img v-for="t in tiles" :key="t.url" :src="t.url" alt="" loading="lazy" decoding="async" draggable="false"
       class="absolute max-w-none select-none" :style="{ left: `${t.left}px`, top: `${t.top}px`, width: `${t.size}px`, height: `${t.size}px` }"
       @error="e => ((e.target as HTMLImageElement).style.visibility = 'hidden')" />
     <!-- Pin in der Textfarbe der App-CI wie auf der Minimap, mit weißem Ring für Kontrast zur Karte -->

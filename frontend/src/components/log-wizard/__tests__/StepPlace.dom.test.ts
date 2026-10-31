@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, afterEach, beforeAll } from 'vitest'
-import { createApp, nextTick, type App } from 'vue'
+import { createApp, h, nextTick, reactive, type App } from 'vue'
 import { i18n } from '../../../i18n'
 
 vi.mock('../../../api/axios', () => ({ default: { get: vi.fn() } }))
@@ -119,10 +119,10 @@ describe('StepPlace: privat und öffentlich hier', () => {
 const station = (name: string, i: number, extra: Record<string, unknown> = {}) =>
   ({ ...kaufland, name, distanceMeters: 100 + i * 50, geohash: `u33dc8${i}`, ...extra })
 const five = ['Kaufland', 'Ionity', 'EnBW', 'Aldi', 'Lidl'].map((n, i) => station(n, i))
-const order = (host: HTMLElement) => [...host.querySelectorAll('button')].map(b => b.dataset.testid ?? b.textContent!.trim().slice(0, 8))
 /** Sichtbar = nicht in einer zugeklappten Collapse (inert; jsdom schreibt offen inert="false") */
-const shows = (host: HTMLElement, name: string) => [...host.querySelectorAll('button b')]
-  .some(b => b.textContent === name && !b.closest('[inert]:not([inert="false"])'))
+const visible = (el: Element) => !el.closest('[inert]:not([inert="false"])')
+const order = (host: HTMLElement) => [...host.querySelectorAll('button')].filter(visible).map(b => b.dataset.testid ?? b.textContent!.trim().slice(0, 8))
+const shows = (host: HTMLElement, name: string) => [...host.querySelectorAll('button b')].some(b => b.textContent === name && visible(b))
 
 describe('StepPlace: Säulen zuerst, privat zuletzt', () => {
   it('unten öffentlich und privat in einer Zeile, darunter Woanders über die ganze Breite', async () => {
@@ -164,5 +164,28 @@ describe('StepPlace: Säulen zuerst, privat zuletzt', () => {
     const thumbs = host.querySelectorAll('[data-testid="station-thumb"]')
     expect(thumbs).toHaveLength(1)
     expect(thumbs[0].querySelector('img')!.getAttribute('src')).toMatch(/tile\.openstreetmap\.org\/17\//)
+  })
+})
+
+
+describe('StepPlace: Säulen klappen einzeln auf', () => {
+  /** Äußere Collapse um eine Säulen-Kachel */
+  const wrapper = (host: HTMLElement, name: string) =>
+    [...host.querySelectorAll('button b')].find(b => b.textContent === name)!.closest('.grid')!.className
+
+  it('erste Füllung nach dem Laden: jede Säule klappt auf, statt als Block zu erscheinen', async () => {
+    const host = document.createElement('div'); document.body.appendChild(host)
+    const props = reactive<Record<string, unknown>>({ place: null, selectedCpo: null, selectedSite: null, stations: [], stationsLoading: true,
+      permission: 'granted', ...HERE })
+    app = createApp({ render: () => h(StepPlace, props as never) }); app.use(i18n); app.mount(host)
+    await nextTick(); await nextTick()
+    props.stations = [kaufland]; props.stationsLoading = false
+    await nextTick()
+    expect(wrapper(host, 'Kaufland')).toContain('grid-rows-[0fr]')
+  })
+
+  it('beim Zurückblättern stehen die Säulen sofort da', async () => {
+    const { host } = await mount({ ...HERE, stations: [kaufland] })
+    expect(wrapper(host, 'Kaufland')).toContain('grid-rows-[1fr]')
   })
 })

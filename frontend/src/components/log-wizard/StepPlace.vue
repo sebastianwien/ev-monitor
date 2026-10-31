@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CHIP_ROW, chipClass, cardClass, placeIconBox } from './chipClass'
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import StationTile from './StationTile.vue'
@@ -92,12 +92,11 @@ const showAllStations = ref(false)
 const visibleCount = computed(() =>
   showAllStations.value || props.stations.findIndex(isStation) >= VISIBLE_STATIONS ? props.stations.length : VISIBLE_STATIONS)
 const hiddenStations = computed(() => Math.max(0, props.stations.length - visibleCount.value))
-// Säulen, die nach dem ersten Bild dazukommen (größerer Umkreis), klappen einzeln auf. Die erste Liste klappt als Ganzes auf.
-const listShown = ref(false)
-watch(() => props.stations.length > 0, (shown) => {
-  if (!shown) listShown.value = false
-  else nextTick(() => { listShown.value = true })
-}, { immediate: true })
+// Säulen, die nach dem ersten Bild kommen (erste Füllung nach dem Laden, größerer Umkreis), klappen einzeln und leicht
+// versetzt auf - als Block fiele das neben der zuklappenden Standort-Karte nicht auf. Beim Zurückblättern stehen sie sofort da.
+const STAGGER_MS = 60
+const mountedOnce = ref(false)
+onMounted(() => nextTick(() => { mountedOnce.value = true }))
 
 // Aus der Textsuche gewählte Säule: als eigene Kachel zeigen, solange sie nicht ohnehin in der Umkreis-Liste steht.
 // Lebt im Wizard (v-model), damit sie beim Zurückblättern aus Schritt 2 nicht verschwindet - Schritt 1 wird neu aufgebaut.
@@ -186,7 +185,7 @@ const tileClass = (on: boolean) => [cardClass(on), 'w-full flex items-center gap
       </h2>
       <!-- Jede Säule in eigener Collapse: "N weitere Säulen" und ein größerer Umkreis klappen die neuen Einträge auf -->
       <template v-for="(s, i) in stations" :key="s.name">
-      <Collapse :open="i < visibleCount" :appear="listShown">
+      <Collapse :open="i < visibleCount" :appear="mountedOnce" :appear-delay="i * STAGGER_MS">
       <div class="space-y-3">
       <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
       <Collapse :open="!!cardStrip && isStation(s)">
