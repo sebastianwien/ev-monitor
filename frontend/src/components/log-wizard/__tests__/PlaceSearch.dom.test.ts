@@ -12,6 +12,11 @@ import PlaceSearch from '../PlaceSearch.vue'
 const enbw = { name: 'EnBW', known: true, maxAcKw: null, maxDcKw: 300, fastCharging: true, chargePoints: 4,
   address: 'Am Fuchsgraben 1, 91586 Lichtenau', plugTypes: ['CCS'], registerId: 1, geohash: 'u0z87g2' }
 
+/** Photon-Antwort (GeoJSON) */
+const photon = (...features: unknown[]) => ({ ok: true, json: async () => ({ type: 'FeatureCollection', features }) })
+const FUCHSGRABEN = { type: 'Feature', geometry: { type: 'Point', coordinates: [10.71, 49.28] },
+  properties: { osm_id: 7, osm_type: 'W', type: 'street', name: 'Am Fuchsgraben', city: 'Lichtenau' } }
+
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; vi.useRealTimers() })
 
@@ -40,7 +45,7 @@ describe('PlaceSearch', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.mocked(api.get).mockReset()
-    globalThis.fetch = vi.fn().mockResolvedValue({ json: async () => [{ place_id: 7, lat: '49.28', lon: '10.71', display_name: 'Am Fuchsgraben, Lichtenau' }] }) as any
+    globalThis.fetch = vi.fn().mockResolvedValue(photon(FUCHSGRABEN)) as any
   })
 
   it('zeigt Register-Treffer als Säulen-Zeile und meldet die Wahl als Standort', async () => {
@@ -54,7 +59,6 @@ describe('PlaceSearch', () => {
     expect(row.textContent).toContain('DC 300 kW')
     row.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
     expect(choose).toHaveBeenCalledWith({ kind: 'station', station: enbw, viaSearch: true })
-    expect(fetch).not.toHaveBeenCalled()
   })
 
   it('nach der Wahl startet der übernommene Name keine neue Suche und die Liste bleibt zu', async () => {
@@ -68,19 +72,14 @@ describe('PlaceSearch', () => {
     expect(host.querySelector('[role="listbox"]')).toBeNull()
   })
 
-  it('Adresse suchen ist eine eigene Zeile, ruft Nominatim erst auf Tap und meldet den gewählten Ort', async () => {
+  it('Adressen erscheinen beim Tippen ohne eigenen Tap aufs Suchen, die Wahl meldet den Ort', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: [] } as never)
     const { host, picked, choose } = mount()
     await type(host, 'Fuchsgraben 1 Lichtenau')
 
     expect(host.querySelector('[data-testid="place-search-station"]')).toBeNull()
-    const addressRow = host.querySelector('[data-testid="place-search-address"]') as HTMLElement
-    expect(addressRow.textContent).toContain('Fuchsgraben 1 Lichtenau')
-    expect(fetch).not.toHaveBeenCalled()
-
-    addressRow.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
-    await vi.runAllTimersAsync(); await nextTick()
     expect(fetch).toHaveBeenCalledTimes(1)
+    expect(String(vi.mocked(fetch).mock.calls[0][0])).toContain('photon.komoot.io')
     const suggestion = host.querySelector('[data-testid="place-search-suggestion"]') as HTMLElement
     expect(suggestion.textContent).toContain('Am Fuchsgraben, Lichtenau')
     suggestion.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
@@ -90,11 +89,9 @@ describe('PlaceSearch', () => {
 
   it('ohne Adress-Treffer steht ein Hinweis statt einer leeren Liste', async () => {
     vi.mocked(api.get).mockResolvedValue({ data: [] } as never)
-    globalThis.fetch = vi.fn().mockResolvedValue({ json: async () => [] }) as any
+    globalThis.fetch = vi.fn().mockResolvedValue(photon()) as any
     const { host } = mount()
     await type(host, 'Nirgendwo 99')
-    ;(host.querySelector('[data-testid="place-search-address"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
-    await vi.runAllTimersAsync(); await nextTick()
     expect(host.querySelector('[data-testid="place-search-no-address"]')).not.toBeNull()
   })
 
@@ -117,8 +114,6 @@ describe('PlaceSearch', () => {
     vi.mocked(api.get).mockResolvedValue({ data: [] } as never)
     const { host } = mount({ userId: 'u1' })
     await type(host, 'Fuchsgraben 1 Lichtenau')
-    ;(host.querySelector('[data-testid="place-search-address"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
-    await vi.runAllTimersAsync(); await nextTick()
     ;(host.querySelector('[data-testid="place-search-suggestion"]') as HTMLElement).dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
     expect(JSON.parse(localStorage.getItem('recent-addresses:u1')!)[0].name).toBe('Am Fuchsgraben, Lichtenau')
   })

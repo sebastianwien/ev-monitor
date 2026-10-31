@@ -36,9 +36,9 @@ async function mount(props: Record<string, unknown>) {
 }
 
 describe('StepPlace: privat und öffentlich hier', () => {
-  it('mit gewählter Adresse: hier privat mit der Adresse, Tap wählt privat', async () => {
+  it('mit gewählter Adresse: "Privat geladen" mit der Adresse (nicht "hier", der Nutzer ist nicht dort), Tap wählt privat', async () => {
     const { q, choose } = await mount({ ...HERE, addressLabel: 'Storkower Str. 140, Berlin' })
-    expect(q('place-here')!.textContent).toContain('Hier privat')
+    expect(q('place-here')!.textContent).toContain('Privat geladen')
     expect(q('place-here')!.textContent).toContain('Storkower Str. 140, Berlin')
     q('place-here')!.click()
     expect(choose).toHaveBeenCalledWith({ kind: 'home' })
@@ -51,7 +51,7 @@ describe('StepPlace: privat und öffentlich hier', () => {
 
   it('hier öffentlich: wählt öffentlich ohne Anbieter, keine Anbieterauswahl', async () => {
     const { q, host, choose } = await mount({ ...HERE, stations: [kaufland] })
-    expect(q('place-public')!.textContent).toContain('Hier öffentlich geladen')
+    expect(q('place-public')!.textContent).toContain('Hier öffentlich')
     expect(q('place-public')!.textContent).toContain('Ladesäule nicht gefunden')
     q('place-public')!.click()
     expect(choose).toHaveBeenCalledWith({ kind: 'other', cpoName: null })
@@ -82,19 +82,21 @@ describe('StepPlace: privat und öffentlich hier', () => {
     expect(order.indexOf('place-public')).toBeGreaterThan(order.indexOf('expand-radius'))
   })
 
-  it('solange die Säulen laden, fehlt öffentlich ohne Säule - ein schneller Tap träfe sonst die falsche Zeile', async () => {
+  it('solange die Säulen laden, ist öffentlich ohne Säule gesperrt, aber schon da - privat springt nicht unter dem Daumen', async () => {
     const { q } = await mount({ ...HERE, stationsLoading: true })
     expect(q('place-here')).not.toBeNull()
-    expect(q('place-public')).toBeNull()
+    expect(q('place-public')!.disabled).toBe(true)
   })
 
-  it('"Woanders" steht neben privat und öffnet die Suche', async () => {
+  it('"Woanders geladen?" öffnet die Suchebene, Zurück schließt sie', async () => {
     const { q } = await mount({ ...HERE, stations: [kaufland] })
-    expect(q('place-elsewhere')!.textContent).toContain('Woanders')
+    expect(q('place-elsewhere')!.textContent).toContain('Woanders geladen?')
     q('place-elsewhere')!.click()
     await nextTick()
-    // Suche ist offen: der Knopf hat nichts mehr zu tun
-    expect(q('place-elsewhere')).toBeNull()
+    expect(document.querySelector('[data-testid="place-layer"]')).not.toBeNull()
+    ;(document.querySelector('[data-testid="place-layer-back"]') as HTMLButtonElement).click()
+    await nextTick()
+    expect(document.querySelector('[data-testid="place-layer"]')).toBeNull()
   })
 
   it('ohne Säulen steht die Suche ohnehin offen: kein "Woanders"', async () => {
@@ -121,11 +123,13 @@ const order = (host: HTMLElement) => [...host.querySelectorAll('button')].map(b 
 const shows = (host: HTMLElement, name: string) => [...host.querySelectorAll('button b')].some(b => b.textContent === name)
 
 describe('StepPlace: Säulen zuerst, privat zuletzt', () => {
-  it('privat und Woanders sind die letzte Zeile, über "Weiter" in Daumenreichweite', async () => {
-    const { host } = await mount({ ...HERE, stations: [kaufland] })
+  it('unten öffentlich und privat in einer Zeile, darunter Woanders über die ganze Breite', async () => {
+    const { host, q } = await mount({ ...HERE, stations: [kaufland] })
     const o = order(host)
-    expect(o.slice(-2)).toEqual(['place-here', 'place-elsewhere'])
+    expect(o.slice(-3)).toEqual(['place-public', 'place-here', 'place-elsewhere'])
     expect(o.indexOf('place-public')).toBeGreaterThan(o.indexOf('Kaufland'))
+    expect(q('place-public')!.parentElement).toBe(q('place-here')!.parentElement)
+    expect(q('place-elsewhere')!.parentElement).not.toBe(q('place-here')!.parentElement)
   })
 
   it('Überschrift der Liste nennt, was dort steht', async () => {

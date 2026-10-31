@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { CHIP_ROW, chipClass, cardClass } from './chipClass'
-import { computed, nextTick, ref } from 'vue'
+import { CHIP_ROW, chipClass, cardClass, placeIconBox } from './chipClass'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
-import StationThumb from './StationThumb.vue'
+import StationTile from './StationTile.vue'
+import PlaceSearchLayer from './PlaceSearchLayer.vue'
 import { RADIUS_STEPS, type NearbyStation, type StationMatch } from '../../composables/useNearbyStations'
 import { isLocationInaccurate, formatDistance } from './placeDistance'
 import type { ChargingSiteRef } from '../log-form/logFormData'
@@ -14,7 +15,6 @@ import type { ChargingProvider } from '../../composables/useChargingProviders'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import PlaceSearch from './PlaceSearch.vue'
 import Collapse from '../shared/Collapse.vue'
-import { stationSub as stationSubBase } from './stationSub'
 
 const props = defineProps<{
   place: PlaceKind | null
@@ -53,13 +53,13 @@ const emit = defineEmits<{ choose: [choice: PlaceChoice]; requestLocation: []; p
 const { t, locale } = useI18n()
 
 const platform = settingsPlatform()
-// Nach erfolgreicher Ortung klappt die Suche zu; "Woanders" holt sie zurück
-const searchReopened = ref(false)
-const reopenSearch = async () => {
-  searchReopened.value = true
-  await nextTick()
-  document.getElementById('wizard-place-search')?.focus()
-}
+// "Woanders geladen?" öffnet die Suchebene. iOS öffnet die Tastatur nur, wenn der Fokus noch im Tap gesetzt wird:
+// das Hilfsfeld bekommt ihn sofort, das Suchfeld der Ebene übernimmt ihn, sobald sie steht.
+const layerOpen = ref(false)
+const focusProxy = ref<HTMLInputElement | null>(null)
+const openLayer = () => { focusProxy.value?.focus({ preventScroll: true }); layerOpen.value = true }
+const onLayerChoose = (c: PlaceChoice) => { layerOpen.value = false; onSearchChoose(c) }
+const near = computed(() => props.latitude != null && props.longitude != null ? { lat: props.latitude, lon: props.longitude } : null)
 const dist = (m: number) => formatDistance(m, locale.value)
 const radiusLabel = computed(() => dist(props.radiusMeters ?? RADIUS_STEPS[0]))
 // Während der wachsende Umkreis läuft, sagt der Ladetext, welche Stufe leer war
@@ -73,7 +73,7 @@ const listEmpty = computed(() => props.locationStatus === 'success' && !props.st
 const noStationsFound = computed(() => listEmpty.value && !!props.exhausted)
 const inaccurate = computed(() => isLocationInaccurate(props.locationAccuracy))
 // Ohne Säulen steht die Suche offen da: ein Tap ins Feld, kein "Anderer Ort" davor
-const showLocationBlock = computed(() => props.locationStatus !== 'success' || searchReopened.value || listEmpty.value)
+const showLocationBlock = computed(() => props.locationStatus !== 'success' || listEmpty.value)
 // Mit Position (GPS oder gewählte Adresse) heißen die Zeilen "hier privat/öffentlich geladen"
 const hasPosition = computed(() => props.latitude != null)
 // Privat und öffentlich gibt es nur mit Ort: ein Log ohne Geohash soll nicht entstehen
@@ -93,8 +93,7 @@ const visibleStations = computed(() =>
   showAllStations.value || props.stations.findIndex(isStation) >= VISIBLE_STATIONS
     ? props.stations : props.stations.slice(0, VISIBLE_STATIONS))
 const hiddenStations = computed(() => props.stations.length - visibleStations.value.length)
-const hasCoords = (s: StationMatch): s is StationMatch & { latitude: number; longitude: number } =>
-  s.latitude != null && s.longitude != null
+
 // Aus der Textsuche gewählte Säule: als eigene Kachel zeigen, solange sie nicht ohnehin in der Umkreis-Liste steht.
 // Lebt im Wizard (v-model), damit sie beim Zurückblättern aus Schritt 2 nicht verschwindet - Schritt 1 wird neu aufgebaut.
 const searchedStation = defineModel<StationMatch | null>('searchedStation', { default: null })
@@ -108,18 +107,8 @@ const showSearchedStation = computed(() => {
     && !props.stations.some(n => n.name === s.name && n.geohash === s.geohash)
 })
 
-/**
- * Icon-Box der Kacheln: Farbe sagt den Ortstyp (grün privat, gelb Säule), bewusst bunt (Ausnahme in
- * docs/design/ci.md). "Ausgewählt" sagt die eingedrückte Kachel mit Rand gray-900.
- */
-const iconBox = (kind: 'home' | 'station', on: boolean) => [
-  'w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 transition-colors',
-  kind === 'home'
-    ? (on ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300')
-    : (on ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300'),
-]
+const iconBox = placeIconBox
 const tileClass = (on: boolean) => [cardClass(on), 'w-full flex items-center gap-3 p-3']
-const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw'>) => stationSubBase(s, t)
 </script>
 
 <template>
@@ -176,17 +165,8 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
       <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
         :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
     </Collapse>
-    <button v-if="showSearchedStation && searchedStation" type="button" data-testid="place-searched-station" :class="tileClass(true)"
-      @click="emit('choose', { kind: 'station', station: searchedStation, viaSearch: true })">
-      <StationThumb v-if="hasCoords(searchedStation)" :lat="searchedStation.latitude" :lon="searchedStation.longitude" />
-      <span v-else :class="iconBox('station', true)"><BoltIcon class="h-5 w-5" /></span>
-      <span class="flex-1 min-w-0">
-        <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50 truncate">{{ searchedStation.name }}</b>
-        <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(searchedStation) }}</small>
-        <small v-if="searchedStation.address" class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ searchedStation.address }}</small>
-      </span>
-      <CheckCircleIcon class="h-5 w-5 text-gray-900 dark:text-gray-100" aria-hidden="true" />
-    </button>
+    <StationTile v-if="showSearchedStation && searchedStation" data-testid="place-searched-station" :station="searchedStation" selected
+      @click="emit('choose', { kind: 'station', station: searchedStation, viaSearch: true })" />
 
     <!-- Spinner nur bei der Ortssuche; bei der Live-Ortung dreht er in der Standort-Card, beim Erweitern unter der Liste -->
     <div v-if="stationsLoading && locationStatus !== 'loading' && stations.length === 0" role="status" data-testid="stations-loading"
@@ -205,18 +185,7 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
         <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
         :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
       </Collapse>
-      <button type="button" :class="tileClass(isStation(s))"
-        @click="emit('choose', { kind: 'station', station: s })">
-        <StationThumb v-if="hasCoords(s)" :lat="s.latitude" :lon="s.longitude" />
-        <span v-else :class="iconBox('station', isStation(s))"><BoltIcon class="h-5 w-5" /></span>
-        <span class="flex-1 min-w-0">
-          <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50 truncate">{{ s.name }}</b>
-          <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s) }}</small>
-          <small v-if="s.address" class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ s.address }}</small>
-        </span>
-        <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ dist(s.distanceMeters) }}</span>
-        <CheckCircleIcon v-if="isStation(s)" class="h-5 w-5 text-gray-900 dark:text-gray-100" aria-hidden="true" />
-      </button>
+      <StationTile :station="s" :selected="isStation(s)" @click="emit('choose', { kind: 'station', station: s })" />
       </template>
       <!-- "Nicht dabei?": die weite Suche ersetzt diese Liste, statt sie zu verlängern -->
       <!-- Beim Erweitern dreht der Spinner dort, wo der Knopf war: dort schaut der Nutzer hin -->
@@ -237,42 +206,42 @@ const stationSub = (s: Pick<NearbyStation, 'chargePoints' | 'maxAcKw' | 'maxDcKw
     </div>
     </Collapse>
 
-    <!-- Öffentlich ohne Säule aus dem Register (Ausland, neue Säule): ganz unten, damit niemand sie statt der Säule tippt.
-         Erst wenn die ersten Säulen geladen sind - sonst träfe ein schneller Tap diese Zeile. Der Ort bleibt die Position. -->
-    <template v-if="placeKnown && !(stationsLoading && stations.length === 0)">
+    <!-- Unten die Antworten "hier": öffentlich ohne Säule (Ausland, neue Säule) und privat in einer Zeile, direkt über "Weiter"
+         in Daumenreichweite; sie bleibt stehen, wenn die Säulen darüber nachladen (Inhalt ist unten verankert). Öffentlich ist
+         gesperrt, bis die ersten Säulen da sind - ein schneller Tap träfe sonst sie statt der Säule. Nur mit Ort (GPS, gewählte
+         Adresse oder im Bearbeiten-Dialog der gespeicherte): ein Zuhause gibt es im Datenmodell nicht, privat heißt "nicht öffentlich". -->
+    <template v-if="placeKnown">
     <Collapse :open="!!cardStrip && place === 'other'">
       <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
         :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
     </Collapse>
-    <button type="button" data-testid="place-public" :class="tileClass(place === 'other')" @click="emit('choose', { kind: 'other', cpoName: null })">
-      <span :class="iconBox('station', place === 'other')"><BoltIcon class="h-5 w-5" /></span>
-      <span class="flex-1 min-w-0">
-        <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ hasPosition ? t('logwizard.place_public_here') : t('logwizard.place_public') }}</b>
-        <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ place === 'other' && selectedCpo ? selectedCpo : t('logwizard.place_public_sub') }}</small>
-      </span>
-      <CheckCircleIcon v-if="place === 'other'" class="h-5 w-5 text-gray-900 dark:text-gray-100" aria-hidden="true" />
-    </button>
-    </template>
-
-    <!-- Privat hier und "Woanders" nebeneinander als letzte Zeile: direkt über "Weiter" in Daumenreichweite, und sie bleibt
-         stehen, wenn die Säulen darüber nachladen (Inhalt ist unten verankert). Nur mit Ort (GPS, gewählte Adresse oder im
-         Bearbeiten-Dialog der gespeicherte) - ein Zuhause gibt es im Datenmodell nicht, privat heißt "nicht öffentlich". -->
-    <div v-if="placeKnown" class="grid grid-cols-2 gap-3">
-      <button type="button" data-testid="place-here" :class="[tileClass(place === 'home'), !showElsewhere && 'col-span-2']" @click="emit('choose', { kind: 'home' })">
+    <div class="grid grid-cols-2 gap-3">
+      <button type="button" data-testid="place-public" :disabled="stationsLoading && stations.length === 0"
+        :class="[tileClass(place === 'other'), 'disabled:opacity-50']" @click="emit('choose', { kind: 'other', cpoName: null })">
+        <span :class="iconBox('station', place === 'other')"><BoltIcon class="h-5 w-5" /></span>
+        <span class="flex-1 min-w-0">
+          <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50 truncate">{{ hasPosition ? t('logwizard.place_public_here') : t('logwizard.place_public') }}</b>
+          <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ place === 'other' && selectedCpo ? selectedCpo : t('logwizard.place_public_sub') }}</small>
+        </span>
+        <CheckCircleIcon v-if="place === 'other'" class="h-5 w-5 flex-shrink-0 text-gray-900 dark:text-gray-100" aria-hidden="true" />
+      </button>
+      <!-- Mit gewählter Adresse heißt es "Privat geladen": "hier" stimmte nicht, der Nutzer ist nicht dort -->
+      <button type="button" data-testid="place-here" :class="tileClass(place === 'home')" @click="emit('choose', { kind: 'home' })">
         <span :class="iconBox('home', place === 'home')"><HomeIcon class="h-5 w-5" /></span>
         <span class="flex-1 min-w-0">
-          <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ hasPosition ? t('logwizard.place_here') : t('logwizard.place_private') }}</b>
+          <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50 truncate">{{ hasPosition && !addressLabel ? t('logwizard.place_here') : t('logwizard.place_private') }}</b>
           <small class="block text-xs text-gray-500 dark:text-gray-400 truncate" :title="addressLabel ?? undefined">{{ hasPosition ? (addressLabel ?? t('logwizard.place_here_sub')) : t('logwizard.place_private_sub') }}</small>
         </span>
         <CheckCircleIcon v-if="place === 'home'" class="h-5 w-5 flex-shrink-0 text-gray-900 dark:text-gray-100" aria-hidden="true" />
       </button>
-      <button v-if="showElsewhere" type="button" data-testid="place-elsewhere" :class="tileClass(false)" @click="reopenSearch">
-        <span class="w-9 h-9 rounded-lg bg-gray-100 dark:bg-white/10 grid place-items-center flex-shrink-0"><MagnifyingGlassIcon class="h-5 w-5" /></span>
-        <span class="flex-1 min-w-0">
-          <b class="block text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ t('logwizard.place_elsewhere') }}</b>
-          <small class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ t('logwizard.place_elsewhere_sub') }}</small>
-        </span>
-      </button>
     </div>
+    <!-- Gestrichelt: ein Einstieg, keine Antwort (App-CI). Nur solange die Suche nicht ohnehin offen dasteht. -->
+    <button v-if="showElsewhere" type="button" data-testid="place-elsewhere" @click="openLayer"
+      class="w-full min-h-11 rounded-xl border-2 border-dashed border-edge text-[14px] font-semibold text-gray-800 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-white/10 transition-colors inline-flex items-center justify-center gap-1.5">
+      <MagnifyingGlassIcon class="h-4 w-4" aria-hidden="true" />{{ t('logwizard.place_elsewhere') }}
+    </button>
+    </template>
+    <input ref="focusProxy" type="text" tabindex="-1" aria-hidden="true" class="pointer-events-none fixed left-0 top-0 h-px w-px text-[16px] opacity-0" />
+    <PlaceSearchLayer v-if="layerOpen" :near="near" @close="layerOpen = false" @choose="onLayerChoose" @picked="p => emit('placePicked', p)" />
   </div>
 </template>

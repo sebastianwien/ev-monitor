@@ -31,3 +31,16 @@ export const CARD_ON = 'active border-gray-900 bg-gray-50 dark:border-gray-100 d
 export function cardClass(on: boolean): string {
   return on ? `${CARD} ${CARD_ON}` : `${CARD} ${CARD_EDGE} ${CARD_SURFACE}`
 }
+
+/**
+ * Icon-Box der Ortskacheln: Farbe sagt den Ortstyp (grün privat, gelb Säule), bewusst bunt (Ausnahme in
+ * docs/design/ci.md). "Ausgewählt" sagt die eingedrückte Kachel mit Rand gray-900.
+ */
+export function placeIconBox(kind: 'home' | 'station', on: boolean): string[] {
+  return [
+    'w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 transition-colors',
+    kind === 'home'
+      ? (on ? 'bg-emerald-500 text-white' : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300')
+      : (on ? 'bg-amber-500 text-white' : 'bg-amber-50 text-amber-600 dark:bg-amber-900/40 dark:text-amber-300'),
+  ]
+}

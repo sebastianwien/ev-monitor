@@ -17,7 +17,7 @@ defineProps<{ label: string }>()
 const emit = defineEmits<{ choose: [choice: PlaceChoice]; picked: [place: PickedPlace] }>()
 const { t } = useI18n()
 
-// Beim Tippen nur das Register (eigenes Backend); Nominatim erst auf Tap, nie als Autocomplete
+// Beim Tippen beides: Register (eigenes Backend) und Adressen (Photon, entprellt)
 const stations = useStationSearch()
 const address = useLocationSearch()
 // Zuletzt gewählte Adressen: beim Fokus ins leere Feld, damit niemand ohne GPS die Heimadresse jedes Mal tippt
@@ -28,14 +28,11 @@ const focused = ref(false)
 const chosenStation = ref<string | null>(null)
 const query = computed({
   get: () => stations.query.value,
-  set: (v: string) => { stations.query.value = v; address.reset(); chosenStation.value = null },
+  set: (v: string) => { stations.query.value = v; address.autocomplete(v); chosenStation.value = null },
 })
 const trimmed = computed(() => query.value.trim())
-const showAddressRow = computed(() => trimmed.value.length >= 3 && !address.loading.value
-  && !address.suggestions.value.length && !address.noResults.value
-  && trimmed.value !== address.selectedName.value && trimmed.value !== chosenStation.value)
 const showRecent = computed(() => focused.value && trimmed.value === '' && recent.list.value.length > 0)
-const open = computed(() => showRecent.value || stations.matches.value.length > 0 || showAddressRow.value
+const open = computed(() => showRecent.value || stations.matches.value.length > 0
   || address.loading.value || address.suggestions.value.length > 0 || address.noResults.value)
 const busy = computed(() => stations.loading.value || address.loading.value)
 
@@ -46,6 +43,7 @@ const blurSearch = () => { const el = document.activeElement; if (el instanceof 
 const chooseStation = (s: StationMatch) => {
   blurSearch()
   stations.select(s.name)
+  address.reset()
   chosenStation.value = s.name.trim()
   emit('choose', { kind: 'station', station: s, viaSearch: true })
 }
@@ -81,10 +79,12 @@ const place = () => {
 }
 watch(open, o => { if (o) nextTick(place) })
 onMounted(() => window.visualViewport?.addEventListener('resize', place))
-onUnmounted(() => window.visualViewport?.removeEventListener('resize', place))
+onUnmounted(() => { window.visualViewport?.removeEventListener('resize', place); address.reset() })
 
-/** Such-Taste der Tastatur: fragt die Adresse direkt ab, statt erst "Als Adresse suchen" antippen zu lassen */
-const onEnter = () => { if (showAddressRow.value) address.search(trimmed.value) }
+/** Such-Taste der Tastatur: sucht sofort, ohne die Tipp-Pause abzuwarten */
+const onEnter = () => {
+  if (trimmed.value.length >= 3 && trimmed.value !== address.selectedName.value && trimmed.value !== chosenStation.value) address.search(trimmed.value)
+}
 const rowClass = 'w-full flex items-start gap-2 px-3 py-2.5 text-left text-[14px] hover:bg-gray-50 dark:hover:bg-white/10 cursor-pointer'
 </script>
 
@@ -117,12 +117,6 @@ const rowClass = 'w-full flex items-start gap-2 px-3 py-2.5 text-left text-[14px
             <small class="block text-xs text-gray-500 dark:text-gray-400">{{ stationSub(s, t) }}</small>
             <small v-if="s.address" class="block text-xs text-gray-500 dark:text-gray-400 truncate">{{ s.address }}</small>
           </span>
-        </li>
-        <!-- Adresse: erst der Tap fragt Nominatim -->
-        <li v-if="showAddressRow" role="option" data-testid="place-search-address" :class="rowClass"
-          @mousedown.prevent="address.search(trimmed)">
-          <MapPinIcon class="h-4 w-4 mt-0.5 text-gray-500 flex-shrink-0" />
-          <span class="min-w-0 text-gray-700 dark:text-gray-200">{{ t('logwizard.search_as_address', { q: trimmed }) }}</span>
         </li>
         <li v-for="s in address.suggestions.value" :key="s.place_id" role="option" data-testid="place-search-suggestion"
           v-haptic :class="rowClass" @mousedown.prevent="haptic(); pickAddress(s)">

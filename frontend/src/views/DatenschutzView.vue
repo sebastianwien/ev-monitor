@@ -160,9 +160,17 @@ onMounted(async () => {
             unseren Server übermittelt und nicht dauerhaft gespeichert.
           </p>
           <p class="mt-4">
-            <strong>Ortssuche (OpenStreetMap Nominatim):</strong> Wenn Sie in einem Ortsfeld eine Adresse
-            eintippen, wird der eingegebene Suchtext direkt von Ihrem Gerät an den Geokodierungsdienst Nominatim
-            der OpenStreetMap Foundation (Vereinigtes Königreich) gesendet. Dabei erhält die OpenStreetMap
+            <strong>Ortssuche beim Erfassen (Photon von komoot):</strong> Wenn Sie beim Erfassen oder Bearbeiten eines
+            Ladevorgangs einen Ort suchen, wird der eingegebene Suchtext schon während des Tippens direkt von Ihrem Gerät
+            an den Geokodierungsdienst Photon der komoot GmbH (Potsdam, Deutschland) gesendet. Haben Sie Ihre Position
+            freigegeben, geht zusätzlich eine auf rund 10 km gerundete Position mit, damit Treffer in Ihrer Nähe zuerst
+            erscheinen. Dabei erhält komoot Ihre IP-Adresse, den Suchtext und gegebenenfalls diese grobe Position. Datenschutz:
+            <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener" class="text-green-600 hover:text-green-700">komoot.com/privacy</a>.
+          </p>
+          <p class="mt-4">
+            <strong>Ortssuche in den übrigen Feldern (OpenStreetMap Nominatim):</strong> Wenn Sie an anderer Stelle
+            (z. B. Wallbox-Einrichtung, Preis-Nachtrag, Spracheingabe) eine Adresse suchen, wird der Suchtext direkt von
+            Ihrem Gerät an den Geokodierungsdienst Nominatim der OpenStreetMap Foundation (Vereinigtes Königreich) gesendet. Dabei erhält die OpenStreetMap
             Foundation Ihre IP-Adresse und den Suchtext. Für das Vereinigte Königreich besteht ein
             Angemessenheitsbeschluss der EU-Kommission. Datenschutz:
             <a href="https://osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener" class="text-green-600 hover:text-green-700">osmfoundation.org/wiki/Privacy_Policy</a>.
@@ -231,6 +239,12 @@ onMounted(async () => {
             Nach einer langen Fahrt zeigt die App das Wetter am Ziel für heute und morgen. Diese Prognose ruft Ihr
             Browser direkt bei Open-Meteo ab. Übermittelt werden dabei Ihre IP-Adresse und der ungefähre Zielort
             (auf rund 5 km gerundet), keine Kontodaten.
+          </p>
+          <p class="mt-4">
+            Kleine Kartenbilder (Ladesäulen bei der Ortswahl, Ort eines Ladevorgangs) lädt Ihr Browser direkt von den
+            Kartenservern der <strong>OpenStreetMap Foundation</strong> (Vereinigtes Königreich). Dabei erhält die OpenStreetMap
+            Foundation Ihre IP-Adresse und den angezeigten Kartenausschnitt. Für das Vereinigte Königreich besteht ein
+            Angemessenheitsbeschluss der EU-Kommission.
           </p>
           <p class="mt-4">
             <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO (Bestandteil der Verbrauchsauswertung).

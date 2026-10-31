@@ -415,7 +415,7 @@ test.describe('Ladekarte im Log-Formular anlegen', () => {
 
     await page.goto('/erfassen');
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('[data-testid="place-public"]')).toContainText('Hier öffentlich geladen');
+    await expect(page.locator('[data-testid="place-public"]')).toContainText('Hier öffentlich');
     await page.locator('[data-testid="place-public"]').click();
     await page.locator('[data-testid="wizard-next"]').click();
 

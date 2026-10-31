@@ -4,7 +4,7 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements'
 /**
  * Ortswahl im Wizard: der Umkreis wächst von selbst (250 m, 1 km, 2,5 km). Bleibt er leer,
  * fragt die Seite "Wo hast du geladen?" und zeigt Suche, "Hier privat" und "Öffentlich geladen".
- * Eine gewählte Adresse verhält sich wie die eigene Position. Reiner FE-Test, Backend und Nominatim sind gemockt.
+ * Eine gewählte Adresse verhält sich wie die eigene Position. Reiner FE-Test, Backend und Photon sind gemockt.
  */
 const b64url = (o: object) => Buffer.from(JSON.stringify(o)).toString('base64url')
 const now = Math.floor(Date.now() / 1000)
@@ -15,6 +15,9 @@ const CAR = { id: 'car-1', brand: 'Skoda', model: 'Enyaq', batteryCapacityKwh: 7
 const HERE = { latitude: 52.5342, longitude: 13.4516 }
 /** Collapse klappt animiert zu (Fallback 400 ms): erst danach sagt "sichtbar" etwas aus */
 const settle = (page: Page) => page.waitForTimeout(600)
+/** Photon-Antwort (GeoJSON) mit einer Hausadresse */
+const photon = (street: string, housenumber: string, city: string, lon: number, lat: number) => ({ type: 'FeatureCollection',
+  features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [lon, lat] }, properties: { osm_id: 1, osm_type: 'N', type: 'house', street, housenumber, city } }] })
 const STATION = { name: 'EnBW', known: true, distanceMeters: 480, maxAcKw: 22, maxDcKw: null, fastCharging: false, chargePoints: 2,
   geohash: 'u33dbx1', address: 'Sigridstraße 6, 10439 Berlin', plugTypes: [], registerId: null }
 
@@ -61,7 +64,7 @@ test.describe('wachsender Umkreis', () => {
     await expect(page.locator('#wizard-place-search')).toBeVisible()
     await expect(page.getByTestId('place-here')).toContainText('Hier privat')
     await expect(page.getByTestId('place-here')).toContainText('Dein Standort')
-    await expect(page.getByTestId('place-public')).toContainText('Hier öffentlich geladen')
+    await expect(page.getByTestId('place-public')).toContainText('Hier öffentlich')
   })
 
   test('Fehler (Drossel): keine Umkreis-Behauptung, aber die Suche steht offen', async ({ page }) => {
@@ -76,11 +79,11 @@ test.describe('wachsender Umkreis', () => {
 
   test('Such-Taste startet die Adresssuche ohne Extra-Tap', async ({ page }) => {
     await open(page, {})
-    let nominatim = ''
-    await page.route(url => url.hostname === 'nominatim.openstreetmap.org', route => {
-      nominatim = route.request().url()
+    let geocoder = ''
+    await page.route(url => url.hostname === 'photon.komoot.io', route => {
+      geocoder = route.request().url()
       return route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify([{ place_id: 1, display_name: 'Sigridstraße 6, Berlin', lat: '52.5359', lon: '13.4579' }]) })
+        body: JSON.stringify(photon('Sigridstraße', '6', 'Berlin', 13.4579, 52.5359)) })
     })
     await page.goto('/erfassen')
     await expect(page.getByTestId('wizard-no-stations')).toBeVisible()
@@ -88,18 +91,39 @@ test.describe('wachsender Umkreis', () => {
     await search.fill('Sigridstraße 6')
     await search.press('Enter')
     await expect(page.getByTestId('place-search-suggestion')).toContainText('Sigridstraße 6')
-    expect(nominatim).toContain('Sigridstra')
+    expect(geocoder).toContain('Sigridstra')
+  })
+})
+
+test.describe('Woanders geladen?', () => {
+  test.use({ geolocation: HERE, permissions: ['geolocation'] })
+
+  test('tippen genügt: der beste Treffer gilt sofort, "Privat geladen" übernimmt die Adresse', async ({ page }) => {
+    await open(page, { 250: [STATION] })
+    await page.route(url => url.hostname === 'photon.komoot.io', route =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(photon('Sigridstraße', '6', 'Berlin', 13.4579, 52.5359)) }))
+    await page.goto('/erfassen')
+    await expect(page.getByRole('button', { name: /EnBW/ }).first()).toBeVisible()
+    await page.getByTestId('place-elsewhere').click()
+    const input = page.locator('#wizard-place-layer-search')
+    await expect(input).toBeFocused()
+    await input.fill('Sigridstraße 6')
+    await expect(page.getByTestId('place-layer-private')).toContainText('Sigridstraße 6, Berlin')
+    await expect(page.getByTestId('place-layer-stations')).toContainText('EnBW')
+    await page.getByTestId('place-layer-private').click()
+    await expect(page.getByTestId('place-layer')).toHaveCount(0)
+    await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')
   })
 })
 
 test.describe('Ort per Adresse', () => {
   test.use({ permissions: [] })
 
-  test('Säulen an der Adresse, darüber "Hier privat" mit der Adresse; Tap wählt privat', async ({ page }) => {
+  test('Säulen an der Adresse, darunter "Privat geladen" mit der Adresse; Tap wählt privat', async ({ page }) => {
     await open(page, { 250: [STATION] })
-    await page.route(url => url.hostname === 'nominatim.openstreetmap.org', route =>
+    await page.route(url => url.hostname === 'photon.komoot.io', route =>
       route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify([{ place_id: 1, display_name: 'Sigridstraße 6, Berlin', lat: '52.5359', lon: '13.4579' }]) }))
+        body: JSON.stringify(photon('Sigridstraße', '6', 'Berlin', 13.4579, 52.5359)) }))
     await page.goto('/erfassen')
     const search = page.locator('#wizard-place-search')
     await search.fill('Sigridstraße 6')
@@ -107,9 +131,9 @@ test.describe('Ort per Adresse', () => {
     await page.getByTestId('place-search-suggestion').click()
 
     await expect(page.getByRole('button', { name: /EnBW/ })).toBeVisible()
-    await expect(page.getByTestId('place-public')).toContainText('Hier öffentlich geladen')
+    await expect(page.getByTestId('place-public')).toContainText('Hier öffentlich')
     const here = page.getByTestId('place-here')
-    await expect(here).toContainText('Hier privat')
+    await expect(here).toContainText('Privat geladen')
     await expect(here).toContainText('Sigridstraße 6, Berlin')
     await here.click()
     await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')
@@ -117,9 +141,9 @@ test.describe('Ort per Adresse', () => {
 
   test('Adresse ohne Säule: privat ist vorgewählt, der Wizard bleibt stehen', async ({ page }) => {
     await open(page, {})
-    await page.route(url => url.hostname === 'nominatim.openstreetmap.org', route =>
+    await page.route(url => url.hostname === 'photon.komoot.io', route =>
       route.fulfill({ status: 200, contentType: 'application/json',
-        body: JSON.stringify([{ place_id: 2, display_name: 'Dorfstraße 1, Kleinkleckersdorf', lat: '52.1', lon: '13.1' }]) }))
+        body: JSON.stringify(photon('Dorfstraße', '1', 'Kleinkleckersdorf', 13.1, 52.1)) }))
     await page.goto('/erfassen')
     const search = page.locator('#wizard-place-search')
     // Ohne Ort weder privat noch öffentlich: ein Log ohne Ort soll nicht entstehen

@@ -21,6 +21,10 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 beforeEach(() => vi.clearAllMocks())
 const q = (sel: string) => document.body.querySelector<HTMLElement>(sel)
 
+/** Photon-Antwort (GeoJSON) mit einem Treffer in Freistadt */
+const photon = (properties: Record<string, unknown>) => ({ type: 'FeatureCollection',
+  features: [{ type: 'Feature', geometry: { type: 'Point', coordinates: [14.5, 48.51] }, properties: { osm_id: 1, osm_type: 'N', ...properties } }] })
+
 describe('EditLogModal - direkt im Ort (Betreiber eintragen)', () => {
   it('öffnet die Ort-Ansicht und zeigt die Säulen um den gespeicherten Ort', async () => {
     ;(api.get as any).mockImplementation((url: string) => Promise.resolve({ data: url.includes('nearby-stations')
@@ -58,8 +62,8 @@ describe('EditLogModal - Übersicht zeigt die Ladung', () => {
 
 describe('EditLogModal - Ort per Adresse', () => {
   it('übernimmt die gewählte Adresse als Koordinaten ins PATCH', async () => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ json: () => Promise.resolve([
-      { place_id: 1, lat: '48.51', lon: '14.50', display_name: 'Billa, Linzer Straße, Freistadt' }]) })))
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(photon(
+      { name: 'Billa', street: 'Linzer Straße', city: 'Freistadt', type: 'house' })) })))
     ;(api.patch as any).mockResolvedValue({ data: {} })
     app = createApp(defineComponent({ render: () => h(EditLogModal, { log }) }))
     app.use(i18n).use(createPinia()); app.directive('haptic', {})
@@ -71,8 +75,6 @@ describe('EditLogModal - Ort per Adresse', () => {
     const input = q('#wizard-place-search') as HTMLInputElement
     input.value = 'Linzer Str. 51, Freistadt'
     input.dispatchEvent(new Event('input'))
-    await nextTick()
-    q('[data-testid="place-search-address"]')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
     await vi.waitFor(() => expect(q('[data-testid="place-search-suggestion"]')).not.toBeNull())
     q('[data-testid="place-search-suggestion"]')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
     await nextTick()
@@ -102,8 +104,8 @@ describe('EditLogModal - Ort per Adresse', () => {
   })
 
   it('zeigt nach der Adresse die Säulen dort; die Privat-Zeile behält die Adresse, auch nach Wahl einer Säule', async () => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ json: () => Promise.resolve([
-      { place_id: 1, lat: '48.51', lon: '14.50', display_name: 'Linzer Straße 51, Freistadt' }]) })))
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, json: () => Promise.resolve(photon(
+      { street: 'Linzer Straße', housenumber: '51', city: 'Freistadt', type: 'house' })) })))
     ;(api.get as any).mockImplementation((url: string) => Promise.resolve({ data: url.includes('nearby-stations')
       ? [{ name: 'Billa', known: false, distanceMeters: 120, geohash: 'u2dr3ab', address: 'Linzer Straße 49, Freistadt',
           fastCharging: false, chargePoints: 2, maxAcKw: 22, maxDcKw: null, plugTypes: [], registerId: null }] : [] }))
@@ -116,8 +118,6 @@ describe('EditLogModal - Ort per Adresse', () => {
     const input = q('#wizard-place-search') as HTMLInputElement
     input.value = 'Linzer Str. 51, Freistadt'
     input.dispatchEvent(new Event('input'))
-    await nextTick()
-    q('[data-testid="place-search-address"]')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
     await vi.waitFor(() => expect(q('[data-testid="place-search-suggestion"]')).not.toBeNull())
     q('[data-testid="place-search-suggestion"]')!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
 
