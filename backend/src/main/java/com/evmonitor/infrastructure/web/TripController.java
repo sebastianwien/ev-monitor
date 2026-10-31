@@ -3,6 +3,8 @@ package com.evmonitor.infrastructure.web;
 import com.evmonitor.application.CreateTripRequest;
 import com.evmonitor.application.EvTripResponse;
 import com.evmonitor.application.MergeTripRequest;
+import com.evmonitor.application.OdometerGap;
+import com.evmonitor.application.OdometerGapService;
 import com.evmonitor.application.TripService;
 import com.evmonitor.application.UpdateTripRequest;
 import com.evmonitor.infrastructure.security.UserPrincipal;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class TripController {
 
     private final TripService tripService;
+    private final OdometerGapService odometerGapService;
 
     /**
      * Trip CRUD policy:
@@ -101,6 +104,28 @@ public class TripController {
         try {
             EvTripResponse response = tripService.mergeTrips(id, request.mergeWithTripId(), principal.getUser());
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    /**
+     * Strecke ohne Aufzeichnung: Lücken im Kilometerstand, deren Ende in [from, to] liegt. Eigener
+     * Endpoint, damit Summen und Zähler über {@code /api/trips} keine Lücken mitzählen.
+     */
+    @GetMapping("/gaps")
+    public ResponseEntity<?> getGaps(
+            @RequestParam UUID carId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime to,
+            Authentication authentication) {
+        if (!from.isBefore(to)) {
+            return ResponseEntity.badRequest().build();
+        }
+        UserPrincipal principal = (UserPrincipal) authentication.getPrincipal();
+        try {
+            List<OdometerGap> gaps = odometerGapService.getGapsForCar(carId, principal.getUser(), from, to);
+            return ResponseEntity.ok(gaps);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.notFound().build();
         }

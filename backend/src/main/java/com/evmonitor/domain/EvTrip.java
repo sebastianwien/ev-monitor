@@ -41,6 +41,18 @@ public class EvTrip {
     }
 
     /**
+     * {@link DataSource#showsOdometerGaps()} für den String in {@code ev_trip.data_source}. Werte
+     * außerhalb des Enums (z. B. {@code USER_CREATED}) zählen als aus und werfen nicht.
+     */
+    public static boolean showsOdometerGaps(String dataSource) {
+        if (dataSource == null) return false;
+        for (DataSource source : DataSource.values()) {
+            if (source.name().equals(dataSource)) return source.showsOdometerGaps();
+        }
+        return false;
+    }
+
+    /**
      * Obergrenze fuer aggregierte und pro-Sample Trip-Geschwindigkeiten. Muss
      * mit dem V118 DB-CHECK (avg_speed_kmh/max_speed_kmh BETWEEN 0 AND 300)
      * uebereinstimmen - die DB ist die Wahrheit, hier nur der spiegelnde Wert

@@ -53,6 +53,20 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
 
     List<EvTrip> findByUserIdAndCarIdAndDeletedAtIsNullOrderByTripEndedAtDesc(UUID userId, UUID carId, Pageable pageable);
 
+    /**
+     * Für die Lücken im Kilometerstand: alle Fahrten mit Stand am Start und Ende, die bis
+     * {@code to} begonnen haben, ältere eingeschlossen. Nur fünf Spalten, keine Route.
+     */
+    @Query("SELECT new com.evmonitor.domain.TripOdometerSpan("
+            + "t.tripStartedAt, t.tripEndedAt, t.odometerStartKm, t.odometerEndKm, t.dataSource) "
+            + "FROM EvTrip t WHERE t.userId = :userId AND t.carId = :carId AND t.deletedAt IS NULL "
+            + "AND t.odometerStartKm IS NOT NULL AND t.odometerEndKm IS NOT NULL "
+            + "AND t.tripStartedAt <= :to ORDER BY t.tripStartedAt ASC")
+    List<TripOdometerSpan> findOdometerSpansStartedUntil(
+            @Param("userId") UUID userId,
+            @Param("carId") UUID carId,
+            @Param("to") OffsetDateTime to);
+
     /** Feed-Fenster: Fahrten, die innerhalb [from, to] begonnen haben (wie die Tag/Woche-Buckets im Feed), neueste zuerst. */
     @Query("SELECT t FROM EvTrip t WHERE t.userId = :userId AND t.carId = :carId "
             + "AND t.deletedAt IS NULL AND t.tripStartedAt >= :from AND t.tripStartedAt <= :to "

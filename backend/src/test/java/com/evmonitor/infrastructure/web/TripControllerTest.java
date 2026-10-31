@@ -968,7 +968,117 @@ class TripControllerTest extends AbstractIntegrationTest {
         assertEquals("CITY", res.getBody().get("routeType"));
     }
 
+    // --- GET /api/trips/gaps ---
+
+    @Test
+    void getGaps_returnsKilometersBetweenTwoRecordedTrips() {
+        OffsetDateTime start = OffsetDateTime.now().minusDays(3);
+        saveOdometerTrip(car1, start, "100.0", "150.0", "TESLA_LIVE");
+        saveOdometerTrip(car1, start.plusDays(1), "173.7", "180.0", "TESLA_LIVE");
+
+        ResponseEntity<List<Map<String, Object>>> res = getGaps(user1, car1.getId(),
+                start.minusDays(1), OffsetDateTime.now());
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().size());
+        assertEquals(23.7, ((Number) res.getBody().get(0).get("distanceKm")).doubleValue(), 0.001);
+        assertNotNull(res.getBody().get(0).get("from"));
+        assertNotNull(res.getBody().get(0).get("to"));
+    }
+
+    @Test
+    void getGaps_hiddenLiveTripsNeitherFillNorBoundAGap() {
+        // Free user, kein Tesla: SMARTCAR_LIVE-Fahrten sieht er nicht. Die Lücke läuft über die
+        // verborgene Fahrt hinweg und verrät deren Zeiten nicht.
+        User freeUser = createAndSaveUser("trip-gaps-free-" + System.nanoTime() + "@example.com");
+        Car polestar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.POLESTAR_2);
+        OffsetDateTime start = OffsetDateTime.now().minusDays(3).truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
+        saveOdometerTrip(polestar, start, "100.0", "110.0", "POLESTAR_DATA_PORTAL");
+        saveOdometerTrip(polestar, start.plusHours(5), "110.0", "130.0", "SMARTCAR_LIVE");
+        saveOdometerTrip(polestar, start.plusDays(1), "140.0", "150.0", "POLESTAR_DATA_PORTAL");
+
+        ResponseEntity<List<Map<String, Object>>> res = getGaps(freeUser, polestar.getId(),
+                start.minusDays(1), OffsetDateTime.now());
+
+        assertEquals(HttpStatus.OK, res.getStatusCode());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().size());
+        assertEquals(30.0, ((Number) res.getBody().get(0).get("distanceKm")).doubleValue(), 0.001);
+        assertEquals(start.plusHours(1).toInstant(),
+                OffsetDateTime.parse((String) res.getBody().get(0).get("from")).toInstant());
+    }
+
+    @Test
+    void getGaps_carOfOtherUser_returns404() {
+        ResponseEntity<String> res = restTemplate.exchange(
+                gapsUrl(car2.getId(), OffsetDateTime.now().minusDays(7), OffsetDateTime.now()),
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.NOT_FOUND, res.getStatusCode());
+    }
+
+    @Test
+    void getGaps_withoutTo_returns400() {
+        ResponseEntity<String> res = restTemplate.exchange(
+                "/api/trips/gaps?carId=" + car1.getId() + "&from=" + OffsetDateTime.now().minusDays(7).toInstant(),
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, res.getStatusCode());
+    }
+
+    @Test
+    void getGaps_fromAfterTo_returns400() {
+        ResponseEntity<String> res = restTemplate.exchange(
+                gapsUrl(car1.getId(), OffsetDateTime.now(), OffsetDateTime.now().minusDays(7)),
+                HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(user1.getId(), user1.getEmail())),
+                String.class);
+
+        assertEquals(HttpStatus.BAD_REQUEST, res.getStatusCode());
+    }
+
+    @Test
+    void getGaps_unauthenticated_returns401or403() {
+        ResponseEntity<String> res = restTemplate.exchange(
+                gapsUrl(car1.getId(), OffsetDateTime.now().minusDays(7), OffsetDateTime.now()),
+                HttpMethod.GET, HttpEntity.EMPTY, String.class);
+
+        assertTrue(res.getStatusCode() == HttpStatus.UNAUTHORIZED || res.getStatusCode() == HttpStatus.FORBIDDEN);
+    }
+
     // --- helpers ---
+
+    private static String gapsUrl(UUID carId, OffsetDateTime from, OffsetDateTime to) {
+        return "/api/trips/gaps?carId=" + carId + "&from=" + from.toInstant() + "&to=" + to.toInstant();
+    }
+
+    private ResponseEntity<List<Map<String, Object>>> getGaps(User user, UUID carId,
+            OffsetDateTime from, OffsetDateTime to) {
+        return restTemplate.exchange(gapsUrl(carId, from, to), HttpMethod.GET,
+                new HttpEntity<>(createAuthHeaders(user.getId(), user.getEmail())),
+                new ParameterizedTypeReference<>() {});
+    }
+
+    /** Einstündige Fahrt mit Kilometerstand. */
+    private EvTrip saveOdometerTrip(Car car, OffsetDateTime start, String odoStart, String odoEnd, String source) {
+        return tripRepository.save(EvTrip.builder()
+                .userId(car.getUserId())
+                .carId(car.getId())
+                .dataSource(source)
+                .tripStartedAt(start)
+                .tripEndedAt(start.plusHours(1))
+                .odometerStartKm(new BigDecimal(odoStart))
+                .odometerEndKm(new BigDecimal(odoEnd))
+                .distanceKm(new BigDecimal(odoEnd).subtract(new BigDecimal(odoStart)))
+                .status("COMPLETED")
+                .userCreated(false)
+                .build());
+    }
 
     private Map<String, Object> createTripRequest(UUID carId, OffsetDateTime start, OffsetDateTime end) {
         return Map.of(

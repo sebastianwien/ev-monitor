@@ -273,8 +273,7 @@ public class TripService {
         // is on the eligibility whitelist (Tesla + Polestar 2/4 today). ADMIN / BETA_TESTER
         // bypass (b) so they can audit data quality of blocked models. Non-live sources
         // (TESSIE, USER_CREATED, ...) are always returned to the owner.
-        boolean canSeeLiveForThisCar = user.canViewLiveTrips(car.getModel().getBrand())
-                && (user.canBypassEligibilityGate() || TripDetectionEligibility.isEligible(car));
+        boolean canSeeLiveForThisCar = canSeeLiveTrips(user, car);
         OffsetDateTime windowFrom = from != null ? from : Instant.EPOCH.atOffset(ZoneOffset.UTC);
         OffsetDateTime windowTo = to != null ? to : FAR_FUTURE;
         Pageable cap = PageRequest.of(0, Math.max(1, Math.min(limit, MAX_TRIPS_PER_CAR)));
@@ -289,6 +288,12 @@ public class TripService {
         return trips.stream()
                 .map(t -> EvTripResponse.fromDomain(t, detailFor(t.getId().equals(newestTripId), analytics)))
                 .toList();
+    }
+
+    /** Sieht der Nutzer die Live-Fahrten dieses Autos? Gleiche Grenze für Fahrtenliste und Lücken. */
+    static boolean canSeeLiveTrips(User user, Car car) {
+        return user.canViewLiveTrips(car.getModel().getBrand())
+                && (user.canBypassEligibilityGate() || TripDetectionEligibility.isEligible(car));
     }
 
     /**

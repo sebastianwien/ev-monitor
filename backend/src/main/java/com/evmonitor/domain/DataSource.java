@@ -33,8 +33,18 @@ public enum DataSource {
     }
 
     /**
+     * Lücken im Kilometerstand vor einer Fahrt aus dieser Quelle zeigt das Logbuch als
+     * "ohne Aufzeichnung". Smartcar fehlt bewusst: dort fehlen rund drei Viertel der Kilometer,
+     * die Lücke wäre der Normalfall. Einschalten heißt: Quelle hier ergänzen.
+     */
+    public boolean showsOdometerGaps() {
+        return this == TESLA_LIVE || this == TESSIE || this == XPENG_IMPORT || this == XPENG_LIVE
+                || this == POLESTAR_DATA_PORTAL || this == API_UPLOAD;
+    }
+
+    /**
      * True if logs from this source may lack SoC/odometer data due to automatic import,
-     * and should therefore be skipped — with their kWh accumulated — when searching for
+     * and should therefore be skipped - with their kWh accumulated - when searching for
      * a valid logX predecessor in the consumption chain.
      *
      * A transparent log is never a real trip boundary: it represents intermediate charging
@@ -46,12 +56,12 @@ public enum DataSource {
 
     /**
      * True if a log from this source without odometer is a user-entered partial charge whose
-     * energy is fully known — it is then skipped in the logX search with its vehicle-side kWh
+     * energy is fully known - it is then skipped in the logX search with its vehicle-side kWh
      * accumulated (rolling consumption window between two odometer+SoC anchors).
      *
      * Deliberately narrow: only SPRITMONITOR_IMPORT qualifies. For automatic sources a missing
      * odometer can mean missed sessions (e.g. TESLA_FLEET_IMPORT snapshot miss), so they must
-     * keep breaking the chain. Logs without kWh break the chain too — their energy is unknown.
+     * keep breaking the chain. Logs without kWh break the chain too - their energy is unknown.
      */
     public boolean isTransparentWhenOdometerMissing() {
         return this == SPRITMONITOR_IMPORT;
