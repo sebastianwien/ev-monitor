@@ -3,10 +3,10 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   FireIcon,
-  SunIcon,
   SparklesIcon,
-  Battery100Icon,
 } from '@heroicons/vue/24/outline'
+import HeatWavesIcon from './icons/HeatWavesIcon.vue'
+import BatteryHeatIcon from './icons/BatteryHeatIcon.vue'
 import {
   activeClimateLoads,
   climateDurationMinutes,
@@ -30,9 +30,9 @@ const HEAT = 'text-orange-600 dark:text-orange-400'
 const COOL = 'text-cyan-600 dark:text-cyan-400'
 const LOAD_META: Record<ClimateLoadKey, { icon: unknown; labelKey: string; tone: string }> = {
   comfortHeat: { icon: FireIcon, labelKey: 'dashboard.trip_climate_load_comfort_heat', tone: HEAT },
-  hvacHeating: { icon: SunIcon, labelKey: 'dashboard.trip_climate_load_hvac_heating', tone: HEAT },
+  hvacHeating: { icon: HeatWavesIcon, labelKey: 'dashboard.trip_climate_load_hvac_heating', tone: HEAT },
   hvacCooling: { icon: SparklesIcon, labelKey: 'dashboard.trip_climate_load_hvac_cooling', tone: COOL },
-  batteryHeater: { icon: Battery100Icon, labelKey: 'dashboard.trip_climate_load_battery_heater', tone: HEAT },
+  batteryHeater: { icon: BatteryHeatIcon, labelKey: 'dashboard.trip_climate_load_battery_heater', tone: HEAT },
 }
 
 const loads = computed(() =>
