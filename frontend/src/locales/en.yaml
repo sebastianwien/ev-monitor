@@ -123,7 +123,7 @@ landing:
     gdpr_title: "GDPR compliant"
     gdpr_desc: "No tracking, no data sales. Full deletion on request."
     geohash_title: "Geohashing"
-    geohash_desc: "Locations are never stored exactly - only ~600m accuracy."
+    geohash_desc: "No permanently stored GPS coordinates. Private charging locations only to about 600 m."
     servers_title: "German servers"
     servers_desc: "Hosted on Hetzner Cloud in Nuremberg. No data outside the EU."
   leaderboard:
@@ -3609,7 +3609,7 @@ logwizard:
   place_public: "Charged publicly"
   place_public_here: "Charged publicly here"
   place_public_sub: "Charging station not found"
-  place_precision_note: "I store charging locations to about 150 m. If you mark a charge as private, I shorten the location to about 600 m, also for future charges there."
+  place_precision_note: "I store charging locations to about 150 m, public charges also with the charger from the public charging station register. If you mark a charge as private, I remove the charger and shorten the location to about 600 m, also for future charges there."
   nearby_title: "Nearby"
   nearby_loading: "Looking for nearby charging stations"
   charge_points: "{n} charge point | {n} charge points"

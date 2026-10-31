@@ -120,7 +120,7 @@ landing:
     gdpr_title: GDPR-kompatibel
     gdpr_desc: Ingen spårning, ingen dataförsäljning. Full radering på begäran.
     geohash_title: Geohashing
-    geohash_desc: Platser lagras aldrig exakt - bara ca 600 m noggrannhet.
+    geohash_desc: Inga permanent sparade GPS-koordinater. Privata laddplatser bara med ungefär 600 m noggrannhet.
     servers_title: Tyska servrar
     servers_desc: Driftas på Hetzner Cloud i Nürnberg. Inga uppgifter utanför EU.
   leaderboard:
@@ -3492,7 +3492,7 @@ logwizard:
   place_public: "Laddat offentligt"
   place_public_here: "Laddat offentligt här"
   place_public_sub: "Hittade inte laddstationen"
-  place_precision_note: "Jag sparar laddplatser med ungefär 150 m noggrannhet. Markerar du en laddning som privat kortar jag platsen till ungefär 600 m, även för framtida laddningar där."
+  place_precision_note: "Jag sparar laddplatser med ungefär 150 m noggrannhet, offentliga laddningar även med laddstolpen från det offentliga laddstolpsregistret. Markerar du en laddning som privat tar jag bort laddstolpen och kortar platsen till ungefär 600 m, även för framtida laddningar där."
   nearby_title: "I närheten"
   nearby_loading: "Söker laddstationer i närheten"
   charge_points: "{n} laddpunkt | {n} laddpunkter"
