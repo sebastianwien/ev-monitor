@@ -107,17 +107,15 @@ const speed = computed(() => {
               <ArrowsRightLeftIcon class="h-4 w-4" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
             </button>
           </div>
-        </template>
-        <!-- Mittig am unteren Rand über Speichern; die Rückfrage nach "falsch" öffnet sich direkt darüber -->
-        <template v-if="isRateableLogSource(selection.log.dataSource)" #footer>
-          <div class="w-full space-y-2">
-            <DataFeedbackPanel subject-type="LOG" :subject-id="selection.log.id" />
+          <!-- Letzte Zeile, mittig: die Karte wächst mit dem freien Platz, so steht sie meist direkt über Speichern -->
+          <template v-if="isRateableLogSource(selection.log.dataSource)">
             <p role="group" :aria-label="t('dashboard.data_feedback_label')"
               class="flex items-center justify-center gap-0.5 text-[13px] text-gray-500 dark:text-gray-400" data-testid="logbook-feedback">
               <span class="mr-1">{{ t('dashboard.data_feedback_label') }}</span>
               <DataFeedbackButtons subject-type="LOG" :subject-id="selection.log.id" />
             </p>
-          </div>
+            <DataFeedbackPanel subject-type="LOG" :subject-id="selection.log.id" />
+          </template>
         </template>
       </LogEditPanel>
       <DayTripPanel v-else :key="key" :trip="selection.trip" :car-id="carId" :new-end="new Date()"

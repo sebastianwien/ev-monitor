@@ -1,15 +1,15 @@
 <template>
   <div class="relative flex min-h-0 flex-1 flex-col bg-white dark:bg-gray-900">
-    <!-- Header: in einer Unteransicht fuehrt der Pfeil zurueck zur Uebersicht. In der Übersicht mit Karte liegt er
-         auf der Karte: ein weißer Verlauf trägt den Titel, Zurück und X stehen in Kreisen. -->
+    <!-- Header: in einer Unteransicht fuehrt der Pfeil zurueck zur Uebersicht. In der Übersicht mit Karte schweben nur
+         Zurück und X als Kreise auf der Karte; Ort und Zeitpunkt darunter sagen, was das ist, der Titel bleibt für Screenreader. -->
     <div :class="['flex items-center gap-1 px-4 py-2 shrink-0', overMap
-      ? 'pointer-events-none absolute inset-x-0 top-0 z-[600] pb-6 bg-gradient-to-b from-white via-white/80 to-transparent dark:from-gray-900 dark:via-gray-900/80'
+      ? 'pointer-events-none absolute inset-x-0 top-0 z-[600] pt-3'
       : 'border-b-2 border-gray-100 dark:border-gray-800']" data-testid="edit-head">
       <button v-if="section || dismiss === 'back'" type="button" :aria-label="t('common.back')" data-testid="edit-back"
         @click="section ? section = null : emit('cancel')" :class="[iconButton, '-ml-2']">
         <ChevronLeftIcon class="w-5 h-5" />
       </button>
-      <h2 class="flex-1 min-w-0 truncate text-[17px] font-bold text-gray-900 dark:text-gray-50">
+      <h2 :class="['flex-1 min-w-0 truncate text-[17px] font-bold text-gray-900 dark:text-gray-50', overMap && 'opacity-0']">
         {{ section ? t(sectionTitles[section]) : t('dashboard.edit_title') }}
       </h2>
       <button v-if="dismiss === 'close'" type="button" :aria-label="t('common.cancel')" @click="emit('cancel')" :class="[iconButton, '-mr-2']">
@@ -97,8 +97,6 @@
          (Sprechblase darueber, Mikrofon links neben Speichern) bleiben immer im DOM, sonst verliert das Teleport sein Ziel. -->
     <div class="px-4 py-3 border-t-2 border-gray-100 dark:border-gray-800 shrink-0">
       <div :id="`${footerId}-footer-note`" />
-      <!-- Ergänzung des Rahmens am unteren Rand, z. B. "Korrekt erkannt?" im Logbuch; nur in der Übersicht -->
-      <div v-if="!section && !confirmingDelete && $slots.footer" class="mb-2 flex justify-center"><slot name="footer" /></div>
       <div class="flex items-center gap-2">
       <button v-if="section" type="button" data-testid="edit-done" @click="section = null" v-haptic
         class="flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700">
@@ -325,8 +323,8 @@ const placeLabel = computed(() => pickedName.value ?? (formData.value.isPublicCh
   ? (formData.value.cpoName ?? t('logwizard.place_public'))
   : t('logwizard.place_private')))
 const PLACE_MAP_PX = 160
-/** Höhe der Kopfzeile, die in der Übersicht auf der Karte liegt: um sie wird die Karte höher */
-const HEAD_PX = 60
+/** Höhe der Kreise, die in der Übersicht auf der Karte liegen: um sie wird die Karte höher */
+const HEAD_PX = 56
 const overMap = computed(() => !section.value && placeContext.value.lat != null)
 /** Zurück und X: auf der Karte ein Kreis mit Kante, sonst nur die Fläche beim Hover */
 const iconButton = computed(() => ['pointer-events-auto grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-600 dark:text-gray-300',
