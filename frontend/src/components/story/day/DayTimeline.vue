@@ -153,8 +153,9 @@ const items = computed<Item[]>(() => {
           <span class="min-w-0 flex-1 pt-2">
             <span class="flex items-baseline gap-2 text-[15px] font-semibold leading-snug">
               <span class="shrink-0 whitespace-nowrap tabular-nums text-gray-500 dark:text-gray-400">{{ hm(e.from) }}<template v-if="!partsOf(e)"> · {{ dur(e.to - e.from) }}</template></span>
-              <span class="h-3.5 w-px shrink-0 self-center bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
-              <span class="truncate">
+              <span class="h-3.5 w-px shrink-0 self-center bg-gray-300 dark:bg-gray-600" :class="e.kind === 'charge' ? 'hidden md:block' : ''" aria-hidden="true" />
+              <!-- Ladeort auf dem Handy in eigener Zeile (unten), damit er nicht abgeschnitten wird -->
+              <span class="truncate" :class="e.kind === 'charge' ? 'hidden md:inline' : ''">
                 <template v-if="e.kind === 'trip' && e.trip.distanceKm != null"><span class="sr-only">{{ t('storyday.trip') }} </span><span class="tabular-nums">{{ formatDistance(e.trip.distanceKm) }}</span></template>
                 <template v-else-if="e.kind === 'trip'">{{ t('storyday.trip') }}</template>
                 <template v-else>{{ placeName(e) }}</template>
@@ -179,6 +180,7 @@ const items = computed<Item[]>(() => {
               <slot name="line2-end" :event="e" />
               <TripClimateMarkers v-if="e.kind === 'trip'" :climate="e.trip.climate" align="start" compact />
             </span>
+            <span v-if="e.kind === 'charge'" class="line-clamp-2 break-words text-[13px] font-semibold leading-snug text-gray-700 md:hidden dark:text-gray-200">{{ placeName(e) }}</span>
             <!-- Logbuch: Kosten, Verbrauch und Verbraucher einer Fahrt -->
             <slot v-if="e.kind === 'trip'" name="trip-extra" :trip="e.trip" />
             <span v-if="e.kind === 'charge' && missingChips(e).length" class="mt-1 flex gap-1">
