@@ -1,6 +1,9 @@
 import type { ClimateSummary } from '../utils/tripClimate'
 import { aggregateGroupCost } from './useChargingEfficiency'
 
+/** Unter dieser Strecke ist eine Fahrt Umparken oder Rangieren: kompakt im Tagesblatt, zählt nicht als lange Fahrt. */
+export const SHORT_TRIP_KM = 1
+
 /**
  * Tagesblatt der Story: was an einem Tag war (Fahrten und Ladungen), als Ablauf und Tagesband.
  * Tagesgrenzen in Ortszeit des Browsers, wie die Tagesleiste (buildDayCoverage).

@@ -1,6 +1,7 @@
 import { tripTimestamp } from '../utils/recentActivity'
 import { co2SavedKg, heroLine, petrolCostEur } from './storyModel'
 import { COLD_MAX_C, type RankEntry } from './storyInsights'
+import { SHORT_TRIP_KM } from './storyDay'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
 /**
@@ -156,7 +157,7 @@ export function detectLongTrip(input: { trips: MomentTrip[]; logs: MomentLog[]; 
   const { now } = input
   const recent = input.trips.filter(t => {
     const end = ms(tripTimestamp(t))
-    return end != null && end <= now && now - end <= DAY && (t.distanceKm ?? 0) > 0
+    return end != null && end <= now && now - end <= DAY && (t.distanceKm ?? 0) >= SHORT_TRIP_KM
   })
   const km = recent.reduce((s, t) => s + (t.distanceKm ?? 0), 0)
   if (km <= LONG_TRIP_KM) return null

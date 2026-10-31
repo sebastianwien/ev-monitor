@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { BoltIcon, MapIcon, ChevronRightIcon, LinkIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import {
-  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, bundleTotals, type DayEvent,
+  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, bundleTotals, SHORT_TRIP_KM, type DayEvent,
 } from '../../../composables/storyDay'
 import { hasTripThumb, tripsCredit } from '../../../utils/tripMap'
 import StandingText from './StandingText.vue'
@@ -76,7 +76,7 @@ function missingChips(e: DayEvent & { kind: 'charge' }): string[] {
   return missingOf(e.log).map(m => t(`storyday.missing_${m}`))
 }
 /** Fahrt unter 1 km (Umparken, Rangieren): kompakte Zeile ohne Minikarte */
-const isShort = (e: DayEvent) => e.kind === 'trip' && e.trip.distanceKm != null && e.trip.distanceKm < 1
+const isShort = (e: DayEvent) => e.kind === 'trip' && e.trip.distanceKm != null && e.trip.distanceKm < SHORT_TRIP_KM
 /** Die Minikarten tragen keine eigene Attribution - sie steht einmal unter der Liste. */
 const credit = computed(() => props.noCredit ? null : tripsCredit(props.events.flatMap(e => e.kind === 'trip' && !isShort(e) ? [e.trip] : [])))
 

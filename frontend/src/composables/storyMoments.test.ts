@@ -35,6 +35,12 @@ describe('detectLongTrip', () => {
     expect(detectLongTrip({ trips, logs: [], now: NOW })).toMatchObject({ endGeohash: 'u1hcvz8x' })
   })
 
+  it('Kurzfahrt unter 1 km danach (Umparken am nächsten Morgen) verschiebt weder Tag noch Ladestopps', () => {
+    const trips = [trip('a', 20, 180), { ...trip('b', 15, 160), locationEndGeohash: 'u1hcvz8x' }, { ...trip('c', 1, 0.3), locationEndGeohash: 'u1hcvz8y' }]
+    const logs = [{ id: 'x', loggedAt: iso(NOW - 17 * HOUR), costEur: 18 }, { id: 'n', loggedAt: iso(NOW - 5 * HOUR), costEur: 9 }]
+    expect(detectLongTrip({ trips, logs, now: NOW })).toMatchObject({ km: 340, stops: 1, costEur: 18, at: NOW - 15 * HOUR, endGeohash: 'u1hcvz8x' })
+  })
+
   it('bleibt unter 250 km still', () => {
     expect(detectLongTrip({ trips: [trip('a', 3, 120), trip('b', 30, 300)], logs: [], now: NOW })).toBeNull()
   })
