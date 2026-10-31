@@ -244,27 +244,30 @@ describe('Kosten im laufenden Monat', () => {
   })
 })
 
-describe('Strecke gegen den Vormonat', () => {
-  const previousMonth = stats({ totalDistanceKm: 512 })
-  const distance = (km: number | null, over: Partial<StoryInput> = {}) =>
-    buildStoryFeed(input({ month: stats({ totalDistanceKm: km }), previousMonth, ...over })).find(f => f.id === 'distance_trend')
-
-  it('mehr gefahren: sofort, auch im laufenden Monat', () => {
-    const item = distance(600, { runningMonth: true })!
-    expect(item.params).toEqual({ diff: 88, current: 600, previous: 512 })
-    expect(item.sentiment).toBe('neutral')
-    expect(item.question).toBe(1)
+describe('Kostentrend mit Monatsbalken', () => {
+  it('trägt Kosten und Strecke je Monat, leere Monate vor dem Start fallen weg', () => {
+    const month = stats({ energyCostEur: 96.4, totalCostEur: 96.4 })
+    const previousMonth = stats({ energyCostEur: 21.6, totalCostEur: 21.6 })
+    const item = buildStoryFeed(input({
+      month, previousMonth, monthOfYear: 10,
+      monthlyCosts: [0, 0, 50, 151, 21.6, 96.4], monthlyDistance: [0, 0, 710, 1530, 310, 940],
+    })).find(f => f.id === 'cost_trend')!
+    expect(item.months).toEqual([
+      { month: 7, eur: 50, km: 710 }, { month: 8, eur: 151, km: 1530 },
+      { month: 9, eur: 21.6, km: 310 }, { month: 10, eur: 96.4, km: 940 },
+    ])
   })
 
-  it('weniger gefahren: erst wenn der Monat vorbei ist, vorher hiesse das nur weniger Tage', () => {
-    expect(distance(274, { runningMonth: true })).toBeUndefined()
-    expect(distance(430)!.params.diff).toBe(-82)
+  it('Monatsbalken über den Jahreswechsel, ohne Strecke 0 km', () => {
+    const item = buildStoryFeed(input({ monthOfYear: 2, monthlyDistance: undefined })).find(f => f.id === 'cost_trend')!
+    expect(item.months!.map(m => m.month)).toEqual([9, 10, 11, 12, 1, 2])
+    expect(item.months!.every(m => m.km === 0)).toBe(true)
   })
 
-  it('unter 10 % Unterschied oder ohne Strecke kein Satz', () => {
-    expect(distance(540)).toBeUndefined()
-    expect(distance(null)).toBeUndefined()
-    expect(buildStoryFeed(input({ month: stats({ totalDistanceKm: 600 }), previousMonth: stats({ totalDistanceKm: null }) })).map(f => f.id)).not.toContain('distance_trend')
+  it('keine eigenen Sätze mehr für Strecke und teuerste Ladung', () => {
+    const ids = buildStoryFeed(input({ previousMonth: stats({ energyCostEur: 148.2, totalDistanceKm: 512 }) }), { max: Infinity }).map(f => f.id)
+    expect(ids).not.toContain('distance_trend')
+    expect(ids).not.toContain('most_expensive')
   })
 })
 
@@ -286,11 +289,10 @@ describe('buildStoryFeed', () => {
     }
   })
 
-  it('enthält Ersparnis und teuerste Ladung, keine gesperrten Sätze und keinen Verbrauchstrend', () => {
-    const feed = buildStoryFeed(input())
+  it('Ersparnis steht vorn, keine gesperrten Sätze und kein Verbrauchstrend', () => {
+    const feed = buildStoryFeed(input({ temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 } }))
     const ids = feed.map(f => f.id)
-    expect(ids).toContain('home_savings')
-    expect(ids).toContain('most_expensive')
+    expect(ids[0]).toBe('home_savings')
     expect(feed.every(f => !f.locked)).toBe(true)
     expect(ids).not.toContain('consumption_trend')
   })
@@ -310,10 +312,6 @@ describe('buildStoryFeed', () => {
     expect(ids).not.toContain('home_savings')
   })
 
-  it('teuerste Ladung nur, wenn sie deutlich über dem Schnitt liegt', () => {
-    const ids = buildStoryFeed(input({ month: stats({ mostExpensiveChargeEur: 9.5 }) })).map(f => f.id)
-    expect(ids).not.toContain('most_expensive')
-  })
 })
 
 describe('buildDayCoverage', () => {
@@ -466,15 +464,16 @@ describe('buildStoryFeed: Testansicht ohne Grenze', () => {
 
 describe('buildStoryFeed: mindestens ein positiver Satz', () => {
   it('holt den besten positiven Satz in die drei Plätze, wenn keiner darin ist', () => {
-    // Datenqualität (80), teuerste Ladung (66), Temperatur (89) verdrängen die Ersparnis (70), sie kommt auf den letzten Platz.
+    // Temperatur (89), Preisvergleich (84), Datenqualität (80) verdrängen den Kostentrend (50, gut), er kommt auf den letzten Platz.
     const feed = buildStoryFeed(input({
-      savingsEur: 120,
+      savingsEur: null,
+      modelPeers: { cars: 50, deltaPercent: 20, reason: 'price', theirs: { costPerKwh: 0.2, consumption: 17.9, costPer100km: 3.58 }, mine: { costPerKwh: 0.245, consumption: 17.9, costPer100km: 4.39 }, variants: [] },
       quality: { estimated: 8, total: 14, estimatedShare: 0.57, priceless: 0, pricelessOpen: 0, severity: 'bad' },
       temperature: { points: [], bins: [], coldKwh100: 23, mildKwh100: 16, deltaPercent: 43.75 },
     }))
     expect(feed).toHaveLength(3)
     expect(feed.some(f => f.sentiment === 'good')).toBe(true)
-    expect(feed[feed.length - 1].sentiment).toBe('good')
+    expect(feed[feed.length - 1].id).toBe('cost_trend')
   })
 
   it('Fluss-Kachel: Verlust in Prozent, Stimmung nach Schwelle, Rohdaten fuer die Grafik', () => {
@@ -523,6 +522,31 @@ describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => 
     expect(find({ quality: { ...ok, priceless: 1, severity: 'warn' } })).toBeUndefined()
     expect(find({ month: stats({ energyCostEur: 524 * 0.36 + 0.5 }) })).toBeUndefined()
     expect(find({})).toBeDefined()
+  })
+
+  const place = (over: Record<string, unknown>) => ({
+    geohash: 'u2', kind: 'PUBLIC', charges: 1, kwh: 60.91, costEur: 30.46, pricePerKwh: 0.5,
+    lastChargedAt: '2026-10-30', lastLogId: 'l1', cpoName: 'Stadtwerke Beispielstadt', chargingType: 'DC', ...over,
+  }) as any
+
+  it('Preisvergleich teurer als andere: nennt den Ort, an dem du am meisten draufzahlst', () => {
+    const places = [
+      place({}),
+      place({ cpoName: 'Kaufland', kwh: 40, pricePerKwh: 0.44 }),
+      place({ cpoName: 'Lidl', kwh: 200, pricePerKwh: 0.1 }),
+      place({ kind: 'HOME', cpoName: 'Stadtwerke', kwh: 300, pricePerKwh: 0.6 }),
+      place({ cpoName: null, kwh: 300, pricePerKwh: 0.9 }),
+    ]
+    const item = buildStoryFeed(input({ savingsEur: null, modelPeers: peers(0.2), quality: ok, places }), { max: Infinity }).find(i => i.id === 'peer_cost_eur')!
+    // Beispielstadt (0,50 - 0,20) x 60,91 = 18,27 € vor Kaufland (0,44 - 0,20) x 40 = 9,60 €; Zuhause und ohne Betreiber zählen nicht
+    expect(item.place).toBe('Stadtwerke Beispielstadt')
+    expect(item.params.placePrice).toBe(0.5)
+  })
+
+  it('Preisvergleich: kein Ort, wenn du günstiger bist oder kein Ort mindestens 1 € mehr kostet', () => {
+    const find = (over: Partial<StoryInput>) => buildStoryFeed(input({ savingsEur: null, quality: ok, ...over }), { max: Infinity }).find(i => i.id === 'peer_cost_eur')!
+    expect(find({ modelPeers: peers(), places: [place({ pricePerKwh: 0.9 })] }).place).toBeUndefined()
+    expect(find({ modelPeers: peers(0.2), places: [place({ kwh: 3, pricePerKwh: 0.5 })] }).place).toBeUndefined()
   })
 
   it('Herbst-Prognose nur im Oktober des laufenden Monats: km der letzten Tage mal Winter-Mehrverbrauch mal Preis', () => {

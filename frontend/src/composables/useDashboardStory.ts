@@ -534,6 +534,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     month: monthStats.value,
     previousMonth: previousStats.value,
     monthlyCosts: monthlySeries(p => p.costEur),
+    monthlyDistance: monthlySeries(p => p.distanceKm),
+    places: places.value,
     monthlyConsumption: monthlySeries(p => p.consumptionKwhPer100km),
     wltpConsumption: ctx().wltpConsumption,
     sohPercent: ctx().sohPercent,

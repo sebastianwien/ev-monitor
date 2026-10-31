@@ -8,8 +8,8 @@ import { feedTarget } from '../../composables/storyFeedTarget'
 import InsightBars, { type InsightBar } from './InsightBars.vue'
 
 /**
- * Eine Insight-Zeile als Karte: Satz mit fetter Zahl, die Zahl rechts, darunter die Vergleichsbasis
- * und bei Prognose und Preisvergleich zwei Balken. Tippbar, wenn hinter dem Satz eine Kachel mit
+ * Eine Insight-Zeile als Karte: Satz mit fetter Zahl (jede Zahl nur einmal), darunter die Vergleichsbasis,
+ * bei Prognose und Preisvergleich zwei Balken, beim Kostentrend ein Balken je Monat. Tippbar, wenn hinter dem Satz eine Kachel mit
  * Sheet steht. Schätzwerte ("ca.", ganze Euro) stehen getrennt von echten Ladekosten.
  */
 const props = withDefaults(defineProps<{
@@ -41,15 +41,9 @@ const sentence = computed(() => {
     case 'peer_cost_eur':
       return t(p.diffEur < 0 ? 'story.feed_peer_eur_less' : 'story.feed_peer_eur_more', { eur: b(eur0(Math.round(Math.abs(p.diffEur)))), model: props.modelName })
     case 'home_savings':
-      return t('story.feed_home_savings')
+      return t('story.feed_home_savings', { eur: b(eur0(p.eur)) })
     case 'cost_trend':
-      return t(p.diff <= 0 ? 'story.feed_cost_lower' : 'story.feed_cost_higher', { diff: b(formatCurrency(Math.abs(p.diff), { decimals: 0 })) })
-    case 'distance_trend':
-      return t(p.diff > 0 ? 'story.feed_distance_more' : 'story.feed_distance_less', {
-        km: b(formatDistance(p.current, { round: true })), previous: formatDistance(p.previous, { round: true }),
-      })
-    case 'most_expensive':
-      return t('story.feed_most_expensive', { eur: b(formatCurrency(p.eur)), avg: formatCurrency(p.avgEur) })
+      return t(p.diff <= 0 ? 'story.feed_cost_lower' : 'story.feed_cost_higher', { diff: b(eur0(Math.abs(p.diff))) })
     case 'data_quality': {
       const parts = []
       if (p.estimated > 0) parts.push(t('story.feed_quality_estimated', { estimated: p.estimated, total: p.total }))
@@ -69,7 +63,12 @@ const sub = computed<string>(() => {
       const weather = p.deltaC != null ? '_weather' : ''
       return t(`story.feed_autumn_sub${weather}${p.peerWinter ? '_peer' : ''}`, { model: props.modelName, deg: Math.abs(p.deltaC ?? 0) })
     }
-    case 'peer_cost_eur': return t('story.feed_peer_eur_sub', { month: props.monthName })
+    case 'peer_cost_eur': {
+      const base = t('story.feed_peer_eur_sub', { month: props.monthName })
+      return props.item.place && p.placePrice != null
+        ? `${base} ${t('story.feed_peer_place', { place: props.item.place, price: formatCurrency(p.placePrice, { decimals: 2 }) })}`
+        : base
+    }
     case 'home_savings': {
       const base = t('story.feed_home_savings_sub')
       return p.monthsRemaining > 0 ? `${base} ${t('story.feed_home_amortised_in', { months: p.monthsRemaining })}` : base
@@ -92,6 +91,16 @@ const bars = computed<InsightBar[] | null>(() => {
         { label: t('story.feed_bar_you'), value: p.mineEur, text: eur0(p.mineEur), accent: true },
         { label: t('story.feed_bar_others'), value: p.theirsEur, text: t('story.feed_approx', { value: eur0(Math.round(p.theirsEur)) }) },
       ]
+    case 'cost_trend': {
+      const months = props.item.months ?? []
+      // Ein Balken allein vergleicht nichts: erst ab zwei Monaten.
+      return months.length > 1
+        ? months.map((x, i) => ({
+          label: monthName(x.month), value: x.eur, text: eur0(x.eur),
+          note: formatDistance(x.km, { round: true }), accent: i === months.length - 1,
+        }))
+        : null
+    }
     default: return null
   }
 })
@@ -103,22 +112,7 @@ const parts = computed(() => (sentence.value ?? '').split(B_OPEN).flatMap((chunk
   return [{ text: bold, bold: true }, { text: rest, bold: false }]
 }).filter(x => x.text))
 
-/** Die eine Zahl rechts: der Wert, um den es im Satz geht. */
-const number = computed<string>(() => {
-  const p = props.item.params
-  switch (props.item.id) {
-    case 'autumn_forecast': return `+${eur0(Math.round(p.deltaEur))}`
-    case 'peer_cost_eur': return `${p.diffEur < 0 ? '-' : '+'}${eur0(Math.round(Math.abs(p.diffEur)))}`
-    case 'cost_trend': return formatCurrency(p.current, { decimals: 0 })
-    case 'distance_trend': return formatDistance(p.current, { round: true })
-    case 'most_expensive': return formatCurrency(p.eur)
-    case 'home_savings': return formatCurrency(p.eur, { decimals: 0 })
-    case 'data_quality': return p.priceless > 0 ? `${p.priceless}` : `${p.estimated}/${p.total}`
-    case 'temperature_effect': return `+${formatDecimal(Math.abs(p.deltaPercent), 0)} %`
-    default: return ''
-  }
-})
-// Gruen fuer gute Nachrichten. Amber nur, wenn der Verbrauch schlechter wird; hoehere Kosten oder
+// Die fette Zahl im Satz: Gruen fuer gute Nachrichten. Amber nur, wenn der Verbrauch schlechter wird; hoehere Kosten oder
 // eine teure Ladung sind Information, kein Fehler. Nie Rot.
 const AMBER_WHEN_WORSE = new Set<StoryFeedItem['id']>(['temperature_effect'])
 const numberClass = computed(() => {
@@ -148,10 +142,9 @@ function go() {
     @click="go">
     <span class="flex items-start justify-between gap-3">
       <span class="min-w-0 flex-1">
-        <span class="block text-[15px] leading-snug text-pretty text-gray-900 dark:text-gray-100" :class="sub ? 'font-bold' : ''"><template v-for="(x, i) in parts" :key="i"><b v-if="x.bold" class="font-bold">{{ x.text }}</b><template v-else>{{ x.text }}</template></template></span>
+        <span class="block text-[15px] leading-snug text-pretty text-gray-900 dark:text-gray-100" :class="sub ? 'font-bold' : ''"><template v-for="(x, i) in parts" :key="i"><b v-if="x.bold" class="font-bold" :class="numberClass">{{ x.text }}</b><template v-else>{{ x.text }}</template></template></span>
         <span v-if="sub" class="mt-0.5 block text-[13px] leading-snug text-gray-600 dark:text-gray-300">{{ sub }}</span>
       </span>
-      <span v-if="number" data-testid="story-feed-number" class="shrink-0 text-[17px] font-bold tabular-nums" :class="numberClass">{{ number }}</span>
       <span v-if="target" data-testid="story-feed-chevron" class="-ml-1 mt-0.5 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true"><ChevronRightIcon class="h-4 w-4" /></span>
     </span>
     <InsightBars v-if="bars" :bars="bars" class="mt-1" />

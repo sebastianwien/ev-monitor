@@ -21,60 +21,43 @@ function mount(item: Item, extra: Record<string, unknown> = {}) {
   return host
 }
 
-describe('StoryFeedItem Strecke', () => {
-  it('mehr unterwegs als im Vormonat, mit beiden Strecken', () => {
-    const host = mount({ id: 'distance_trend', question: 1, relevance: 40, sentiment: 'neutral', params: { diff: 88, current: 600, previous: 512 } })
-    expect(host.textContent!.replace(/\s+/g, ' ')).toMatch(/Mehr unterwegs als im Vormonat: 600\skm statt 512\skm\./)
-  })
-
-  it('weniger unterwegs, wenn der Monat vorbei ist', () => {
-    const host = mount({ id: 'distance_trend', question: 1, relevance: 40, sentiment: 'neutral', params: { diff: -82, current: 430, previous: 512 } })
-    expect(host.textContent!.replace(/\s+/g, ' ')).toMatch(/Weniger unterwegs als im Vormonat: 430\skm statt 512\skm\./)
-  })
-})
-
-describe('StoryFeedItem Zahl rechts', () => {
-  it('Kostentrend: Satz links, Monatsbetrag rechts in Grün, keine Fragen-Zeile, keine Grafik', () => {
+describe('StoryFeedItem Zahl im Satz', () => {
+  it('jede Zahl steht einmal, fett im Satz, keine zweite Zahl rechts', () => {
     const host = mount({ id: 'cost_trend', question: 1, relevance: 40, sentiment: 'good', params: { diff: -3, current: 15.2, previous: 18.1 } })
-    const n = host.querySelector('[data-testid="story-feed-number"]')!
-    expect(n.textContent!.replace(/\s/g, ' ')).toBe('15 €')
-    expect(n.className).toContain('text-green-700')
+    expect(host.querySelector('[data-testid="story-feed-number"]')).toBeNull()
+    const b = host.querySelector('b')!
+    expect(b.textContent!.replace(/\s/g, ' ')).toBe('3 €')
+    expect(b.className).toContain('text-green-700')
     expect(host.textContent).not.toContain('Frage 1')
-    expect(host.querySelector('svg')).toBeNull()
   })
 
   it('Temperatur-Effekt: Zahl in Amber, nie Rot', () => {
     const host = mount({ id: 'temperature_effect', question: 2, relevance: 40, sentiment: 'warn', params: { deltaPercent: 43.75, cold: 23, mild: 16 } })
-    const n = host.querySelector('[data-testid="story-feed-number"]')!
-    expect(n.textContent!.replace(/\s/g, ' ')).toBe('+44 %')
-    expect(n.className).toContain('text-amber-700')
-    expect(n.className).not.toContain('rose')
+    const b = host.querySelector('b')!
+    expect(b.textContent!.replace(/\s/g, ' ')).toBe('44')
+    expect(b.className).toContain('text-amber-700')
+    expect(b.className).not.toContain('rose')
   })
 
-  it('teuerste Ladung und höhere Kosten: Zahl schwarz, Amber nur beim Verbrauch', () => {
-    const host = mount({ id: 'most_expensive', question: 1, relevance: 40, sentiment: 'warn', params: { eur: 27.39, avgEur: 12.3 } })
-    expect(host.querySelector('[data-testid="story-feed-number"]')!.className).not.toContain('amber')
-  })
-
-  it('die Zahl im Satz ist fett', () => {
-    const host = mount({ id: 'cost_trend', question: 1, relevance: 40, sentiment: 'good', params: { diff: -3, current: 15.2, previous: 18.1 } })
-    expect(host.querySelector('b')!.textContent!.replace(/\s/g, ' ')).toBe('3 €')
+  it('höhere Kosten: Zahl schwarz, Amber nur beim Verbrauch', () => {
+    const host = mount({ id: 'cost_trend', question: 1, relevance: 40, sentiment: 'warn', params: { diff: 102, current: 120, previous: 18 } })
+    expect(host.querySelector('b')!.className).not.toContain('amber')
   })
 
   it('Zeile ohne Ziel: kein Pfeil, kein Knopf', () => {
-    const host = mount({ id: 'most_expensive', question: 1, relevance: 40, sentiment: 'neutral', params: { eur: 27.39, avgEur: 12.3 } }, { sheets: [] })
+    const host = mount({ id: 'cost_trend', question: 1, relevance: 40, sentiment: 'neutral', params: { diff: 5, current: 20, previous: 15 } }, { sheets: [] })
     expect(host.querySelector('[data-testid="story-feed-chevron"]')).toBeNull()
     expect(host.querySelector('button')).toBeNull()
   })
 
   it('Zeile mit Sheet dahinter ist ein Knopf und meldet die Kachel', () => {
     const opened: string[] = []
-    const host = mount({ id: 'most_expensive', question: 1, relevance: 40, sentiment: 'neutral', params: { eur: 27.39, avgEur: 12.3 } }, { sheets: ['cost'], onOpen: (id: string) => opened.push(id) })
+    const host = mount({ id: 'cost_trend', question: 1, relevance: 40, sentiment: 'neutral', params: { diff: 5, current: 20, previous: 15 } }, { sheets: ['cost'], onOpen: (id: string) => opened.push(id) })
     expect(host.querySelector('[data-testid="story-feed-chevron"]')).not.toBeNull()
     host.querySelector('button')!.click()
     expect(opened).toEqual(['cost'])
     app!.unmount(); app = null
-    const plain = mount({ id: 'most_expensive', question: 1, relevance: 40, sentiment: 'neutral', params: { eur: 27.39, avgEur: 12.3 } }, { sheets: ['wltp'] })
+    const plain = mount({ id: 'cost_trend', question: 1, relevance: 40, sentiment: 'neutral', params: { diff: 5, current: 20, previous: 15 } }, { sheets: ['wltp'] })
     expect(plain.querySelector('button')).toBeNull()
   })
 })
@@ -87,7 +70,6 @@ describe('StoryFeedItem Insights mit Vergleichsbasis und Balken', () => {
     const host = mount({ id: 'autumn_forecast', question: 1, relevance: 65, sentiment: 'neutral', params: { deltaEur: 19.6, currentEur: 59.2, nextEur: 78.8, nextMonth: 11, peerWinter: 0 } }, { sheets: ['range'] })
     expect(text(host)).toContain('Ab November rund 20 € mehr im Monat')
     expect(text(host)).toContain('Es wird kälter, dein Auto braucht mehr Strom.')
-    expect(host.querySelector('[data-testid="story-feed-number"]')!.textContent!.replace(/\s/g, ' ')).toBe('+20 €')
     expect(bars(host)).toEqual(['Oktober 59 €', 'November ca. 79 €'])
     expect(host.querySelector('b')!.textContent!.replace(/\s/g, ' ')).toBe('20 €')
     expect(host.querySelector('button')).not.toBeNull()
@@ -102,25 +84,42 @@ describe('StoryFeedItem Insights mit Vergleichsbasis und Balken', () => {
     const host = mount({ id: 'peer_cost_eur', question: 3, relevance: 60, sentiment: 'good', params: { diffEur: -35.4, mineEur: 59.2, theirsEur: 94.6, cars: 40 } }, { sheets: ['peer'] })
     expect(text(host)).toContain('35 € weniger als andere Model 3-Fahrer')
     expect(text(host)).toContain('Für dieselbe Menge Strom im Oktober.')
-    const n = host.querySelector('[data-testid="story-feed-number"]')!
-    expect(n.textContent!.replace(/\s/g, ' ')).toBe('-35 €')
-    expect(n.className).toContain('text-green-700')
+    expect(host.querySelector('b')!.className).toContain('text-green-700')
     expect(bars(host)).toEqual(['Du 59 €', 'Andere ca. 95 €'])
   })
 
   it('Preisvergleich: mehr als andere bleibt schwarz, kein Amber', () => {
     const host = mount({ id: 'peer_cost_eur', question: 3, relevance: 60, sentiment: 'neutral', params: { diffEur: 12.2, mineEur: 59.2, theirsEur: 47, cars: 40 } })
     expect(text(host)).toContain('12 € mehr als andere Model 3-Fahrer')
-    const n = host.querySelector('[data-testid="story-feed-number"]')!
-    expect(n.textContent!.replace(/\s/g, ' ')).toBe('+12 €')
-    expect(n.className).not.toContain('amber')
+    expect(host.querySelector('b')!.className).not.toContain('amber')
+    expect(text(host)).not.toContain('zahlst du drauf')
   })
 
-  it('Heimlade-Ersparnis: Titel, Basis "12 Monate", Betrag rechts, keine Balken', () => {
-    const host = mount({ id: 'home_savings', question: 1, relevance: 70, sentiment: 'good', params: { eur: 747.3, monthsRemaining: 14 } })
-    expect(text(host)).toContain('Gespart, weil du meist zu Hause lädst')
+  it('Preisvergleich: mehr als andere nennt den Ort, an dem du am meisten draufzahlst', () => {
+    const host = mount({ id: 'peer_cost_eur', question: 3, relevance: 60, sentiment: 'neutral', params: { diffEur: 35, mineEur: 120, theirsEur: 85, cars: 40, placePrice: 0.5 }, place: 'Stadtwerke Beispielstadt' })
+    expect(text(host)).toContain('Für dieselbe Menge Strom im Oktober. Am meisten zahlst du drauf bei Stadtwerke Beispielstadt (0,50 € je kWh).')
+  })
+
+  it('Kostentrend: Satz bleibt, darunter Balken je Monat mit Strecke und Betrag, der Monat hervorgehoben', () => {
+    const host = mount({ id: 'cost_trend', question: 1, relevance: 60, sentiment: 'warn', params: { diff: 75, current: 96.4, previous: 21.6 },
+      months: [{ month: 9, eur: 21.6, km: 310 }, { month: 10, eur: 96.4, km: 940 }] })
+    expect(text(host)).toContain('Du hast 75 € mehr ausgegeben als im Vormonat.')
+    expect(bars(host)).toEqual(['September 310 km 22 €', 'Oktober 940 km 96 €'])
+    const fills = [...host.querySelectorAll('[data-testid="story-insight-bars"] i')]
+    expect(fills[1].className).toContain('bg-sky-500')
+    expect(fills[0].className).not.toContain('bg-sky-500')
+  })
+
+  it('Kostentrend mit nur einem Monat: keine Balken, ein Balken allein vergleicht nichts', () => {
+    const host = mount({ id: 'cost_trend', question: 1, relevance: 60, sentiment: 'warn', params: { diff: 75, current: 96.4, previous: 21.6 },
+      months: [{ month: 10, eur: 96.4, km: 940 }] })
+    expect(host.querySelector('[data-testid="story-insight-bars"]')).toBeNull()
+  })
+
+  it('Heimlade-Ersparnis: Betrag vorn im Satz, Basis "12 Monate", keine Balken', () => {
+    const host = mount({ id: 'home_savings', question: 1, relevance: 100, sentiment: 'good', params: { eur: 747.3, monthsRemaining: 14 } })
+    expect(text(host)).toMatch(/^747\s€ gespart, weil du meist zu Hause lädst/)
     expect(text(host)).toContain('In den letzten 12 Monaten, gegenüber öffentlichem Laden. Die Wallbox ist in 14 Monaten bezahlt.')
-    expect(host.querySelector('[data-testid="story-feed-number"]')!.textContent!.replace(/\s/g, ' ')).toBe('747 €')
     expect(host.querySelector('[data-testid="story-insight-bars"]')).toBeNull()
   })
 })

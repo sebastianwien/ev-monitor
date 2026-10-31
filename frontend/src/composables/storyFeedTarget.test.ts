@@ -26,11 +26,6 @@ describe('feedTarget: wohin eine Zeile unter "Diesen Monat" führt', () => {
     expect(feedTarget(item('data_quality', { priceless: 1, pricelessOpen: 0, logId: null, estimated: 0, total: 4 }), ['cost'])).toEqual({ kind: 'sheet', id: 'cost' })
   })
 
-  it('teuerste Ladung: genau diese Ladung, ohne id das Kosten-Sheet', () => {
-    expect(feedTarget(item('most_expensive', { eur: 14.58, avgEur: 5.04, logId: 'l9' }), ['cost'])).toEqual({ kind: 'charge', logId: 'l9' })
-    expect(feedTarget(item('most_expensive', { eur: 14.58, avgEur: 5.04 }), ['cost'])).toEqual({ kind: 'sheet', id: 'cost' })
-  })
-
   it('übrige Zeilen öffnen ihr Sheet nur, wenn es das Sheet gibt', () => {
     expect(feedTarget(item('temperature_effect', { deltaPercent: 20 }), ['wltp'])).toEqual({ kind: 'sheet', id: 'wltp' })
     expect(feedTarget(item('temperature_effect', { deltaPercent: 20 }), ['cost'])).toBeNull()

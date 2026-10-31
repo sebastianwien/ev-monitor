@@ -9,6 +9,7 @@ import { PETROL_KG_CO2_PER_L, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../comp
 import { combustionLiters } from '../utils/costMix'
 import { energyUse, type EnergyFlow, type EnergyUse, type RangeEstimate } from './storyEnergy'
 import type { ModelPeers, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
+import type { ChargingPlace } from './storyPlaces'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
 /** Feste Reihenfolge der Kacheln, siehe TILE_ORDER. */
@@ -63,8 +64,7 @@ export interface StoryTile {
 }
 
 export type FeedId =
-  | 'autumn_forecast' | 'peer_cost_eur' | 'home_savings' | 'most_expensive' | 'cost_trend' | 'distance_trend'
-  | 'data_quality' | 'temperature_effect'
+  | 'autumn_forecast' | 'peer_cost_eur' | 'home_savings' | 'cost_trend' | 'data_quality' | 'temperature_effect'
 
 export interface StoryFeedItem {
   id: FeedId
@@ -75,10 +75,21 @@ export interface StoryFeedItem {
   locked?: boolean
   /** Rohwerte fuer den Satz, die Komponente formatiert sie. */
   params: Record<string, number>
-  /** Ladung, die die Zeile oeffnet (teuerste Ladung, einzige Ladung ohne Preis) */
+  /** Ladung, die die Zeile oeffnet (einzige Ladung ohne Preis) */
   logId?: string | null
+  /** Nur Kostentrend: Kosten und Strecke je Monat für die Balken, aeltester zuerst. */
+  months?: FeedMonth[]
+  /** Nur Preisvergleich, wenn du mehr zahlst: Betreiber, bei dem du am meisten draufzahlst. */
+  place?: string
   /** Textschluessel ohne Zahl, z. B. die Leaderboard-Kategorie. */
   label?: string
+}
+
+export interface FeedMonth {
+  /** Kalendermonat 1 bis 12. */
+  month: number
+  eur: number
+  km: number
 }
 
 export interface WeatherOutlook {
@@ -91,6 +102,10 @@ export interface StoryInput {
   previousMonth: StatisticsData | null
   /** Sechs Monatswerte, aeltester zuerst, letzter ist der gewaehlte Monat. */
   monthlyCosts: number[]
+  /** Strecke je Monat, gleiche Reihenfolge wie monthlyCosts. */
+  monthlyDistance?: number[]
+  /** Ladeorte des Monats (GET /logs/places), für den Ort hinter dem Preisvergleich. */
+  places?: ChargingPlace[]
   monthlyConsumption: number[]
   wltpConsumption: number | null
   sohPercent: number | null
@@ -154,13 +169,10 @@ export const PETROL_EUR_PER_L_DE = 2.13
 
 const WLTP_WARN_PERCENT = 5
 const PEER_NEUTRAL_PERCENT = 1
-const EXPENSIVE_FACTOR = 1.6
 /** Unter diesen Schwellen gibt es keinen Feed-Satz: "0 € weniger" ist keine Erkenntnis. */
 /** Unter drei Ladungen im Monat zeigt die Kachel, worauf der Wert beruht. Reichweite ist davon frei, sie rechnet mit 4 Wochen. */
 export const MIN_SOLID_CHARGES = 3
 const MIN_COST_DIFF_EUR = 1
-/** Ab 10 % mehr oder weniger Strecke als im Vormonat ist das eine Nachricht. */
-const MIN_DISTANCE_DIFF_SHARE = 0.1
 /** Preisvergleich in Euro und Herbst-Prognose erst, wenn der Monat so viele Tage zaehlt. */
 const MIN_COMPARE_DAYS = 14
 /** Herbst-Prognose: nur im Oktober, fuer den ersten Wintermonat. */
@@ -444,24 +456,6 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
 
   const prev = input.previousMonth
 
-  // Strecke ohne Hochrechnung: km kommen bei Hand-Erfassern in Spruengen (km-Stand nur beim Laden).
-  // "Mehr" steht fest, sobald es erreicht ist; "weniger" erst nach Monatsende, vorher waeren es nur weniger Tage.
-  const km = m.totalDistanceKm
-  const prevKm = prev?.totalDistanceKm
-  if (km != null && km > 0 && prevKm != null && prevKm > 0) {
-    const diff = km - prevKm
-    const share = diff / prevKm
-    if (Math.abs(share) >= MIN_DISTANCE_DIFF_SHARE && (diff > 0 || !input.runningMonth)) {
-      items.push({
-        id: 'distance_trend',
-        question: 1,
-        relevance: Math.min(60, 25 + Math.abs(share) * 50),
-        sentiment: 'neutral',
-        params: { diff, current: km, previous: prevKm },
-      })
-    }
-  }
-
   const comparison = costComparison(input)
   if (prev && prev.energyCostEur > 0 && comparison && 'delta' in comparison && Math.abs(comparison.delta) >= MIN_COST_DIFF_EUR) {
     const diff = comparison.delta
@@ -471,28 +465,16 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
       relevance: Math.min(90, 30 + Math.abs(diff)),
       sentiment: diff <= 0 ? 'good' : 'warn',
       params: { diff, current: m.energyCostEur, previous: prev.energyCostEur },
+      months: feedMonths(input),
     })
-  }
-
-  if (m.totalCharges > 1 && m.avgCostPerKwh > 0 && m.totalKwhCharged > 0) {
-    const avgCharge = (m.totalKwhCharged / m.totalCharges) * m.avgCostPerKwh
-    if (m.mostExpensiveChargeEur > avgCharge * EXPENSIVE_FACTOR) {
-      items.push({
-        id: 'most_expensive',
-        question: 1,
-        relevance: Math.min(95, 50 + (m.mostExpensiveChargeEur / avgCharge) * 10),
-        sentiment: 'warn',
-        params: { eur: m.mostExpensiveChargeEur, avgEur: avgCharge },
-        logId: m.mostExpensiveChargeLogId ?? null,
-      })
-    }
   }
 
   if (input.savingsEur != null && input.savingsEur > 0) {
     items.push({
       id: 'home_savings',
       question: 1,
-      relevance: 70,
+      // Die Ersparnis steht vorn: sie ist die Nachricht, für die man zu Hause lädt.
+      relevance: 100,
       sentiment: 'good',
       params: {
         eur: input.savingsEur,
@@ -509,6 +491,7 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
     const theirsEur = m.totalKwhCharged * mp.theirs.costPerKwh
     const diff = m.energyCostEur - theirsEur
     if (Math.abs(diff) >= MIN_COST_DIFF_EUR) {
+      const place = diff > 0 ? priciestPlace(input.places ?? [], mp.theirs.costPerKwh) : null
       items.push({
         id: 'peer_cost_eur',
         question: 3,
@@ -516,7 +499,8 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
         relevance: 60 + Math.min(30, Math.abs(diff)),
         // Teurer als andere ist eine Auskunft fuer die Planung, kein Fehler: nie Amber.
         sentiment: diff < 0 ? 'good' : 'neutral',
-        params: { diffEur: diff, mineEur: m.energyCostEur, theirsEur, cars: mp.cars },
+        params: { diffEur: diff, mineEur: m.energyCostEur, theirsEur, cars: mp.cars, ...(place ? { placePrice: place.pricePerKwh } : {}) },
+        ...(place ? { place: place.name } : {}),
       })
     }
   }
@@ -570,6 +554,32 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
   const omit = new Set(opts.omit ?? [])
   const ranked = items.filter(i => !omit.has(i.id)).sort((a, b) => b.relevance - a.relevance)
   return withOnePositive(ranked, opts.max ?? FEED_MAX)
+}
+
+/** Kosten und Strecke der sechs Monate; Monate ohne beides vor dem ersten Monat mit Daten fallen weg. */
+function feedMonths(input: StoryInput): FeedMonth[] {
+  const n = input.monthlyCosts.length
+  const all = input.monthlyCosts.map((eur, i) => ({
+    month: ((input.monthOfYear - (n - 1 - i) - 1) % 12 + 12) % 12 + 1,
+    eur,
+    km: input.monthlyDistance?.[i] ?? 0,
+  }))
+  const first = all.findIndex(x => x.eur > 0 || x.km > 0)
+  return first < 0 ? [] : all.slice(first)
+}
+
+/**
+ * Der öffentliche Ort mit dem größten Aufpreis gegen den Preis der anderen Fahrer (Preisdifferenz mal kWh).
+ * Zuhause zählt nicht, ohne Betreiber gibt es keinen Namen. Unter 1 € Aufpreis keiner.
+ */
+function priciestPlace(places: ChargingPlace[], theirsPerKwh: number): { name: string; pricePerKwh: number } | null {
+  let best: { name: string; pricePerKwh: number; extra: number } | null = null
+  for (const p of places) {
+    if (p.kind === 'HOME' || !p.cpoName || p.pricePerKwh == null) continue
+    const extra = (p.pricePerKwh - theirsPerKwh) * p.kwh
+    if (extra >= MIN_COST_DIFF_EUR && (!best || extra > best.extra)) best = { name: p.cpoName, pricePerKwh: p.pricePerKwh, extra }
+  }
+  return best && { name: best.name, pricePerKwh: best.pricePerKwh }
 }
 
 /** Die ersten n nach Relevanz; fehlt darin ein positiver Satz, ersetzt der beste positive den letzten Platz. */
