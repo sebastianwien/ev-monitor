@@ -148,6 +148,13 @@ function meters(a: LatLon, b: LatLon): number {
   return Math.sqrt(dLat * dLat + dLon * dLon)
 }
 
+/** Luftlinie zwischen zwei Geohashes in km, null wenn einer fehlt oder ungültig ist. */
+export function geohashDistanceKm(a: string | null | undefined, b: string | null | undefined): number | null {
+  const p = decode(a)
+  const q = decode(b)
+  return p && q ? meters(p, q) / 1000 : null
+}
+
 /**
  * Minikarte in einer Zeile nur, wenn darauf Bewegung zu sehen ist: die Linie reicht weiter als
  * {@link THUMB_MIN_MOVE_M}, ohne Linie liegen Start und Ziel so weit auseinander. Eine Fahrt auf der

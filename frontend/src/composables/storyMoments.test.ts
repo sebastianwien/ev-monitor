@@ -30,15 +30,26 @@ describe('detectLongTrip', () => {
     expect(detectLongTrip({ trips: [trip('a', 20, 180), trip('b', 15, 160)], logs, now: NOW })).toMatchObject({ stops: 2, costEur: null })
   })
 
-  it('merkt sich das Ziel der zuletzt beendeten Fahrt für die Wetterprognose', () => {
-    const trips = [{ ...trip('a', 20, 180), locationEndGeohash: 'u0yjjd6j' }, { ...trip('b', 15, 160), locationEndGeohash: 'u1hcvz8x' }]
-    expect(detectLongTrip({ trips, logs: [], now: NOW })).toMatchObject({ endGeohash: 'u1hcvz8x' })
+  // Berlin u33dc0, München u281z7 (rund 500 km Luftlinie), Potsdam u336xp (rund 30 km von Berlin)
+  it('merkt sich das Ziel der zuletzt beendeten Fahrt für die Wetterprognose, wenn es weit vom Start liegt', () => {
+    const trips = [{ ...trip('a', 20, 180), locationStartGeohash: 'u33dc0', locationEndGeohash: 'u0yjjd6j' }, { ...trip('b', 15, 160), locationEndGeohash: 'u281z7' }]
+    expect(detectLongTrip({ trips, logs: [], now: NOW })).toMatchObject({ endGeohash: 'u281z7' })
+  })
+
+  it('kein Zielwetter, wenn die Fahrt nahe am Start endet (hin und zurück)', () => {
+    const trips = [{ ...trip('a', 20, 180), locationStartGeohash: 'u33dc0', locationEndGeohash: 'u281z7' }, { ...trip('b', 15, 160), locationEndGeohash: 'u336xp' }]
+    expect(detectLongTrip({ trips, logs: [], now: NOW })).toMatchObject({ endGeohash: null })
+  })
+
+  it('kein Zielwetter ohne bekannten Start', () => {
+    const trips = [trip('a', 20, 180), { ...trip('b', 15, 160), locationEndGeohash: 'u281z7' }]
+    expect(detectLongTrip({ trips, logs: [], now: NOW })).toMatchObject({ endGeohash: null })
   })
 
   it('Kurzfahrt unter 1 km danach (Umparken am nächsten Morgen) verschiebt weder Tag noch Ladestopps', () => {
-    const trips = [trip('a', 20, 180), { ...trip('b', 15, 160), locationEndGeohash: 'u1hcvz8x' }, { ...trip('c', 1, 0.3), locationEndGeohash: 'u1hcvz8y' }]
+    const trips = [{ ...trip('a', 20, 180), locationStartGeohash: 'u33dc0' }, { ...trip('b', 15, 160), locationEndGeohash: 'u281z7' }, { ...trip('c', 1, 0.3), locationEndGeohash: 'u281z8' }]
     const logs = [{ id: 'x', loggedAt: iso(NOW - 17 * HOUR), costEur: 18 }, { id: 'n', loggedAt: iso(NOW - 5 * HOUR), costEur: 9 }]
-    expect(detectLongTrip({ trips, logs, now: NOW })).toMatchObject({ km: 340, stops: 1, costEur: 18, at: NOW - 15 * HOUR, endGeohash: 'u1hcvz8x' })
+    expect(detectLongTrip({ trips, logs, now: NOW })).toMatchObject({ km: 340, stops: 1, costEur: 18, at: NOW - 15 * HOUR, endGeohash: 'u281z7' })
   })
 
   it('bleibt unter 250 km still', () => {

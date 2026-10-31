@@ -2,6 +2,7 @@ import { tripTimestamp } from '../utils/recentActivity'
 import { co2SavedKg, heroLine, petrolCostEur } from './storyModel'
 import { COLD_MAX_C, type RankEntry } from './storyInsights'
 import { SHORT_TRIP_KM } from './storyDay'
+import { geohashDistanceKm } from '../utils/tripMap'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
 /**
@@ -85,6 +86,7 @@ export interface MomentTrip {
   tripEndedAt?: string | null
   distanceKm?: number | null
   outsideTempCelsius?: number | null
+  locationStartGeohash?: string | null
   locationEndGeohash?: string | null
 }
 
@@ -95,6 +97,8 @@ const EXPENSIVE_MS = 3 * DAY
 const EXPENSIVE_FACTOR = 1.2
 /** Manuell erfasst: zaehlt der Zeitpunkt des Eintragens, aber nur fuer Ladungen der letzten 24 h. */
 const LONG_TRIP_KM = 250
+/** Zielwetter nur, wenn das Ziel so weit (Luftlinie) vom Start liegt: Hin und zurück endet zu Hause. */
+const FORECAST_MIN_KM = 200
 const FROST_MS = 3 * DAY
 const BATTERY_MS = 3 * DAY
 const BATTERY_COMPARE_MIN_MS = 90 * DAY
@@ -170,10 +174,12 @@ export function detectLongTrip(input: { trips: MomentTrip[]; logs: MomentLog[]; 
     ? stops.reduce((s, l) => s + l.costEur!, 0)
     : null
   const last = recent.find(t => ms(tripTimestamp(t)) === to)
+  const first = recent.find(t => (ms(t.tripStartedAt) ?? ms(tripTimestamp(t))) === from)
+  const away = geohashDistanceKm(first?.locationStartGeohash, last?.locationEndGeohash)
   const d = new Date(to)
   return {
     ...base(`long_trip:${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`, to, DAY),
-    kind: 'long_trip', km, stops: stops.length, costEur, endGeohash: last?.locationEndGeohash ?? null,
+    kind: 'long_trip', km, stops: stops.length, costEur, endGeohash: away != null && away >= FORECAST_MIN_KM ? last!.locationEndGeohash! : null,
   }
 }
 
