@@ -6,10 +6,12 @@ import com.evmonitor.application.ingest.IngestDoor;
 import com.evmonitor.application.ingest.IngestGateway;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
+import com.evmonitor.domain.ChargingSiteAttachment;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.User;
+import com.evmonitor.domain.weather.TemperatureSource;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,6 +46,7 @@ class ChargingSiteAssignmentTest extends AbstractIntegrationTest {
             null, null, null, null, null, null, null, List.of("Typ 2", "CCS"), null, null, null, null);
 
     @Autowired private IngestGateway gateway;
+    @Autowired private ChargingSiteService chargingSiteService;
     @MockitoBean private NearbyCpoService nearbyCpoService;
 
     private User user;
@@ -146,6 +149,97 @@ class ChargingSiteAssignmentTest extends AbstractIntegrationTest {
         assertThat(logs).hasSize(limit + 1);
         assertThat(logs.subList(0, limit)).allSatisfy(l -> assertThat(l.getChargingSiteId()).isNotNull());
         assertThat(logs.get(limit).getChargingSiteId()).isNull();
+    }
+
+    // ── Gezieltes Update: parallele Hintergrund-Schreiber und vorhandene Werte bleiben stehen ──
+
+    @Test
+    void zuordnungÜberschreibtEineParallelNachgetrageneTemperaturNicht() {
+        when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.empty());
+        EvLog log = ingest(acCharge(LocalDateTime.of(2026, 10, 30, 20, 0), NEIGHBOUR_CELL).publicCharging(true).build());
+        // Die Temperatur kommt an, nachdem die Zuordnung die Ladung gelesen hat
+        evLogRepository.updateTemperature(log.getId(), 12.5, TemperatureSource.FORECAST);
+
+        boolean attached = evLogRepository.attachChargingSite(attachment(log, new BigDecimal("5.80"), new BigDecimal("0.29")));
+
+        EvLog reloaded = evLogRepository.findById(log.getId()).orElseThrow();
+        assertThat(attached).isTrue();
+        assertThat(reloaded.getTemperatureCelsius()).isEqualTo(12.5);
+        assertThat(reloaded.getChargingSiteId()).isNotNull();
+        assertThat(reloaded.getGeohash()).isEqualTo(SITE_CELL);
+        assertThat(reloaded.getCostEur()).isEqualByComparingTo("5.80");
+    }
+
+    @Test
+    void zuordnungLässtVorhandeneKostenUndBetreiberStehen() {
+        when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.empty());
+        EvLog log = ingest(acCharge(LocalDateTime.of(2026, 10, 30, 20, 0), NEIGHBOUR_CELL).publicCharging(true)
+                .cpoName("Stadtwerke").costEur(new BigDecimal("9.99")).build());
+
+        evLogRepository.attachChargingSite(attachment(log, new BigDecimal("5.80"), new BigDecimal("0.29")));
+
+        EvLog reloaded = evLogRepository.findById(log.getId()).orElseThrow();
+        assertThat(reloaded.getCostEur()).isEqualByComparingTo("9.99");
+        assertThat(reloaded.getPricePerKwh()).isNull();
+        assertThat(reloaded.getCpoName()).isEqualTo("Stadtwerke");
+    }
+
+    @Test
+    void zuordnungGreiftNichtMehrWennDieLadungInzwischenPrivatIst() {
+        when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.empty());
+        EvLog log = ingest(acCharge(LocalDateTime.of(2026, 10, 30, 20, 0), NEIGHBOUR_CELL).publicCharging(false).build());
+
+        boolean attached = evLogRepository.attachChargingSite(attachment(log, null, null));
+
+        assertThat(attached).isFalse();
+        assertThat(evLogRepository.findById(log.getId()).orElseThrow().getChargingSiteId()).isNull();
+    }
+
+    @Test
+    void eigentümerKommtVomAutoDerLadung() {
+        when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.empty());
+        EvLog log = ingest(acCharge(LocalDateTime.of(2026, 10, 30, 20, 0), NEIGHBOUR_CELL).build());
+
+        assertThat(evLogRepository.findOwnerId(log.getId())).contains(user.getId());
+        assertThat(evLogRepository.findOwnerId(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    void zuordnungGreiftNichtMehrWennDerNutzerDenOrtGeändertHat() {
+        when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.empty());
+        EvLog log = ingest(acCharge(LocalDateTime.of(2026, 10, 30, 20, 0), NEIGHBOUR_CELL).publicCharging(true).build());
+
+        boolean attached = evLogRepository.attachChargingSite(new ChargingSiteAttachment(log.getId(), "u0v9zqh",
+                siteId(), SITE_CELL, "Supermarkt", null, null, null));
+
+        EvLog reloaded = evLogRepository.findById(log.getId()).orElseThrow();
+        assertThat(attached).isFalse();
+        assertThat(reloaded.getGeohash()).isEqualTo(NEIGHBOUR_CELL);
+        assertThat(reloaded.getChargingSiteId()).isNull();
+    }
+
+    @Test
+    void preisDesNutzersOhneKostenBekommtKeineKostenAusDerHistorie() {
+        when(nearbyCpoService.findNearbyStations(anyString())).thenReturn(Optional.empty());
+        EvLog log = ingest(acCharge(LocalDateTime.of(2026, 10, 30, 20, 0), NEIGHBOUR_CELL).publicCharging(true)
+                .pricePerKwh(new BigDecimal("0.49")).build());
+
+        evLogRepository.attachChargingSite(attachment(log, new BigDecimal("5.80"), new BigDecimal("0.29")));
+
+        EvLog reloaded = evLogRepository.findById(log.getId()).orElseThrow();
+        assertThat(reloaded.getCostEur()).isNull();
+        assertThat(reloaded.getPricePerKwh()).isEqualByComparingTo("0.49");
+    }
+
+    /** Säule "Supermarkt" an die Ladung, gefunden für ihren aktuellen Ort. */
+    private ChargingSiteAttachment attachment(EvLog log, BigDecimal costEur, BigDecimal pricePerKwh) {
+        return new ChargingSiteAttachment(log.getId(), log.getGeohash(), siteId(), SITE_CELL, "Supermarkt",
+                costEur, pricePerKwh, null);
+    }
+
+    /** Eine echte Säule, damit der Fremdschlüssel auf charging_site hält. */
+    private UUID siteId() {
+        return chargingSiteService.siteFor(SUPERMARKT).id();
     }
 
     private static ChargingEntry.ChargingEntryBuilder acCharge(LocalDateTime at, String geohash) {

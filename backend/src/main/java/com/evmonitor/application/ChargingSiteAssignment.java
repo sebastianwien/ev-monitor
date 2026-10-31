@@ -1,8 +1,7 @@
 package com.evmonitor.application;
 
-import com.evmonitor.domain.Car;
-import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.ChargingSite;
+import com.evmonitor.domain.ChargingSiteAttachment;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
@@ -26,13 +25,11 @@ import java.util.concurrent.atomic.AtomicInteger;
  *
  * Läuft nach dem Commit im Hintergrund: der Registerabruf ist ein Fremddienst, und ein Import
  * soll weder auf ihn warten noch an ihm scheitern. Was der Nutzer oder die Quelle schon gesagt
- * hat, gewinnt immer - eine gesetzte Säule, "privat", ein Betreibername.
+ * hat, gewinnt immer - eine gesetzte Säule, "privat", ein Betreibername, ein Preis.
  */
 @Service
 @Slf4j
 public class ChargingSiteAssignment {
-
-    public enum Outcome { ASSIGNED, AMBIGUOUS, NO_CANDIDATE, REGISTER_UNAVAILABLE, REGISTER_BUDGET_SPENT, NOT_ELIGIBLE }
 
     /** Ab 7 Stellen (~150 m) ist eine Ladung öffentlich verortet; darunter liegt sie zu grob für eine Säule. */
     private static final int MIN_GEOHASH_LENGTH = 7;
@@ -45,16 +42,16 @@ public class ChargingSiteAssignment {
     static final int REGISTER_LOOKUPS_PER_BATCH = 30;
 
     private final EvLogRepository evLogRepository;
-    private final CarRepository carRepository;
+    private final NearbyCpoService nearbyCpoService;
     private final ChargingSiteService chargingSiteService;
     private final LocationPricing locationPricing;
     private final TransactionTemplate transaction;
 
-    public ChargingSiteAssignment(EvLogRepository evLogRepository, CarRepository carRepository,
+    public ChargingSiteAssignment(EvLogRepository evLogRepository, NearbyCpoService nearbyCpoService,
                                   ChargingSiteService chargingSiteService, LocationPricing locationPricing,
                                   PlatformTransactionManager transactionManager) {
         this.evLogRepository = evLogRepository;
-        this.carRepository = carRepository;
+        this.nearbyCpoService = nearbyCpoService;
         this.chargingSiteService = chargingSiteService;
         this.locationPricing = locationPricing;
         // Immer eine eigene Transaktion: aus afterCommit heraus hängt die abgeschlossene noch am
@@ -72,8 +69,8 @@ public class ChargingSiteAssignment {
         AtomicInteger lookupsLeft = new AtomicInteger(REGISTER_LOOKUPS_PER_BATCH);
         for (UUID logId : logIds) {
             try {
-                Outcome outcome = assign(logId, lookupsLeft);
-                log.debug("Säulen-Zuordnung für Ladung {}: {}", logId, outcome);
+                boolean assigned = assign(logId, lookupsLeft);
+                log.debug("Säulen-Zuordnung für Ladung {}: {}", logId, assigned ? "zugeordnet" : "offen");
             } catch (RuntimeException e) {
                 log.warn("Säulen-Zuordnung für Ladung {} fehlgeschlagen: {}", logId, e.getMessage());
             }
@@ -81,50 +78,40 @@ public class ChargingSiteAssignment {
     }
 
     /** @param lookupsLeft verbleibende Registerabrufe dieses Aufrufs, wird heruntergezählt */
-    Outcome assign(UUID logId, AtomicInteger lookupsLeft) {
-        Optional<EvLog> found = evLogRepository.findById(logId);
-        if (found.isEmpty() || !isEligible(found.get())) return Outcome.NOT_ELIGIBLE;
-        EvLog evLog = found.get();
+    private boolean assign(UUID logId, AtomicInteger lookupsLeft) {
+        EvLog evLog = evLogRepository.findById(logId).filter(ChargingSiteAssignment::isEligible).orElse(null);
+        if (evLog == null) return false;
 
         // Der Nutzer kommt vom Auto der Ladung, nie vom Aufrufer: Preis und Karte stammen aus
         // seiner Historie, eine fremde Ladung darf sie nie bekommen.
-        Optional<UUID> owner = carRepository.findById(evLog.getCarId()).map(Car::getUserId);
-        if (owner.isEmpty()) return Outcome.NOT_ELIGIBLE;
+        UUID owner = evLogRepository.findOwnerId(logId).orElse(null);
+        if (owner == null) return false;
 
-        if (!chargingSiteService.isRegisterCached(evLog.getGeohash())) {
-            if (lookupsLeft.getAndDecrement() <= 0) return Outcome.REGISTER_BUDGET_SPENT;
+        if (!nearbyCpoService.isStationsCached(evLog.getGeohash(), null) && lookupsLeft.getAndDecrement() <= 0) {
+            return false;
         }
         // Außerhalb der Transaktion: der Registerabruf darf keine DB-Verbindung festhalten.
-        Optional<List<NearbyStation>> nearby = chargingSiteService.stationsAround(evLog.getGeohash());
-        if (nearby.isEmpty()) return Outcome.REGISTER_UNAVAILABLE;
+        Optional<List<NearbyStation>> nearby = nearbyCpoService.findNearbyStations(evLog.getGeohash());
+        if (nearby.isEmpty()) return false;
 
-        ChargingSiteMatcher.Result match = ChargingSiteMatcher.pick(evLog.getChargingType(),
-                evLog.getMaxChargingPowerKw(), nearby.get(), chargingSiteService.usedSiteKeys(owner.get()));
-        if (match.station() == null) {
-            return match.candidates().isEmpty() ? Outcome.NO_CANDIDATE : Outcome.AMBIGUOUS;
-        }
+        NearbyStation station = ChargingSiteMatcher.pick(evLog.getChargingType(), evLog.getMaxChargingPowerKw(),
+                nearby.get(), chargingSiteService.usedSiteKeys(owner)).station();
+        if (station == null) return false;
 
-        NearbyStation station = match.station();
-        Boolean saved = transaction.execute(status -> attach(logId, owner.get(), station));
-        return Boolean.TRUE.equals(saved) ? Outcome.ASSIGNED : Outcome.NOT_ELIGIBLE;
+        return Boolean.TRUE.equals(transaction.execute(status -> attach(evLog, owner, station)));
     }
 
-    /** Frisch gelesen: zwischen Registerabruf und hier kann der Nutzer die Ladung bearbeitet haben. */
-    private boolean attach(UUID logId, UUID userId, NearbyStation station) {
-        EvLog current = evLogRepository.findById(logId).filter(ChargingSiteAssignment::isEligible).orElse(null);
-        if (current == null) return false;
-
+    /**
+     * Preis wie bei einer neuen Ladung an dieser Säule, geschrieben als gezieltes Update: parallel
+     * nachgetragene Werte (Temperatur) und alles, was die Ladung schon hat, bleiben stehen.
+     */
+    private boolean attach(EvLog evLog, UUID owner, NearbyStation station) {
         ChargingSite site = chargingSiteService.siteFor(station);
-        var builder = current.toBuilder()
-                .chargingSiteId(site.id())
-                .geohash(site.geohash())
-                .publicCharging(true);
-        if (current.getCpoName() == null || current.getCpoName().isBlank()) {
-            builder.cpoName(site.cpoNameForLog());
-        }
-        // ingest-bypass: bearbeitet eine bereits angelegte Ladung (Säule, Ort, Preis), legt nichts an
-        evLogRepository.save(locationPricing.enrich(builder.build(), userId));
-        return true;
+        EvLog priced = locationPricing.enrich(evLog.toBuilder()
+                .chargingSiteId(site.id()).geohash(site.geohash()).publicCharging(true).build(), owner);
+        return evLogRepository.attachChargingSite(new ChargingSiteAttachment(evLog.getId(), evLog.getGeohash(), site.id(),
+                site.geohash(), site.cpoNameForLog(), priced.getCostEur(), priced.getPricePerKwh(),
+                priced.getChargingProviderId()));
     }
 
     /** Private Ladungen, Wallboxen und vom Nutzer gewählte Säulen bleiben, wie sie sind. */

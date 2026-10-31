@@ -54,6 +54,17 @@ public class PostgresEvLogRepositoryImpl implements EvLogRepository {
     }
 
     @Override
+    public Optional<UUID> findOwnerId(UUID logId) {
+        return jpaRepository.findOwnerId(logId);
+    }
+
+    @Override
+    @Transactional
+    public boolean attachChargingSite(com.evmonitor.domain.ChargingSiteAttachment attachment) {
+        return jpaRepository.attachChargingSite(attachment, LocalDateTime.now()) > 0;
+    }
+
+    @Override
     public List<EvLog> findAll() {
         return jpaRepository.findAll().stream()
                 .map(this::toDomain)
