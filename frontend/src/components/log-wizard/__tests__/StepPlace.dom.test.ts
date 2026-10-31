@@ -120,7 +120,9 @@ const station = (name: string, i: number, extra: Record<string, unknown> = {}) =
   ({ ...kaufland, name, distanceMeters: 100 + i * 50, geohash: `u33dc8${i}`, ...extra })
 const five = ['Kaufland', 'Ionity', 'EnBW', 'Aldi', 'Lidl'].map((n, i) => station(n, i))
 const order = (host: HTMLElement) => [...host.querySelectorAll('button')].map(b => b.dataset.testid ?? b.textContent!.trim().slice(0, 8))
-const shows = (host: HTMLElement, name: string) => [...host.querySelectorAll('button b')].some(b => b.textContent === name)
+/** Sichtbar = nicht in einer zugeklappten Collapse (inert; jsdom schreibt offen inert="false") */
+const shows = (host: HTMLElement, name: string) => [...host.querySelectorAll('button b')]
+  .some(b => b.textContent === name && !b.closest('[inert]:not([inert="false"])'))
 
 describe('StepPlace: Säulen zuerst, privat zuletzt', () => {
   it('unten öffentlich und privat in einer Zeile, darunter Woanders über die ganze Breite', async () => {

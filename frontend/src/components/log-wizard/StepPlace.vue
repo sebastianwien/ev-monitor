@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CHIP_ROW, chipClass, cardClass, placeIconBox } from './chipClass'
-import { computed, ref } from 'vue'
+import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import StationTile from './StationTile.vue'
@@ -89,10 +89,15 @@ const isStation = (s: NearbyStation) => atStation.value && sameSite(s.name, s.ge
 // Eine gewählte Säule weiter unten (Zurückblättern, Bearbeiten) zeigt die ganze Liste.
 const VISIBLE_STATIONS = 3
 const showAllStations = ref(false)
-const visibleStations = computed(() =>
-  showAllStations.value || props.stations.findIndex(isStation) >= VISIBLE_STATIONS
-    ? props.stations : props.stations.slice(0, VISIBLE_STATIONS))
-const hiddenStations = computed(() => props.stations.length - visibleStations.value.length)
+const visibleCount = computed(() =>
+  showAllStations.value || props.stations.findIndex(isStation) >= VISIBLE_STATIONS ? props.stations.length : VISIBLE_STATIONS)
+const hiddenStations = computed(() => Math.max(0, props.stations.length - visibleCount.value))
+// Säulen, die nach dem ersten Bild dazukommen (größerer Umkreis), klappen einzeln auf. Die erste Liste klappt als Ganzes auf.
+const listShown = ref(false)
+watch(() => props.stations.length > 0, (shown) => {
+  if (!shown) listShown.value = false
+  else nextTick(() => { listShown.value = true })
+}, { immediate: true })
 
 // Aus der Textsuche gewählte Säule: als eigene Kachel zeigen, solange sie nicht ohnehin in der Umkreis-Liste steht.
 // Lebt im Wizard (v-model), damit sie beim Zurückblättern aus Schritt 2 nicht verschwindet - Schritt 1 wird neu aufgebaut.
@@ -179,13 +184,18 @@ const tileClass = (on: boolean) => [cardClass(on), 'w-full flex items-center gap
       <h2 class="text-[15px] font-semibold text-gray-900 dark:text-gray-50">
         {{ radiusMeters && radiusMeters > 250 ? t('logwizard.nearby_title_radius', { r: radiusLabel }) : t('logwizard.nearby_title') }}
       </h2>
-      <template v-for="s in visibleStations" :key="s.name">
+      <!-- Jede Säule in eigener Collapse: "N weitere Säulen" und ein größerer Umkreis klappen die neuen Einträge auf -->
+      <template v-for="(s, i) in stations" :key="s.name">
+      <Collapse :open="i < visibleCount" :appear="listShown">
+      <div class="space-y-3">
       <!-- Streifen fährt oberhalb der Kachel aus: die getippte Kachel bleibt stehen (Liste ist unten verankert) -->
       <Collapse :open="!!cardStrip && isStation(s)">
         <CardStrip v-if="cardStrip" :providers="cardStrip.providers" :is-public="true" :charging-type="cardStrip.chargingType"
         :community="cardStrip.community" :selected="cardStrip.selected" :price-label="cardStrip.priceLabel" @choose="c => emit('chooseCard', c)" />
       </Collapse>
       <StationTile :station="s" :selected="isStation(s)" @click="emit('choose', { kind: 'station', station: s })" />
+      </div>
+      </Collapse>
       </template>
       <!-- "Nicht dabei?": die weite Suche ersetzt diese Liste, statt sie zu verlängern -->
       <!-- Beim Erweitern dreht der Spinner dort, wo der Knopf war: dort schaut der Nutzer hin -->

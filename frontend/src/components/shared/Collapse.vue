@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, onMounted } from 'vue'
 
 /**
  * Klappt seinen Inhalt animiert auf null Höhe zusammen statt ihn abrupt zu entfernen.
@@ -9,18 +9,32 @@ import { ref, watch, nextTick } from 'vue'
  * overflow-hidden gilt nur während der Animation: fertig aufgeklappt dürfen
  * absolut positionierte Inhalte (z. B. Such-Dropdowns) über den Rahmen hinausragen.
  * Zuklappen ist die Umkehrung des Aufklappens: auf ease-out, zu ease-in (sonst kriecht es am Ende aus).
+ * Mit `appear` klappt ein offen eingehängter Inhalt beim Einhängen auf (z. B. nachgeladene Listeneinträge).
  */
-const props = defineProps<{ open: boolean }>()
+const props = defineProps<{ open: boolean; appear?: boolean }>()
+const startOpen = props.open && !props.appear
 const rendered = ref(props.open)
-const expanded = ref(props.open)
+const expanded = ref(startOpen)
 /** Aufklapp-Animation beendet - erst dann Clipping lösen */
-const settled = ref(props.open)
+const settled = ref(startOpen)
 
 const reducedMotion = () =>
   typeof window !== 'undefined' && typeof window.matchMedia === 'function'
   && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 let settleTimer: ReturnType<typeof setTimeout> | undefined
+const expand = () => {
+  requestAnimationFrame(() => {
+    expanded.value = true
+    // Ohne Transition feuert kein transitionend
+    if (reducedMotion()) settled.value = true
+  })
+}
+onMounted(() => {
+  if (!props.open || !props.appear) return
+  settleTimer = setTimeout(onEnd, 400)
+  expand()
+})
 watch(() => props.open, async (open) => {
   settled.value = false
   clearTimeout(settleTimer)
@@ -29,11 +43,7 @@ watch(() => props.open, async (open) => {
   if (open) {
     rendered.value = true
     await nextTick()
-    requestAnimationFrame(() => {
-      expanded.value = true
-      // Ohne Transition feuert kein transitionend
-      if (reducedMotion()) settled.value = true
-    })
+    expand()
   } else {
     expanded.value = false
     if (reducedMotion()) rendered.value = false
