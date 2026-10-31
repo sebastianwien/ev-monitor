@@ -3,6 +3,7 @@ package com.evmonitor.application.ingest;
 import com.evmonitor.application.CoinLogService;
 import com.evmonitor.application.EvLogWriter;
 import com.evmonitor.application.InternalTripRequest;
+import com.evmonitor.application.ChargingSiteAssignment;
 import com.evmonitor.application.LocationPricing;
 import com.evmonitor.application.MissedStartSocEstimator;
 import com.evmonitor.application.BatterySohService;
@@ -61,6 +62,7 @@ public class IngestGateway {
     private final EvLogRepository evLogRepository;
     private final EvLogWriter evLogWriter;
     private final LocationPricing locationPricing;
+    private final ChargingSiteAssignment chargingSiteAssignment;
     private final CoinLogService coinLogService;
     private final ApplicationEventPublisher eventPublisher;
     private final EvTripRepository tripRepository;
@@ -128,6 +130,12 @@ public class IngestGateway {
                 log.warn("Ingest {}: Fehler beim Verarbeiten einer Ladung: {}", command.dataSource(), e.getMessage());
                 errors++;
             }
+        }
+
+        // Register-Säule erst nach dem Commit und im Hintergrund: Fremddienst, darf den Import weder bremsen noch kippen.
+        if (!created.isEmpty()) {
+            List<UUID> createdIds = created.stream().map(EvLog::getId).toList();
+            afterCommit(() -> chargingSiteAssignment.assignAll(createdIds));
         }
 
         return new IngestResult(created.size(), skipped, skippedDeleted, errors, List.copyOf(created));

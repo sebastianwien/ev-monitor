@@ -109,7 +109,7 @@ public class EvLogService {
                 .routeTypeSource(request.routeType() != null ? RouteTypeSource.USER : null)
                 .chargingSiteId(site.map(ChargingSite::id).orElse(null));
         if (site.isPresent() && isBlank(request.cpoName())) {
-            builder.cpoName(site.get().cpoName() != null ? site.get().cpoName() : site.get().name());
+            builder.cpoName(site.get().cpoNameForLog());
         }
         if (request.kwhAtVehicle() != null && request.kwhCharged() == null) {
             builder.measurementType(EnergyMeasurementType.AT_VEHICLE);

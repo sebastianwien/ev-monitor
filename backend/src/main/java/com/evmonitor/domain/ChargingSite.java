@@ -39,6 +39,11 @@ public record ChargingSite(UUID id, String name, String cpoName, String geohash,
         return maxDcKw != null;
     }
 
+    /** Betreiber fuer das Log: Katalogname, sonst der Name aus dem Register. */
+    public String cpoNameForLog() {
+        return cpoName != null ? cpoName : name;
+    }
+
     /** Vergleichsschluessel: Gross-/Kleinschreibung und Rand-Leerraum spielen keine Rolle. */
     public static String nameKey(String name) {
         return name.trim().toLowerCase(Locale.ROOT);
