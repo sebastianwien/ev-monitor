@@ -17,7 +17,8 @@ export interface NumbersContext { title: string; address: string | null; card: s
  * `time` (Bearbeiten): Zeitpunkt als zweite Zeile mit eigenem Tipp; dann ist der Ortsname das Tastaturziel für den Ort,
  * nicht der ganze Kopf - sonst stünde ein Knopf im Knopf.
  */
-const props = withDefaults(defineProps<{ context: NumbersContext; height?: number; clickable?: boolean; map?: boolean; time?: string | null }>(), { height: 0, map: true, time: null })
+/** grow: height ist die Mindesthöhe, der Kopf wächst im Flex-Layout des Aufrufers mit */
+const props = withDefaults(defineProps<{ context: NumbersContext; height?: number; clickable?: boolean; map?: boolean; time?: string | null; grow?: boolean }>(), { height: 0, map: true, time: null, grow: false })
 const emit = defineEmits<{ click: []; time: [] }>()
 const hasMap = computed(() => props.map && props.context.lat != null && props.context.lon != null)
 const wholeTarget = computed(() => props.clickable && !props.time)
@@ -29,7 +30,7 @@ const { t } = useI18n()
     <!-- Klickbar (Prüfung: Tipp springt zum Ort) auch per Tastatur: role, tabindex und Enter/Leertaste -->
     <div data-testid="numbers-context" :class="['relative', clickable && 'cursor-pointer']" @click="emit('click')" class=" -mx-4 md:mx-0 md:rounded-xl overflow-hidden"
       :role="wholeTarget ? 'button' : undefined" :tabindex="wholeTarget ? 0 : undefined" @keydown.enter.self.prevent="wholeTarget && emit('click')" @keydown.space.self.prevent="wholeTarget && emit('click')"
-      :style="hasMap ? { height: `${height}px` } : undefined">
+      :style="hasMap ? { [grow ? 'minHeight' : 'height']: `${height}px` } : undefined">
       <!-- Die Karte ist immer so hoch wie der größte Kopf und mittig verankert: der Rahmen wächst und schrumpft animiert,
            die Karte wird nur beschnitten statt neu layoutet - sonst flackern die Kacheln bei jeder Zwischenhöhe. -->
       <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" :area="context.area ?? null" :zoom="context.area ? MINIMAP_AREA_ZOOM : MINIMAP_ZOOM" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />

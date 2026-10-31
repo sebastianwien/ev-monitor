@@ -48,7 +48,7 @@ describe('EditLogModal - Übersicht zeigt die Ladung', () => {
     expect(heads).toHaveLength(1)
     // Mit Zeitpunkt im Kopf ist der Ortsname das Tastaturziel, nicht der ganze Kopf (kein Knopf im Knopf)
     expect(heads[0].querySelector('[role="button"]')?.textContent).toContain('Tesla')
-    expect(heads[0].style.height).not.toBe('') // mit gespeicherter Zelle: Minimap
+    expect(heads[0].style.minHeight).not.toBe('') // mit gespeicherter Zelle: Minimap, wächst mit dem freien Platz
     expect(heads[0].textContent).toContain('Tesla')
     heads[0].click()
     await nextTick()

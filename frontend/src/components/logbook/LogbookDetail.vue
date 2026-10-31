@@ -16,7 +16,7 @@ import { useAuthStore } from '../../stores/auth'
 import { useAnalyticsUpsellLink } from '../../composables/useUpsellTarget'
 import type { DayLog, DayTrip } from '../../composables/storyDay'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { tripDetailKeys, chargeDetailKeys } from '../../utils/logbook'
+import { tripDetailKeys } from '../../utils/logbook'
 import type { TripFacts } from '../../utils/tripCalculations'
 
 /**
@@ -78,10 +78,6 @@ const speed = computed(() => {
   return [k ? t(k.key, k.params ?? {}) : null, f?.kwhPer100km != null ? `${f.estimated ? '~' : ''}${formatConsumption(f.kwhPer100km)}` : null]
     .filter(Boolean).join(' · ') || null
 })
-/** Höchste Ladeleistung und Effizienz einer Ladung, nur auf dem Handy (ab 768 px in der Zeile) */
-const chargeMore = computed(() => props.selection?.kind === 'charge'
-  ? chargeDetailKeys(props.selection.log).map(k => t(k.key, k.params ?? {})).join(' · ') || null
-  : null)
 </script>
 
 <template>
@@ -97,7 +93,6 @@ const chargeMore = computed(() => props.selection?.kind === 'charge'
       <LogEditPanel v-else-if="selection.kind === 'charge'" :key="key" :log="selection.log" :dismiss="selection.bundleId ? 'back' : 'close'"
         @cancel="selection.bundleId ? emit('back') : dismiss()" @saved="done" @deleted="done">
         <template #extra>
-          <p v-if="chargeMore" class="text-[13px] tabular-nums md:hidden text-gray-600 dark:text-gray-300" data-testid="logbook-charge-more">{{ chargeMore }}</p>
           <div v-if="curve.available(selection.log) || canReassign"
             class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-gray-500 dark:text-gray-400">
             <button v-if="curve.available(selection.log)" type="button" data-testid="logbook-curve" aria-haspopup="dialog"
@@ -112,13 +107,17 @@ const chargeMore = computed(() => props.selection?.kind === 'charge'
               <ArrowsRightLeftIcon class="h-4 w-4" aria-hidden="true" />{{ t('dashboard.action_reassign') }}
             </button>
           </div>
-          <!-- Letzte Zeile über Speichern, linksbündig: rechts stehend ließ sie links eine leere Zeile -->
-          <p v-if="isRateableLogSource(selection.log.dataSource)" role="group" :aria-label="t('dashboard.data_feedback_label')"
-            class="flex items-center gap-0.5 text-[13px] text-gray-500 dark:text-gray-400" data-testid="logbook-feedback">
-            <span class="mr-1">{{ t('dashboard.data_feedback_label') }}</span>
-            <DataFeedbackButtons subject-type="LOG" :subject-id="selection.log.id" />
-          </p>
-          <DataFeedbackPanel v-if="isRateableLogSource(selection.log.dataSource)" subject-type="LOG" :subject-id="selection.log.id" />
+        </template>
+        <!-- Mittig am unteren Rand über Speichern; die Rückfrage nach "falsch" öffnet sich direkt darüber -->
+        <template v-if="isRateableLogSource(selection.log.dataSource)" #footer>
+          <div class="w-full space-y-2">
+            <DataFeedbackPanel subject-type="LOG" :subject-id="selection.log.id" />
+            <p role="group" :aria-label="t('dashboard.data_feedback_label')"
+              class="flex items-center justify-center gap-0.5 text-[13px] text-gray-500 dark:text-gray-400" data-testid="logbook-feedback">
+              <span class="mr-1">{{ t('dashboard.data_feedback_label') }}</span>
+              <DataFeedbackButtons subject-type="LOG" :subject-id="selection.log.id" />
+            </p>
+          </div>
         </template>
       </LogEditPanel>
       <DayTripPanel v-else :key="key" :trip="selection.trip" :car-id="carId" :new-end="new Date()"
