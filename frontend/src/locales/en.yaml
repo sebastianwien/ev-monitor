@@ -120,7 +120,7 @@ landing:
     gdpr_title: "GDPR compliant"
     gdpr_desc: "No tracking, no data sales. Full deletion on request."
     geohash_title: "Geohashing"
-    geohash_desc: "Locations are never stored exactly - only ~600m accuracy."
+    geohash_desc: "No permanently stored GPS coordinates. Private charging locations only to about 600 m."
     servers_title: "German servers"
     servers_desc: "Hosted on Hetzner Cloud in Nuremberg. No data outside the EU."
   leaderboard:

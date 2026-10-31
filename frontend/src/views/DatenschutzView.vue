@@ -142,6 +142,18 @@ onMounted(async () => {
             privat umstellen.
           </p>
           <p class="mt-4">
+            <strong>Zuordnung zur Ladesäule:</strong> Öffentliche Ladevorgänge werden der Ladesäule aus dem
+            öffentlichen Ladesäulenregister der Bundesnetzagentur zugeordnet - durch Ihre Auswahl beim Erfassen oder automatisch, wenn
+            die Säule im Umkreis von ca. 150 m eindeutig bestimmbar ist. Gespeichert werden dann die öffentlichen
+            Registerangaben der Säule (Name, Betreiber, Adresse, Registernummer, Ladeleistung). Für diese
+            Ladevorgänge ist der Ladeort damit auf die Säule genau bekannt. Das Register wird über den Kartendienst
+            ArcGIS Online von Esri abgefragt. Die Abfrage stellt unser Server, Ihre IP-Adresse wird dabei nicht
+            übermittelt, sondern nur der Mittelpunkt der ca. 150-m-Zelle, ohne Bezug zu Ihrer Person und ohne
+            Zeitpunkt. Die Säule können Sie beim Bearbeiten eines Ladevorgangs ändern; markieren Sie ihn als privat, wird die
+            Zuordnung entfernt und der Ort auf ca. 600 m gekürzt. Private Ladevorgänge werden nie automatisch
+            zugeordnet.
+          </p>
+          <p class="mt-4">
             <strong>Technische Rohdaten:</strong> Wenn Sie eine Fahrzeug-Integration nutzen, die uns
             Standortsignale liefert (z. B. Tesla, Smartcar), können in unseren technischen Rohdaten-Protokollen
             vorübergehend exakte Koordinaten enthalten sein. Diese Rohdaten dienen ausschließlich der
@@ -516,7 +528,7 @@ onMounted(async () => {
             Wir passen diese Datenschutzerklärung bei geänderter Rechtslage oder Änderungen des Dienstes an. Die
             jeweils aktuelle Fassung finden Sie unter ev-monitor.net/datenschutz.
           </p>
-          <p class="mt-4 text-sm text-gray-500">Stand: September 2026</p>
+          <p class="mt-4 text-sm text-gray-500">Stand: Oktober 2026</p>
         </section>
       </div>
 
