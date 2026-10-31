@@ -13,7 +13,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Ladestandorte entstehen nur aus Saeulen, die das Register im Umkreis dieser Zelle fuehrt.
@@ -28,6 +30,8 @@ import java.util.UUID;
 public class ChargingSiteService {
 
     static final int RECENT_LIMIT = 5;
+    /** Mehr Ladeorte hat kaum jemand; reicht für "hat hier schon geladen" bei der Zuordnung. */
+    static final int USED_SITES_LIMIT = 200;
 
     private final ChargingSiteRepository repository;
     private final NearbyCpoService nearbyCpoService;
@@ -55,8 +59,35 @@ public class ChargingSiteService {
         return Optional.of(repository.save(fromRegister(verified.get(), ref.geohash())));
     }
 
+    /** Register-Säulen um die Zelle (gecacht); leer, wenn das Register nicht antwortet. */
+    public Optional<List<NearbyStation>> stationsAround(String geohash) {
+        return nearbyCpoService.findNearbyStations(geohash);
+    }
+
+    /** Ob {@link #stationsAround} ohne Registerabruf auskommt. */
+    public boolean isRegisterCached(String geohash) {
+        return nearbyCpoService.isStationsCached(geohash, null);
+    }
+
+    /**
+     * Der Standort zu einer Säule, die das Register schon geliefert hat - für die automatische
+     * Zuordnung, die kein Nutzer ausgelöst hat und deshalb kein Nutzerkontingent verbraucht.
+     * Legen zwei Zuordnungen denselben Standort gleichzeitig an, scheitert die zweite am Unique
+     * auf Zelle und Name; ihre Ladung bleibt dann ohne Standort.
+     */
+    public ChargingSite siteFor(NearbyStation station) {
+        return repository.findByGeohashAndName(station.geohash(), station.name())
+                .orElseGet(() -> repository.save(fromRegister(station, station.geohash())));
+    }
+
     public List<ChargingSiteUsage> recentlyUsed(UUID userId) {
         return repository.findRecentlyUsedByUser(userId, RECENT_LIMIT);
+    }
+
+    /** {@link ChargingSiteMatcher#siteKey} aller Standorte, an denen der Nutzer schon geladen hat. */    public Set<String> usedSiteKeys(UUID userId) {
+        return repository.findRecentlyUsedByUser(userId, USED_SITES_LIMIT).stream()
+                .map(u -> ChargingSiteMatcher.siteKey(u.site().geohash(), u.site().name()))
+                .collect(Collectors.toSet());
     }
 
     private static ChargingSite fromRegister(NearbyStation s, String geohash) {
