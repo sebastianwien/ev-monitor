@@ -14,20 +14,36 @@ export const MINIMAP_MAX_CLASS = 'h-[1000px]'
 const TILE = 256
 const SUBDOMAINS = 'abc'
 
-export function minimapTileUrls(lat: number, lon: number, widthPx: number, heightPx: number, zoom = MINIMAP_ZOOM): string[] {
+/** Kacheln, die ein Ausschnitt von widthPx x heightPx (Kachelpixel) um den Punkt berührt, mit Lage relativ zur oberen linken Ecke */
+function tileWindow(lat: number, lon: number, widthPx: number, heightPx: number, zoom: number) {
   const n = 2 ** zoom
   const rad = (lat * Math.PI) / 180
   // Weltpixel des Mittelpunkts (Web-Mercator)
   const cx = ((lon + 180) / 360) * n * TILE
   const cy = ((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * n * TILE
-  const x0 = Math.floor((cx - widthPx / 2) / TILE), x1 = Math.floor((cx + widthPx / 2 - 1) / TILE)
-  const y0 = Math.floor((cy - heightPx / 2) / TILE), y1 = Math.floor((cy + heightPx / 2 - 1) / TILE)
-  const urls: string[] = []
+  const left0 = cx - widthPx / 2, top0 = cy - heightPx / 2
+  const x0 = Math.floor(left0 / TILE), x1 = Math.floor((cx + widthPx / 2 - 1) / TILE)
+  const y0 = Math.floor(top0 / TILE), y1 = Math.floor((cy + heightPx / 2 - 1) / TILE)
+  const tiles: { url: string; left: number; top: number }[] = []
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const s = SUBDOMAINS[Math.abs(x + y) % SUBDOMAINS.length]
-    urls.push(`https://${s}.tile.openstreetmap.org/${zoom}/${x}/${y}.png`)
+    tiles.push({ url: `https://${s}.tile.openstreetmap.org/${zoom}/${x}/${y}.png`, left: x * TILE - left0, top: y * TILE - top0 })
   }
-  return urls
+  return tiles
+}
+
+export function minimapTileUrls(lat: number, lon: number, widthPx: number, heightPx: number, zoom = MINIMAP_ZOOM): string[] {
+  return tileWindow(lat, lon, widthPx, heightPx, zoom).map(t => t.url)
+}
+
+/**
+ * Stummes Vorschaubild einer Säule ohne Leaflet: die Kacheln als Bilder, so verschoben, dass der Punkt in der Mitte liegt.
+ * Kacheln der Minimap-Zoomstufe auf halber Größe: scharf auf Retina und schon im Cache, wenn die Minimap sie braucht.
+ * Ergebnis in CSS-Pixeln relativ zur oberen linken Ecke des Bilds.
+ */
+export function thumbTiles(lat: number, lon: number, sizePx: number, zoom = MINIMAP_ZOOM, scale = 0.5) {
+  return tileWindow(lat, lon, sizePx / scale, sizePx / scale, zoom)
+    .map(t => ({ url: t.url, left: t.left * scale, top: t.top * scale, size: TILE * scale }))
 }
 
 const requested = new Set<string>()

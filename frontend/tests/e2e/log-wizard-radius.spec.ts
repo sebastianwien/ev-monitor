@@ -43,7 +43,7 @@ test.describe('wachsender Umkreis', () => {
   test('leer bei 250 m, Treffer bei 1 km', async ({ page }) => {
     const radii = await open(page, { 1000: [STATION] })
     await page.goto('/erfassen')
-    await expect(page.locator('p.uppercase', { hasText: 'Im Umkreis von 1 km' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Ladesäulen im Umkreis von 1 km' })).toBeVisible()
     await expect(page.getByRole('button', { name: /EnBW/ })).toBeVisible()
     await expect(page.getByTestId('expand-radius')).toHaveText(/Umkreis auf 2,5 km erweitern/)
     expect(radii).toEqual([250, 1000])

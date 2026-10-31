@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { minimapTileUrls, privateArea, MINIMAP_ZOOM, MINIMAP_AREA_ZOOM } from '../minimapTiles'
+import { minimapTileUrls, privateArea, thumbTiles, MINIMAP_ZOOM, MINIMAP_AREA_ZOOM } from '../minimapTiles'
 
 describe('minimapTileUrls', () => {
   it('liefert genau die Kacheln, die ein Ausschnitt um den Punkt berührt, mit Leaflets Subdomain-Regel', () => {
@@ -51,5 +51,39 @@ describe('minimapTileUrls mit Zoom', () => {
     expect(MINIMAP_AREA_ZOOM).toBe(14)
     expect(urls.length).toBeGreaterThan(0)
     for (const u of urls) expect(u).toMatch(/\.org\/14\/\d+\/\d+\.png$/)
+  })
+})
+
+describe('thumbTiles', () => {
+  /** Mittelpunkt einer Kachel bei Zoom 17 zurückrechnen */
+  const tileCenter = (x: number, y: number) => {
+    const n = 2 ** 17
+    return { lon: (x / n) * 360 - 180, lat: (Math.atan(Math.sinh(Math.PI * (1 - 2 * y / n))) * 180) / Math.PI }
+  }
+
+  it('legt den Punkt in die Mitte des Vorschaubilds, Kacheln halb so groß für scharfe Darstellung', () => {
+    const { lat, lon } = tileCenter(70416.5, 42985.5)
+    const tiles = thumbTiles(lat, lon, 56)
+    expect(tiles).toHaveLength(1)
+    const [t] = tiles
+    expect(t.url).toMatch(/\/17\/70416\/42985\.png$/)
+    expect(t.size).toBe(128)
+    // Punkt liegt bei 64/64 der verkleinerten Kachel, die Bildmitte bei 28/28
+    expect(t.left).toBeCloseTo(28 - 64, 6)
+    expect(t.top).toBeCloseTo(28 - 64, 6)
+  })
+
+  it('an einer Kachelecke deckt es den Ausschnitt mit vier Kacheln lückenlos ab', () => {
+    const { lat, lon } = tileCenter(70417, 42986)
+    const tiles = thumbTiles(lat, lon, 56)
+    expect(tiles).toHaveLength(4)
+    expect(Math.min(...tiles.map(t => t.left))).toBeLessThanOrEqual(0)
+    expect(Math.max(...tiles.map(t => t.left + t.size))).toBeGreaterThanOrEqual(56)
+    expect(Math.min(...tiles.map(t => t.top))).toBeLessThanOrEqual(0)
+    expect(Math.max(...tiles.map(t => t.top + t.size))).toBeGreaterThanOrEqual(56)
+    for (const t of tiles) {
+      const [, s, x, y] = t.url.match(/^https:\/\/([abc])\.tile\.openstreetmap\.org\/17\/(\d+)\/(\d+)\.png$/)!
+      expect(s).toBe('abc'[(Number(x) + Number(y)) % 3])
+    }
   })
 })

@@ -113,3 +113,50 @@ describe('StepPlace: privat und öffentlich hier', () => {
     expect(q('stations-loading')!.textContent).not.toContain('Keine Säule')
   })
 })
+
+const station = (name: string, i: number, extra: Record<string, unknown> = {}) =>
+  ({ ...kaufland, name, distanceMeters: 100 + i * 50, geohash: `u33dc8${i}`, ...extra })
+const five = ['Kaufland', 'Ionity', 'EnBW', 'Aldi', 'Lidl'].map((n, i) => station(n, i))
+const order = (host: HTMLElement) => [...host.querySelectorAll('button')].map(b => b.dataset.testid ?? b.textContent!.trim().slice(0, 8))
+const shows = (host: HTMLElement, name: string) => [...host.querySelectorAll('button b')].some(b => b.textContent === name)
+
+describe('StepPlace: Säulen zuerst, privat zuletzt', () => {
+  it('privat und Woanders sind die letzte Zeile, über "Weiter" in Daumenreichweite', async () => {
+    const { host } = await mount({ ...HERE, stations: [kaufland] })
+    const o = order(host)
+    expect(o.slice(-2)).toEqual(['place-here', 'place-elsewhere'])
+    expect(o.indexOf('place-public')).toBeGreaterThan(o.indexOf('Kaufland'))
+  })
+
+  it('Überschrift der Liste nennt, was dort steht', async () => {
+    const { host } = await mount({ ...HERE, stations: [kaufland] })
+    expect(host.querySelector('h2')!.textContent).toContain('Ladesäulen in der Nähe')
+  })
+
+  it('zeigt drei Säulen, der Rest klappt auf; Umkreis erweitern erst danach', async () => {
+    const { host, q } = await mount({ ...HERE, stations: five, canExpand: true, nextRadius: 1000 })
+    expect(shows(host, 'EnBW')).toBe(true)
+    expect(shows(host, 'Aldi')).toBe(false)
+    expect(q('expand-radius')).toBeNull()
+    expect(q('more-stations')!.textContent).toContain('2 weitere Säulen')
+    q('more-stations')!.click()
+    await nextTick()
+    expect(shows(host, 'Lidl')).toBe(true)
+    expect(q('more-stations')).toBeNull()
+    expect(q('expand-radius')).not.toBeNull()
+  })
+
+  it('eine gewählte Säule weiter unten bleibt sichtbar', async () => {
+    const lidl = five[4]
+    const { host, q } = await mount({ ...HERE, stations: five, place: 'station', selectedSite: { name: lidl.name, geohash: lidl.geohash } })
+    expect(shows(host, 'Lidl')).toBe(true)
+    expect(q('more-stations')).toBeNull()
+  })
+
+  it('Säule mit Position bekommt ein Kartenbild, ohne Position bleibt das Symbol', async () => {
+    const { host } = await mount({ ...HERE, stations: [station('Kaufland', 0, { latitude: 52.5342, longitude: 13.4516 }), station('Ionity', 1)] })
+    const thumbs = host.querySelectorAll('[data-testid="station-thumb"]')
+    expect(thumbs).toHaveLength(1)
+    expect(thumbs[0].querySelector('img')!.getAttribute('src')).toMatch(/tile\.openstreetmap\.org\/17\//)
+  })
+})
