@@ -75,8 +75,10 @@ function missingChips(e: DayEvent & { kind: 'charge' }): string[] {
   if (b) return b.priceless.length ? [t('storyday.missing_price_n', { n: b.priceless.length })] : []
   return missingOf(e.log).map(m => t(`storyday.missing_${m}`))
 }
+/** Fahrt unter 1 km (Umparken, Rangieren): kompakte Zeile ohne Minikarte */
+const isShort = (e: DayEvent) => e.kind === 'trip' && e.trip.distanceKm != null && e.trip.distanceKm < 1
 /** Die Minikarten tragen keine eigene Attribution - sie steht einmal unter der Liste. */
-const credit = computed(() => props.noCredit ? null : tripsCredit(props.events.flatMap(e => e.kind === 'trip' ? [e.trip] : [])))
+const credit = computed(() => props.noCredit ? null : tripsCredit(props.events.flatMap(e => e.kind === 'trip' && !isShort(e) ? [e.trip] : [])))
 
 /** Zusammenführen: erst fragen, dann tun. Schlüssel = id der früheren Fahrt. */
 const confirming = ref<string | null>(null)
@@ -147,17 +149,20 @@ const items = computed<Item[]>(() => {
 
       <li v-else :class="lineClass(idx, true)">
         <button type="button" :data-testid="partsOf(e) ? 'day-row-bundle' : `day-row-${e.kind}`" :aria-current="e.id === selectedId"
-          class="relative flex min-h-14 w-full items-start gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
-          :class="e.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : ''"
+          class="relative flex w-full items-start gap-3 rounded-2xl px-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
+          :class="[e.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : '', isShort(e) ? 'min-h-11 py-1' : 'min-h-14 py-2']" :data-compact="isShort(e) || undefined"
           @click="emit('select', e)" @mouseenter="emit('hover', e.id)" @mouseleave="emit('hover', null)">
-          <span v-if="e.kind === 'trip'" class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-sky-600 dark:border-gray-200 dark:bg-gray-900 dark:text-sky-400">
-            <MapIcon class="h-[18px] w-[18px]" aria-hidden="true" />
+          <!-- Kurzfahrt: kleinerer Kreis, mx-1 hält die Mitte auf der Zeitlinie -->
+          <span v-if="e.kind === 'trip'" class="z-10 grid shrink-0 place-items-center rounded-full border-2 border-edge bg-white text-sky-600 dark:border-gray-200 dark:bg-gray-900 dark:text-sky-400"
+            :class="isShort(e) ? 'mx-1 h-7 w-7' : 'h-9 w-9'">
+            <MapIcon :class="isShort(e) ? 'h-4 w-4' : 'h-[18px] w-[18px]'" aria-hidden="true" />
           </span>
           <span v-else class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-edge bg-green-600 text-white dark:border-transparent dark:bg-green-500 dark:text-gray-950">
             <BoltIcon class="h-[18px] w-[18px]" aria-hidden="true" />
           </span>
-          <span class="min-w-0 flex-1 pt-2">
-            <span class="flex items-baseline gap-2 text-[15px] font-semibold leading-snug">
+          <!-- Kurzfahrt: beide Zeilen nebeneinander, kleinere Schrift -->
+          <span class="min-w-0 flex-1" :class="isShort(e) ? 'flex flex-wrap items-baseline gap-x-3 pt-1.5' : 'pt-2'">
+            <span class="flex items-baseline gap-2 font-semibold leading-snug" :class="isShort(e) ? 'text-[13px]' : 'text-[15px]'">
               <span class="shrink-0 whitespace-nowrap tabular-nums text-gray-500 dark:text-gray-400">{{ hm(e.from) }}<template v-if="!partsOf(e)"> · {{ dur(e.to - e.from) }}</template></span>
               <span class="h-3.5 w-px shrink-0 self-center bg-gray-300 dark:bg-gray-600" :class="e.kind === 'charge' ? 'hidden md:block' : ''" aria-hidden="true" />
               <!-- Ladeort auf dem Handy in eigener Zeile (unten), damit er nicht abgeschnitten wird -->
@@ -199,7 +204,7 @@ const items = computed<Item[]>(() => {
             <slot name="trip-side" :trip="e.trip" />
           </span>
           <!-- isolate: Leaflets Ebenen dürfen nicht über die Kopfzeile des Sheets ragen -->
-          <span v-if="e.kind === 'trip' && hasTripThumb(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-[52px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-gray-100 md:h-14 md:w-24 dark:bg-white/5">
+          <span v-if="e.kind === 'trip' && !isShort(e) && hasTripThumb(e.trip)" data-testid="day-trip-thumb" class="relative isolate block h-[52px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-gray-100 md:h-14 md:w-24 dark:bg-white/5">
             <ActivityLocationMap variant="thumb" :start-geohash="e.trip.locationStartGeohash" :end-geohash="e.trip.locationEndGeohash"
               :route-polyline="e.trip.routePolyline" :route-kind="e.trip.routeKind" :trace-polyline="e.trip.tracePolyline" />
           </span>

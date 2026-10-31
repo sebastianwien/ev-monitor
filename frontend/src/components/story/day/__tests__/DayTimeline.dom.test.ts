@@ -159,3 +159,20 @@ describe('DayTimeline Temperatur', () => {
     expect(host.querySelector('[data-testid="day-row-charge"] [data-testid="day-temp"]')?.textContent).toContain('7')
   })
 })
+
+describe('DayTimeline Kurzfahrt unter 1 km', () => {
+  const moved = { locationStartGeohash: 'u33df5ze', locationEndGeohash: 'u33dc0bc' }
+
+  it('kompakte Zeile ohne Minikarte und ohne Kartenhinweis', async () => {
+    const host = await mount([trip({ ...moved, distanceKm: 0.6 })])
+    expect(host.querySelector('[data-testid="day-row-trip"]')?.getAttribute('data-compact')).toBe('true')
+    expect(host.querySelector('[data-testid="day-trip-thumb"]')).toBeNull()
+    expect(host.querySelector('[data-testid="day-map-credit"]')).toBeNull()
+  })
+
+  it('ab 1 km normale Zeile mit Minikarte', async () => {
+    const host = await mount([trip({ ...moved, distanceKm: 1 })])
+    expect(host.querySelector('[data-testid="day-row-trip"]')?.hasAttribute('data-compact')).toBe(false)
+    expect(host.querySelector('[data-testid="day-trip-thumb"]')).not.toBeNull()
+  })
+})
