@@ -101,6 +101,12 @@ export function useLocaleFormat() {
         return showUnit ? `${formatted} ${unitSystem.value.distanceUnit}` : formatted
     }
 
+    /** Strecke einer Fahrt: unter 1 km in Metern (auf 10 m) statt "0 km", Meilen mit einer Nachkommastelle */
+    function formatTripDistance(km: number): string {
+        if (km >= 1) return formatDistance(km)
+        return unitSystem.value.distanceUnit === 'km' ? `${Math.round(km * 100) * 10} m` : formatDistance(km, { round: false })
+    }
+
     /** The distance unit label string */
     function distanceUnitLabel(): string {
         return unitSystem.value.distanceUnit
@@ -237,6 +243,7 @@ export function useLocaleFormat() {
         convertDistance,
         formatDistance,
         distanceUnitLabel,
+        formatTripDistance,
 
         // Currency
         currency,

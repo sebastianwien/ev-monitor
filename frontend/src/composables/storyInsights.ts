@@ -315,6 +315,20 @@ export interface LatestTripSource {
   distanceKm?: number | null
 }
 
+/** Unter dieser Strecke ist eine Fahrt Umparken: die Karte "Letzte Fahrt" zeigt dann die Fahrt davor. */
+const LATEST_TRIP_MIN_KM = 0.5
+
+/**
+ * Fahrt für die Karte "Letzte Fahrt": die neueste ab {@link LATEST_TRIP_MIN_KM} aus den Fahrten der letzten
+ * Tage, sonst die neueste überhaupt, damit die Karte nicht leer bleibt.
+ */
+export function pickLatestTrip(latest: LatestTripSource | null | undefined, recent: readonly LatestTripSource[]): LatestTripSource | null {
+  const end = (t: LatestTripSource) => Date.parse(tripTimestamp(t) ?? '') || 0
+  const real = recent.filter(t => (t.distanceKm ?? 0) >= LATEST_TRIP_MIN_KM).sort((a, b) => end(b) - end(a))[0]
+  if (!latest) return real ?? null
+  return (latest.distanceKm ?? 0) >= LATEST_TRIP_MIN_KM || !real ? latest : real
+}
+
 /** Fahrzeug-kWh vor Saeulen-kWh (wie die Ladeliste), Fahrt nach ihrem Ende datiert. Null ohne beides. */
 export function buildLatest(log: LatestLogSource | null | undefined, trip: LatestTripSource | null | undefined,
   basis: LatestRangeBasis = { consumptionKwh100: null, effectiveCapacityKwh: null }): StoryLatest | null {

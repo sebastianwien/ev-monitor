@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, ranksFromStandings, buildLatest, sohIsEstimated, buildTripMonth,
+  temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, ranksFromStandings, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth,
   COLD_MAX_C, MILD_MIN_C, MIN_TRIPS_PER_SIDE,
 } from './storyInsights'
 import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
@@ -165,6 +165,25 @@ describe('ranksFromStandings', () => {
   it('ohne Platzierung in allen Kategorien gibt es keinen Eintrag', () => {
     expect(ranksFromStandings([standings[2]])[0].ownEntry).toBeNull()
     expect(ranksFromStandings([])).toEqual([])
+  })
+})
+
+describe('pickLatestTrip', () => {
+  const tr = (id: string, end: string, km: number | null) => ({ id, tripEndedAt: end, distanceKm: km })
+
+  it('überspringt Umparken unter 500 m und nimmt die neueste Fahrt davor', () => {
+    const recent = [tr('a', '2026-10-30T19:58:00Z', 197.5), tr('b', '2026-10-31T10:31:00Z', 0.3), tr('c', '2026-10-30T15:11:00Z', 1.8)]
+    expect(pickLatestTrip(tr('b', '2026-10-31T10:31:00Z', 0.3), recent)?.id).toBe('a')
+  })
+
+  it('ab 500 m zählt die Fahrt', () => {
+    const recent = [tr('a', '2026-10-30T19:58:00Z', 197.5), tr('b', '2026-10-31T10:31:00Z', 0.5)]
+    expect(pickLatestTrip(tr('b', '2026-10-31T10:31:00Z', 0.5), recent)?.id).toBe('b')
+  })
+
+  it('ohne längere Fahrt in den letzten Tagen bleibt die neueste Fahrt', () => {
+    expect(pickLatestTrip(tr('b', '2026-10-31T10:31:00Z', 0.3), [tr('b', '2026-10-31T10:31:00Z', 0.3)])?.id).toBe('b')
+    expect(pickLatestTrip(null, [])).toBeNull()
   })
 })
 

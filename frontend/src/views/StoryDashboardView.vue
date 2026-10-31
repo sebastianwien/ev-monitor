@@ -200,8 +200,9 @@ function openLatestCharge(logId: string, toPrice: boolean) {
 const tripModalId = ref<string | null>(null)
 const tripSheet = ref<{ requestClose: () => void } | null>(null)
 function openLatestTrip(tripId: string) {
-  const trip = ctx.latestTrip.value
-  if (trip?.id !== tripId) return
+  // Die Karte überspringt Umparken: dann ist ihre Fahrt nicht die neueste, sondern eine der letzten Tage
+  const trip = ctx.latestTrip.value?.id === tripId ? ctx.latestTrip.value : story.recentTrips.value.find(t => t.id === tripId)
+  if (!trip) return
   ctx.startEditTrip(trip)
   tripModalId.value = tripId
 }

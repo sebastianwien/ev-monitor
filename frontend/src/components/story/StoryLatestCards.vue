@@ -19,7 +19,7 @@ const props = defineProps<{
 }>()
 const emit = defineEmits<{ 'open-charge': [id: string, missingPrice: boolean]; 'open-trip': [id: string] }>()
 const { t, locale } = useI18n()
-const { formatCurrency, formatDistance, formatDecimal } = useLocaleFormat()
+const { formatCurrency, formatDistance, formatDecimal, formatTripDistance } = useLocaleFormat()
 
 const nowMs = () => props.now ?? Date.now()
 function when(iso: string): string {
@@ -60,7 +60,7 @@ const trip = computed(() => {
   if (!tr) return null
   return {
     id: tr.id,
-    title: tr.km != null ? keepUnits(t('story.latest_drove', { km: formatDistance(tr.km, { round: true }) })) : t('story.latest_drove_plain'),
+    title: tr.km != null ? keepUnits(t('story.latest_drove', { km: formatTripDistance(tr.km) })) : t('story.latest_drove_plain'),
     sub: [when(tr.at), tr.routeType ? t(`model.route_type_${tr.routeType.toLowerCase()}`) : null].filter(Boolean).join(' · '),
   }
 })

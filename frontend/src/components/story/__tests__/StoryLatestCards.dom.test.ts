@@ -49,6 +49,11 @@ describe('StoryLatestCards', () => {
     expect(events).toEqual([['charge', 'l', false], ['trip', 't']])
   })
 
+  it('Fahrt unter 1 km in Metern', () => {
+    const host = mount({ charge: null, trip: { id: 't', at: '2026-10-02T09:00:00Z', km: 0.3 } }, now)
+    expect(text(host.querySelector('[data-testid="story-latest-trip"]'))).toContain('Letzte Fahrt: 300 m')
+  })
+
   it('Unterzeile mit Ladeort, Ladeart und Streckentyp, wenn bekannt', () => {
     const host = mount({
       charge: { id: 'l', at: '2026-10-01T18:00:00Z', kwh: 31.9, costEur: 12.4, cpoName: 'Tesla', chargingType: 'AC', ...noSoc },

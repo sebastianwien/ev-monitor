@@ -14,10 +14,11 @@ import {
 import { buildEnergyFlow, buildRange, costLayers, monthCosts, type MonthCosts } from './storyEnergy'
 import {
   temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, pricelessInMonth, ranksFromStandings,
-  type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
+  type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
+import { summarizeTripMonth, type TripForSummary } from '../utils/tripMonthSummary'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRankClosing,
-  detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickCards, DAY,
+  detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickCards,
   type Moment, type MomentLog, type MomentTrip, type MomentPoint, type ScoredMoment,
 } from './storyMoments'
 import { useMomentSeen } from './useMomentSeen'
@@ -72,10 +73,7 @@ export function monthAt(offset: number, now = new Date()): StoryMonth {
 
 /** Letzte Ladungen fuer "gerade geladen", Stille und die Stopps einer langen Fahrt. */
 const RECENT_LOGS = 10
-/** Fahrten fuer lange Fahrt (24 h) und Frost (3 Tage). */
-const MOMENT_TRIP_DAYS = 3
-
-/** Fenster der Reichweiten-Kachel: 4 Wochen bis heute. */
+/** Fenster der Reichweiten-Kachel: 4 Wochen bis heute. Die Fahrten daraus tragen auch lange Fahrt (24 h) und Frost (3 Tage). */
 export const RECENT_DAYS = 28
 function daysAgo(n: number): Date { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - n); return d }
 function isoDate(d: Date): string { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
@@ -230,7 +228,7 @@ interface CarBundle {
   recentStats: StatisticsData | null
   recentLogs: Array<LatestLogSource & MomentLog>
   benchmark: ChargingBenchmark | null
-  recentTrips: MomentTrip[]
+  recentTrips: Array<MomentTrip & TripForSummary>
   lifetimeSeries: MomentPoint[]
   latestTrip: LatestTripSource | null
   /** Endstand des Vormonats je Kategorie, Basis der Ranglisten-Abschlusskarte. */
@@ -263,8 +261,16 @@ async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<Lat
   return { logs, benchmark: bench }
 }
 
+/**
+ * Antrieb laut Fahrzeug über die Fahrten der letzten 4 Wochen in kWh/100 km, dieselbe Rechnung wie
+ * "Wie fahre ich?". Ohne Verlust im Stand, darum Basis der Reichweite; null ohne Energiedaten.
+ */
+function recentDriveConsumption(trips: TripForSummary[], effectiveCapacityKwh: number | null): number | null {
+  return summarizeTripMonth(trips, effectiveCapacityKwh)?.consumptionKwhPer100km ?? null
+}
+
 async function fetchCarBundle(carId: string): Promise<CarBundle> {
-  const tripsFrom = new Date(Date.now() - MOMENT_TRIP_DAYS * DAY).toISOString()
+  const tripsFrom = daysAgo(RECENT_DAYS - 1).toISOString()
   const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime, prevRanks, weather] = await Promise.allSettled([
     chargingSavingsService.get(),
     peerModelComparisonService.getPeerModelComparison(carId),
@@ -274,7 +280,7 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
     recentLogsWithBenchmark(carId),
     api.get<LatestTripSource[]>(`/trips?carId=${carId}&limit=1`),
     fetchStats(carId, isoDate(daysAgo(RECENT_DAYS - 1)), isoDate(daysAgo(0)), 'MONTH'),
-    api.get<MomentTrip[]>(`/trips?carId=${carId}&from=${encodeURIComponent(tripsFrom)}&to=${encodeURIComponent(new Date().toISOString())}`),
+    api.get<Array<MomentTrip & TripForSummary>>(`/trips?carId=${carId}&from=${encodeURIComponent(tripsFrom)}&to=${encodeURIComponent(new Date().toISOString())}`),
     api.get<StatisticsData>(`/logs/statistics?carId=${carId}&groupBy=DAY`),
     fetchRanks(1),
     wantsWeatherOutlook(new Date()) ? weatherService.getOutlook() : Promise.resolve(null),
@@ -343,7 +349,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const petrol = ref<PetrolPrice>({ eurPerLitre: PETROL_EUR_PER_L_DE, live: false })
   const latest = ref<StoryLatest | null>(null)
   const recentLogs = ref<Array<LatestLogSource & MomentLog>>([])
-  const recentTrips = ref<MomentTrip[]>([])
+  const recentTrips = ref<Array<MomentTrip & TripForSummary>>([])
   /** Tagesreihe ueber die ganze Lebenszeit, Basis der Meilensteine. */
   const lifetimeSeries = ref<MomentPoint[]>([])
   /** Was andere Fahrer beim Betreiber der neuesten oeffentlichen Ladung zahlen, null ohne Vergleich. */
@@ -431,8 +437,9 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     recentTrips.value = b.recentTrips
     lifetimeSeries.value = b.lifetimeSeries
     previousRanks.value = b.previousRanks
-    latest.value = buildLatest(b.recentLogs[0] ?? null, b.latestTrip,
-      { consumptionKwh100: b.recentStats?.avgConsumptionKwhPer100km ?? null, effectiveCapacityKwh: ctx().effectiveBatteryCapacityKwh })
+    latest.value = buildLatest(b.recentLogs[0] ?? null, pickLatestTrip(b.latestTrip, b.recentTrips),
+      { consumptionKwh100: recentDriveConsumption(b.recentTrips, ctx().effectiveBatteryCapacityKwh) ?? b.recentStats?.avgConsumptionKwhPer100km ?? null,
+        effectiveCapacityKwh: ctx().effectiveBatteryCapacityKwh })
   }
 
   /** Gecachter Stand sofort, frischer im Hintergrund (stale while revalidate). */
@@ -477,7 +484,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const flow = computed(() => monthStats.value ? buildEnergyFlow(monthStats.value) : null)
   const range = computed(() => recentStats.value
     ? buildRange(recentStats.value, ctx().effectiveBatteryCapacityKwh,
-      peerModels.value?.allVariantsWinterConsumptionKwhPer100km ?? null)
+      peerModels.value?.allVariantsWinterConsumptionKwhPer100km ?? null,
+      recentDriveConsumption(recentTrips.value, ctx().effectiveBatteryCapacityKwh))
     : null)
   const layers = computed(() => monthStats.value ? costLayers(monthStats.value) : null)
   /** Die Sechs-Monats-Statistik summiert Fixkosten und Einnahmen über alle sechs Balken. */
@@ -624,7 +632,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   return {
     offset, month, months, setOffset, switching, placeRows, dataMonths, minOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
-    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, cards, benchmark,
+    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, recentTrips, cards, benchmark,
     reload, markPriceUnknown, savingsAccess,
   }
 }
