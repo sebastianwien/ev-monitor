@@ -85,6 +85,31 @@ class CoinLogServiceTest {
         assertThat(priceAdded.amount()).isEqualTo(3);
     }
 
+    @Test
+    void catalog_marksFirstLogBonusClaimedOnceAnyLogWasRewarded() {
+        // FIRST und SUBSEQUENT teilen die Beschreibung: eine erfasste Ladung verbraucht den Erst-Bonus
+        when(coinLogRepository.existsByUserIdAndActionDescription(eq(userId), anyString()))
+                .thenAnswer(inv -> "Ladevorgang erfasst".equals(inv.getArgument(1)));
+
+        var catalog = coinLogService.catalog(userId);
+
+        var first = catalog.stream().filter(e -> e.event().equals("MANUAL_LOG_FIRST")).findFirst().orElseThrow();
+        assertThat(first.claimed()).isTrue();
+        var firstOcr = catalog.stream().filter(e -> e.event().equals("MANUAL_LOG_FIRST_OCR")).findFirst().orElseThrow();
+        assertThat(firstOcr.claimed()).isFalse();
+        var subsequent = catalog.stream().filter(e -> e.event().equals("MANUAL_LOG_SUBSEQUENT")).findFirst().orElseThrow();
+        assertThat(subsequent.claimed()).isFalse();
+    }
+
+    @Test
+    void catalog_marksFirstCarBonusClaimedOnceACarWasRewarded() {
+        when(coinLogRepository.existsByUserIdAndActionDescription(eq(userId), anyString()))
+                .thenAnswer(inv -> "Fahrzeug hinzugefügt".equals(inv.getArgument(1)));
+
+        var firstCar = coinLogService.catalog(userId).stream().filter(e -> e.event().equals("CAR_CREATED_FIRST")).findFirst().orElseThrow();
+        assertThat(firstCar.claimed()).isTrue();
+    }
+
     // -------------------------------------------------------------------------
     // CoinEvent enum sanity
     // -------------------------------------------------------------------------
