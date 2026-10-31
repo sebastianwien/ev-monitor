@@ -50,6 +50,9 @@ function placeName(e: DayEvent & { kind: 'charge' }) {
 }
 /** Summen je Bündel, einmal je Liste */
 const totals = computed(() => new Map(props.events.flatMap(e => e.kind === 'charge' && e.parts ? [[e.id, bundleTotals(e.parts)] as const] : [])))
+/** Außentemperatur: Fahrt aus der Telemetrie, Ladung aus dem Ladevorgang */
+const tempOf = (e: DayEvent): number | null =>
+  (e.kind === 'trip' ? e.trip.outsideTempCelsius : e.log.temperatureCelsius) ?? null
 const partsOf = (e: DayEvent) => e.kind === 'charge' ? e.parts?.length ?? 0 : 0
 const costOf = (e: DayEvent & { kind: 'charge' }) => totals.value.get(e.id)?.costEur ?? (e.parts ? null : e.log.costEur)
 /** Rechts unter dem Preis: Ladeart und Energie */
@@ -161,7 +164,7 @@ const items = computed<Item[]>(() => {
                 <template v-else>{{ placeName(e) }}</template>
               </span>
             </span>
-            <span v-if="partsOf(e) || e.socTo != null || (e.kind === 'trip' && e.trip.outsideTempCelsius != null) || $slots['line2-end']"
+            <span v-if="partsOf(e) || e.socTo != null || tempOf(e) != null || $slots['line2-end']"
               class="flex flex-wrap items-center gap-x-1.5 text-[13px] tabular-nums text-gray-500 dark:text-gray-400">
               <template v-if="partsOf(e)">
                 <span class="whitespace-nowrap" data-testid="day-parts">{{ t('storyday.parts', { n: partsOf(e) }, partsOf(e)) }}</span><template v-if="e.socTo != null">·</template>
@@ -172,8 +175,8 @@ const items = computed<Item[]>(() => {
               <template v-else-if="e.socTo != null">
                 <span class="whitespace-nowrap text-gray-600 dark:text-gray-300">{{ t('storyday.soc_to', { to: Math.round(e.socTo) }) }}</span>
               </template>
-              <template v-if="e.kind === 'trip' && e.trip.outsideTempCelsius != null"><template v-if="e.socTo != null">·</template>
-                <span class="whitespace-nowrap" :class="temperatureTone(e.trip.outsideTempCelsius)" data-testid="day-temp">{{ formatDecimal(e.trip.outsideTempCelsius, 0) }}&nbsp;°C</span>
+              <template v-if="tempOf(e) != null"><template v-if="e.socTo != null">·</template>
+                <span class="whitespace-nowrap" :class="temperatureTone(tempOf(e)!)" data-testid="day-temp">{{ formatDecimal(tempOf(e)!, 0) }}&nbsp;°C</span>
               </template>
               <!-- Heizung, Klima, Akkuheizung als farbige Symbole, Last und Dauer im Tooltip -->
               <!-- Logbuch: weitere Angaben (ab 768 px in der Zeile, auf dem Handy teils in eigener Zeile) -->

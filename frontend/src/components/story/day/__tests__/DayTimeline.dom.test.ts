@@ -4,7 +4,7 @@ import { createApp, nextTick, type App } from 'vue'
 import { createPinia } from 'pinia'
 import { i18n } from '../../../../i18n'
 import DayTimeline from '../DayTimeline.vue'
-import { eventsOfDay, bundleEvents, type DayTrip } from '../../../../composables/storyDay'
+import { eventsOfDay, bundleEvents, type DayTrip, type DayLog } from '../../../../composables/storyDay'
 
 // Leaflet läuft nicht in jsdom: die Karte ist hier ein Platzhalter, der zeigt, was sie bekommt
 vi.mock('../../../dashboard/ActivityLocationMap.vue', () => ({
@@ -20,10 +20,10 @@ const trip = (over: Partial<DayTrip> = {}): DayTrip => ({
   id: 't1', tripStartedAt: at(9), tripEndedAt: at(10), distanceKm: 42, socStart: 80, socEnd: 70, ...over,
 })
 
-async function mount(trips: DayTrip[]) {
+async function mount(trips: DayTrip[], logs: DayLog[] = []) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(DayTimeline, { events: eventsOfDay('2026-08-16', trips, []), selectedId: null, merging: false })
+  app = createApp(DayTimeline, { events: eventsOfDay('2026-08-16', trips, logs), selectedId: null, merging: false })
   app.use(createPinia()).use(i18n)
   app.mount(host)
   // Die Karte kommt als asynchrone Komponente
@@ -145,5 +145,17 @@ describe('DayTimeline Bündel', () => {
     ;(host.querySelector('[data-testid="day-row-bundle"]') as HTMLButtonElement).click()
     expect(picked[0].id).toBe('a')
     expect(picked[0].parts?.map(p => p.id)).toEqual(['a', 'b', 'c'])
+  })
+})
+
+describe('DayTimeline Temperatur', () => {
+  it('Ladung zeigt die Außentemperatur wie eine Fahrt', async () => {
+    const log: DayLog = {
+      id: 'l1', loggedAt: at(12), chargeDurationMinutes: 30, socBeforeChargePercent: 40, socAfterChargePercent: 80,
+      kwhCharged: 30, kwhAtVehicle: null, costEur: 9, isPublicCharging: true, cpoName: 'Ionity', chargingType: 'DC',
+      temperatureCelsius: 6.6,
+    }
+    const host = await mount([], [log])
+    expect(host.querySelector('[data-testid="day-row-charge"] [data-testid="day-temp"]')?.textContent).toContain('7')
   })
 })

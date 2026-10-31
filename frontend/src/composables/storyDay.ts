@@ -45,6 +45,7 @@ export interface DayLog {
   chargingType: 'AC' | 'DC' | 'UNKNOWN' | null
   chargingProviderId?: string | null
   maxChargingPowerKw?: number | null
+  temperatureCelsius?: number | null
 }
 
 interface EventBase { id: string; from: number; to: number; socFrom: number | null; socTo: number | null }
