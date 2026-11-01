@@ -1,16 +1,28 @@
 package com.evmonitor.testutil;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.application.LiveChargingService;
+import com.evmonitor.application.NearbyCpoService;
+import com.evmonitor.application.tariff.crawl.TariffCrawlScheduler;
+import com.evmonitor.application.tariff.crawl.TariffExtractor;
+import com.evmonitor.application.tariff.crawl.TariffPageFetcher;
 import com.evmonitor.application.voice.LogDraftExtractor;
 import com.evmonitor.application.voice.SpeechTranscriber;
+import com.evmonitor.domain.weather.TemperatureEnricher;
+import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import com.evmonitor.infrastructure.external.StripeReportClient;
+import com.evmonitor.infrastructure.external.audit.SiteCrawler;
+import com.evmonitor.infrastructure.external.gsc.GscClient;
+import com.evmonitor.infrastructure.external.plausible.PlausibleClient;
 import com.evmonitor.infrastructure.security.JwtService;
+import com.evmonitor.infrastructure.security.RateLimitService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
@@ -57,18 +69,70 @@ public abstract class AbstractIntegrationTest {
 
     // Externe Dienste zentral gemockt: Tests rufen nie echte APIs, und alle Unterklassen
     // teilen sich damit denselben Spring-Context. Eigene @MockitoBean-Felder in Unterklassen
-    // erzeugen je einen zusätzlichen Context, daher nur mit gutem Grund.
+    // erzeugen je einen zusätzlichen Context, TestContextGuardTest verhindert das.
+    // Regel: externes I/O (HTTP, Mail, LLM) wird Mock, interne Dienste werden Spy, damit sie
+    // ohne Stubbing das echte Verhalten behalten. Spring setzt beide nach jedem Test zurück.
+    // Spies stubben mit doReturn(..).when(spy).methode(..), when(spy.methode()) ruft das Original.
+
+    /** Mock: Spritmonitor-HTTP-Import. */
     @MockitoBean
     protected SpritMonitorClient spritMonitorClient;
 
+    /** Mock: Stripe-Reporting-API. */
     @MockitoBean
     protected StripeReportClient stripeReportClient;
 
+    /** Mock: Sprach-Transkription (Mistral). */
     @MockitoBean
     protected SpeechTranscriber speechTranscriber;
 
+    /** Mock: Log-Entwurf aus Text (LLM). */
     @MockitoBean
     protected LogDraftExtractor logDraftExtractor;
+
+    /** Mock: Mailversand, nie echte Mail im Test; prüfbar per verify(emailService, ...). */
+    @MockitoBean
+    protected EmailService emailService;
+
+    /** Mock: Wetter-Anreicherung ruft Open-Meteo, in Tests ein No-op; nur Aufrufe sind prüfbar. */
+    @MockitoBean
+    protected TemperatureEnricher temperatureEnricher;
+
+    /** Mock: externer Ladesäulen-Lookup. */
+    @MockitoBean
+    protected NearbyCpoService nearbyCpoService;
+
+    /** Mock: Google Search Console. */
+    @MockitoBean
+    protected GscClient gscClient;
+
+    /** Mock: Plausible-Analytics-API. */
+    @MockitoBean
+    protected PlausibleClient plausibleClient;
+
+    /** Mock: SEO-Audit crawlt per HTTP. */
+    @MockitoBean
+    protected SiteCrawler siteCrawler;
+
+    /** Mock: Tarifseiten per HTTP laden. */
+    @MockitoBean
+    protected TariffPageFetcher tariffPageFetcher;
+
+    /** Mock: Tarifextraktion per LLM. */
+    @MockitoBean
+    protected TariffExtractor tariffExtractor;
+
+    /** Mock: Scheduler löst sonst echte Crawls aus. */
+    @MockitoBean
+    protected TariffCrawlScheduler tariffCrawlScheduler;
+
+    /** Spy: Rate-Limiting ist im Test-Profil aus, echtes Verhalten bleibt, einzelne Tests stubben. */
+    @MockitoSpyBean
+    protected RateLimitService rateLimitService;
+
+    /** Mock: HTTP-Proxy zum Connectors-Dienst für Live-Laden. */
+    @MockitoBean
+    protected LiveChargingService liveChargingService;
 
     /**
      * Create HTTP headers with JWT Bearer token for authenticated requests.
