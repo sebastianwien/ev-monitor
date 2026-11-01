@@ -192,6 +192,7 @@ const swipeLabels = computed(() => ({
   prev: offset.value - 1 >= story.minOffset.value ? neighborLabel(-1) : null,
   next: offset.value < 0 ? neighborLabel(1) : null,
 }))
+const swipeLabel = computed(() => dragX.value > 0 ? swipeLabels.value.prev : swipeLabels.value.next)
 const { dragX, dragging, threshold: swipeThreshold } = useMonthSwipe(heroBox,
   () => ({ prev: swipeLabels.value.prev != null, next: swipeLabels.value.next != null, passNext: offset.value === 0 }),
   side => selectMonth(offset.value + (side === 'prev' ? -1 : 1)))
@@ -400,13 +401,13 @@ onUnmounted(() => unregisterReload?.())
            Stelle am Rand und über die volle Höhe; ab der Schwelle grün. Im laufenden Monat führt der Wisch nach links wie überall direkt zu den Logs.
            touch-pan-y: waagerecht gehört der App, sonst bricht der Browser die Geste ab -->
       <div class="relative overflow-hidden md:overflow-visible">
-      <div v-if="dragX !== 0" class="absolute inset-y-0 bg-gray-100 dark:bg-gray-800" :class="dragX > 0 ? 'left-0' : 'right-0'"
+      <!-- Streifen über die ganze Bildschirmhöhe (fixed), der Zielmonat gedreht wie ein Buchrücken und so groß,
+           dass das Wort die Höhe füllt; der Streifen gibt ihn mit dem Finger frei -->
+      <div v-if="dragX !== 0" class="fixed inset-y-0 overflow-hidden bg-gray-100 dark:bg-gray-800" :class="dragX > 0 ? 'left-0' : 'right-0'"
         :style="{ width: `${Math.abs(dragX)}px` }" aria-hidden="true" data-testid="story-swipe-strip">
-        <!-- Buchstaben einzeln über die ganze Höhe verteilt, egal wie hoch die Box ist; jeder gedreht wie ein Buchrücken -->
-        <span class="absolute inset-y-6 flex flex-col items-center justify-between text-[26px] font-bold uppercase leading-none transition-colors"
-          :class="[dragX > 0 ? 'left-4' : 'right-4', Math.abs(dragX) >= swipeThreshold ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400']">
-          <span v-for="(c, i) in [...(dragX > 0 ? swipeLabels.prev : swipeLabels.next) ?? '']" :key="i" class="[writing-mode:vertical-rl]">{{ c }}</span>
-        </span>
+        <span class="absolute top-1/2 -translate-y-1/2 whitespace-nowrap font-black uppercase leading-none [writing-mode:vertical-rl] transition-colors"
+          :class="[dragX > 0 ? 'left-0' : 'right-0', Math.abs(dragX) >= swipeThreshold ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-gray-500']"
+          :style="{ fontSize: `calc(88svh / ${Math.max(3, (swipeLabel ?? '').length) * 0.72})` }">{{ swipeLabel }}</span>
       </div>
       <section ref="heroBox" class="relative grid touch-pan-y grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box"
         :class="dragging ? '' : 'transition-transform duration-200 ease-out'" :style="dragX ? { transform: `translateX(${dragX}px)` } : undefined">
