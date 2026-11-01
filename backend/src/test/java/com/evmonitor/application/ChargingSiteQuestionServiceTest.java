@@ -17,7 +17,6 @@ import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -44,7 +43,6 @@ class ChargingSiteQuestionServiceTest extends AbstractIntegrationTest {
     @Autowired private IngestGateway gateway;
     @Autowired private ChargingSiteQuestionService questions;
     @Autowired private ChargingSiteService chargingSiteService;
-    @MockitoBean private NearbyCpoService nearbyCpoService;
 
     private User user;
     private Car car;
