@@ -123,10 +123,6 @@ management:
       client:
         max-uri-tags: 500  # Höheres Limit für HTTP-Client-Metrics (Open-Meteo Backfill)
 
-evmonitor:
-  range:
-    # Basis der Reichweite: drive = Fahrverbrauch (eigene Fahrten, sonst Modellschnitt, sonst Ladungen),
-    # charges = wie vor November 2026 nur der Verbrauch aus Ladungen. Rückweg ohne Deploy per Env RANGE_BASIS.
     basis: ${RANGE_BASIS:drive}
   consumption:
     plausibility:
