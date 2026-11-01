@@ -82,15 +82,16 @@ class EvLogStatisticsPeerBenchmarkTest extends AbstractServiceTest {
 
     @Test
     void peerBenchmark_noSpecMatch_fallsBackToModel() {
-        VehicleSpecification specA = saveSpec("Tesla", "Model 3", "peer-test-model-a");
-        VehicleSpecification specB = saveSpec("Tesla", "Model 3", "peer-test-model-b");
+        // Modell, das kein anderer Test anlegt: der Modell-Fallback zählt alle Autos des Modells in der Test-DB
+        VehicleSpecification specA = saveSpec("Opel", "Corsa-e", "peer-test-model-a");
+        VehicleSpecification specB = saveSpec("Opel", "Corsa-e", "peer-test-model-b");
 
         User owner = createAndSaveUser("owner-model@example.com");
-        Car ownerCar = createCar(owner.getId(), CarBrand.CarModel.MODEL_3, specA.getId());
+        Car ownerCar = createCar(owner.getId(), CarBrand.CarModel.CORSA_E, specA.getId());
         addLog(ownerCar.getId(), 22.0, 200);
 
         User peer = createAndSaveUser("peer-model@example.com");
-        Car peerCar = createCar(peer.getId(), CarBrand.CarModel.MODEL_3, specB.getId());
+        Car peerCar = createCar(peer.getId(), CarBrand.CarModel.CORSA_E, specB.getId());
         addLog(peerCar.getId(), 18.0, 200);
 
         EvLogStatisticsResponse result = evLogStatisticsService.getStatistics(ownerCar.getId(), owner.getId(), null, null, null);
