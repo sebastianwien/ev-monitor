@@ -7,6 +7,7 @@ import org.springframework.core.type.filter.AssignableTypeFilter;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +37,15 @@ class TestContextGuardTest {
     private static final Set<String> FORBIDDEN_CLASS_ANNOTATIONS = Set.of(
             "org.springframework.test.context.TestPropertySource",
             "org.springframework.test.annotation.DirtiesContext",
-            "org.springframework.context.annotation.Import");
+            "org.springframework.context.annotation.Import",
+            "org.springframework.test.context.ActiveProfiles",
+            "org.springframework.test.context.ContextConfiguration",
+            "org.springframework.boot.test.context.SpringBootTest",
+            "org.springframework.test.context.bean.override.mockito.MockitoBean",
+            "org.springframework.test.context.bean.override.mockito.MockitoSpyBean");
+
+    private static final Set<String> FORBIDDEN_METHOD_ANNOTATIONS = Set.of(
+            "org.springframework.test.context.DynamicPropertySource");
 
     /**
      * Klassen (voller Name, da Testklassen package-private sind), die bewusst einen eigenen
@@ -96,12 +105,20 @@ class TestContextGuardTest {
         }
     }
 
-    /** Prüft die Klasse, ihre Oberklassen bis zur Basisklasse und ihre Nested-Klassen. */
+    /** Prüft Klassen-, Methoden- und Feld-Annotationen der Klasse, ihrer Oberklassen bis zur Basisklasse und ihrer Nested-Klassen. */
     private static void collectViolations(Class<?> testClass, List<String> violations) {
         for (Class<?> c = testClass; c != null && !BASE_CLASSES.contains(c); c = c.getSuperclass()) {
             for (Annotation annotation : c.getDeclaredAnnotations()) {
                 if (FORBIDDEN_CLASS_ANNOTATIONS.contains(annotation.annotationType().getName())) {
                     violations.add(c.getName() + ": @" + annotation.annotationType().getSimpleName());
+                }
+            }
+            for (Method method : c.getDeclaredMethods()) {
+                for (Annotation annotation : method.getDeclaredAnnotations()) {
+                    if (FORBIDDEN_METHOD_ANNOTATIONS.contains(annotation.annotationType().getName())) {
+                        violations.add(c.getName() + "." + method.getName() + "(): @"
+                                + annotation.annotationType().getSimpleName());
+                    }
                 }
             }
             for (Field field : c.getDeclaredFields()) {
