@@ -14,7 +14,7 @@ import {
 import { buildEnergyFlow, buildRange, costLayers, monthCosts, rangeConsumption, type MonthCosts } from './storyEnergy'
 import {
   temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, pricelessInMonth, ranksFromStandings,
-  type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
+  type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth, standbyChange, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import type { TripForSummary } from '../utils/tripMonthSummary'
 import type { OdometerGap } from './storyDay'
 import {
@@ -143,6 +143,8 @@ interface MonthBundle {
   previousStats: StatisticsData | null
   series: StatisticsData | null
   trips: TripForTemperature[]
+  /** Fahrten der drei Vormonate, nur mit Freischaltung: Basis für "mehr Standverlust als sonst". */
+  earlierTrips: TripForTemperature[]
   /** Strecke ohne Aufzeichnung: zählt in die km der Monatskarte und der Tagesleiste */
   gaps: OdometerGap[]
   /** Ladungen ab Vormonat, nur mit Freischaltung: Preis der Standverluste. */
@@ -196,7 +198,7 @@ function fetchMonthBundle(carId: string, m: StoryMonth, withCharges: boolean): P
     const cur = monthWindow(m.year, m.month)
     const prev = monthWindow(m.year, m.month, -1)
     const first = monthWindow(m.year, m.month, -5)
-    const [a, b, c, t, g, ch, pl] = await Promise.all([
+    const [a, b, c, t, g, ch, pl, et] = await Promise.all([
       fetchStats(carId, cur.start, cur.end, 'DAY'),
       fetchStats(carId, prev.start, prev.end, 'MONTH'),
       fetchStats(carId, first.start, cur.end, 'MONTH'),
@@ -204,8 +206,9 @@ function fetchMonthBundle(carId: string, m: StoryMonth, withCharges: boolean): P
       fetchGaps(carId, cur.start, cur.end),
       withCharges ? fetchCharges(carId, prev.start, cur.end) : Promise.resolve([]),
       fetchMonthPlaces(carId, m),
+      withCharges ? fetchTrips(carId, monthWindow(m.year, m.month, -3).start, prev.end) : Promise.resolve([]),
     ])
-    return a == null ? null : { monthStats: a, previousStats: b, series: c, trips: t, gaps: g, charges: ch, ...pl }
+    return a == null ? null : { monthStats: a, previousStats: b, series: c, trips: t, gaps: g, charges: ch, earlierTrips: et, ...pl }
   })().finally(() => monthInflight.delete(key))
   monthInflight.set(key, job)
   return job
@@ -344,6 +347,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const previousStats = ref<StatisticsData | null>(null)
   const series = ref<StatisticsData | null>(null)
   const trips = ref<TripForTemperature[]>([])
+  const earlierTrips = ref<TripForTemperature[]>([])
   const gaps = ref<OdometerGap[]>([])
   const charges = ref<StandbyPricing['charges']>([])
   const previousRanks = ref<RankResponse[]>([])
@@ -383,6 +387,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     previousStats.value = b.previousStats
     series.value = b.series
     trips.value = b.trips
+    earlierTrips.value = b.earlierTrips ?? []
     gaps.value = b.gaps
     charges.value = b.charges
     places.value = b.places
@@ -586,6 +591,9 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     elapsedDays: month.value.offset === 0 ? new Date().getDate() : new Date(month.value.year, month.value.month, 0).getDate(),
     recent: recentStats.value ? { distanceKm: recentStats.value.totalDistanceKm, days: RECENT_DAYS } : null,
     weather: weather.value,
+    standbyChange: ctx().canViewEnergySplit
+      ? standbyChange({ trips: trips.value, earlierTrips: earlierTrips.value, capacityKwh: ctx().effectiveBatteryCapacityKwh, year: month.value.year, month: month.value.month })
+      : null,
     tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewEnergySplit,
       { charges: charges.value, avgCostPerKwh: monthStats.value?.avgCostPerKwh ?? null }, gaps.value),
   } : null)

@@ -600,6 +600,16 @@ describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => 
     expect(buildStoryFeed(input({ operatorGap: null }), { max: Infinity }).map(f => f.id)).not.toContain('cpo_price')
   })
 
+  it('mehr Standverlust als sonst: dezente Zeile, neutral, nie vor der Ersparnis', () => {
+    const feed = buildStoryFeed(input({ standbyChange: { perDay: 0.9, usualPerDay: 0.4 } }), { max: Infinity })
+    const item = feed.find(i => i.id === 'standby_change')!
+    expect(item.params).toEqual({ perDay: 0.9, usualPerDay: 0.4 })
+    expect(item.sentiment).toBe('neutral')
+    expect(item.question).toBe(2)
+    expect(feed[0].id).toBe('home_savings')
+    expect(buildStoryFeed(input({ standbyChange: null }), { max: Infinity }).map(f => f.id)).not.toContain('standby_change')
+  })
+
   it('Herbst-Prognose nur im Oktober des laufenden Monats: km der letzten Tage mal Winter-Mehrverbrauch mal Preis', () => {
     // Es geht um Euro: Saisonwerte aus den Ladungen, nicht aus den Fahrten der Reichweite
     const chargeSeasons = { summer: 16, winter: 21, peerWinter: null }

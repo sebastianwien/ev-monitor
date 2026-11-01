@@ -27,6 +27,7 @@ const emit = defineEmits<{ open: [id: TileId]; charge: [logId: string, section?:
 
 const { t, locale } = useI18n()
 const { formatCurrency, formatDecimal, formatDistance, formatCostPerKwh } = useLocaleFormat()
+const kwh1 = (v: number) => `${formatDecimal(v, 1)}\u00a0kWh`
 // Zahl und Einheit bleiben in einer Zeile
 const ct = (v: number) => formatCostPerKwh(v, { subunitDecimals: 0 }).replace(' ', '\u00a0')
 
@@ -61,6 +62,8 @@ const sentence = computed(() => {
       if (p.priceless > 0) parts.push(t('story.feed_quality_priceless', { count: p.priceless }, p.priceless))
       return parts.join(' ')
     }
+    case 'standby_change':
+      return t('story.feed_standby', { now: b(kwh1(p.perDay)), usual: kwh1(p.usualPerDay) })
     case 'temperature_effect':
       return t('story.feed_temp', { pct: b(formatDecimal(Math.abs(p.deltaPercent), 0)), cold: 5, mild: 15 })
   }
@@ -75,6 +78,7 @@ const sub = computed<string>(() => {
       return t(`story.feed_autumn_sub${weather}${p.peerWinter ? '_peer' : ''}`, { model: props.modelName, deg: Math.abs(p.deltaC ?? 0) })
     }
     case 'peer_cost_eur': return t('story.feed_peer_eur_sub', { month: props.monthName })
+    case 'standby_change': return t('story.feed_standby_sub')
     case 'cpo_price': {
       const c = props.item.operator?.card
       if (!c) return ''

@@ -13,7 +13,7 @@ export type FeedTarget =
   | { kind: 'prices'; benchmark: ChargingBenchmark; pricePerKwh: number }
 
 const SHEET_OF: Partial<Record<StoryFeedItem['id'], TileId>> = {
-  temperature_effect: 'wltp', autumn_forecast: 'range',
+  temperature_effect: 'wltp', autumn_forecast: 'range', standby_change: 'flow',
   cost_trend: 'cost', home_savings: 'cost', data_quality: 'cost',
   peer_cost_eur: 'peer',
 }

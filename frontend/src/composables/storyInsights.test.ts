@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
+  standbyChange,
   temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, ranksFromStandings, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth,
   COLD_MAX_C, MILD_MIN_C, MIN_TRIPS_PER_SIDE,
 } from './storyInsights'
@@ -392,5 +393,46 @@ describe('buildTripMonth: Fahrten des Monats für Kachel und Sheet', () => {
   it('ohne Fahrten oder ohne km nichts', () => {
     expect(buildTripMonth([], 57, true)).toBeNull()
     expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 0, 'CITY')], 57, true)).toBeNull()
+  })
+})
+
+describe('standbyChange: Standverlust gegen die drei Vormonate, je gemessenem Tag', () => {
+  // Erste Fahrt am Tag "from" um 0 Uhr, letzte am Tag "to" bis 24 Uhr: gemessen sind to - from + 1 Tage, dazwischen "kwh" Stand
+  let n = 0
+  const parked = (from: string, to: string, kwh: number) => [
+    { id: `a${++n}`, tripStartedAt: `${from}T00:00:00Z`, tripEndedAt: `${from}T00:30:00Z`, distanceKm: 10, socStart: null, socEnd: null,
+      energyRemainingStartKwh: 60, energyRemainingEndKwh: 58, odometerStartKm: 1000, odometerEndKm: 1010 },
+    { id: `b${n}`, tripStartedAt: `${to}T23:30:00Z`, tripEndedAt: `${to}T23:59:59.999Z`, distanceKm: 10, socStart: null, socEnd: null,
+      energyRemainingStartKwh: 58 - kwh, energyRemainingEndKwh: 56 - kwh, odometerStartKm: 1010, odometerEndKm: 1020 },
+  ]
+  // Juli 31, August 31, September 30 gemessene Tage: je 0,4 kWh am Tag
+  const earlier = [...parked('2026-07-01', '2026-07-31', 12.4), ...parked('2026-08-01', '2026-08-31', 12.4), ...parked('2026-09-01', '2026-09-30', 12)]
+  const base = { earlierTrips: earlier, capacityKwh: 75, year: 2026, month: 10 }
+
+  it('Oktober 1. bis 20.: 18 kWh sind 0,9 am Tag statt 0,4', () => {
+    const c = standbyChange({ ...base, trips: parked('2026-10-01', '2026-10-20', 18) })!
+    expect(c.perDay).toBeCloseTo(0.9)
+    expect(c.usualPerDay).toBeCloseTo(0.4)
+  })
+
+  it('Vormonat erst ab Monatsmitte verbunden: geteilt durch die gemessenen Tage, nicht durch den ganzen Monat', () => {
+    const lateStart = [...parked('2026-07-15', '2026-07-31', 6.8), ...parked('2026-08-01', '2026-08-31', 12.4), ...parked('2026-09-01', '2026-09-30', 12)]
+    const c = standbyChange({ ...base, earlierTrips: lateStart, trips: parked('2026-10-01', '2026-10-20', 18) })!
+    expect(c.usualPerDay).toBeCloseTo(0.4)
+    // 9 kWh in 20 Tagen sind 0,45 am Tag, gegen 0,4 kein Hinweis (mit ganzem Juli wären es 0,33 gewesen)
+    expect(standbyChange({ ...base, earlierTrips: lateStart, trips: parked('2026-10-01', '2026-10-20', 9) })).toBeNull()
+  })
+
+  it('kein Hinweis unter 50 % mehr, unter 0,2 kWh am Tag mehr, unter 10 gemessenen Tagen oder mit weniger als zwei Vormonaten ab 14 Tagen', () => {
+    expect(standbyChange({ ...base, trips: parked('2026-10-01', '2026-10-20', 11) })).toBeNull()
+    const small = [...parked('2026-07-01', '2026-07-31', 3.1), ...parked('2026-08-01', '2026-08-31', 3.1), ...parked('2026-09-01', '2026-09-30', 3)]
+    expect(standbyChange({ ...base, earlierTrips: small, trips: parked('2026-10-01', '2026-10-20', 5) })).toBeNull()
+    expect(standbyChange({ ...base, trips: parked('2026-10-01', '2026-10-09', 18) })).toBeNull()
+    const short = [...parked('2026-07-20', '2026-07-31', 4.8), ...parked('2026-08-20', '2026-08-31', 4.8), ...parked('2026-09-01', '2026-09-30', 12)]
+    expect(standbyChange({ ...base, earlierTrips: short, trips: parked('2026-10-01', '2026-10-20', 18) })).toBeNull()
+  })
+
+  it('ohne Standwerte im Monat kein Hinweis', () => {
+    expect(standbyChange({ ...base, trips: [] })).toBeNull()
   })
 })

@@ -32,6 +32,10 @@ describe('feedTarget: wohin eine Zeile unter "Diesen Monat" führt', () => {
     expect(feedTarget(it2, [])).toEqual({ kind: 'prices', benchmark, pricePerKwh: 0.5 })
   })
 
+  it('mehr Standverlust: das Strom-Sheet, wo der Stand aufgeschlüsselt ist', () => {
+    expect(feedTarget(item('standby_change', { perDay: 0.9, usualPerDay: 0.4 }), ['flow'])).toEqual({ kind: 'sheet', id: 'flow' })
+  })
+
   it('übrige Zeilen öffnen ihr Sheet nur, wenn es das Sheet gibt', () => {
     expect(feedTarget(item('temperature_effect', { deltaPercent: 20 }), ['wltp'])).toEqual({ kind: 'sheet', id: 'wltp' })
     expect(feedTarget(item('temperature_effect', { deltaPercent: 20 }), ['cost'])).toBeNull()

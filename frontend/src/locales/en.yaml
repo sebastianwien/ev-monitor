@@ -4542,6 +4542,8 @@ story:
   feed_quality_estimated: "Consumption is estimated for {estimated} of {total} charges."
   feed_quality_priceless: "One charge without a price, costs are incomplete. | {count} charges without a price, costs are incomplete."
   feed_temp: "Below {cold} °C your car needs {pct} % more than above {mild} °C (drivetrain consumption reported by the car)."
+  feed_standby: "Your car used more energy while parked than usual: {now} instead of {usual} per day."
+  feed_standby_sub: "Camera monitoring, preconditioning or an app that wakes the car is often behind it."
   sheet_flow_title: "Where does my power go?"
   sheet_flow_text: "{grid} from the grid, {vehicle} in the battery, {loss} charging loss ({pct} %)."
   sheet_flow_partial: "Measured on {covered} of {total} charges, the rest only have one of the two values."

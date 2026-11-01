@@ -133,6 +133,13 @@ describe('StoryFeedItem Insights mit Vergleichsbasis und Balken', () => {
     expect(text(none)).not.toContain('Mit ')
   })
 
+  it('mehr Standverlust: sachlicher Satz mit beiden Tageswerten, mögliche Ursachen darunter, kein Amber', () => {
+    const host = mount({ id: 'standby_change', question: 2, relevance: 70, sentiment: 'neutral', params: { perDay: 0.9, usualPerDay: 0.4 } })
+    expect(text(host)).toContain('Dein Auto hat im Stand mehr Strom verbraucht als sonst: 0,9 kWh statt 0,4 kWh am Tag.')
+    expect(text(host)).toContain('Oft steckt Kamera-Überwachung, Vorklimatisieren oder eine App dahinter, die das Auto weckt.')
+    expect(host.querySelector('b')!.className).not.toContain('amber')
+  })
+
   it('Heimlade-Ersparnis: Betrag vorn im Satz, Basis "12 Monate", keine Balken', () => {
     const host = mount({ id: 'home_savings', question: 1, relevance: 100, sentiment: 'good', params: { eur: 747.3, monthsRemaining: 14 } })
     expect(text(host)).toMatch(/^747\s€ gespart, weil du meist zu Hause lädst/)

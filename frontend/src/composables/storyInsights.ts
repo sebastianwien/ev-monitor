@@ -459,6 +459,66 @@ function priceBefore(at: string, pricing: StandbyPricing | undefined): number | 
 
 export type TripForMonth = TripForSummary & { routeType?: string | null }
 
+/** Standverlust des Monats je Tag gegen den Schnitt der Vormonate. */
+export interface StandbyChange {
+  perDay: number
+  usualPerDay: number
+}
+
+/** Ab so viel mehr Standverlust je Tag als sonst gibt es einen Hinweis: 50 % und mindestens 0,2 kWh. */
+const STANDBY_RISE_SHARE = 0.5
+const STANDBY_RISE_MIN_KWH = 0.2
+/** Gemessene Tage im Monat: vorher sind ein paar Tage Wächter-Modus schon "auffällig". */
+const STANDBY_MIN_DAYS = 10
+/** Ein Vormonat zählt erst mit so vielen gemessenen Tagen, sonst ist der übliche Wert Zufall. */
+const STANDBY_MIN_BASE_DAYS = 14
+const STANDBY_BASE_MONTHS = 3
+const STANDBY_MIN_BASE_MONTHS = 2
+const DAY_MS = 86_400_000
+
+/** Standverlust je Tag über die gemessene Spanne (erste Fahrt bis letzte); null unter minDays oder ohne Standwerte. */
+function standbyPerDay(trips: TripForSummary[], capacityKwh: number | null, minDays: number): number | null {
+  const kwh = summarizeTripMonth(trips, capacityKwh)?.standbyKwh
+  if (kwh == null) return null
+  const starts = trips.map(t => t.tripStartedAt ? new Date(t.tripStartedAt).getTime() : NaN).filter(Number.isFinite)
+  const ends = trips.map(t => t.tripEndedAt ? new Date(t.tripEndedAt).getTime() : NaN).filter(Number.isFinite)
+  if (!starts.length || !ends.length) return null
+  const days = (Math.max(...ends) - Math.min(...starts)) / DAY_MS
+  return days >= minDays ? kwh / days : null
+}
+
+/**
+ * Hat das Auto im Stand deutlich mehr verloren als in den Vormonaten? Je gemessenem Tag (erste bis letzte
+ * Fahrt), damit ein laufender Monat oder ein Vormonat, der erst zur Monatsmitte beginnt, vergleichbar bleibt.
+ * Monatsgrenzen in UTC wie die Abfrage der Fahrten; Basis sind mindestens zwei der drei Vormonate.
+ */
+export function standbyChange(input: {
+  trips: TripForSummary[]
+  earlierTrips: TripForSummary[]
+  capacityKwh: number | null
+  year: number
+  month: number
+}): StandbyChange | null {
+  const perDay = standbyPerDay(input.trips, input.capacityKwh, STANDBY_MIN_DAYS)
+  if (perDay == null) return null
+  const base: number[] = []
+  for (let i = 1; i <= STANDBY_BASE_MONTHS; i++) {
+    const from = Date.UTC(input.year, input.month - 1 - i, 1)
+    const to = Date.UTC(input.year, input.month - i, 1)
+    const inMonth = input.earlierTrips.filter(t => {
+      const at = t.tripStartedAt ? new Date(t.tripStartedAt).getTime() : NaN
+      return at >= from && at < to
+    })
+    const v = standbyPerDay(inMonth, input.capacityKwh, STANDBY_MIN_BASE_DAYS)
+    if (v != null) base.push(v)
+  }
+  if (base.length < STANDBY_MIN_BASE_MONTHS) return null
+  const usualPerDay = base.reduce((a, b) => a + b, 0) / base.length
+  const rise = perDay - usualPerDay
+  if (rise < STANDBY_RISE_MIN_KWH || rise < usualPerDay * STANDBY_RISE_SHARE) return null
+  return { perDay, usualPerDay }
+}
+
 /**
  * Baut die Monatszahlen der Fahrten aus der vorhandenen Auswertung (summarizeTripMonth) plus den
  * Streckentypen. Der Standverlust ist ein Analytics-Wert und nur mit Freischaltung sichtbar.

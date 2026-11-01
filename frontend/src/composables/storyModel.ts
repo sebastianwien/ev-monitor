@@ -8,7 +8,7 @@ import type { StatisticsData, ChargeDataPoint, ChargingTypeSplit } from './useDa
 import { PETROL_KG_CO2_PER_L, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
 import { combustionLiters } from '../utils/costMix'
 import { energyUse, type EnergyFlow, type EnergyUse, type RangeEstimate } from './storyEnergy'
-import type { ModelPeers, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
+import type { ModelPeers, DataQuality, TemperatureEffect, TripMonth, StandbyChange } from './storyInsights'
 import type { OperatorGap } from './storyPlaces'
 import { dayKeyOf, drivenByDay, type DrivenDay, type OdometerGap } from './storyDay'
 
@@ -68,6 +68,7 @@ export interface StoryTile {
 
 export type FeedId =
   | 'autumn_forecast' | 'peer_cost_eur' | 'home_savings' | 'cpo_price' | 'cost_trend' | 'data_quality' | 'temperature_effect'
+  | 'standby_change'
 
 export interface StoryFeedItem {
   id: FeedId
@@ -109,6 +110,8 @@ export interface StoryInput {
   monthlyDistance?: number[]
   /** Betreiber des Monats, bei dem du am meisten mehr zahlst als andere Fahrer dort; null ohne. */
   operatorGap?: OperatorGap | null
+  /** Standverlust je Tag deutlich über den Vormonaten; null ohne Auffälligkeit oder ohne Freischaltung. */
+  standbyChange?: StandbyChange | null
   monthlyConsumption: number[]
   /** Fahrverbrauch je Monat, gleiche Reihenfolge, 0 ohne Wert; Balken der WLTP-Kachel, wenn sie mit Fahrten rechnet. */
   monthlyDriveConsumption?: number[]
@@ -543,6 +546,18 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
       sentiment: 'neutral',
       params: { extraEur: op.extraEur },
       operator: op,
+    })
+  }
+
+  // Mehr Standverlust als sonst: ein sachlicher Hinweis mit möglichen Ursachen, nie Alarm.
+  const sb = input.standbyChange
+  if (sb) {
+    items.push({
+      id: 'standby_change',
+      question: 2,
+      relevance: 70,
+      sentiment: 'neutral',
+      params: { perDay: sb.perDay, usualPerDay: sb.usualPerDay },
     })
   }
 

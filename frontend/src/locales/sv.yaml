@@ -4384,6 +4384,8 @@ story:
   feed_quality_estimated: "Förbrukningen är uppskattad för {estimated} av {total} laddningar."
   feed_quality_priceless: "En laddning utan pris, kostnaderna är ofullständiga. | {count} laddningar utan pris, kostnaderna är ofullständiga."
   feed_temp: "Under {cold} °C behöver din bil {pct} % mer än över {mild} °C (drivlineförbrukning rapporterad av bilen)."
+  feed_standby: "Din bil förbrukade mer el när den stod parkerad än vanligt: {now} i stället för {usual} per dag."
+  feed_standby_sub: "Ofta ligger kameraövervakning, förvärmning eller en app som väcker bilen bakom."
   sheet_flow_title: "Vart tar min el vägen?"
   sheet_flow_text: "{grid} från nätet, {vehicle} i batteriet, {loss} laddförlust ({pct} %)."
   sheet_flow_partial: "Mätt på {covered} av {total} laddningar, resten har bara ett av de två värdena."

@@ -4548,6 +4548,8 @@ story:
   feed_quality_estimated: "Bei {estimated} von {total} Ladungen ist der Verbrauch geschätzt."
   feed_quality_priceless: "Eine Ladung ohne Preis, die Kosten sind unvollständig. | {count} Ladungen ohne Preis, die Kosten sind unvollständig."
   feed_temp: "Unter {cold} °C braucht dein Auto {pct} % mehr als über {mild} °C (Antriebsverbrauch laut Fahrzeug)."
+  feed_standby: "Dein Auto hat im Stand mehr Strom verbraucht als sonst: {now} statt {usual} am Tag."
+  feed_standby_sub: "Oft steckt Kamera-Überwachung, Vorklimatisieren oder eine App dahinter, die das Auto weckt."
   sheet_flow_title: "Wo bleibt mein Strom?"
   sheet_flow_text: "{grid} vom Netz, {vehicle} im Akku, {loss} Ladeverlust ({pct} %)."
   sheet_flow_partial: "Gemessen bei {covered} von {total} Ladungen, die übrigen haben nur einen der beiden Werte."
