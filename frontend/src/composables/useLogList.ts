@@ -231,16 +231,21 @@ export function useLogList(
 
   /** Bis morgen: das Ende einer Lücke ist der Start einer Fahrt und liegt nie nach jetzt */
   const gapsQuery = () => `/trips/gaps?carId=${selectedCarId.value}${feedWindow.queryParams.value}&to=${new Date(Date.now() + 86_400_000).toISOString()}`
-  /** Fehler werden zu leer: ohne Lücken bleibt das Logbuch wie bisher */
+  /**
+   * Nur die zuletzt gestartete Anfrage schreibt: sonst überschreibt nach einem Auto- oder Zeitraumwechsel
+   * eine ältere Antwort die Lücken des neuen. Fehler werden zu leer, ohne Lücken bleibt das Logbuch wie bisher.
+   */
+  let gapsSeq = 0
+  const requestGaps = () => {
+    const mine = ++gapsSeq
+    return api.get(gapsQuery()).then(
+      res => { if (mine === gapsSeq) gaps.value = Array.isArray(res.data) ? res.data : [] },
+      () => { if (mine === gapsSeq) gaps.value = [] },
+    )
+  }
   const fetchGaps = async () => {
     if (!selectedCarId.value) return
-    const carId = selectedCarId.value
-    try {
-      const res = await api.get(gapsQuery())
-      if (carId === selectedCarId.value) gaps.value = Array.isArray(res.data) ? res.data : []
-    } catch {
-      if (carId === selectedCarId.value) gaps.value = []
-    }
+    await requestGaps()
   }
 
   const fetchTrips = async () => {
@@ -273,17 +278,16 @@ export function useLogList(
     logsLoading.value = true
     try {
       const window = feedWindow.queryParams.value
-      const [logsRes, tripsRes, latestLogRes, latestTripRes, gapsRes] = await Promise.all([
+      const [logsRes, tripsRes, latestLogRes, latestTripRes] = await Promise.all([
         api.get(`/logs?carId=${carId}${window}`),
         api.get(`/trips?carId=${carId}${window}`),
         withLatest ? api.get(`/logs?carId=${carId}&limit=1`) : null,
         withLatest ? api.get(`/trips?carId=${carId}&limit=1`) : null,
-        api.get(gapsQuery()).catch(() => null),
+        requestGaps(),
       ])
       if (seq !== fetchSeq) return
       logs.value = logsRes.data
       trips.value = tripsRes.data
-      gaps.value = Array.isArray(gapsRes?.data) ? gapsRes.data : []
       if (latestLogRes) latestLog.value = latestLogRes.data[0] ?? null
       if (latestTripRes) latestTrip.value = latestTripRes.data[0] ?? null
     } catch {
@@ -522,6 +526,7 @@ export function useLogList(
     logs.value = []
     trips.value = []
     gaps.value = []
+    gapsSeq++
     latestLog.value = null
     latestTrip.value = null
     expandedGroups.value = new Set()
