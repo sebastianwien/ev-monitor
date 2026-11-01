@@ -397,12 +397,13 @@ onUnmounted(() => unregisterReload?.())
       <!-- Eine Box: oben Auto und Monat, darunter ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts eine stehende Spalte:
            Neuigkeiten und Feed, oder das Detail der gewählten Kachel. -->
       <!-- Wischen blättert die Monate, die Box geht mit, dahinter steht senkrecht der Zielmonat, immer an derselben
-           Stelle am Rand; ab der Schwelle grün. Im laufenden Monat führt der Wisch nach links wie überall direkt zu den Logs.
+           Stelle am Rand und über die volle Höhe; ab der Schwelle grün. Im laufenden Monat führt der Wisch nach links wie überall direkt zu den Logs.
            touch-pan-y: waagerecht gehört der App, sonst bricht der Browser die Geste ab -->
       <div class="relative overflow-hidden md:overflow-visible">
       <div v-if="dragX !== 0" class="absolute inset-y-0 bg-gray-100 dark:bg-gray-800" :class="dragX > 0 ? 'left-0' : 'right-0'"
         :style="{ width: `${Math.abs(dragX)}px` }" aria-hidden="true" data-testid="story-swipe-strip">
-        <span class="absolute top-8 whitespace-nowrap text-[22px] font-bold uppercase tracking-[0.15em] [writing-mode:vertical-rl] transition-colors"
+        <!-- Buchstaben über die ganze Höhe verteilt (justify), egal wie hoch die Box ist -->
+        <span class="absolute inset-y-6 whitespace-nowrap text-[26px] font-bold uppercase leading-none [text-align-last:justify] [writing-mode:vertical-rl] transition-colors"
           :class="[dragX > 0 ? 'left-4' : 'right-4', Math.abs(dragX) >= swipeThreshold ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400']">{{ dragX > 0 ? swipeLabels.prev : swipeLabels.next }}</span>
       </div>
       <section ref="heroBox" class="relative grid touch-pan-y grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box"
