@@ -14,6 +14,7 @@ import org.springframework.http.*;
 
 import java.math.BigDecimal;
 import java.time.OffsetDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -993,7 +994,7 @@ class TripControllerTest extends AbstractIntegrationTest {
         // verborgene Fahrt hinweg und verrät deren Zeiten nicht.
         User freeUser = createAndSaveUser("trip-gaps-free-" + System.nanoTime() + "@example.com");
         Car polestar = createAndSaveCar(freeUser.getId(), CarBrand.CarModel.POLESTAR_2);
-        OffsetDateTime start = OffsetDateTime.now().minusDays(3).truncatedTo(java.time.temporal.ChronoUnit.SECONDS);
+        OffsetDateTime start = OffsetDateTime.now().minusDays(3).truncatedTo(ChronoUnit.SECONDS);
         saveOdometerTrip(polestar, start, "100.0", "110.0", "POLESTAR_DATA_PORTAL");
         saveOdometerTrip(polestar, start.plusHours(5), "110.0", "130.0", "SMARTCAR_LIVE");
         saveOdometerTrip(polestar, start.plusDays(1), "140.0", "150.0", "POLESTAR_DATA_PORTAL");
