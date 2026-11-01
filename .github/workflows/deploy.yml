@@ -15,7 +15,9 @@ env:
   FRONTEND_IMAGE: ghcr.io/sebastianwien/ev-monitor-frontend
 
 jobs:
-  build:
+  # Frontend-Build laeuft parallel zu den Backend-Tests (der laengste Posten), das Image
+  # braucht nur frontend/dist. Gemessen 01.11.2026: spart rund eine Minute Gesamtlaufzeit.
+  frontend:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -23,23 +25,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up JDK 21
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'gradle'
-
-      - name: Grant execute permission for gradlew
-        run: chmod +x backend/gradlew
-
-      - name: Run Backend Tests and build jar
-        run: |
-          cd backend
-          ./gradlew test bootJar
-          # Neben dem Boot-Jar liegt ein -plain.jar, fürs Image nur das Boot-Jar
-          find build/libs -name '*.jar' ! -name '*-plain.jar' -exec cp {} build/app.jar \;
 
       - name: Set up Node.js 22
         uses: actions/setup-node@v4
@@ -73,6 +58,54 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: nginx/Dockerfile
+          target: frontend
+          push: true
+          tags: |
+            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
+            ${{ github.ref == 'refs/heads/main' && format('{0}:latest-main', env.FRONTEND_IMAGE) || '' }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x backend/gradlew
+
+      - name: Run Backend Tests and build jar
+        run: |
+          cd backend
+          ./gradlew test bootJar
+          # Neben dem Boot-Jar liegt ein -plain.jar, fürs Image nur das Boot-Jar
+          find build/libs -name '*.jar' ! -name '*-plain.jar' -exec cp {} build/app.jar \;
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push backend image
         uses: docker/build-push-action@v6
         with:
@@ -87,20 +120,6 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: nginx/Dockerfile
-          target: frontend
-          push: true
-          tags: |
-            ${{ env.FRONTEND_IMAGE }}:${{ github.sha }}
-            ${{ github.ref == 'refs/heads/main' && format('{0}:latest-main', env.FRONTEND_IMAGE) || '' }}
-          labels: |
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
 
       # Gleicher Tree-Hash wie deploy-release.sh auf dem Server (git rev-parse <sha>:nginx)
       - name: Check nginx image
@@ -133,7 +152,7 @@ jobs:
           cache-to: type=gha,scope=nginx,mode=max
 
   deploy:
-    needs: build
+    needs: [build, frontend]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     permissions:
@@ -208,7 +227,7 @@ jobs:
   # Deployment unabhaengig, erst die Registrierung braucht das neue Backend.
   # Wird uebersprungen, wenn APP_BUNDLE_PUBLISH_TOKEN nicht gesetzt ist.
   build-live-update:
-    needs: build
+    needs: [build, frontend]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
     env:
