@@ -114,3 +114,21 @@ describe('resolveTripWindow', () => {
     expect(new Date(w.startMs).toISOString().slice(0, 10)).toBe('2026-09-01')
   })
 })
+
+describe('summarizeTripMonth mit Strecke ohne Aufzeichnung', () => {
+  const gap = { from: '2026-08-31T20:00:00Z', to: '2026-09-01T06:00:00Z', distanceKm: 23.7 }
+
+  it('zählt Lücken-km in die Strecke und in den Tag ihres Endes, nicht als Fahrt', () => {
+    const s = summarizeTripMonth(twoTrips, 60, [gap])!
+    expect(s.tripCount).toBe(2)
+    expect(s.totalDistanceKm).toBe(43.7)
+    expect(s.tripDistanceKm).toBe(20)
+    expect(s.perDay).toEqual([{ dateKey: '2026-09-01', km: 43.7, trips: 2 }])
+    expect(s.activeDays).toBe(1)
+  })
+
+  it('rechnet den Verbrauch je 100 km nur über echte Fahrten', () => {
+    const s = summarizeTripMonth(twoTrips, 60, [gap])!
+    expect(s.consumptionKwhPer100km).toBeCloseTo(15.0, 5)
+  })
+})

@@ -112,7 +112,7 @@ const sum = computed(() => {
             <!-- Der Punkt hängt am Wert: bricht die Zeile um, steht keiner allein am Ende -->
             <span v-for="text in tripDetails(event.trip)" :key="text" class="hidden whitespace-nowrap md:inline">· {{ text }}</span>
           </template>
-          <template v-else>
+          <template v-else-if="event.kind === 'charge'">
             <!-- Ladekarte: auf dem Handy eigene Zeile, ab 768 px weiter in der Zeile -->
             <template v-if="cardOf(event)">
               <span class="basis-full md:hidden" aria-hidden="true" />

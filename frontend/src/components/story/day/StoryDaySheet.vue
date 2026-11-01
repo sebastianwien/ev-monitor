@@ -8,6 +8,7 @@ import LogEditPanel, { type EvLogResponse } from '../../dashboard/LogEditPanel.v
 import DayRibbon from './DayRibbon.vue'
 import DayTimeline from './DayTimeline.vue'
 import DayTripPanel from './DayTripPanel.vue'
+import GapDetail from './GapDetail.vue'
 import LogbookBundle from '../../logbook/LogbookBundle.vue'
 import { useIsMobile } from '../../../composables/useIsMobile'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
@@ -15,7 +16,7 @@ import { useLogsRefreshStore } from '../../../stores/logsRefresh'
 import { analytics } from '../../../services/analytics'
 import { toLocalDatetimeInput } from '../../../utils/tripForm'
 import {
-  dayRange, shiftDay, eventsOfDay, daySummary, dayAtNow, bundleEvents, type DayEvent, type DayLog, type DayTrip,
+  dayRange, shiftDay, eventsOfDay, daySummary, dayAtNow, bundleEvents, type DayEvent, type DayLog, type DayTrip, type OdometerGap,
 } from '../../../composables/storyDay'
 import { groupKeysOf } from '../../../utils/chargeGroups'
 
@@ -36,11 +37,14 @@ type Detail =
   | { kind: 'charge'; log: EvLogResponse; bundleId?: string }
   | { kind: 'trip'; trip: DayTrip | null }
   | { kind: 'bundle'; id: string }
+  | { kind: 'gap'; id: string; gap: OdometerGap }
 const detail = ref<Detail | null>(null)
 
 // ── Daten des Tages ──────────────────────────────────────────────────────────
 const logs = ref<(EvLogResponse & DayLog)[]>([])
 const trips = ref<DayTrip[]>([])
+/** Strecke ohne Aufzeichnung, die an diesem Tag endet; ohne Antwort bleibt der Tag wie bisher */
+const gaps = ref<OdometerGap[]>([])
 const loading = ref(false)
 const failed = ref(false)
 let request = 0
@@ -52,10 +56,13 @@ async function load() {
   loading.value = true
   failed.value = false
   try {
-    const [l, tr] = await Promise.all([api.get('/logs', { params }), api.get('/trips', { params })])
+    const [l, tr, g] = await Promise.all([
+      api.get('/logs', { params }), api.get('/trips', { params }), api.get('/trips/gaps', { params }).catch(() => null),
+    ])
     if (mine !== request) return
     logs.value = l.data
     trips.value = tr.data
+    gaps.value = Array.isArray(g?.data) ? g.data : []
     if (!opened) {
       opened = true
       analytics.track('story_day_open', { has_entries: events.value.length ? 'ja' : 'nein' })
@@ -66,7 +73,7 @@ async function load() {
     if (mine === request) loading.value = false
   }
 }
-const events = computed(() => eventsOfDay(day.value, trips.value, logs.value))
+const events = computed(() => eventsOfDay(day.value, trips.value, logs.value, gaps.value))
 /** Ablauf: Teilladungen als ein Bündel; das Diagramm zeigt weiter jede */
 const rows = computed(() => bundleEvents(events.value, groupKeysOf(logs.value)))
 const summary = computed(() => daySummary(events.value))
@@ -117,6 +124,7 @@ function openDetail(d: Detail) {
 const back = () => history.back()
 function select(e: DayEvent) {
   if (e.kind === 'charge' && e.parts) openDetail({ kind: 'bundle', id: e.id })
+  else if (e.kind === 'gap') openDetail({ kind: 'gap', id: e.id, gap: e.gap })
   else openDetail(e.kind === 'charge' ? { kind: 'charge', log: e.log as EvLogResponse & DayLog } : { kind: 'trip', trip: e.trip })
 }
 /** Teile des gewählten Bündels, aus dem frisch geladenen Tag */
@@ -162,7 +170,8 @@ function addCharge() {
 }
 const selectedId = computed(() => {
   const d = detail.value
-  return d?.kind === 'charge' ? d.bundleId ?? d.log.id : d?.kind === 'bundle' ? d.id : d?.trip?.id ?? null
+  if (!d) return null
+  return d.kind === 'charge' ? d.bundleId ?? d.log.id : d.kind === 'bundle' || d.kind === 'gap' ? d.id : d.trip?.id ?? null
 })
 </script>
 
@@ -243,6 +252,7 @@ const selectedId = computed(() => {
           </template>
           <LogEditPanel v-else-if="detail.kind === 'charge'" :log="detail.log" dismiss="back"
             @cancel="back" @saved="done('edit_charge')" @deleted="done('delete')" />
+          <GapDetail v-else-if="detail.kind === 'gap'" :gap="detail.gap" dismiss="back" @cancel="back" />
           <DayTripPanel v-else :trip="detail.trip" :car-id="carId" :new-end="newEnd"
             @back="back" @saved="done" @deleted="done('delete')" />
         </section>

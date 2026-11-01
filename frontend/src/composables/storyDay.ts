@@ -51,11 +51,26 @@ export interface DayLog {
   temperatureCelsius?: number | null
 }
 
+/**
+ * Strecke ohne Aufzeichnung (GET /trips/gaps): um so viel stieg der Kilometerstand zwischen dem Ende einer
+ * Fahrt (`from`) und dem Start der nächsten (`to`). Zählt in km-Summen am Tag von `to`, nie als Fahrt.
+ */
+export interface OdometerGap {
+  from: string
+  to: string
+  distanceKm: number
+}
+
 interface EventBase { id: string; from: number; to: number; socFrom: number | null; socTo: number | null }
 export type DayEvent =
   | (EventBase & { kind: 'trip'; trip: DayTrip })
   /** `parts`: Teilladungen eines Bündels, älteste zuerst; `log` ist dann die älteste. */
   | (EventBase & { kind: 'charge'; log: DayLog; parts?: DayLog[] })
+  /** Ohne Zeit und Akku: steht direkt vor der nächsten Fahrt, `from` und `to` sind deren Beginn. */
+  | (EventBase & { kind: 'gap'; gap: OdometerGap })
+/** Einträge mit Zeit und Akku: alles außer der Strecke ohne Aufzeichnung. */
+export type TimedEvent = Exclude<DayEvent, { kind: 'gap' }>
+const timed = (ev: DayEvent[]): TimedEvent[] => ev.filter((e): e is TimedEvent => e.kind !== 'gap')
 
 const DAY_MIN = 1440
 /** Halt, bis zu dem zwei Fahrten als eine gelten können. */
@@ -85,9 +100,18 @@ export function shiftDay(key: string, n: number): string {
   return keyOf(d)
 }
 
-/** Einträge eines Tages, zeitlich sortiert. Fahrt über Mitternacht gehört zum Starttag. */
-export function eventsOfDay(key: string, trips: DayTrip[], logs: DayLog[]): DayEvent[] {
+/**
+ * Einträge eines Tages, zeitlich sortiert. Fahrt über Mitternacht gehört zum Starttag. Eine Strecke ohne
+ * Aufzeichnung gehört zum Tag, an dem sie endet, und steht vor dem Eintrag, der zur selben Minute beginnt.
+ */
+export function eventsOfDay(key: string, trips: DayTrip[], logs: DayLog[], gaps: OdometerGap[] = []): DayEvent[] {
   const ev: DayEvent[] = []
+  for (const g of gaps) {
+    const end = new Date(g.to)
+    if (keyOf(end) !== key) continue
+    const at = minOfDay(end)
+    ev.push({ kind: 'gap', id: `gap-${g.to}`, from: at, to: at, socFrom: null, socTo: null, gap: g })
+  }
   for (const t of trips) {
     const start = new Date(t.tripStartedAt)
     if (keyOf(start) !== key) continue
@@ -104,7 +128,33 @@ export function eventsOfDay(key: string, trips: DayTrip[], logs: DayLog[]): DayE
     const to = Math.min(DAY_MIN, from + Math.max(1, l.chargeDurationMinutes ?? 1))
     ev.push({ kind: 'charge', id: l.id, from, to, socFrom: l.socBeforeChargePercent, socTo: l.socAfterChargePercent, log: l })
   }
-  return ev.sort((a, b) => a.from - b.from)
+  return ev.sort((a, b) => a.from - b.from || (a.kind === 'gap' ? 0 : 1) - (b.kind === 'gap' ? 0 : 1))
+}
+
+/** Liegt die Strecke ohne Aufzeichnung an einem Tag (Ortszeit)? Dann nennt die Zeile den Zeitraum statt "seit". */
+export const gapIsWithinOneDay = (g: OdometerGap): boolean => keyOf(new Date(g.from)) === keyOf(new Date(g.to))
+
+export interface DrivenDay { trips: number; km: number }
+
+/**
+ * km je Tag aus Fahrten plus Strecke ohne Aufzeichnung, Grundlage aller fahrt-basierten km-Summen. Eine Lücke
+ * zählt am Tag ihres Endes und nicht als Fahrt. `dayOf` gibt den Tagesschlüssel vor (Ortszeit oder Datum im ISO-Text).
+ */
+export function drivenByDay(
+  trips: { tripStartedAt?: string | Date | null; distanceKm?: number | null }[],
+  gaps: OdometerGap[],
+  dayOf: (at: string | Date) => string,
+): Map<string, DrivenDay> {
+  const days = new Map<string, DrivenDay>()
+  const add = (at: string | Date, km: number, trip: boolean) => {
+    const key = dayOf(at)
+    const d = days.get(key) ?? days.set(key, { trips: 0, km: 0 }).get(key)!
+    d.km += km
+    if (trip) d.trips++
+  }
+  for (const t of trips) if (t.tripStartedAt) add(t.tripStartedAt, t.distanceKm ?? 0, true)
+  for (const g of gaps) add(g.to, g.distanceKm, false)
+  return days
 }
 
 export const chargeKwh = (l: DayLog): number | null => l.kwhCharged ?? l.kwhAtVehicle
@@ -113,6 +163,7 @@ export function daySummary(ev: DayEvent[]) {
   let trips = 0, km = 0, charges = 0, kwh = 0, eur = 0
   for (const e of ev) {
     if (e.kind === 'trip') { trips++; km += e.trip.distanceKm ?? 0 }
+    else if (e.kind === 'gap') km += e.gap.distanceKm
     else { charges++; kwh += chargeKwh(e.log) ?? 0; eur += e.log.costEur ?? 0 }
   }
   return { trips, km, charges, kwh, eur }
@@ -202,11 +253,13 @@ export interface RibbonLine { kind: 'trip' | 'charge' | 'idle'; x1: number; soc1
 
 /**
  * Tagesband über 24 h (x in Minuten): Akkulinie aus gemessenen SoC-Punkten, Standzeit gestrichelt,
- * keine Linie vor dem ersten und nach dem letzten Eintrag. Darunter ein Band je Eintrag.
+ * keine Linie vor dem ersten und nach dem letzten Eintrag. Darunter ein Band je Eintrag. Strecke ohne
+ * Aufzeichnung hat keine Zeit und keinen Akku, sie fehlt im Band.
  */
-export function ribbonSegments(ev: DayEvent[]) {
+export function ribbonSegments(all: DayEvent[]) {
+  const ev = timed(all)
   const lines: RibbonLine[] = []
-  const dots: { kind: DayEvent['kind']; x: number; soc: number }[] = []
+  const dots: { kind: TimedEvent['kind']; x: number; soc: number }[] = []
   let prev: [number, number] | null = null
   for (const e of ev) {
     if (prev && e.socFrom != null) lines.push({ kind: 'idle', x1: prev[0], soc1: prev[1], x2: e.from, soc2: e.socFrom })
@@ -236,7 +289,8 @@ export interface BatteryBar { from: number; soc: number | null; kind: 'charge' |
  * des Abschnitts (linear zwischen gemessenen Werten). Vor dem ersten und nach dem letzten
  * Messwert kein Balken, dort ist der Stand unbekannt. Farbe: laden vor fahren vor stehen.
  */
-export function batteryBars(ev: DayEvent[], slot = 30): BatteryBar[] {
+export function batteryBars(all: DayEvent[], slot = 30): BatteryBar[] {
+  const ev = timed(all)
   const pts: [number, number][] = []
   for (const l of ribbonSegments(ev).lines) pts.push([l.x1, l.soc1], [l.x2, l.soc2])
   for (const d of ribbonSegments(ev).dots) pts.push([d.x, d.soc])
@@ -253,7 +307,7 @@ export function batteryBars(ev: DayEvent[], slot = 30): BatteryBar[] {
   return Array.from({ length: DAY_MIN / slot }, (_, i) => {
     const from = i * slot, to = from + slot
     const known = pts.length > 0 && from < last! && to > first!
-    const over = (k: DayEvent['kind']) => ev.some(e => e.kind === k && barOfEvent({ from }, e, slot))
+    const over = (k: TimedEvent['kind']) => ev.some(e => e.kind === k && barOfEvent({ from }, e, slot))
     return { from, soc: known ? Math.round(socAt(Math.min(to, last!)) * 10) / 10 : null, kind: over('charge') ? 'charge' : over('trip') ? 'trip' : 'idle' }
   })
 }

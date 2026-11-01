@@ -4,7 +4,8 @@ import { useI18n } from 'vue-i18n'
 import { BoltIcon, MapIcon, ChevronRightIcon, LinkIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import {
-  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, bundleTotals, SHORT_TRIP_KM, type DayEvent,
+  chargeKwh, chargePlace, missingOf, canMerge, showStanding, gapMinutes, bundleTotals, gapIsWithinOneDay, SHORT_TRIP_KM,
+  type DayEvent, type TimedEvent, type OdometerGap,
 } from '../../../composables/storyDay'
 import { hasTripThumb, tripsCredit } from '../../../utils/tripMap'
 import StandingText from './StandingText.vue'
@@ -24,6 +25,8 @@ const ActivityLocationMap = defineAsyncComponent(() => import('../../dashboard/A
  * auch über Nacht vor dem ersten, die Reihenfolge neueste zuerst und je Fahrt eine Zeile mit Kosten (Slot `trip-extra`).
  * Ein Bündel (Lade-Ereignis mit `parts`) steht als eine Zeile: "09:12 | Zu Hause", darunter "6 Teilladungen · 50 → 73 %",
  * rechts die Summen. Die Zahl steht unten, weil oben auf dem Handy sonst der Ort abgeschnitten wird.
+ * Strecke ohne Aufzeichnung: grau, ohne Uhrzeit, Akku und Kosten, "23,7 km", darunter "ohne Aufzeichnung · seit 17.09.";
+ * zwei Fahrten mit kurzem Halt lassen sich über sie hinweg zusammenführen.
  */
 export interface StandingRow { minutes: number; kwh: number | null; eur?: number | null; unlockTo?: string | null }
 const props = defineProps<{
@@ -36,7 +39,7 @@ const props = defineProps<{
   noCredit?: boolean
 }>()
 const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent, later: DayEvent]; hover: [id: string | null] }>()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { formatDecimal, formatCurrency, formatCostPerKwh, formatTripDistance } = useLocaleFormat()
 
 const hm = (min: number) => min >= 1440 ? '24:00' : `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`
@@ -51,7 +54,7 @@ function placeName(e: DayEvent & { kind: 'charge' }) {
 /** Summen je Bündel, einmal je Liste */
 const totals = computed(() => new Map(props.events.flatMap(e => e.kind === 'charge' && e.parts ? [[e.id, bundleTotals(e.parts)] as const] : [])))
 /** Außentemperatur: Fahrt aus der Telemetrie, Ladung aus dem Ladevorgang */
-const tempOf = (e: DayEvent): number | null =>
+const tempOf = (e: TimedEvent): number | null =>
   (e.kind === 'trip' ? e.trip.outsideTempCelsius : e.log.temperatureCelsius) ?? null
 const partsOf = (e: DayEvent) => e.kind === 'charge' ? e.parts?.length ?? 0 : 0
 const costOf = (e: DayEvent & { kind: 'charge' }) => totals.value.get(e.id)?.costEur ?? (e.parts ? null : e.log.costEur)
@@ -80,6 +83,13 @@ const isShort = (e: DayEvent) => e.kind === 'trip' && e.trip.distanceKm != null 
 /** Die Minikarten tragen keine eigene Attribution - sie steht einmal unter der Liste. */
 const credit = computed(() => props.noCredit ? null : tripsCredit(props.events.flatMap(e => e.kind === 'trip' && !isShort(e) ? [e.trip] : [])))
 
+/** Zweite Zeile der Strecke ohne Aufzeichnung: an einem Tag der Zeitraum, sonst seit wann */
+const minOf = (iso: string) => { const d = new Date(iso); return d.getHours() * 60 + d.getMinutes() }
+function gapLine(g: OdometerGap): string {
+  if (gapIsWithinOneDay(g)) return t('storyday.gap_between', { from: hm(minOf(g.from)), to: hm(minOf(g.to)) })
+  return t('storyday.gap_since', { date: new Date(g.from).toLocaleDateString(locale.value, { day: '2-digit', month: '2-digit' }) })
+}
+
 /** Zusammenführen: erst fragen, dann tun. Schlüssel = id der früheren Fahrt. */
 const confirming = ref<string | null>(null)
 
@@ -105,15 +115,22 @@ function lineClass(i: number, isEvent: boolean, idle = false): string {
   if (i === n - 1) return `${line} before:top-0 ${isEvent ? 'before:h-[26px]' : 'before:h-1/2'}`
   return `${line} before:inset-y-0`
 }
+/** Letzter Eintrag mit Zeit vor Index i: über eine Strecke ohne Aufzeichnung hinweg zusammenführen */
+function timedBefore(i: number): DayEvent | null {
+  for (let j = i - 1; j >= 0; j--) if (props.events[j].kind !== 'gap') return props.events[j]
+  return null
+}
 const items = computed<Item[]>(() => {
   const groups = props.events.map((e, i) => {
     const prev = i ? props.events[i - 1] : null
+    const mergeWith = prev?.kind === 'gap' && e.kind === 'trip' ? timedBefore(i) : prev
+    const merge = !!mergeWith && canMerge(mergeWith, e)
     const base = { e, prev, s: null }
-    const s = prev && canMerge(prev, e) ? null : standingBefore(prev, e)
-    const gap: Item[] = prev && canMerge(prev, e) ? [{ ...base, key: `m-${e.id}`, kind: 'merge' }]
+    const s = merge ? null : standingBefore(prev, e)
+    const between: Item[] = merge ? [{ ...base, prev: mergeWith, key: `m-${e.id}`, kind: 'merge' }]
       : s ? [{ ...base, key: `s-${e.id}`, kind: 'standing', s }] : []
     const row: Item = { ...base, key: e.id, kind: 'event' }
-    return props.newestFirst ? [row, ...gap] : [...gap, row]
+    return props.newestFirst ? [row, ...between] : [...between, row]
   })
   return (props.newestFirst ? groups.reverse() : groups).flat()
 })
@@ -145,6 +162,23 @@ const items = computed<Item[]>(() => {
       </li>
       <li v-else-if="kind === 'standing'" class="flex min-h-11 flex-wrap items-center gap-x-1.5 pl-14 text-[12px] tabular-nums text-gray-500 dark:text-gray-400" :class="lineClass(idx, false, true)" data-testid="day-standing">
         <StandingText v-bind="s!" />
+      </li>
+
+      <!-- Strecke ohne Aufzeichnung: grau, ohne Uhrzeit, Akku und Kosten; Tipp öffnet die Erklärung -->
+      <li v-else-if="e.kind === 'gap'" :class="lineClass(idx, true)">
+        <button type="button" data-testid="day-row-gap" :aria-current="e.id === selectedId"
+          class="relative flex min-h-14 w-full items-start gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-green-600 dark:hover:bg-white/5"
+          :class="e.id === selectedId ? 'bg-green-50 dark:bg-green-400/10' : ''"
+          @click="emit('select', e)" @mouseenter="emit('hover', e.id)" @mouseleave="emit('hover', null)">
+          <span class="z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-dashed border-gray-300 bg-white text-gray-400 dark:border-gray-600 dark:bg-gray-900">
+            <MapIcon class="h-[18px] w-[18px]" aria-hidden="true" />
+          </span>
+          <span class="min-w-0 flex-1 pt-2">
+            <span class="block text-[15px] font-semibold leading-snug tabular-nums text-gray-500 dark:text-gray-400"><span class="sr-only">{{ t('storyday.gap_title') }} </span>{{ formatTripDistance(e.gap.distanceKm) }}</span>
+            <span class="block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ gapLine(e.gap) }}</span>
+          </span>
+          <ChevronRightIcon class="-ml-1 mt-2.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
+        </button>
       </li>
 
       <li v-else :class="lineClass(idx, true)">

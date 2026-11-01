@@ -10,6 +10,7 @@ import { combustionLiters } from '../utils/costMix'
 import { energyUse, type EnergyFlow, type EnergyUse, type RangeEstimate } from './storyEnergy'
 import type { ModelPeers, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
 import type { ChargingPlace } from './storyPlaces'
+import { dayKeyOf, drivenByDay, type DrivenDay, type OdometerGap } from './storyDay'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
 /** Feste Reihenfolge der Kacheln, siehe TILE_ORDER. */
@@ -599,8 +600,17 @@ export function monthWindow(year: number, month: number, offset = 0): { start: s
 
 
 
-/** Tage des Monats: Ladungen und Fahrten je Tag, Tage nach heute, längste Strecke ohne beides. */
-export function buildDayCoverage(points: ChargeDataPoint[], year: number, month: number, now: number = Date.now(), trips: DayTrip[] = []): DayCoverage[] {
+/** Fahrten und Strecke ohne Aufzeichnung eines Monats für die Tagesleiste. */
+export interface MonthDrives {
+  trips?: DayTrip[]
+  gaps?: OdometerGap[]
+}
+
+/**
+ * Tage des Monats: Ladungen und Fahrten je Tag, Tage nach heute, längste Strecke ohne beides. Strecke ohne
+ * Aufzeichnung zählt in die km des Tages, an dem sie endet, nicht als Fahrt.
+ */
+export function buildDayCoverage(points: ChargeDataPoint[], year: number, month: number, now: number = Date.now(), drives: MonthDrives = {}): DayCoverage[] {
   const daysInMonth = new Date(year, month, 0).getDate()
   const today = new Date(now)
   const lastPast = today.getFullYear() === year && today.getMonth() + 1 === month ? today.getDate() : daysInMonth
@@ -615,16 +625,13 @@ export function buildDayCoverage(points: ChargeDataPoint[], year: number, month:
     acc.kwh += p.kwhCharged ?? 0
     perDay.set(d.getDate(), acc)
   }
-  const tripDay = new Map<number, { trips: number; km: number }>()
-  for (const tr of trips) {
-    if (!tr.tripStartedAt) continue
-    const d = new Date(tr.tripStartedAt)
-    if (d.getFullYear() !== year || d.getMonth() + 1 !== month) continue
-    withData.add(d.getDate())
-    const acc = tripDay.get(d.getDate()) ?? { trips: 0, km: 0 }
-    acc.trips += 1
-    acc.km += tr.distanceKm ?? 0
-    tripDay.set(d.getDate(), acc)
+  const tripDay = new Map<number, DrivenDay>()
+  const prefix = `${year}-${String(month).padStart(2, '0')}-`
+  for (const [key, d] of drivenByDay(drives.trips ?? [], drives.gaps ?? [], dayKeyOf)) {
+    if (!key.startsWith(prefix)) continue
+    const day = Number(key.slice(prefix.length))
+    withData.add(day)
+    tripDay.set(day, d)
   }
   let bestStart = 0, bestLen = 0, runStart = 0, runLen = 0
   for (let day = 1; day <= lastPast; day++) {

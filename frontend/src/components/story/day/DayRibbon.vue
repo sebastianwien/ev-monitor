@@ -16,14 +16,16 @@ const { t } = useI18n()
 
 const bars = computed(() => batteryBars(props.events))
 const caption = computed(() => ribbonSegments(props.events).caption)
+/** Strecke ohne Aufzeichnung hat keine Zeit: kein Balken, hebt nichts hervor */
+const timed = computed(() => props.events.filter(e => e.kind !== 'gap'))
 const barClass = (b: BatteryBar) => b.kind === 'charge'
   ? 'bg-green-600 dark:bg-green-400'
   : b.kind === 'trip' ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-300 dark:bg-gray-600'
 const pct = (v: number) => `${Math.round(v)} %`
-const highlighted = computed(() => props.events.filter(e => props.highlightIds?.includes(e.id)))
+const highlighted = computed(() => timed.value.filter(e => props.highlightIds?.includes(e.id)))
 const dimmed = (b: BatteryBar) => highlighted.value.length > 0 && !highlighted.value.some(e => barOfEvent(b, e))
 function pick(b: BatteryBar) {
-  const over = props.events.filter(e => barOfEvent(b, e))
+  const over = timed.value.filter(e => barOfEvent(b, e))
   const e = over.find(v => v.kind === 'charge') ?? over[0]
   if (e) emit('select', e)
 }

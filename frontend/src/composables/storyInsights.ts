@@ -2,6 +2,7 @@ import { tripTimestamp } from '../utils/recentActivity'
 import { tripConsumption, type TripForCalc } from '../utils/tripCalculations'
 import { calcCostPer100km } from './useDashboardStats'
 import { summarizeTripMonth, type TripForSummary } from '../utils/tripMonthSummary'
+import type { OdometerGap } from './storyDay'
 import type { PeerModelComparisonResponse } from '../api/peerModelComparisonService'
 
 /**
@@ -456,8 +457,8 @@ export type TripForMonth = TripForSummary & { routeType?: string | null }
  * Baut die Monatszahlen der Fahrten aus der vorhandenen Auswertung (summarizeTripMonth) plus den
  * Streckentypen. Der Standverlust ist ein Analytics-Wert und nur mit Freischaltung sichtbar.
  */
-export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: number | null, standbyVisible: boolean, pricing?: StandbyPricing): TripMonth | null {
-  const sum = summarizeTripMonth(trips, effectiveCapacityKwh)
+export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: number | null, standbyVisible: boolean, pricing?: StandbyPricing, gaps: OdometerGap[] = []): TripMonth | null {
+  const sum = summarizeTripMonth(trips, effectiveCapacityKwh, gaps)
   if (!sum || sum.totalDistanceKm <= 0) return null
   const kmByRoute = new Map<RouteKey, number>()
   for (const t of trips) {
@@ -481,7 +482,7 @@ export function buildTripMonth(trips: TripForMonth[], effectiveCapacityKwh: numb
   return {
     trips: sum.tripCount,
     km: sum.totalDistanceKm,
-    avgKm: sum.totalDistanceKm / sum.tripCount,
+    avgKm: sum.tripDistanceKm / sum.tripCount,
     lengthShares,
     driveKwhPer100km: sum.consumptionKwhPer100km,
     driveKwh: sum.drivetrainKwh,

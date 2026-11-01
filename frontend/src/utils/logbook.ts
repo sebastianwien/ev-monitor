@@ -1,5 +1,6 @@
 import {
-  eventsOfDay, dayKeyOf, shiftDay, daySummary, chargeKwh, bundleEvents, bundleTotals, type DayEvent, type DayLog, type DayTrip,
+  eventsOfDay, dayKeyOf, shiftDay, daySummary, chargeKwh, bundleEvents, bundleTotals,
+  type DayEvent, type DayLog, type DayTrip, type OdometerGap, type TimedEvent,
 } from '../composables/storyDay'
 import { groupKeysOf } from './chargeGroups'
 import { chargingEfficiencyPercent } from '../composables/useChargingEfficiency'
@@ -26,25 +27,33 @@ export interface LogbookOptions {
   drains?: Map<string, { kwh: number; eur: number | null }>
   /** € pro 100 km einer Menge Fahrten (tripGroupCostPer100km), hier keine eigene Formel. */
   costPer100km?: (trips: DayTrip[]) => number | null
+  /** Strecke ohne Aufzeichnung: eigene Zeile vor der nächsten Fahrt, zählt in die km von Tag und Monat */
+  gaps?: OdometerGap[]
 }
 
-const startMs = (e: DayEvent) => new Date(e.kind === 'trip' ? e.trip.tripStartedAt : e.log.loggedAt).getTime()
-const endMs = (e: DayEvent) => e.kind === 'trip'
+const startMs = (e: TimedEvent) => new Date(e.kind === 'trip' ? e.trip.tripStartedAt : e.log.loggedAt).getTime()
+const endMs = (e: TimedEvent) => e.kind === 'trip'
   ? new Date(e.trip.tripEndedAt).getTime()
   : startMs(e) + Math.max(1, e.log.chargeDurationMinutes ?? 1) * 60_000
 const monthOf = (key: string) => key.slice(0, 7)
 
-/** Standzeit vor jedem Eintrag, über Tagesgrenzen hinweg; nur wo ein Standverlust anfiel (und sichtbar ist). */
+/**
+ * Standzeit vor jedem Eintrag, über Tagesgrenzen hinweg; nur wo ein Standverlust anfiel (und sichtbar ist).
+ * Steht Strecke ohne Aufzeichnung direkt davor, gehört die Standzeit über sie, nicht zwischen sie und die Fahrt.
+ */
 function standingBefore(days: { events: DayEvent[] }[], drains?: LogbookOptions['drains']): Map<string, Standing> {
   const before = new Map<string, Standing>()
   let prevEnd: number | null = null
+  let gapId: string | null = null
   for (const e of days.flatMap(d => d.events)) {
+    if (e.kind === 'gap') { gapId = e.id; continue }
     if (prevEnd != null) {
       const drain = drains?.get(e.id)
       const minutes = Math.round((startMs(e) - prevEnd) / 60_000)
       // Überlappen sich zwei Einträge (Ladung läuft noch, Fahrt beginnt), gibt es keine Standzeit
-      if (drain && minutes > 0) before.set(e.id, { minutes, kwh: drain.kwh, eur: drain.eur })
+      if (drain && minutes > 0) before.set(gapId ?? e.id, { minutes, kwh: drain.kwh, eur: drain.eur })
     }
+    gapId = null
     prevEnd = Math.max(prevEnd ?? 0, endMs(e))
   }
   return before
@@ -63,13 +72,17 @@ function idleItems(run: string[], standing: Standing | null): LogbookItem[] {
 
 export function monthsOf(trips: DayTrip[], logs: DayLog[], opts: LogbookOptions = {}): LogbookMonth[] {
   // Einmal je Tag gruppieren: eventsOfDay je Tag über alle Einträge wäre Tage mal Einträge
-  const byDay = new Map<string, { trips: DayTrip[]; logs: DayLog[] }>()
-  const bucket = (key: string) => byDay.get(key) ?? byDay.set(key, { trips: [], logs: [] }).get(key)!
+  const byDay = new Map<string, { trips: DayTrip[]; logs: DayLog[]; gaps: OdometerGap[] }>()
+  const bucket = (key: string) => byDay.get(key) ?? byDay.set(key, { trips: [], logs: [], gaps: [] }).get(key)!
   for (const t of trips) bucket(dayKeyOf(t.tripStartedAt)).trips.push(t)
   for (const l of logs) bucket(dayKeyOf(l.loggedAt)).logs.push(l)
+  for (const g of opts.gaps ?? []) bucket(dayKeyOf(g.to)).gaps.push(g)
   const keys = [...byDay.keys()].sort()
   if (!keys.length) return []
-  const days = keys.map(key => ({ key, events: eventsOfDay(key, byDay.get(key)!.trips, byDay.get(key)!.logs) }))
+  const days = keys.map(key => {
+    const d = byDay.get(key)!
+    return { key, events: eventsOfDay(key, d.trips, d.logs, d.gaps) }
+  })
   // Standzeit vor den Teilen: vor dem Bündel steht die seiner ältesten Teilladung, sie trägt im Feed den Standverlust
   const before = standingBefore(days, opts.drains)
   const byKey = new Map(days.map(d => [d.key, d]))

@@ -69,7 +69,7 @@ import { latestChargeEntry, latestTripEntry } from '../utils/recentActivity'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
 import TripActivitySummaryCard from '../components/dashboard/TripActivitySummaryCard.vue'
-import { summarizeTripMonth, resolveTripWindow, tripsInWindow } from '../utils/tripMonthSummary'
+import { summarizeTripMonth, resolveTripWindow, tripsInWindow, gapsInWindow } from '../utils/tripMonthSummary'
 import { useDashboardCharts } from '../composables/useDashboardCharts'
 import { useVehicleCharging } from '../composables/useVehicleCharging'
 import { carDisplayName } from '../utils/enumLabel'
@@ -88,7 +88,7 @@ const {
   importBannerDismissed, teslaStatus, smartcarStatus, hasDistanceData, avgCostPer100km,
   fixedCostPerMonth, displayedCostPer100km, canShowFixedModes, effectiveCostMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
-  hasAnyLogs, mergedLogFeed, trips, latestLog, latestTrip: latestTripRaw, currentOdometerKm, sourceInfo, initCars,
+  hasAnyLogs, mergedLogFeed, trips, gaps, latestLog, latestTrip: latestTripRaw, currentOdometerKm, sourceInfo, initCars,
   editingLog, priceAmendingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
 } = useCarContext()
 
@@ -278,7 +278,7 @@ const tripMonthSummary = computed(() => {
   if (!stats.value || stats.value.totalCharges !== 0) return null
   const window = resolveTripWindow(selectedTimeRange.value, customStartDate.value, customEndDate.value, new Date())
   const windowed = tripsInWindow((trips.value ?? []) as unknown[] as any[], window)
-  return summarizeTripMonth(windowed, selectedCar.value?.effectiveBatteryCapacityKwh ?? null)
+  return summarizeTripMonth(windowed, selectedCar.value?.effectiveBatteryCapacityKwh ?? null, gapsInWindow(gaps.value ?? [], window))
 })
 
 const tripMonthLabel = computed(() => {

@@ -292,6 +292,20 @@ describe('buildTripMonth: Fahrten des Monats für Kachel und Sheet', () => {
     expect([m.tempMin, m.tempMax]).toEqual([8, 12])
   })
 
+  it('Strecke ohne Aufzeichnung zählt in die km, nicht in Fahrten, Schnitt, Anteile und längste Fahrt', () => {
+    const gaps = [{ from: '2026-10-01T18:00:00Z', to: '2026-10-02T08:00:00Z', distanceKm: 300 }]
+    const m = buildTripMonth([
+      tr('a', '2026-10-02T08:00:00Z', 70, 'CITY', 12),
+      tr('b', '2026-10-03T08:00:00Z', 30, 'HIGHWAY', 5),
+    ], 57, true, undefined, gaps)!
+    expect(m.trips).toBe(2)
+    expect(m.km).toBe(400)
+    expect(m.avgKm).toBe(50)
+    expect(m.longestKm).toBe(70)
+    expect(m.routeShares).toEqual([{ key: 'CITY', pct: 70 }, { key: 'HIGHWAY', pct: 30 }])
+    expect(m.driveKwhPer100km).toBeCloseTo(17, 0)
+  })
+
   it('ohne klaren Schwerpunkt kein Hauptstreckentyp, ohne Streckentypen keine Anteile', () => {
     expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, 'CITY'), tr('b', '2026-10-03T08:00:00Z', 60, 'HIGHWAY')], 57, true)!.mainRoute).toBe('HIGHWAY')
     expect(buildTripMonth([tr('a', '2026-10-02T08:00:00Z', 40, 'CITY'), tr('b', '2026-10-03T08:00:00Z', 35, 'HIGHWAY'), tr('c', '2026-10-03T09:00:00Z', 25, 'COMBINED')], 57, true)!.mainRoute).toBeNull()

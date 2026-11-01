@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest'
 import { barOfEvent,
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
   gapMinutes, canMerge, showStanding, ribbonSegments, dayAtNow, batteryBars, bundleEvents, bundleTotals,
-  type DayLog, type DayTrip, type DayEvent,
+  drivenByDay, gapIsWithinOneDay,
+  type DayLog, type DayTrip, type DayEvent, type OdometerGap,
 } from './storyDay'
 
 // Ortszeit wie die Tagesleiste: Zeiten in Ortszeit bauen, damit der Test in jeder Zeitzone gilt
@@ -214,5 +215,54 @@ describe('Bündel (Teilladungen eines Tages)', () => {
     expect(open.chargingType).toBeNull()
     // "Preis unbekannt" fehlt nicht, wie bei einer einzelnen Ladung
     expect(open.priceless.map(p => p.id)).toEqual(['b'])
+  })
+})
+
+describe('Strecke ohne Aufzeichnung (Lücke)', () => {
+  const gap = (over: Partial<OdometerGap> = {}): OdometerGap => ({ from: at(14, 18, 6), to: at(16, 9), distanceKm: 23.7, ...over })
+
+  it('steht am Tag, an dem sie endet, direkt vor der nächsten Fahrt', () => {
+    const ev = eventsOfDay('2026-08-16', [trip()], [log()], [gap()])
+    expect(ev.map(e => e.kind)).toEqual(['gap', 'trip', 'charge'])
+    expect(ev[0]).toMatchObject({ kind: 'gap', from: 540, to: 540, socFrom: null, socTo: null, gap: { distanceKm: 23.7 } })
+    expect(eventsOfDay('2026-08-14', [], [], [gap()])).toEqual([])
+  })
+
+  it('zählt im Tageskopf die km mit, aber nicht als Fahrt', () => {
+    const ev = eventsOfDay('2026-08-16', [trip()], [], [gap()])
+    expect(daySummary(ev)).toEqual({ trips: 1, km: 65.7, charges: 0, kwh: 0, eur: 0 })
+  })
+
+  it('hat im Tagesband keinen Balken und keine Akkulinie', () => {
+    const ev = eventsOfDay('2026-08-16', [trip()], [], [gap()])
+    const r = ribbonSegments(ev)
+    expect(r.bands.map(b => b.kind)).toEqual(['trip'])
+    expect(r.lines.every(l => l.kind !== ('gap' as string))).toBe(true)
+    expect(batteryBars(ev).filter(b => b.soc != null).every(b => b.kind === 'trip' || b.kind === 'idle')).toBe(true)
+  })
+
+  it('erkennt, ob sie an einem Tag liegt', () => {
+    expect(gapIsWithinOneDay(gap())).toBe(false)
+    expect(gapIsWithinOneDay(gap({ from: at(16, 7), to: at(16, 9) }))).toBe(true)
+  })
+})
+
+describe('drivenByDay (km je Tag aus Fahrten plus Lücken)', () => {
+  const key = dayKeyOf
+
+  it('zählt Lücken-km am Tag ihres Endes, ohne Fahrt', () => {
+    const days = drivenByDay(
+      [trip(), trip({ id: 't2', tripStartedAt: at(17, 9), distanceKm: 10 })],
+      [{ from: at(15, 20), to: at(16, 9), distanceKm: 5.5 }],
+      key,
+    )
+    expect(days.get('2026-08-16')).toEqual({ trips: 1, km: 47.5 })
+    expect(days.get('2026-08-17')).toEqual({ trips: 1, km: 10 })
+    expect(days.has('2026-08-15')).toBe(false)
+  })
+
+  it('überspringt Fahrten ohne Start und ohne Strecke zählt 0 km', () => {
+    const days = drivenByDay([trip({ tripStartedAt: null as unknown as string }), trip({ id: 'x', distanceKm: null })], [], key)
+    expect([...days.entries()]).toEqual([['2026-08-16', { trips: 1, km: 0 }]])
   })
 })

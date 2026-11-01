@@ -110,6 +110,30 @@ describe('monthsOf', () => {
     expect(day.kind === 'day' && day.standing.a).toEqual({ minutes: 90, kwh: 0.4, eur: 0.12 })
   })
 
+  describe('Strecke ohne Aufzeichnung', () => {
+    const gap = { from: at('2026-10-02', 18, 30), to: at('2026-10-03', 8), distanceKm: 23.7 }
+
+    it('steht im Blatt des Tages, an dem sie endet, vor der nächsten Fahrt, und zählt in die km des Monats', () => {
+      const months = monthsOf([trip('a', '2026-10-03', 8), trip('b', '2026-10-02', 18)], [], { gaps: [gap] })
+      const day = months[0].items[0]
+      expect(day.kind === 'day' && day.rows.map(e => e.kind)).toEqual(['gap', 'trip'])
+      expect(months[0].totals).toMatchObject({ trips: 2, km: 43.7 })
+    })
+
+    it('trägt die Standzeit davor, nicht die Fahrt dahinter', () => {
+      const drains = new Map([['a', { kwh: 0.3, eur: 0.09 }]])
+      const months = monthsOf([trip('a', '2026-10-03', 8), trip('b', '2026-10-02', 18)], [], { drains, gaps: [gap] })
+      const day = months[0].items[0]
+      const gapId = day.kind === 'day' ? day.rows[0].id : ''
+      expect(day.kind === 'day' && day.standing).toEqual({ [gapId]: { minutes: 810, kwh: 0.3, eur: 0.09 } })
+    })
+
+    it('ohne die Fahrt dahinter im Fenster steht sie trotzdem an ihrem Tag', () => {
+      const months = monthsOf([trip('b', '2026-10-02', 18)], [], { gaps: [gap] })
+      expect(kinds(months[0].items)).toEqual(['2026-10-03', '2026-10-02'])
+    })
+  })
+
   it('ohne Einträge kein Monat', () => {
     expect(monthsOf([], [])).toEqual([])
   })

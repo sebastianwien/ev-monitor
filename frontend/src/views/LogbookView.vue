@@ -39,7 +39,7 @@ const wide = useIsMobile('(min-width: 1024px)')
 
 const {
   selectedCarId, selectedCar, cars, carImageUrls, stats, setLogsSection,
-  logs, trips, logsLoading, mergedLogFeed, hasAnyLogs,
+  logs, trips, gaps, logsLoading, mergedLogFeed, hasAnyLogs,
   feedNextOlder, loadOlderFeed, refreshLogsAndGroups, mergeTripEntry, latestTrip, priceAmendingLog,
   fetchImplausibleCount, fetchStatistics, fetchPricelessCount,
   otherCars, openReassignModal, reassignSuccessMessage,
@@ -70,7 +70,7 @@ const cardNames = useChargingProviderNames()
 const hasTrips = computed(() => latestTrip.value != null)
 const chargeMonths = computed(() => hasTrips.value ? [] : chargeMonthsOf(logs.value as ChargeLog[]))
 const bookEmpty = computed(() => hasTrips.value ? !months.value.length : !chargeMonths.value.length)
-const months = computed(() => monthsOf(trips.value, logs.value, { drains: drains.value, costPer100km: per100 }))
+const months = computed(() => monthsOf(trips.value, logs.value, { drains: drains.value, costPer100km: per100, gaps: gaps.value }))
 /** Die Minikarten tragen keinen eigenen Hinweis; er steht einmal am Ende (OSM: einer genügt für mehrere Karten). */
 const credit = computed(() => tripsCredit(trips.value))
 
@@ -95,10 +95,16 @@ const shown = computed<LogbookSelection | null>(() => {
 watch([shown, logsLoading], ([s, busy]) => { if (!s && !busy && selection.value) selection.value = null })
 const selectedId = computed(() => {
   const s = selection.value
-  return s?.kind === 'charge' ? s.bundleId ?? s.log.id : s?.kind === 'bundle' ? s.id : s?.trip.id ?? null
+  if (!s) return null
+  return s.kind === 'charge' ? s.bundleId ?? s.log.id : s.kind === 'bundle' || s.kind === 'gap' ? s.id : s.trip.id
 })
 function select(e: DayEvent) {
   if (e.kind === 'charge' && e.parts) return selectBundle(e.id, e.parts)
+  if (e.kind === 'gap') {
+    selection.value = { kind: 'gap', id: e.id, gap: e.gap }
+    analytics.track('logbook_detail', { kind: 'luecke' })
+    return
+  }
   selection.value = e.kind === 'charge' ? { kind: 'charge', log: e.log as any } : { kind: 'trip', trip: e.trip }
   analytics.track('logbook_detail', { kind: e.kind === 'charge' ? 'ladung' : 'fahrt' })
 }

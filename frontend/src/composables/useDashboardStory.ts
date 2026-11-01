@@ -16,6 +16,7 @@ import {
   temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, pricelessInMonth, ranksFromStandings,
   type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
 import { summarizeTripMonth, type TripForSummary } from '../utils/tripMonthSummary'
+import type { OdometerGap } from './storyDay'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRankClosing,
   detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickCards,
@@ -100,6 +101,18 @@ async function fetchTrips(carId: string, start: string, end: string): Promise<Tr
   }
 }
 
+/** Strecke ohne Aufzeichnung im Monat, Fenster wie die Fahrten. Fehler werden zu leer. */
+async function fetchGaps(carId: string, start: string, end: string): Promise<OdometerGap[]> {
+  const from = new Date(`${start}T00:00:00Z`).toISOString()
+  const to = new Date(new Date(`${end}T00:00:00Z`).getTime() + 86_400_000).toISOString()
+  try {
+    const res = await api.get<OdometerGap[]>('/trips/gaps', { params: { carId, from, to } })
+    return Array.isArray(res.data) ? res.data : []
+  } catch {
+    return []
+  }
+}
+
 /** Ladungen vom Beginn des Vormonats bis Monatsende: die Ladung vor einem Stand am Monatsanfang liegt oft davor. */
 async function fetchCharges(carId: string, start: string, end: string): Promise<StandbyPricing['charges']> {
   const from = new Date(`${start}T00:00:00Z`).toISOString()
@@ -130,6 +143,8 @@ interface MonthBundle {
   previousStats: StatisticsData | null
   series: StatisticsData | null
   trips: TripForTemperature[]
+  /** Strecke ohne Aufzeichnung: zählt in die km der Monatskarte und der Tagesleiste */
+  gaps: OdometerGap[]
   /** Ladungen ab Vormonat, nur mit Freischaltung: Preis der Standverluste. */
   charges: StandbyPricing['charges']
   /** Ladeorte des Monats samt Vergleich je Betreiber und Ladeart: der Karten-Teaser wechselt mit dem Monat. */
@@ -181,15 +196,16 @@ function fetchMonthBundle(carId: string, m: StoryMonth, withCharges: boolean): P
     const cur = monthWindow(m.year, m.month)
     const prev = monthWindow(m.year, m.month, -1)
     const first = monthWindow(m.year, m.month, -5)
-    const [a, b, c, t, ch, pl] = await Promise.all([
+    const [a, b, c, t, g, ch, pl] = await Promise.all([
       fetchStats(carId, cur.start, cur.end, 'DAY'),
       fetchStats(carId, prev.start, prev.end, 'MONTH'),
       fetchStats(carId, first.start, cur.end, 'MONTH'),
       fetchTrips(carId, cur.start, cur.end),
+      fetchGaps(carId, cur.start, cur.end),
       withCharges ? fetchCharges(carId, prev.start, cur.end) : Promise.resolve([]),
       fetchMonthPlaces(carId, m),
     ])
-    return a == null ? null : { monthStats: a, previousStats: b, series: c, trips: t, charges: ch, ...pl }
+    return a == null ? null : { monthStats: a, previousStats: b, series: c, trips: t, gaps: g, charges: ch, ...pl }
   })().finally(() => monthInflight.delete(key))
   monthInflight.set(key, job)
   return job
@@ -331,6 +347,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const previousStats = ref<StatisticsData | null>(null)
   const series = ref<StatisticsData | null>(null)
   const trips = ref<TripForTemperature[]>([])
+  const gaps = ref<OdometerGap[]>([])
   const charges = ref<StandbyPricing['charges']>([])
   const previousRanks = ref<RankResponse[]>([])
   const places = ref<ChargingPlace[]>([])
@@ -369,6 +386,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     previousStats.value = b.previousStats
     series.value = b.series
     trips.value = b.trips
+    gaps.value = b.gaps
     charges.value = b.charges
     places.value = b.places
     placeBenchmarks.value = b.benchmarks
@@ -557,7 +575,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     recent: recentStats.value ? { distanceKm: recentStats.value.totalDistanceKm, days: RECENT_DAYS } : null,
     weather: weather.value,
     tripMonth: buildTripMonth(trips.value, ctx().effectiveBatteryCapacityKwh, ctx().canViewEnergySplit,
-      { charges: charges.value, avgCostPerKwh: monthStats.value?.avgCostPerKwh ?? null }),
+      { charges: charges.value, avgCostPerKwh: monthStats.value?.avgCostPerKwh ?? null }, gaps.value),
   } : null)
 
   /**
@@ -605,7 +623,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     ? buildStoryFeed(input.value, { max: allFeed ? Infinity : undefined })
     : [])
   const days = computed<DayCoverage[]>(() =>
-    buildDayCoverage(monthStats.value?.chargesOverTime ?? [], month.value.year, month.value.month, Date.now(), trips.value))
+    buildDayCoverage(monthStats.value?.chargesOverTime ?? [], month.value.year, month.value.month, Date.now(), { trips: trips.value, gaps: gaps.value }))
   const hasCharges = computed(() => (monthStats.value?.totalCharges ?? 0) > 0)
 
   /** "Weiß ich nicht mehr" aus dem Hero: die Frage verschwindet sofort, die Ladung bleibt ohne Preis. */

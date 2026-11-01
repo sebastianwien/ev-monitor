@@ -11,6 +11,7 @@ import { chargeGroupsOf } from '../utils/chargeGroups'
 import { useFeedWindow, type FeedResolution } from './useFeedWindow'
 import { useLogUndo } from './useLogUndo'
 import { tripFormFrom, newTripFormAt, tripFormError, tripPayload, type TripFormValues } from '../utils/tripForm'
+import type { OdometerGap } from './storyDay'
 
 /** Maximaler zeitlicher Abstand zweier Logs, damit sie zusammengeführt werden dürfen.
  *  24h, damit auch sehr langsame AC-Ladevorgänge (z. B. 14h an 4 kW) noch abgedeckt sind. */
@@ -38,6 +39,8 @@ export function useLogList(
 
   const logs = ref<any[]>([])
   const trips = ref<any[]>([])
+  /** Strecke ohne Aufzeichnung im Fenster (GET /trips/gaps): eigene Liste, damit Fahrt-Zähler sie nie mitzählen */
+  const gaps = ref<OdometerGap[]>([])
   const feedWindow = useFeedWindow(undefined, fixedResolution)
   const logsLoading = ref(false)
   const editingLog = ref<any | null>(null)
@@ -212,6 +215,8 @@ export function useLogList(
   const deleteTripEntry = async (tripId: string) => {
     await api.delete(`/trips/${tripId}`)
     trips.value = trips.value.filter((t: any) => t.id !== tripId)
+    // Die gelöschte Fahrt hinterlässt Strecke ohne Aufzeichnung
+    void fetchGaps()
   }
 
   const mergeTripEntry = async (survivingTripId: string, mergeWithTripId: string) => {
@@ -219,14 +224,32 @@ export function useLogList(
     const idx = trips.value.findIndex((t: any) => t.id === survivingTripId)
     if (idx !== -1) trips.value[idx] = res.data
     trips.value = trips.value.filter((t: any) => t.id !== mergeWithTripId)
+    void fetchGaps()
   }
 
   // --- Fetch functions ---
 
+  /** Bis morgen: das Ende einer Lücke ist der Start einer Fahrt und liegt nie nach jetzt */
+  const gapsQuery = () => `/trips/gaps?carId=${selectedCarId.value}${feedWindow.queryParams.value}&to=${new Date(Date.now() + 86_400_000).toISOString()}`
+  /** Fehler werden zu leer: ohne Lücken bleibt das Logbuch wie bisher */
+  const fetchGaps = async () => {
+    if (!selectedCarId.value) return
+    const carId = selectedCarId.value
+    try {
+      const res = await api.get(gapsQuery())
+      if (carId === selectedCarId.value) gaps.value = Array.isArray(res.data) ? res.data : []
+    } catch {
+      if (carId === selectedCarId.value) gaps.value = []
+    }
+  }
+
   const fetchTrips = async () => {
     if (!selectedCarId.value) return
     try {
-      const res = await api.get(`/trips?carId=${selectedCarId.value}${feedWindow.queryParams.value}`)
+      const [res] = await Promise.all([
+        api.get(`/trips?carId=${selectedCarId.value}${feedWindow.queryParams.value}`),
+        fetchGaps(),
+      ])
       trips.value = res.data
     } catch {
       // keep existing trips
@@ -250,15 +273,17 @@ export function useLogList(
     logsLoading.value = true
     try {
       const window = feedWindow.queryParams.value
-      const [logsRes, tripsRes, latestLogRes, latestTripRes] = await Promise.all([
+      const [logsRes, tripsRes, latestLogRes, latestTripRes, gapsRes] = await Promise.all([
         api.get(`/logs?carId=${carId}${window}`),
         api.get(`/trips?carId=${carId}${window}`),
         withLatest ? api.get(`/logs?carId=${carId}&limit=1`) : null,
         withLatest ? api.get(`/trips?carId=${carId}&limit=1`) : null,
+        api.get(gapsQuery()).catch(() => null),
       ])
       if (seq !== fetchSeq) return
       logs.value = logsRes.data
       trips.value = tripsRes.data
+      gaps.value = Array.isArray(gapsRes?.data) ? gapsRes.data : []
       if (latestLogRes) latestLog.value = latestLogRes.data[0] ?? null
       if (latestTripRes) latestTrip.value = latestTripRes.data[0] ?? null
     } catch {
@@ -496,6 +521,7 @@ export function useLogList(
   watch(selectedCarId, () => {
     logs.value = []
     trips.value = []
+    gaps.value = []
     latestLog.value = null
     latestTrip.value = null
     expandedGroups.value = new Set()
@@ -516,6 +542,7 @@ export function useLogList(
   return {
     logs,
     trips,
+    gaps,
     latestLog,
     latestTrip,
     logsLoading,

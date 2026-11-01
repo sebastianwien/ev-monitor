@@ -5,6 +5,7 @@ import { ChartBarSquareIcon, LockClosedIcon, ArrowsRightLeftIcon } from '@heroic
 import BottomSheet from '../shared/BottomSheet.vue'
 import LogEditPanel, { type EvLogResponse } from '../dashboard/LogEditPanel.vue'
 import DayTripPanel from '../story/day/DayTripPanel.vue'
+import GapDetail from '../story/day/GapDetail.vue'
 import LogbookBundle from './LogbookBundle.vue'
 import PowerCurveModal from '../charging/PowerCurveModal.vue'
 import DataFeedbackButtons from '../shared/DataFeedbackButtons.vue'
@@ -14,20 +15,21 @@ import { useCarContext } from '../../composables/useCarContext'
 import { usePowerCurve } from '../../composables/usePowerCurve'
 import { useAuthStore } from '../../stores/auth'
 import { useAnalyticsUpsellLink } from '../../composables/useUpsellTarget'
-import type { DayLog, DayTrip } from '../../composables/storyDay'
+import type { DayLog, DayTrip, OdometerGap } from '../../composables/storyDay'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { tripDetailKeys } from '../../utils/logbook'
 import type { TripFacts } from '../../utils/tripCalculations'
 
 /**
  * Der gewählte Eintrag des Logbuchs: Ladung bearbeiten (mit Ladekurve und "Korrekt erkannt?"), Fahrt
- * bearbeiten oder ein Bündel aus Teilladungen. Aus dem Bündel geöffnet, führt der Pfeil einer Teilladung zurück
+ * bearbeiten, ein Bündel aus Teilladungen oder Strecke ohne Aufzeichnung erklären. Aus dem Bündel geöffnet, führt der Pfeil einer Teilladung zurück
  * zum Bündel (`bundleId`). Unter 1024 px als Sheet von unten, ab 1024 px als klebende rechte Spalte neben dem Buch.
  */
 export type LogbookSelection =
   | { kind: 'charge'; log: EvLogResponse & { hasPowerCurve?: boolean; hasSocCurve?: boolean }; bundleId?: string }
   | { kind: 'trip'; trip: DayTrip & { dataSource?: string | null } }
   | { kind: 'bundle'; id: string; parts: DayLog[] }
+  | { kind: 'gap'; id: string; gap: OdometerGap }
 
 const props = defineProps<{
   selection: LogbookSelection | null
@@ -65,7 +67,8 @@ function openPart(part: DayLog) {
 }
 const key = computed(() => {
   const s = props.selection
-  return s?.kind === 'charge' ? s.log.id : s?.kind === 'bundle' ? `b-${s.id}` : s?.trip.id
+  if (!s) return undefined
+  return s.kind === 'charge' ? s.log.id : s.kind === 'bundle' ? `b-${s.id}` : s.kind === 'gap' ? s.id : s.trip.id
 })
 const tripRateable = computed(() => props.selection?.kind === 'trip' && props.selection.trip.dataSource !== 'USER_CREATED')
 const stickyTop = { top: 'calc(var(--content-top, var(--top-nav-h)) + 1rem)' }
@@ -84,10 +87,11 @@ const speed = computed(() => {
   <component :is="wide ? 'aside' : BottomSheet" v-if="wide || selection" ref="sheet"
     v-bind="wide
       ? { class: 'sticky flex max-h-[calc(100dvh-var(--content-top,var(--top-nav-h))-2rem)] min-h-[28rem] flex-col overflow-hidden rounded-3xl bg-white edge-box dark:bg-gray-900', style: stickyTop }
-      : { edge: true, label: selection?.kind === 'bundle' ? t('storyday.parts_title') : t('dashboard.edit_title'), panelClass: 'h-[88dvh] sm:max-w-xl', testid: 'logbook-detail' }"
+      : { edge: true, label: selection?.kind === 'bundle' ? t('storyday.parts_title') : selection?.kind === 'gap' ? t('storyday.gap_title') : t('dashboard.edit_title'), panelClass: 'h-[88dvh] sm:max-w-xl', testid: 'logbook-detail' }"
     data-testid="logbook-detail" @close="emit('close')">
     <template v-if="selection">
-      <LogbookBundle v-if="selection.kind === 'bundle'" :key="key" :parts="selection.parts" can-amend :can-reassign="canReassign"
+      <GapDetail v-if="selection.kind === 'gap'" :key="key" :gap="selection.gap" @cancel="dismiss" />
+      <LogbookBundle v-else-if="selection.kind === 'bundle'" :key="key" :parts="selection.parts" can-amend :can-reassign="canReassign"
         @cancel="dismiss" @amend="log => emit('amend', log)" @reassign="emit('reassign')"
         @select="openPart" />
       <LogEditPanel v-else-if="selection.kind === 'charge'" :key="key" :log="selection.log" :dismiss="selection.bundleId ? 'back' : 'close'"

@@ -333,10 +333,27 @@ describe('buildDayCoverage', () => {
       { tripStartedAt: '2026-09-03T17:00:00', distanceKm: 30 },
       { tripStartedAt: '2026-09-04T07:00:00', distanceKm: null },
     ]
-    const days = buildDayCoverage(points, 2026, 9, new Date(2026, 9, 1).getTime(), trips)
+    const days = buildDayCoverage(points, 2026, 9, new Date(2026, 9, 1).getTime(), { trips })
     expect(days[2]).toMatchObject({ day: 3, hasData: true, trips: 2, tripKm: 42.4, charges: 0 })
     expect(days[3]).toMatchObject({ day: 4, hasData: true, trips: 1, tripKm: 0 })
     expect(days[1]).toMatchObject({ day: 2, hasData: false, trips: 0, tripKm: 0 })
+  })
+
+  it('Strecke ohne Aufzeichnung zählt in die km des Tages, an dem sie endet, nicht als Fahrt', () => {
+    const trips = [{ tripStartedAt: '2026-09-03T07:00:00', distanceKm: 12.4 }]
+    const gaps = [{ from: '2026-09-01T18:00:00', to: '2026-09-03T07:00:00', distanceKm: 23.7 }]
+    const days = buildDayCoverage([], 2026, 9, new Date(2026, 9, 1).getTime(), { trips, gaps })
+    expect(days[2]).toMatchObject({ day: 3, trips: 1, tripKm: 36.1 })
+    expect(days[0]).toMatchObject({ day: 1, trips: 0, tripKm: 0 })
+  })
+
+  it('Strecke ohne Aufzeichnung über den Monatswechsel zählt im Endmonat', () => {
+    const trips = [{ tripStartedAt: '2026-10-02T07:00:00', distanceKm: 10 }]
+    const gaps = [{ from: '2026-09-29T18:00:00', to: '2026-10-02T07:00:00', distanceKm: 40 }]
+    const sept = buildDayCoverage([], 2026, 9, new Date(2026, 10, 1).getTime(), { trips, gaps })
+    const oct = buildDayCoverage([], 2026, 10, new Date(2026, 10, 1).getTime(), { trips, gaps })
+    expect(sept.reduce((a, d) => a + d.tripKm, 0)).toBe(0)
+    expect(oct[1]).toMatchObject({ day: 2, trips: 1, tripKm: 50 })
   })
 
   it('markiert Tage ohne Daten als Lücke', () => {

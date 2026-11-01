@@ -181,3 +181,39 @@ describe('DayTimeline Kurzfahrt unter 1 km', () => {
     expect(host.querySelector('[data-testid="day-trip-thumb"]')).not.toBeNull()
   })
 })
+
+describe('DayTimeline Strecke ohne Aufzeichnung', () => {
+  const gapOverDays = { from: new Date(2026, 7, 14, 18, 6).toISOString(), to: at(9), distanceKm: 23.7 }
+  const gapSameDay = { from: at(7, 10), to: at(9), distanceKm: 23.7 }
+
+  it('grau, ohne Uhrzeit, ohne Akku: km, darunter "ohne Aufzeichnung · seit" mit Datum', async () => {
+    const host = await mountWith({ events: eventsOfDay('2026-08-16', [trip()], [], [gapOverDays]) })
+    expect(rowsOf(host)).toEqual(['day-row-gap', 'day-row-trip'])
+    const row = host.querySelector('[data-testid="day-row-gap"]')!
+    // gerundet wie die km einer Fahrt
+    expect(row.textContent).toContain('24 km')
+    expect(row.textContent).toContain('ohne Aufzeichnung · seit 14.08.')
+    expect(row.textContent).not.toContain('09:00')
+    expect(row.querySelector('[data-testid="day-soc"]')).toBeNull()
+  })
+
+  it('an einem Tag: Zeitraum statt "seit"', async () => {
+    const host = await mountWith({ events: eventsOfDay('2026-08-16', [trip()], [], [gapSameDay]) })
+    expect(host.querySelector('[data-testid="day-row-gap"]')?.textContent).toContain('ohne Aufzeichnung · 07:10 bis 09:00')
+  })
+
+  it('Tipp meldet die Lücke', async () => {
+    const picked: string[] = []
+    const host = await mountWith({ events: eventsOfDay('2026-08-16', [trip()], [], [gapSameDay]), onSelect: (e: { kind: string }) => picked.push(e.kind) })
+    ;(host.querySelector('[data-testid="day-row-gap"]') as HTMLButtonElement).click()
+    expect(picked).toEqual(['gap'])
+  })
+
+  it('zwei Fahrten mit kurzem Halt lassen sich über die Lücke hinweg zusammenführen', async () => {
+    const a = trip({ id: 'a', tripStartedAt: at(8), tripEndedAt: at(8, 50) })
+    const b = trip({ id: 'b', tripStartedAt: at(9), tripEndedAt: at(10) })
+    const gap = { from: at(8, 50), to: at(9), distanceKm: 4 }
+    const host = await mountWith({ events: eventsOfDay('2026-08-16', [a, b], [], [gap]) })
+    expect(rowsOf(host)).toEqual(['day-row-trip', 'day-row-gap', 'day-merge-row', 'day-row-trip'])
+  })
+})
