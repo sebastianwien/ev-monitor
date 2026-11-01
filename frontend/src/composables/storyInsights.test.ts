@@ -338,6 +338,20 @@ describe('buildTripMonth: Fahrten des Monats für Kachel und Sheet', () => {
     expect(buildTripMonth(trips, 57, false)!.standbyGaps).toEqual([])
   })
 
+  it('Standverluste nur, wenn das Auto stand: Sprung im km-Stand ab 0,5 km ist eine Fahrt ohne Aufzeichnung', () => {
+    const e = (id: string, start: string, end: string, eStart: number, eEnd: number, odoStart: number, odoEnd: number) => ({
+      id, tripStartedAt: start, tripEndedAt: end, distanceKm: 10, socStart: null, socEnd: null, estimatedConsumedKwh: 2,
+      energyRemainingStartKwh: eStart, energyRemainingEndKwh: eEnd, odometerStartKm: odoStart, odometerEndKm: odoEnd, routeType: null,
+    })
+    const trips = [
+      e('a', '2026-10-02T08:00:00Z', '2026-10-02T08:30:00Z', 60, 58, 100, 110),
+      e('b', '2026-10-03T08:00:00Z', '2026-10-03T08:30:00Z', 57.2, 55, 110.2, 120), // gestanden: 0,8 kWh
+      e('c', '2026-10-06T08:00:00Z', '2026-10-06T08:30:00Z', 45, 43, 170, 180),     // 50 km ohne Aufzeichnung
+    ]
+    const m = buildTripMonth(trips, 57, true)!
+    expect(m.standbyGaps.map(g => g.kwh)).toEqual([0.8])
+  })
+
   it('Standverluste in Euro: Preis der letzten Ladung mit Preis davor, sonst Monatsschnitt, sonst keiner', () => {
     const e = (id: string, start: string, end: string, eStart: number, eEnd: number) => ({
       id, tripStartedAt: start, tripEndedAt: end, distanceKm: 10, socStart: null, socEnd: null, estimatedConsumedKwh: 2,

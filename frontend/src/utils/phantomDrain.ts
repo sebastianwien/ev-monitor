@@ -50,6 +50,14 @@ export function totalPhantomKwh(entries: readonly DrainEntry[] | null | undefine
 /** Unterhalb dieser Energiemenge ist ein Drain Messrauschen und wird nicht angezeigt. */
 const DRAIN_DISPLAY_THRESHOLD_KWH = 0.05
 
+/** Ab diesem Sprung im km-Stand ist das Auto zwischen zwei Einträgen gefahren, darunter ist es Rauschen. */
+export const MOVED_ODOMETER_KM = 0.5
+
+/** Belegt der km-Stand, dass das Auto zwischen zwei Einträgen gefahren ist? Fehlt ein Stand, belegt er nichts. */
+export function odometerMoved(endKm: number | null, startKm: number | null): boolean {
+  return endKm != null && startKm != null && Math.abs(startKm - endKm) >= MOVED_ODOMETER_KM
+}
+
 interface DrainCarrier { id: string; _phantomDrain?: { kwh?: number | null } | null }
 
 /**
@@ -147,7 +155,7 @@ export function annotatePhantomDrains(entries: FeedEntry[], capacityKwh: number 
     // Odometer confidence: car didn't move during the gap
     const odomOlder = exitOdometer(older)
     const odomNewer = entryOdometer(newer)
-    const highConfidence = odomOlder != null && odomNewer != null && Math.abs(odomOlder - odomNewer) < 0.5
+    const highConfidence = odomOlder != null && odomNewer != null && !odometerMoved(odomOlder, odomNewer)
 
     let drainKwh: number | null = null
 

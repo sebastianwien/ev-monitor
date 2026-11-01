@@ -8,10 +8,13 @@
  */
 import { tripGroupConsumedKwh, type TripForCalc } from './tripCalculations'
 import { drivenByDay, type OdometerGap } from '../composables/storyDay'
+import { odometerMoved } from './phantomDrain'
 
 export interface TripForSummary extends TripForCalc {
   energyRemainingStartKwh?: number | string | null
   energyRemainingEndKwh?: number | string | null
+  odometerStartKm?: number | string | null
+  odometerEndKm?: number | string | null
   outsideTempCelsius?: number | null
 }
 
@@ -62,7 +65,8 @@ const round = (v: number, digits: number): number => {
 
 /**
  * Standby = Summe der Energieabfaelle waehrend das Auto zwischen zwei Fahrten steht.
- * Verglichen wird der Energiezaehler am Ende einer Fahrt mit dem Beginn der naechsten.
+ * Verglichen wird der Energiezaehler am Ende einer Fahrt mit dem Beginn der naechsten. Stieg der km-Stand
+ * dazwischen, ist das Auto ohne Aufzeichnung gefahren: dieser Abstand zaehlt nicht.
  * Voraussetzung des Aufrufers: im Zeitraum liegt keine Ladung (sonst springt der Zaehler hoch).
  * Trips muessen aufsteigend nach Startzeit sortiert sein.
  */
@@ -73,6 +77,7 @@ function standbyBetweenTrips(sortedAsc: TripForSummary[]): number | null {
     const end = toNum(sortedAsc[i].energyRemainingEndKwh)
     const nextStart = toNum(sortedAsc[i + 1].energyRemainingStartKwh)
     if (end == null || nextStart == null) continue
+    if (odometerMoved(toNum(sortedAsc[i].odometerEndKm), toNum(sortedAsc[i + 1].odometerStartKm))) continue
     any = true
     const gap = end - nextStart
     if (gap > 0) total += gap

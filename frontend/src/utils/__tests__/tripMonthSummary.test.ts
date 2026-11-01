@@ -132,3 +132,23 @@ describe('summarizeTripMonth mit Strecke ohne Aufzeichnung', () => {
     expect(s.consumptionKwhPer100km).toBeCloseTo(15.0, 5)
   })
 })
+
+describe('Standverlust nur, wenn das Auto stand', () => {
+  const pair = (odoEndA: number | null, odoStartB: number | null): TripForSummary[] => [
+    { ...twoTrips[0], odometerStartKm: 100, odometerEndKm: odoEndA },
+    { ...twoTrips[1], odometerStartKm: odoStartB, odometerEndKm: 120 },
+  ]
+
+  it('zählt den Abfall nicht, wenn der km-Stand dazwischen um 0,5 km oder mehr stieg', () => {
+    // einziger Abstand gefahren: keine gemessene Standzeit, also kein Wert
+    expect(summarizeTripMonth(pair(110, 110.5), 60)!.standbyKwh).toBeNull()
+  })
+
+  it('zählt ihn bei Rauschen im km-Stand unter 0,5 km', () => {
+    expect(summarizeTripMonth(pair(110, 110.4), 60)!.standbyKwh).toBe(0.5)
+  })
+
+  it('zählt ihn wie bisher, wenn ein km-Stand fehlt', () => {
+    expect(summarizeTripMonth(pair(null, 110.5), 60)!.standbyKwh).toBe(0.5)
+  })
+})
