@@ -82,17 +82,25 @@ describe('detectFirstFrost', () => {
 describe('detectMonthChange', () => {
   const previous = { year: 2026, month: 9, distanceKm: 279, energyCostEur: 33, charges: 6, priceless: 0 }
 
-  it('im Folgemonat an jedem Tag, mit Vormonat und Benzinvergleich, bis erledigt', () => {
+  it('im Folgemonat an jedem Tag, mit Vormonat und Ersparnis gegenüber dem Verbrenner, bis erledigt', () => {
     const now = new Date(2026, 9, 3, 9).getTime()
     const m = detectMonthChange({ now, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })
-    expect(m).toMatchObject({ kind: 'month_change', key: 'month_change:2026-9', km: 279, eur: 33, petrolEur: 279 / 100 * 7.5 * 2, dismissible: true, lifetimeMs: Infinity })
+    // Verbrenner 279 km x 7,5 l x 2 € = 41,85 €, Strom 33 €: 8,85 € gespart
+    expect(m).toMatchObject({ kind: 'month_change', key: 'month_change:2026-9', km: 279, eur: 33, savingEur: 279 / 100 * 7.5 * 2 - 33, dismissible: true, lifetimeMs: Infinity })
     expect(m?.at).toBe(new Date(2026, 9, 1).getTime())
     expect(detectMonthChange({ now: NOW, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ key: 'month_change:2026-9' })
   })
 
-  it('vergleicht nicht mit Benzin, wenn dem Vormonat Preise fehlen', () => {
+  it('nennt keine Ersparnis, wenn dem Vormonat Preise fehlen', () => {
     const now = new Date(2026, 9, 3, 9).getTime()
-    expect(detectMonthChange({ now, previous: { ...previous, priceless: 2 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ petrolEur: null })
+    expect(detectMonthChange({ now, previous: { ...previous, priceless: 2 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ savingEur: null })
+  })
+
+  it('nennt keine Ersparnis, wenn der Verbrenner nicht teurer gewesen wäre oder sie auf 0 € rundet', () => {
+    const now = new Date(2026, 9, 3, 9).getTime()
+    expect(detectMonthChange({ now, previous: { ...previous, energyCostEur: 50 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ savingEur: null })
+    // Verbrenner 41,85 €, Strom 41,50 €: 0,35 € stünden als "0 € gespart" da
+    expect(detectMonthChange({ now, previous: { ...previous, energyCostEur: 41.5 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ savingEur: null })
   })
 
   it('schweigt ohne Ladungen im Vormonat', () => {

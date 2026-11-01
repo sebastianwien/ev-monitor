@@ -15,7 +15,7 @@ import { useMomentView } from '../composables/useMomentView'
 import { useHaptic } from '../composables/useHaptic'
 import { useIsMobile } from '../composables/useIsMobile'
 import { analytics } from '../services/analytics'
-import { petrolCostEur, petrolLitersPer100km, type TileId } from '../composables/storyModel'
+import type { TileId } from '../composables/storyModel'
 import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
 import { purchasesAvailable } from '../utils/iapPolicy'
 import { connectionsOf } from '../api/smartcarService'
@@ -120,8 +120,6 @@ async function share(title: string, text: string) {
   shareStatus.value = await shareOrCopy({ title, text, url: window.location.origin })
   if (shareStatus.value !== 'shared') setTimeout(() => { shareStatus.value = null }, 3000)
 }
-
-const petrolEur = computed(() => petrolCostEur(monthStats.value?.totalDistanceKm ?? null, story.petrol.value.eurPerLitre, petrolLitersPer100km(selectedCar.value?.category)))
 
 // Unter lg steht der Feed zwischen "Zuletzt" und den Kacheln, ab lg rechts neben dem Hero. Einmal gerendert, nicht zweimal.
 const narrow = useIsMobile('(max-width: 1023px)')
@@ -425,7 +423,6 @@ onUnmounted(() => unregisterReload?.())
                   :distance-km="monthStats?.totalDistanceKm ?? null"
                   :energy-cost-eur="monthStats?.energyCostEur ?? null"
                   :charges="monthStats?.totalCharges ?? 0"
-                  :petrol-eur="petrolEur"
                   :layers="layers"
                   @layers="(open) => open && analytics.track('story_layers_opened')">
                   <template #nav>

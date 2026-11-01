@@ -85,7 +85,7 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
         return {
           eyebrow: t('story.moment_month_eyebrow'),
           sentence: t(`story.hero_${line.kind}`, { month, km: line.km != null ? km(line.km) : '', eur: line.eur != null ? eur(line.eur) : '', n: m.charges }, m.charges),
-          sub: m.petrolEur != null ? t('story.hero_petrol_total', { eur: eur(m.petrolEur) }) : undefined,
+          sub: m.savingEur != null ? t('story.moment_month_saving', { eur: eur(m.savingEur) }) : undefined,
           action: { id: 'share', label: t('story.moment_action_share_review') },
         }
       }

@@ -34,7 +34,7 @@ export type MomentData =
   | { kind: 'expensive'; logId: string; cpoName: string; pricePerKwh: number; medianPricePerKwh: number; cardFromPricePerKwh: number | null }
   | { kind: 'long_trip'; km: number; stops: number; costEur: number | null; /** Ziel der letzten Fahrt, für die Wetterprognose */ endGeohash?: string | null }
   | { kind: 'first_frost'; tempC: number; winterKm: number; summerKm: number }
-  | { kind: 'month_change'; year: number; month: number; km: number | null; eur: number | null; charges: number; petrolEur: number | null }
+  | { kind: 'month_change'; year: number; month: number; km: number | null; eur: number | null; charges: number; /** Was ein Verbrenner mehr gekostet hätte, nur wenn er teurer war */ savingEur: number | null }
   | { kind: 'battery'; sohPercent: number; estimated: boolean; previousSohPercent: number | null; previousAt: number | null }
   | { kind: 'rank'; year: number; month: number; places: RankPlace[] }
   | { kind: 'silence'; days: number; kwh: number | null; autoSync: boolean }
@@ -222,12 +222,14 @@ export function detectMonthChange(input: {
   if (!p || p.charges <= 0) return null
   const line = heroLine(p)
   const petrol = petrolCostEur(line.km, input.petrolEurPerLitre, input.petrolLitersPer100km)
-  // Benzinvergleich nur mit vollstaendigen Preisen und nur, wenn er etwas zeigt (wie im Monats-Hero).
-  const petrolEur = line.kind === 'km_cost' && p.priceless === 0 && petrol != null && petrol > line.eur! ? petrol : null
+  // Ersparnis gegenueber dem Verbrenner nur mit vollstaendigen Preisen und nur, wenn sie gerundet
+  // mindestens 1 € ist (sonst stuende "0 € gespart" da). Der Vergleich steht nur hier im Rueckblick.
+  const saving = line.kind === 'km_cost' && p.priceless === 0 && petrol != null ? petrol - line.eur! : null
+  const savingEur = saving != null && Math.round(saving) >= 1 ? saving : null
   return {
     // Im Folgemonat beim ersten Oeffnen, egal an welchem Tag, bis erledigt.
     ...base(`month_change:${p.year}-${p.month}`, new Date(d.getFullYear(), d.getMonth(), 1).getTime(), Infinity, false, true),
-    kind: 'month_change', year: p.year, month: p.month, km: line.km, eur: line.eur, charges: p.charges, petrolEur,
+    kind: 'month_change', year: p.year, month: p.month, km: line.km, eur: line.eur, charges: p.charges, savingEur,
   }
 }
 

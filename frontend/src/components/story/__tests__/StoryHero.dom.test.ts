@@ -16,7 +16,6 @@ const base = {
   distanceKm: 274,
   energyCostEur: 33.4,
   charges: 6,
-  petrolEur: 51.2,
   layers: null,
 }
 
@@ -35,24 +34,23 @@ function mount(props: Partial<typeof base> & Record<string, unknown> = {}, count
 const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 
 describe('StoryHero', () => {
-  it('Monat in km und Euro als Satz, darunter Euro je 100 km und Benzin in einer grauen, halbfetten Zeile', () => {
+  it('Monat in km und Euro als Satz, darunter nur Euro je 100 km in einer grauen, halbfetten Zeile (kein Verbrenner-Vergleich im Hero)', () => {
     const host = mount()
     expect(text(host.querySelector('[data-testid="story-hero-value"]'))).toBe('Oktober: 274 km für 33 €.')
     const meta = host.querySelector('[data-testid="story-hero-meta"]')
-    expect(text(meta)).toBe('12,19 € je 100 km · Ein Benziner hätte 51 € gekostet.')
+    expect(text(meta)).toBe('12,19 € je 100 km')
     expect(meta?.className).toContain('text-gray-600')
     expect(meta?.className).toContain('font-semibold')
-    expect(host.querySelector('[data-testid="story-hero-petrol"]')).toBeNull()
   })
 
   it('Euro je 100 km aus dem Satz gerechnet: 17,73 € für 274,1 km sind 6,47 €', () => {
-    const host = mount({ distanceKm: 274.1, energyCostEur: 17.73, petrolEur: 43.8 })
+    const host = mount({ distanceKm: 274.1, energyCostEur: 17.73 })
     expect(text(host.querySelector('[data-testid="story-hero-value"]'))).toBe('Oktober: 274 km für 18 €.')
     expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toContain('6,47 € je 100 km')
   })
 
-  it('ohne km: Euro für Ladungen, ohne Benzin und ohne Euro je 100 km', () => {
-    const host = mount({ distanceKm: 0, petrolEur: null as never })
+  it('ohne km: Euro für Ladungen, ohne Euro je 100 km', () => {
+    const host = mount({ distanceKm: 0 })
     expect(text(host.querySelector('[data-testid="story-hero-value"]'))).toBe('Oktober: 33 € für 6 Ladungen.')
     expect(host.querySelector('[data-testid="story-hero-meta"]')).toBeNull()
   })
@@ -64,11 +62,6 @@ describe('StoryHero', () => {
     const raw = host.querySelector('[data-testid="story-hero-value"]')!.textContent!
     expect(raw).toContain('7\u00a0km')
     expect(raw).toContain('2\u00a0Ladungen')
-  })
-
-  it('kein Benzin-Satz, wenn Benzin nicht teurer gewesen wäre', () => {
-    const host = mount({ petrolEur: 30 })
-    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toBe('12,19 € je 100 km')
   })
 
   it('Monatsname klein geschrieben (nb, sv) beginnt den Satz groß', () => {
@@ -156,7 +149,7 @@ describe('StoryHero', () => {
   })
 
   it('Knopf auch ohne graue Zeile, etwa ohne Strecke', () => {
-    const host = mount({ distanceKm: 0, petrolEur: null as never, layers: layers as never })
+    const host = mount({ distanceKm: 0, layers: layers as never })
     expect(host.querySelector('[data-testid="story-hero-meta"]')).toBeNull()
     expect(text(host.querySelector('[data-testid="story-hero-layers"]'))).toBe('Alle Kosten 196 €')
   })

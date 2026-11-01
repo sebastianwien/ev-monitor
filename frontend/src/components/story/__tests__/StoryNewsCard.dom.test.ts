@@ -53,10 +53,10 @@ describe('StoryNewsCard', () => {
     expect(host.querySelector('.bg-green-600')).toBeNull()
   })
 
-  it('Rückblick: Satz des Vormonats, Benzin darunter, "Rückblick teilen" als Knopf', () => {
-    const host = mount({ ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, petrolEur: 67 })
+  it('Rückblick: Satz des Vormonats, Ersparnis gegenüber dem Verbrenner darunter, "Rückblick teilen" als Knopf', () => {
+    const host = mount({ ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: 6.4 })
     expect(text(host)).toContain('September: 512 km für 61 €.')
-    expect(text(host)).toContain('Mit Benzin wären es 67 €.')
+    expect(text(host)).toContain('Gegenüber einem Verbrenner: 6 € gespart.')
     expect(text(host.querySelector('button.bg-green-600'))).toBe('Rückblick teilen')
   })
 

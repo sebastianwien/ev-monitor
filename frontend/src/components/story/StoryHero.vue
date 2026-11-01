@@ -11,9 +11,9 @@ import type { CostLayer } from '../../composables/storyEnergy'
 
 /**
  * Die Antwort zuerst, als ein Satz in Kilometern und Euro: "Oktober: 274 km für 33 €."
- * Darunter eine graue Zeile mit Euro je 100 km und, nur wenn Benzin teurer gewesen wäre, was
- * ein Benziner gekostet hätte. Mit Fixkosten oder Einnahmen steht in der grauen Zeile ein Knopf
- * "Alle Kosten" mit der Summe, er klappt die Kostenschichten auf.
+ * Darunter eine graue Zeile mit Euro je 100 km. Der Verbrenner-Vergleich steht nicht hier,
+ * sondern nur in der Monatsrückblick-Karte. Mit Fixkosten oder Einnahmen steht in der grauen
+ * Zeile ein Knopf "Alle Kosten" mit der Summe, er klappt die Kostenschichten auf.
  * Slot "nav" (Monatspfeile) schwebt rechts neben der Monatszeile: die negativen Ränder halten seine
  * Fläche auf der ersten Zeile, der Satz darunter behält die volle Breite.
  */
@@ -23,8 +23,6 @@ const props = defineProps<{
   /** Stromkosten des Monats, ohne Fixkosten (wie die Kosten-Kachel). */
   energyCostEur: number | null
   charges: number
-  /** Was ein Benziner für dieselbe Strecke gekostet hätte. */
-  petrolEur: number | null
   layers: CostLayer[] | null
 }>()
 const emit = defineEmits<{ layers: [open: boolean] }>()
@@ -41,10 +39,6 @@ const sentence = computed(() => {
   const eur = l.eur != null ? formatCurrency(l.eur, { decimals: 0 }) : ''
   return keepUnits(t(`story.hero_${l.kind}`, { month, km, eur, n: l.charges }, l.charges))
 })
-// Der Benzin-Satz nur, wenn er etwas zeigt: Strecke und Stromkosten bekannt, Benzin teurer.
-const petrol = computed(() => line.value.kind === 'km_cost' && props.petrolEur != null && props.petrolEur > line.value.eur!
-  ? formatCurrency(props.petrolEur, { decimals: 0 })
-  : null)
 /** Monat und Rest getrennt: umbrechen darf der Satz nur nach "Oktober:". */
 const sentenceParts = computed(() => {
   const i = sentence.value.indexOf(': ')
@@ -56,7 +50,6 @@ const meta = computed(() => [
   line.value.kind === 'km_cost'
     ? t('story.hero_per_100', { eur: formatCurrency(line.value.eur! / convertDistance(line.value.km!) * 100), unit: distanceUnitLabel() })
     : null,
-  petrol.value ? t('story.hero_petrol_sub', { eur: petrol.value }) : null,
 ].filter(Boolean).map(x => keepUnits(x!)).join(' · '))
 
 /** Summe aller Schichten (Strom plus Fixkosten minus Einnahmen) für den Knopf. */
