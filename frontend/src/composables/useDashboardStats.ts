@@ -17,6 +17,24 @@ export interface ChargeDataPoint {
   consumptionKwhPer100km: number | null
   /** Ladungen in der Periode. */
   charges?: number
+  /** CO₂ weniger als ein Benziner aus den Tacho-Abschnitten, die hier schließen; null ohne. Fehlt bei älterem Backend. */
+  co2SavedKg?: number | null
+}
+
+/**
+ * CO₂ gegen einen Benziner der Fahrzeugklasse, fertig gerechnet vom Backend (Co2Calculator):
+ * Strecke zwischen zwei Tachoständen gegen den Netzstrom der Ladungen dazwischen. Vorzeichenrichtig.
+ */
+export interface Co2Statistics {
+  /** Benziner minus Strom, negativ bei mehr CO₂ als der Benziner. */
+  savedKg: number
+  petrolKg: number
+  electricityKg: number
+  /** Strecke der Rechnung (nur vollständige Abschnitte). */
+  distanceKm: number
+  /** Liter, die ein Benziner der Fahrzeugklasse getankt hätte. */
+  petrolLiters: number
+  petrolLitersPer100km: number
 }
 
 export interface PeerBenchmark {
@@ -98,6 +116,8 @@ export interface StatisticsData {
   driveMonths?: { month: string; consumptionKwhPer100km: number }[]
   /** Reichweite je Zeitraum, fertig gerechnet vom Backend (vier Stufen); fehlt bei älterem Backend. */
   range?: RangeStatistics | null
+  /** CO₂-Bilanz des Zeitraums; null ohne vollständigen Tacho-Abschnitt, fehlt bei älterem Backend. */
+  co2?: Co2Statistics | null
 }
 
 /**

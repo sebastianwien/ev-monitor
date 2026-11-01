@@ -33,22 +33,23 @@ describe('Sheets der neuen Kacheln', () => {
     expect(text).toContain('2,5 kWh')
   })
   const co2Tile = (over: Record<string, unknown> = {}) => ({ id: 'co2', value: 322.4, delta: null, deltaPercent: null, sentiment: 'good', spark: [], sparkVariant: 'bars',
-    co2: { petrolGPerKm: 137.46, gridGPerKm: 68, greenGPerKm: 5.4, petrolLiters: 170, petrolLitersPer100km: 5.8, category: 'CITY_CAR', lifetime: { kg: 868.3, since: new Date(2025, 2, 4).getTime() }, ...over } })
-  it('CO₂: drei Zeilen in g/km', () => {
+    co2: { petrolGPerKm: 137.46, gridGPerKm: 68, petrolLiters: 170, petrolLitersPer100km: 5.8, category: 'CITY_CAR', lifetime: { kg: 868.3, since: new Date(2025, 2, 4).getTime() }, ...over } })
+  it('CO₂: zwei Zeilen in g/km, kein Ökostrom-Balken', () => {
     const text = mount(SheetCo2, { tile: co2Tile() })
     expect(text).toContain('322 kg weniger als mit einem Verbrenner.')
-    expect(text).toContain('Mit Ökostrom geladen')
-    expect(text).toContain('5 g/km')
+    expect(text).toContain('137 g/km')
+    expect(text).toContain('68 g/km')
+    expect(text).not.toContain('Ökostrom')
   })
   it('CO₂: Liter des Monats, Summe seit der ersten Ladung, Verbrenner der Fahrzeugklasse', () => {
     const text = mount(SheetCo2, { tile: co2Tile() })
     expect(text).toContain('Ein Verbrenner hätte 170 l getankt.')
     expect(text).toContain('Seit März 2025: 868 kg weniger.')
-    expect(text).toContain('Gerechnet mit einem Verbrenner deiner Klasse (Kleinwagen, 5,8 l Benzin auf 100 km) und dem deutschen Strommix.')
+    expect(text).toContain('Gerechnet mit einem Verbrenner deiner Klasse (Kleinwagen, 5,8 l Benzin auf 100 km) und dem deutschen Strommix, beides mit der Herstellung von Benzin und Strom. Nur das Fahren, ohne den Bau der Autos.')
   })
   it('CO₂: ohne Summe und ohne Klasse', () => {
     const text = mount(SheetCo2, { tile: co2Tile({ lifetime: null, category: null, petrolLitersPer100km: 7.5 }) })
     expect(text).not.toContain('Seit')
-    expect(text).toContain('Gerechnet mit einem Verbrenner mit 7,5 l Benzin auf 100 km und dem deutschen Strommix.')
+    expect(text).toContain('Gerechnet mit einem Verbrenner mit 7,5 l Benzin auf 100 km und dem deutschen Strommix, beides mit der Herstellung von Benzin und Strom.')
   })
 })

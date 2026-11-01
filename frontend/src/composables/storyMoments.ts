@@ -1,5 +1,5 @@
 import { tripTimestamp } from '../utils/recentActivity'
-import { co2Comparison, co2SavedKg, heroLine, petrolCostEur } from './storyModel'
+import { heroLine, petrolCostEur } from './storyModel'
 import { COLD_MAX_C, type RankEntry } from './storyInsights'
 import { SHORT_TRIP_KM } from './storyDay'
 import { geohashDistanceKm } from '../utils/tripMap'
@@ -83,6 +83,8 @@ export interface MomentPoint {
   charges?: number
   distanceKm: number | null
   consumptionKwhPer100km: number | null
+  /** CO₂ weniger als ein Benziner aus der API, vorzeichenrichtig; fehlt ohne Abschnitt oder bei älterem Backend. */
+  co2SavedKg?: number | null
 }
 
 export interface MomentTrip {
@@ -227,27 +229,25 @@ export interface RecapFacts {
 
 /**
  * Zahlen für den Rückblick aus der Monatsstatistik. Kosten je Ladetyp nur, wenn keiner Ladung der Preis
- * fehlt (wie die Ersparnis). CO₂ wie die CO₂-Kachel: Benziner gegen Strommix auf derselben Strecke.
+ * fehlt (wie die Ersparnis). CO₂ wie die CO₂-Kachel aus der Bilanz der API, nur wenn es weniger war.
  */
 export function recapFacts(
   stats: {
-    totalKwhCharged: number; totalDistanceKm: number | null; avgConsumptionKwhPer100km: number | null
+    totalKwhCharged: number
     chargingTypeSplit: { acKwh: number; dcKwh: number; acEurPerKwh?: number | null; dcEurPerKwh?: number | null } | null
+    co2?: { savedKg: number } | null
   },
   priceless: number,
-  petrolLitersPer100km: number,
 ): RecapFacts {
   const cs = stats.chargingTypeSplit
   const part = (kwh: number | undefined, eurPerKwh: number | null | undefined) =>
     kwh != null && kwh > 0 ? { kwh, eur: priceless === 0 && eurPerKwh != null ? kwh * eurPerKwh : null } : null
-  const km = stats.totalDistanceKm
-  const c = km != null && km > 0 && stats.avgConsumptionKwhPer100km != null
-    ? co2Comparison(km, stats.avgConsumptionKwhPer100km, petrolLitersPer100km) : null
+  const saved = stats.co2?.savedKg
   return {
     kwh: stats.totalKwhCharged,
     ac: part(cs?.acKwh, cs?.acEurPerKwh),
     dc: part(cs?.dcKwh, cs?.dcEurPerKwh),
-    co2Kg: c && c.petrolKg > c.gridKg ? c.petrolKg - c.gridKg : null,
+    co2Kg: saved != null && saved > 0 ? saved : null,
   }
 }
 
@@ -377,10 +377,10 @@ function crossedStep(before: number, after: number, step: number): number | null
 
 /**
  * Meilensteine aus der Lebenszeit-Reihe: 100 Ladungen, 10.000 km, 1 t CO₂ weniger als mit Benzin
- * (wie die CO₂-Kachel aus Strecke und Verbrauch), Jahrestag der ersten Ladung. Zaehlt der Tag,
- * an dem die Schwelle fiel; mehrere in 3 Tagen: der juengste.
+ * (CO₂ der Punkte aus der API, wie die CO₂-Kachel), Jahrestag der ersten Ladung. Zählt der Tag,
+ * an dem die Schwelle fiel; mehrere in 3 Tagen: der jüngste.
  */
-export function detectMilestone(input: { series: MomentPoint[]; now: number; petrolLitersPer100km: number }): Moment | null {
+export function detectMilestone(input: { series: MomentPoint[]; now: number }): Moment | null {
   const { now } = input
   const points = input.series
     .map(p => ({ p, t: ms(p.timestamp) }))
@@ -395,7 +395,7 @@ export function detectMilestone(input: { series: MomentPoint[]; now: number; pet
     const km = p.distanceKm ?? 0
     total.charges += p.charges ?? 0
     total.km += km
-    total.co2 += co2SavedKg(p, input.petrolLitersPer100km)
+    total.co2 += p.co2SavedKg ?? 0
     if (now - t > MILESTONE_MS) continue
     for (const metric of ['charges', 'km', 'co2'] as const) {
       const value = crossedStep(before[metric], total[metric], MILESTONE_STEP[metric])

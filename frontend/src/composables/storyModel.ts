@@ -4,8 +4,7 @@
  * Keine Vue-Abhaengigkeit, keine Formatierung, keine i18n: hier entstehen nur Zahlen,
  * Vorzeichen und Reihenfolge. Saetze und Einheiten baut die Komponente aus i18n-Keys.
  */
-import type { StatisticsData, ChargeDataPoint, ChargingTypeSplit } from './useDashboardStats'
-import { PETROL_KG_CO2_PER_L, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../components/dashboard/co2'
+import type { StatisticsData, ChargeDataPoint, ChargingTypeSplit, Co2Statistics } from './useDashboardStats'
 import { combustionLiters } from '../utils/costMix'
 import { energyUse, type EnergyFlow, type EnergyUse, type RangeEstimate } from './storyEnergy'
 import type { ModelPeers, DataQuality, TemperatureEffect, TripMonth, StandbyChange } from './storyInsights'
@@ -51,9 +50,9 @@ export interface StoryTile {
   estimated?: boolean
   /** Nur 'trips' und 'flow' (Standzeiten fürs Sheet): Fahrten des Monats. */
   tripMonth?: TripMonth
-  /** Nur 'co2': Ausstoß je km im Vergleich, Wert der Kachel sind die gesparten kg. */
+  /** Nur 'co2': Ausstoß je km im Vergleich (aus der Bilanz der API), Wert der Kachel sind die gesparten kg. */
   co2?: {
-    petrolGPerKm: number; gridGPerKm: number; greenGPerKm: number
+    petrolGPerKm: number; gridGPerKm: number
     /** Liter, die ein Benziner der Fahrzeugklasse auf der Monatsstrecke getankt hätte. */
     petrolLiters: number
     petrolLitersPer100km: number
@@ -142,8 +141,8 @@ export interface StoryInput {
   weather?: WeatherOutlook | null
   /** Fahrzeugklasse des Autos (VehicleCategory), bestimmt den Benziner im Vergleich. */
   vehicleCategory: string | null
-  /** Strecke und Verbrauch je Tag seit der ersten Ladung, für CO₂ gesamt. */
-  lifetimeSeries: Co2Point[]
+  /** CO₂ weniger seit der ersten Ladung (lifetimeCo2), null ohne Bilanz. */
+  lifetimeCo2: LifetimeCo2 | null
   /** Der gewählte Monat läuft noch: mit dem Vormonat erst ab dessen Strommenge vergleichen. */
   runningMonth?: boolean
   /** Fahrten des Monats; null ohne Fahrten oder ohne Berechtigung. */
@@ -238,36 +237,14 @@ export function heroLine(input: { distanceKm: number | null; energyCostEur: numb
   return { kind, km, eur, charges: input.charges }
 }
 
-export function co2Comparison(distanceKm: number, consumptionKwhPer100km: number, petrolLitersPer100km: number) {
-  const kwh = (distanceKm / 100) * consumptionKwhPer100km
-  return {
-    petrolKg: (distanceKm / 100) * petrolLitersPer100km * PETROL_KG_CO2_PER_L,
-    gridKg: (kwh * STROMMIX_G_PER_KWH) / 1000,
-    greenKg: (kwh * OEKO_G_PER_KWH) / 1000,
-  }
-}
+/** CO₂ weniger seit der ersten Ladung. */
+export interface LifetimeCo2 { kg: number; since: number }
 
-/** Ein Tag der Lifetime-Reihe, soweit CO₂ ihn braucht. */
-export interface Co2Point {
-  timestamp: string
-  distanceKm: number | null
-  consumptionKwhPer100km: number | null
-}
-
-/** CO₂ weniger an einem Tag mit Strommix; Tage ohne Verbrauch zählen nicht, mehr als ein Benziner nie negativ. */
-export function co2SavedKg(p: Co2Point, petrolLitersPer100km: number): number {
-  const km = p.distanceKm ?? 0
-  if (km <= 0 || p.consumptionKwhPer100km == null) return 0
-  const c = co2Comparison(km, p.consumptionKwhPer100km, petrolLitersPer100km)
-  return Math.max(0, c.petrolKg - c.gridKg)
-}
-
-/** CO₂ weniger seit der ersten Ladung, Tag für Tag summiert wie beim Meilenstein. */
-export function lifetimeCo2(series: Co2Point[], petrolLitersPer100km: number): { kg: number; since: number } | null {
+/** Lifetime-Bilanz der API mit dem Zeitpunkt der ersten Ladung der Reihe; null ohne Bilanz oder Punkt. */
+export function lifetimeCo2(co2: Co2Statistics | null | undefined, series: { timestamp: string }[]): LifetimeCo2 | null {
   const times = series.map(p => Date.parse(p.timestamp)).filter(t => !Number.isNaN(t))
-  if (times.length === 0) return null
-  const kg = series.reduce((sum, p) => sum + co2SavedKg(p, petrolLitersPer100km), 0)
-  return { kg, since: Math.min(...times) }
+  if (co2 == null || times.length === 0) return null
+  return { kg: co2.savedKg, since: Math.min(...times) }
 }
 
 function pct(user: number, ref: number): number {
@@ -460,28 +437,26 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
     })
   }
 
-  // CO₂ gegen einen Benziner auf derselben Strecke, mit deutschem Strommix gerechnet
-  if (hasDistance) {
-    const liters = petrolLitersPer100km(input.vehicleCategory)
-    const c = co2Comparison(m.totalDistanceKm!, m.avgConsumptionKwhPer100km!, liters)
-    const lifetime = lifetimeCo2(input.lifetimeSeries, liters)
+  // CO₂ gegen einen Benziner der Fahrzeugklasse, Bilanz aus der API (Strecke zwischen Tachoständen gegen Netzstrom)
+  const co2 = m.co2
+  if (co2 != null && co2.distanceKm > 0) {
+    const lifetime = input.lifetimeCo2
     tiles.push({
       id: 'co2',
-      value: c.petrolKg - c.gridKg,
+      value: co2.savedKg,
       delta: null,
       deltaPercent: null,
-      sentiment: c.petrolKg > c.gridKg ? 'good' : 'neutral',
+      sentiment: co2.savedKg > 0 ? 'good' : 'neutral',
       spark: [],
       sparkVariant: 'bars',
       co2: {
-        petrolGPerKm: liters * PETROL_KG_CO2_PER_L * 10,
-        gridGPerKm: (m.avgConsumptionKwhPer100km! / 100) * STROMMIX_G_PER_KWH,
-        greenGPerKm: (m.avgConsumptionKwhPer100km! / 100) * OEKO_G_PER_KWH,
-        petrolLiters: (m.totalDistanceKm! / 100) * liters,
-        petrolLitersPer100km: liters,
+        petrolGPerKm: (co2.petrolKg / co2.distanceKm) * 1000,
+        gridGPerKm: (co2.electricityKg / co2.distanceKm) * 1000,
+        petrolLiters: co2.petrolLiters,
+        petrolLitersPer100km: co2.petrolLitersPer100km,
         category: input.vehicleCategory,
         // Gesamt gleich Monat sagt nichts Neues (erster Monat)
-        lifetime: lifetime && lifetime.kg > c.petrolKg - c.gridKg + 1 ? lifetime : null,
+        lifetime: lifetime && lifetime.kg > co2.savedKg + 1 ? lifetime : null,
       },
     })
   }

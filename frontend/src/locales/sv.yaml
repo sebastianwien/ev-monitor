@@ -950,14 +950,10 @@ dashboard:
   co2_title: Hallbarhet
   co2_saved_prefix: "over {km} km"
   co2_saved_vs_verbrenner: sparat vs. forbranningsmotor
-  co2_saved_basis: "Basis: {km} km, tysk elnatsmix"
   co2_combustion: Forbranningsmotor
-  co2_combustion_detail: "(snitt 7,5 L/100km) vid 178 g/km"
+  co2_combustion_detail: "(bensinbil i din klass, {liters} l/100 km)"
   co2_strommix: Din EV
-  co2_strommix_detail: "(elnatsmix ~ 380 g/kWh enl. UBA 2024)"
-  co2_oeko: Din EV
-  co2_oeko_detail: "(100% fornybar) 30 g/kWh livscykel"
-  co2_footnote: "Forbranningsmotor: 178 g/km (7,5 L x 2,37 kg CO2). EV elnatsmix: 380 g/kWh (UBA 2024). EV fonybar: 30 g/kWh livscykel."
+  co2_strommix_detail: "(tysk elmix)"
   range_window: Laddningsfönster
   range_summer: Sommar
   range_winter: Vinter
@@ -4176,11 +4172,10 @@ story:
   co2_note_since: "{kg} kg mindre, {total} kg sedan {year}"
   co2_petrol: "Fossilbil"
   co2_yours: "Din bil"
-  co2_green: "Laddad med grön el"
   sheet_co2_text: "{kg} kg mindre än med en fossilbil."
   sheet_co2_text_more: "{kg} kg mer än med en fossilbil."
-  sheet_co2_basis: "Räknat med en fossilbil med {liters} l bensin per 100 km och tysk elmix. Grön el betyder el från sol och vind."
-  sheet_co2_basis_class: "Räknat med en fossilbil i din klass ({category}, {liters} l bensin per 100 km) och tysk elmix. Grön el betyder el från sol och vind."
+  sheet_co2_basis: "Räknat med en fossilbil med {liters} l bensin per 100 km och tysk elmix, båda med produktionen av bensin och el. Bara körningen, inte tillverkningen av bilarna."
+  sheet_co2_basis_class: "Räknat med en fossilbil i din klass ({category}, {liters} l bensin per 100 km) och tysk elmix, båda med produktionen av bensin och el. Bara körningen, inte tillverkningen av bilarna."
   co2_liters: "En fossilbil hade tankat {liters}."
   co2_since: "Sedan {date}: {kg} mindre."
   charging_unit: "% snabb"

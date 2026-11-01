@@ -240,45 +240,43 @@ describe('expensiveCandidate und detectExpensive', () => {
 })
 
 describe('detectMilestone', () => {
-  const pt = (daysAgo: number, charges: number, distanceKm = 0, consumption: number | null = null) =>
-    ({ timestamp: iso(NOW - daysAgo * DAY), charges, distanceKm, consumptionKwhPer100km: consumption })
+  const pt = (daysAgo: number, charges: number, distanceKm = 0, co2SavedKg: number | null = null) =>
+    ({ timestamp: iso(NOW - daysAgo * DAY), charges, distanceKm, consumptionKwhPer100km: null, co2SavedKg })
 
   it('feiert die 100. Ladung am Tag, an dem sie dazukam', () => {
-    const m = detectMilestone({ series: [pt(40, 99), pt(1, 1)], now: NOW, petrolLitersPer100km: 7.5 })
+    const m = detectMilestone({ series: [pt(40, 99), pt(1, 1)], now: NOW })
     expect(m).toMatchObject({ kind: 'milestone', key: 'milestone:charges:100', metric: 'charges', value: 100, at: NOW - DAY, charges: 100 })
   })
 
   it('vergisst Meilensteine nach 3 Tagen und zählt keinen unter der ersten Schwelle', () => {
-    expect(detectMilestone({ series: [pt(40, 99), pt(4, 1)], now: NOW, petrolLitersPer100km: 7.5 })).toBeNull()
-    expect(detectMilestone({ series: [pt(1, 99)], now: NOW, petrolLitersPer100km: 7.5 })).toBeNull()
+    expect(detectMilestone({ series: [pt(40, 99), pt(4, 1)], now: NOW })).toBeNull()
+    expect(detectMilestone({ series: [pt(1, 99)], now: NOW })).toBeNull()
   })
 
-  it('10.000 km, mit CO₂ aus Strecke und Verbrauch', () => {
-    const m = detectMilestone({ series: [pt(30, 1, 9_900, 18), pt(1, 1, 300, 18)], now: NOW, petrolLitersPer100km: 7.5 })
-    // 7,5 l x 2,37 kg = 177,75 g/km Benzin gegen 18 kWh/100 km x 380 g/kWh = 109,35 g/km weniger
+  it('10.000 km, mit dem CO₂ der Punkte aus der API', () => {
+    const m = detectMilestone({ series: [pt(30, 1, 9_900, 1082.5), pt(1, 1, 300, 32.9)], now: NOW })
     expect(m).toMatchObject({ metric: 'km', value: 10_000, km: 10_200 })
     expect(m!.kind === 'milestone' && m!.co2Kg).toBeCloseTo(1115.4, 1)
   })
 
-  it('CO₂ mit dem Benziner der eigenen Fahrzeugklasse', () => {
-    const m = detectMilestone({ series: [pt(30, 1, 9_900, 18), pt(1, 1, 300, 18)], now: NOW, petrolLitersPer100km: 10.5 })
-    // 10,5 l x 2,37 kg = 248,85 g/km gegen 68,4 g/km
-    expect(m!.kind === 'milestone' && m!.co2Kg).toBeCloseTo(1840.6, 1)
+  it('eine Tonne CO₂ weniger', () => {
+    expect(detectMilestone({ series: [pt(10, 1, 9_000, 950), pt(1, 1, 200, 60)], now: NOW }))
+      .toMatchObject({ metric: 'co2', value: 1000 })
   })
 
-  it('eine Tonne CO₂ weniger', () => {
-    expect(detectMilestone({ series: [pt(10, 1, 9_000, 18), pt(1, 1, 200, 18)], now: NOW, petrolLitersPer100km: 7.5 }))
-      .toMatchObject({ metric: 'co2', value: 1000 })
+  it('CO₂ vorzeichenrichtig summiert, Punkte ohne Wert zählen nicht', () => {
+    const m = detectMilestone({ series: [pt(40, 99, 0, 500), pt(20, 0, 0, -120), pt(10, 0, 0, null), pt(1, 1)], now: NOW })
+    expect(m).toMatchObject({ metric: 'charges', value: 100, co2Kg: 380 })
   })
 
   it('Jahrestag der ersten Ladung', () => {
     const first = { timestamp: new Date(2025, 9, 23, 8).toISOString(), charges: 1, distanceKm: 0, consumptionKwhPer100km: null }
-    expect(detectMilestone({ series: [first, pt(5, 3)], now: NOW, petrolLitersPer100km: 7.5 }))
+    expect(detectMilestone({ series: [first, pt(5, 3)], now: NOW }))
       .toMatchObject({ metric: 'years', value: 1, at: new Date(2026, 9, 23, 8).getTime(), charges: 4 })
   })
 
   it('mehrere zugleich: der jüngste gewinnt', () => {
-    const m = detectMilestone({ series: [pt(30, 98, 9_900), pt(2, 2), pt(1, 1, 200)], now: NOW, petrolLitersPer100km: 7.5 })
+    const m = detectMilestone({ series: [pt(30, 98, 9_900), pt(2, 2), pt(1, 1, 200)], now: NOW })
     expect(m).toMatchObject({ metric: 'km', value: 10_000 })
   })
 })
@@ -332,29 +330,30 @@ describe('winterOutlook', () => {
 
 describe('recapFacts', () => {
   const prev = {
-    totalKwhCharged: 96, totalDistanceKm: 412, avgConsumptionKwhPer100km: 18,
+    totalKwhCharged: 96,
     chargingTypeSplit: { acKwh: 71, dcKwh: 25, unknownKwh: 0, acEurPerKwh: 0.3, dcEurPerKwh: 0.6 },
+    co2: { savedKg: 45.1, petrolKg: 93.8, electricityKg: 48.7, distanceKm: 412, petrolLiters: 30.9, petrolLitersPer100km: 7.5 },
   }
 
-  it('nennt Energie, AC und DC mit Kosten und das gesparte CO₂ gegen einen Benziner', () => {
-    const f = recapFacts(prev, 0, 7.5)!
+  it('nennt Energie, AC und DC mit Kosten und das gesparte CO₂ aus der API', () => {
+    const f = recapFacts(prev, 0)!
     expect(f.kwh).toBe(96)
     expect(f.ac).toEqual({ kwh: 71, eur: 71 * 0.3 })
     expect(f.dc).toEqual({ kwh: 25, eur: 25 * 0.6 })
-    // Benziner 412 km x 7,5 l/100 km x 2,37 kg = 73,2 kg, Strommix 74,16 kWh x 0,38 kg = 28,2 kg
-    expect(f.co2Kg).toBeCloseTo(4.12 * 7.5 * 2.37 - 4.12 * 18 * 0.38, 5)
+    expect(f.co2Kg).toBe(45.1)
   })
 
   it('lässt Kosten weg, wenn Ladungen ohne Preis fehlen oder der Typ keinen Preis hat', () => {
-    expect(recapFacts(prev, 2, 7.5)).toMatchObject({ ac: { kwh: 71, eur: null }, dc: { kwh: 25, eur: null } })
+    expect(recapFacts(prev, 2)).toMatchObject({ ac: { kwh: 71, eur: null }, dc: { kwh: 25, eur: null } })
     const noDcPrice = { ...prev, chargingTypeSplit: { ...prev.chargingTypeSplit, dcEurPerKwh: null } }
-    expect(recapFacts(noDcPrice, 0, 7.5)).toMatchObject({ dc: { kwh: 25, eur: null } })
+    expect(recapFacts(noDcPrice, 0)).toMatchObject({ dc: { kwh: 25, eur: null } })
   })
 
-  it('lässt einen Ladetyp ohne kWh und CO₂ ohne Strecke oder Verbrauch weg', () => {
-    const acOnly = { ...prev, chargingTypeSplit: { ...prev.chargingTypeSplit, dcKwh: 0 }, totalDistanceKm: null }
-    expect(recapFacts(acOnly, 0, 7.5)).toMatchObject({ dc: null, co2Kg: null })
-    expect(recapFacts({ ...prev, avgConsumptionKwhPer100km: null }, 0, 7.5)).toMatchObject({ co2Kg: null })
-    expect(recapFacts({ ...prev, chargingTypeSplit: null }, 0, 7.5)).toMatchObject({ ac: null, dc: null })
+  it('lässt einen Ladetyp ohne kWh und CO₂ ohne Bilanz oder ohne Ersparnis weg', () => {
+    const acOnly = { ...prev, chargingTypeSplit: { ...prev.chargingTypeSplit, dcKwh: 0 }, co2: null }
+    expect(recapFacts(acOnly, 0)).toMatchObject({ dc: null, co2Kg: null })
+    expect(recapFacts({ ...prev, co2: undefined }, 0)).toMatchObject({ co2Kg: null })
+    expect(recapFacts({ ...prev, co2: { ...prev.co2, savedKg: -3 } }, 0)).toMatchObject({ co2Kg: null })
+    expect(recapFacts({ ...prev, chargingTypeSplit: null }, 0)).toMatchObject({ ac: null, dc: null })
   })
 })

@@ -9,6 +9,7 @@ import { chargingBenchmarkService, type ChargingBenchmark } from '../api/chargin
 import type { StatisticsData } from './useDashboardStats'
 import {
   buildStoryTiles, buildStoryFeed, buildDayCoverage, monthWindow, PETROL_EUR_PER_L_DE, petrolLitersPer100km,
+  lifetimeCo2 as lifetimeCo2Of, type LifetimeCo2,
   type StoryTile, type StoryFeedItem, type DayCoverage,
   peerCostDiffEur,
 } from './storyModel'
@@ -265,6 +266,7 @@ interface CarBundle {
   benchmark: ChargingBenchmark | null
   recentTrips: Array<MomentTrip & TripForSummary>
   lifetimeSeries: MomentPoint[]
+  lifetimeCo2: LifetimeCo2 | null
   latestTrip: LatestTripSource | null
   /** Endstand des Vormonats je Kategorie, Basis der Ranglisten-Abschlusskarte. */
   previousRanks: RankResponse[]
@@ -332,6 +334,7 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
     benchmark: lastLogs.status === 'fulfilled' ? lastLogs.value.benchmark : null,
     recentTrips: momentTrips.status === 'fulfilled' && Array.isArray(momentTrips.value.data) ? momentTrips.value.data : [],
     lifetimeSeries: lifetime.status === 'fulfilled' ? lifetime.value.data?.chargesOverTime ?? [] : [],
+    lifetimeCo2: lifetime.status === 'fulfilled' ? lifetimeCo2Of(lifetime.value.data?.co2, lifetime.value.data?.chargesOverTime ?? []) : null,
     weather: weather.status === 'fulfilled' ? weather.value : null,
     // Fahrten liefert das Backend nur Berechtigten, ein Fehler heisst dann einfach: keine Fahrt.
     latestTrip: lastTrip.status === 'fulfilled' && Array.isArray(lastTrip.value.data) ? lastTrip.value.data[0] ?? null : null,
@@ -385,6 +388,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const recentTrips = ref<Array<MomentTrip & TripForSummary>>([])
   /** Tagesreihe ueber die ganze Lebenszeit, Basis der Meilensteine. */
   const lifetimeSeries = ref<MomentPoint[]>([])
+  /** CO₂ weniger seit der ersten Ladung, Bilanz der API. */
+  const lifetimeCo2 = ref<LifetimeCo2 | null>(null)
   /** Was andere Fahrer beim Betreiber der neuesten oeffentlichen Ladung zahlen, null ohne Vergleich. */
   const benchmark = ref<ChargingBenchmark | null>(null)
   const { seen } = useMomentSeen()
@@ -471,6 +476,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     benchmark.value = b.benchmark
     recentTrips.value = b.recentTrips
     lifetimeSeries.value = b.lifetimeSeries
+    lifetimeCo2.value = b.lifetimeCo2
     previousRanks.value = b.previousRanks
     previousPeer.value = b.previousPeer
     latest.value = buildLatest(b.recentLogs[0] ?? null, pickLatestTrip(b.latestTrip, b.recentTrips),
@@ -598,7 +604,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     temperature: temperature.value,
     pricelessPrevious: pricelessInPreviousMonth.value,
     vehicleCategory: ctx().vehicleCategory,
-    lifetimeSeries: lifetimeSeries.value,
+    lifetimeCo2: lifetimeCo2.value,
     runningMonth: month.value.offset === 0,
     monthOfYear: month.value.month,
     elapsedDays: month.value.offset === 0 ? new Date().getDate() : new Date(month.value.year, month.value.month, 0).getDate(),
@@ -650,7 +656,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       peer: previousPeerLine(prev, prevMonth),
     })
     return m?.kind === 'month_change' && prev
-      ? { ...m, facts: recapFacts(prev, pricelessInPreviousMonth.value, petrolLitersPer100km(c.vehicleCategory)) }
+      ? { ...m, facts: recapFacts(prev, pricelessInPreviousMonth.value) }
       : m
   })
 
@@ -668,7 +674,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       monthRecap.value,
       detectBattery({ history: sohHistory.value, now }),
       detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
-      withSupport(detectMilestone({ series: lifetimeSeries.value, now, petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory) }), c.supporterAsk),
+      withSupport(detectMilestone({ series: lifetimeSeries.value, now }), c.supporterAsk),
       detectGap({ logs: pricelessLogs.value, now, skipLogId: today }),
     ].filter((m): m is Moment => m != null)
     return pickCards(candidates, now, seen.value)

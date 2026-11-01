@@ -7,7 +7,7 @@ import {
   peerCostDiffEur,
   petrolLitersPer100km,
   heroLine,
-  co2Comparison,
+  lifetimeCo2,
   monthWindow,
   type StoryInput, MIN_SOLID_CHARGES } from './storyModel'
 import type { StatisticsData } from './useDashboardStats'
@@ -44,6 +44,7 @@ function stats(over: Partial<StatisticsData> = {}): StatisticsData {
       matchType: 'SPEC',
     },
     chargingEfficiencySplit: null,
+    co2: { savedKg: 300.5, petrolKg: 640, electricityKg: 339.5, distanceKm: 2900, petrolLiters: 217.5, petrolLitersPer100km: 7.5 },
     ...over,
   }
 }
@@ -69,7 +70,7 @@ function input(over: Partial<StoryInput> = {}): StoryInput {
     elapsedDays: 31,
     recent: { distanceKm: 840, days: 28 },
     vehicleCategory: null,
-    lifetimeSeries: [],
+    lifetimeCo2: null,
     ...over,
   }
 }
@@ -80,35 +81,36 @@ describe('buildStoryTiles', () => {
     expect(tiles.map(t => t.id)).toEqual(['co2', 'battery', 'peer', 'wltp', 'cost'])
   })
 
-  it('CO₂-Kachel: gesparte kg gegen Benziner, dazu g/km für Benziner, Strommix und Ökostrom', () => {
-    // 2.931 km, 17,9 kWh/100 km: Benzin 7,5 l x 2,37 kg = 521,0 kg, Strommix 524,6 kWh x 380 g = 199,4 kg
+  it('CO₂-Kachel: Bilanz aus der API, g/km für Benziner und dein Auto aus ihren Summen', () => {
     const co2 = buildStoryTiles(input()).find(t => t.id === 'co2')!
-    expect(co2.value).toBeCloseTo(321.6, 0)
+    expect(co2.value).toBe(300.5)
     expect(co2.sentiment).toBe('good')
-    expect(co2.co2!.petrolGPerKm).toBeCloseTo(177.75, 2)
-    expect(co2.co2!.gridGPerKm).toBeCloseTo(68.0, 1)
-    expect(co2.co2!.greenGPerKm).toBeCloseTo(5.4, 1)
+    // 640 kg und 339,5 kg auf 2.900 km
+    expect(co2.co2!.petrolGPerKm).toBeCloseTo(220.69, 2)
+    expect(co2.co2!.gridGPerKm).toBeCloseTo(117.07, 2)
+    expect(co2.co2!.petrolLiters).toBe(217.5)
+    expect(co2.co2!.petrolLitersPer100km).toBe(7.5)
+    expect(co2.co2).not.toHaveProperty('greenGPerKm')
   })
 
-  it('CO₂-Kachel: Benziner der eigenen Fahrzeugklasse, Liter des Monats', () => {
-    // Kleinwagen 5,8 l/100 km: 2.931 km x 5,8 l = 170 l, 5,8 x 2,37 kg = 137,5 g/km
-    const co2 = buildStoryTiles(input({ vehicleCategory: 'CITY_CAR' })).find(t => t.id === 'co2')!
-    expect(co2.co2!.petrolLitersPer100km).toBe(5.8)
-    expect(co2.co2!.petrolLiters).toBeCloseTo(170.0, 1)
-    expect(co2.co2!.petrolGPerKm).toBeCloseTo(137.46, 2)
-    expect(co2.co2!.category).toBe('CITY_CAR')
+  it('CO₂-Kachel: Fahrzeugklasse für den Text, mehr CO₂ als ein Benziner bleibt negativ', () => {
+    expect(buildStoryTiles(input({ vehicleCategory: 'CITY_CAR' })).find(t => t.id === 'co2')!.co2!.category).toBe('CITY_CAR')
+    const more = buildStoryTiles(input({ month: stats({ co2: { savedKg: -4, petrolKg: 20, electricityKg: 24, distanceKm: 100, petrolLiters: 7.5, petrolLitersPer100km: 7.5 } }) }))
+      .find(t => t.id === 'co2')!
+    expect(more.value).toBe(-4)
+    expect(more.sentiment).toBe('neutral')
+  })
+
+  it('CO₂-Kachel: ohne Bilanz aus der API (älteres Backend, kein Tacho-Abschnitt) keine Kachel', () => {
+    expect(buildStoryTiles(input({ month: stats({ co2: null }) })).map(t => t.id)).not.toContain('co2')
+    expect(buildStoryTiles(input({ month: stats({ co2: undefined }) })).map(t => t.id)).not.toContain('co2')
   })
 
   it('CO₂-Kachel: CO₂ weniger seit der ersten Ladung, nur wenn es mehr als der Monat ist', () => {
-    const series = [
-      { timestamp: '2025-03-04T10:00:00Z', distanceKm: 5000, consumptionKwhPer100km: 18 },
-      { timestamp: '2026-10-02T10:00:00Z', distanceKm: 2931, consumptionKwhPer100km: 17.9 },
-    ]
-    const co2 = buildStoryTiles(input({ lifetimeSeries: series })).find(t => t.id === 'co2')!
-    // 5.000 km x (177,75 - 68,4) g + 2.931 km x (177,75 - 68,02) g
-    expect(co2.co2!.lifetime!.kg).toBeCloseTo(868.3, 0)
-    expect(co2.co2!.lifetime!.since).toBe(Date.parse('2025-03-04T10:00:00Z'))
-    const onlyMonth = buildStoryTiles(input({ lifetimeSeries: series.slice(1) })).find(t => t.id === 'co2')!
+    const since = Date.parse('2025-03-04T10:00:00Z')
+    const co2 = buildStoryTiles(input({ lifetimeCo2: { kg: 868.3, since } })).find(t => t.id === 'co2')!
+    expect(co2.co2!.lifetime).toEqual({ kg: 868.3, since })
+    const onlyMonth = buildStoryTiles(input({ lifetimeCo2: { kg: 301, since } })).find(t => t.id === 'co2')!
     expect(onlyMonth.co2!.lifetime).toBeNull()
   })
 
@@ -225,13 +227,13 @@ describe('buildStoryTiles', () => {
       sohPercent: null,
       month: stats({ peerBenchmark: null }),
     }))
-    // CO₂ braucht nur Strecke und Verbrauch
+    // CO₂ braucht nur die Bilanz aus der API
     expect(tiles.map(t => t.id)).toEqual(['co2', 'cost'])
   })
 
   it('ohne Strecke gibt es weder WLTP noch CO2', () => {
     const tiles = buildStoryTiles(input({
-      month: stats({ totalDistanceKm: null, avgConsumptionKwhPer100km: null }),
+      month: stats({ totalDistanceKm: null, avgConsumptionKwhPer100km: null, co2: null }),
     }))
     expect(tiles.map(t => t.id)).toEqual(['battery', 'peer', 'cost'])
   })
@@ -470,12 +472,16 @@ describe('heroLine', () => {
   })
 })
 
-describe('co2Comparison', () => {
-  it('liefert Benziner, Strommix, Ökostrom in kg', () => {
-    const c = co2Comparison(2931, 17.9, 7.5)
-    expect(c.petrolKg).toBeCloseTo(521.0, 0)
-    expect(c.gridKg).toBeCloseTo(199.4, 0)
-    expect(c.greenKg).toBeCloseTo(15.7, 0)
+describe('lifetimeCo2', () => {
+  const co2 = { savedKg: 868.3, petrolKg: 1400, electricityKg: 531.7, distanceKm: 7900, petrolLiters: 592.5, petrolLitersPer100km: 7.5 }
+  it('Bilanz seit der ersten Ladung der Reihe', () => {
+    const series = [{ timestamp: '2026-10-02T10:00:00Z' }, { timestamp: '2025-03-04T10:00:00Z' }]
+    expect(lifetimeCo2(co2, series)).toEqual({ kg: 868.3, since: Date.parse('2025-03-04T10:00:00Z') })
+  })
+  it('null ohne Bilanz oder ohne Punkt', () => {
+    expect(lifetimeCo2(null, [{ timestamp: '2025-03-04T10:00:00Z' }])).toBeNull()
+    expect(lifetimeCo2(undefined, [{ timestamp: '2025-03-04T10:00:00Z' }])).toBeNull()
+    expect(lifetimeCo2(co2, [])).toBeNull()
   })
 })
 

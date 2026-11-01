@@ -159,7 +159,7 @@ describe('StoryTile Fahrten', () => {
 
 describe('StoryTile CO₂, Laden, Stand', () => {
   const base = { delta: null, deltaPercent: null, sentiment: 'neutral' as const, spark: [], sparkVariant: 'bars' as const }
-  const co2 = (over: Record<string, unknown> = {}) => ({ petrolGPerKm: 178, gridGPerKm: 102, greenGPerKm: 8, petrolLiters: 11, petrolLitersPer100km: 7.5, category: null, lifetime: null, ...over })
+  const co2 = (over: Record<string, unknown> = {}) => ({ petrolGPerKm: 178, gridGPerKm: 102, petrolLiters: 11, petrolLitersPer100km: 7.5, category: null, lifetime: null, ...over })
   it('CO₂: Prozent weniger als ein Verbrenner, kg im Satz, Balken in Prozent', () => {
     const text = mount({ ...base, id: 'co2', value: 11.2, co2: co2() })
     expect(text).toContain('Wie viel CO₂ spare ich?')

@@ -1017,7 +1017,7 @@ onUnmounted(() => {
 
         <!-- Ladeeffizienz + CO2-Bilanz -->
         <div
-          v-if="stats && ((stats.chargingEfficiencySplit?.coveredLogCount ?? 0) > 0 || (stats.avgConsumptionKwhPer100km && stats.totalDistanceKm))"
+          v-if="stats && ((stats.chargingEfficiencySplit?.coveredLogCount ?? 0) > 0 || (stats.co2 && stats.co2.savedKg > 0))"
           class="mb-6 mt-4 grid grid-cols-1 md:grid-cols-2 gap-4"
         >
           <ChargingEfficiencyCard
@@ -1025,9 +1025,8 @@ onUnmounted(() => {
             :efficiency-split="stats.chargingEfficiencySplit"
           />
           <CO2Card
-            v-if="stats?.avgConsumptionKwhPer100km && stats?.totalDistanceKm"
-            :avg-consumption-kwh-per100km="stats.avgConsumptionKwhPer100km"
-            :total-distance-km="stats.totalDistanceKm"
+            v-if="stats?.co2 && stats.co2.savedKg > 0"
+            :co2="stats.co2"
           />
         </div>
 

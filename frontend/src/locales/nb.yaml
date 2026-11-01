@@ -950,14 +950,10 @@ dashboard:
   co2_title: Baerekraft
   co2_saved_prefix: "over {km} km"
   co2_saved_vs_verbrenner: spart vs. forbrenningsmotor
-  co2_saved_basis: "Grunnlag: {km} km, tysk stromblanding"
   co2_combustion: Forbrenningsmotor
-  co2_combustion_detail: "(snitt 7,5 L/100km) ved 178 g/km"
+  co2_combustion_detail: "(bensinbil i din klasse, {liters} l/100 km)"
   co2_strommix: Din EV
-  co2_strommix_detail: "(strømmiks ~ 380 g/kWh iht. UBA 2024)"
-  co2_oeko: Din EV
-  co2_oeko_detail: "(100% fornybar) 30 g/kWh livslop"
-  co2_footnote: "Forbrenning: 178 g/km (7,5 L x 2,37 kg CO2). EV stromblanding: 380 g/kWh (UBA 2024). EV fornybar: 30 g/kWh livslopet."
+  co2_strommix_detail: "(tysk strømmiks)"
   range_window: Ladevindu
   range_summer: Sommer
   range_winter: Vinter
@@ -4176,11 +4172,10 @@ story:
   co2_note_since: "{kg} kg mindre, {total} kg siden {year}"
   co2_petrol: "Fossilbil"
   co2_yours: "Bilen din"
-  co2_green: "Ladet med grønn strøm"
   sheet_co2_text: "{kg} kg mindre enn med en fossilbil."
   sheet_co2_text_more: "{kg} kg mer enn med en fossilbil."
-  sheet_co2_basis: "Regnet med en fossilbil med {liters} l bensin per 100 km og tysk strømmiks. Grønn strøm betyr strøm fra sol og vind."
-  sheet_co2_basis_class: "Regnet med en fossilbil i din klasse ({category}, {liters} l bensin per 100 km) og tysk strømmiks. Grønn strøm betyr strøm fra sol og vind."
+  sheet_co2_basis: "Regnet med en fossilbil med {liters} l bensin per 100 km og tysk strømmiks, begge med produksjonen av bensin og strøm. Bare kjøringen, ikke byggingen av bilene."
+  sheet_co2_basis_class: "Regnet med en fossilbil i din klasse ({category}, {liters} l bensin per 100 km) og tysk strømmiks, begge med produksjonen av bensin og strøm. Bare kjøringen, ikke byggingen av bilene."
   co2_liters: "En fossilbil ville ha brukt {liters}."
   co2_since: "Siden {date}: {kg} mindre."
   charging_unit: "% hurtig"

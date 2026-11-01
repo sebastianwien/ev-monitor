@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import type { StoryTile } from '../../../composables/storyModel'
 
-/** CO₂ gegen einen Benziner der eigenen Fahrzeugklasse: gesparte kg, Liter, Summe seit Start und drei Balken in g/km. */
+/** CO₂ gegen einen Benziner der eigenen Fahrzeugklasse: gesparte kg, Liter, Summe seit Start und zwei Balken in g/km. */
 const props = defineProps<{ tile: StoryTile }>()
 const { t, locale } = useI18n()
 const { formatDecimal } = useLocaleFormat()
@@ -13,7 +13,6 @@ const c = computed(() => props.tile.co2!)
 const rows = computed(() => [
   { key: 'petrol', label: t('story.co2_petrol'), g: c.value.petrolGPerKm, cls: 'bg-gray-400 dark:bg-gray-500' },
   { key: 'grid', label: t('story.co2_yours'), g: c.value.gridGPerKm, cls: 'bg-green-700 dark:bg-green-400' },
-  { key: 'green', label: t('story.co2_green'), g: c.value.greenGPerKm, cls: 'bg-green-500 dark:bg-green-300' },
 ])
 const since = computed(() => c.value.lifetime
   ? new Date(c.value.lifetime.since).toLocaleDateString(locale.value, { month: 'long', year: 'numeric' })
