@@ -37,6 +37,7 @@ public class ChargingPriceService {
     private final JpaEvLogRepository evLogRepository;
     private final FuelPriceService fuelPriceService;
     private final ChargingProviderTariffRepository tariffRepository;
+    private final PlausibilityProperties plausibility;
 
     /** Cached (4 h, see application.yml): community prices, fuel prices and tariffs move slowly, the calculator asks on every recalculation */
     @Cacheable(value = "chargingReferencePrices", key = "#isSeedUser")
@@ -51,7 +52,9 @@ public class ChargingPriceService {
                 BigDecimal.valueOf(fuelPriceService.getBenzinPrice()).setScale(3, RoundingMode.HALF_UP),
                 BigDecimal.valueOf(fuelPriceService.getDieselPrice()).setScale(3, RoundingMode.HALF_UP),
                 FuelPriceService.COMBUSTION_LITERS_PER_100_KM,
-                fastAdHocPrice());
+                fastAdHocPrice(),
+                BigDecimal.valueOf(plausibility.getAcChargingEfficiency()),
+                BigDecimal.valueOf(plausibility.getDcChargingEfficiency()));
     }
 
     /**
