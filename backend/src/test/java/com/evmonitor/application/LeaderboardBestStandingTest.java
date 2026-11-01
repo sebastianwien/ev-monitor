@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -40,7 +41,7 @@ class LeaderboardBestStandingTest {
 
     @Test
     void notRankedAnywhere_returnsEmpty() {
-        assertThat(leaderboardService.getMyBestStanding(me)).isEmpty();
+        assertThat(leaderboardService.getMyBestStanding(me, YearMonth.now())).isEmpty();
     }
 
     @Test
@@ -50,7 +51,7 @@ class LeaderboardBestStandingTest {
         when(queryRepository.getChargesRanking(any(), any())).thenReturn(List.of(
                 row(UUID.randomUUID(), "14"), row(me, "11")));
 
-        Optional<MyBestStanding> best = leaderboardService.getMyBestStanding(me);
+        Optional<MyBestStanding> best = leaderboardService.getMyBestStanding(me, YearMonth.now());
 
         assertThat(best).isPresent();
         assertThat(best.get().category()).isEqualTo(LeaderboardCategory.MONTHLY_CHARGES);
@@ -63,7 +64,7 @@ class LeaderboardBestStandingTest {
         when(queryRepository.getDistanceRanking(any(), any())).thenReturn(List.of(
                 row(me, "1200"), row(UUID.randomUUID(), "900")));
 
-        MyBestStanding best = leaderboardService.getMyBestStanding(me).orElseThrow();
+        MyBestStanding best = leaderboardService.getMyBestStanding(me, YearMonth.now()).orElseThrow();
 
         assertThat(best.rank()).isEqualTo(1);
         assertThat(best.gapToNext()).isNull();
@@ -74,7 +75,7 @@ class LeaderboardBestStandingTest {
         when(queryRepository.getKwhRanking(any(), any())).thenReturn(List.of(
                 row(UUID.randomUUID(), "300.0"), row(UUID.randomUUID(), "250.0"), row(me, "250.0")));
 
-        MyBestStanding best = leaderboardService.getMyBestStanding(me).orElseThrow();
+        MyBestStanding best = leaderboardService.getMyBestStanding(me, YearMonth.now()).orElseThrow();
 
         assertThat(best.rank()).isEqualTo(3);
         assertThat(best.gapToNext()).isEqualByComparingTo("0");
@@ -85,7 +86,7 @@ class LeaderboardBestStandingTest {
         when(queryRepository.getChargesRanking(any(), any())).thenReturn(List.of(
                 row(UUID.randomUUID(), "14"), row(me, "14")));
 
-        MyBestStanding best = leaderboardService.getMyBestStanding(me).orElseThrow();
+        MyBestStanding best = leaderboardService.getMyBestStanding(me, YearMonth.now()).orElseThrow();
 
         assertThat(best.rank()).isEqualTo(2);
         assertThat(best.gapToNext()).isEqualByComparingTo("0");
@@ -96,7 +97,7 @@ class LeaderboardBestStandingTest {
         when(queryRepository.getCheapestRanking(any(), any())).thenReturn(List.of(
                 row(UUID.randomUUID(), "0.21"), row(me, "0.25")));
 
-        MyBestStanding best = leaderboardService.getMyBestStanding(me).orElseThrow();
+        MyBestStanding best = leaderboardService.getMyBestStanding(me, YearMonth.now()).orElseThrow();
 
         assertThat(best.category()).isEqualTo(LeaderboardCategory.MONTHLY_CHEAPEST);
         assertThat(best.gapToNext()).isEqualByComparingTo("0.04");

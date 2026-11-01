@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.*;
 
 /**
@@ -27,19 +28,22 @@ public class PersonalTickerService {
     private final LeaderboardService leaderboardService;
     private final UserRepository userRepository;
 
-    @Cacheable(value = "tickerPersonal", key = "#userId")
-    public List<TickerItemDTO> getItems(UUID userId) {
-        LocalDate today = LocalDate.now();
-        LocalDate monthStart = today.withDayOfMonth(1);
-        String month = String.valueOf(today.getMonthValue());
+    /**
+     * Laufender Monat bis heute oder Vormonat komplett (Monatsrückblick), je Nutzer und Monat gecacht.
+     * Das heutige Datum im Key verhindert, dass am Monatsersten ein Eintrag vom Vortag als kompletter Vormonat gilt.
+     */
+    @Cacheable(value = "tickerPersonal", key = "#userId + ':' + #yearMonth + ':' + T(java.time.LocalDate).now()")
+    public List<TickerItemDTO> getItems(UUID userId, YearMonth yearMonth) {
+        TickerMonth window = TickerMonth.of(yearMonth, LocalDate.now());
+        String month = window.monthParam();
 
         List<TickerItemDTO> items = new ArrayList<>();
-        queryRepository.getTopCarMonthSummary(userId, monthStart.atStartOfDay(), today.plusDays(1).atStartOfDay())
+        queryRepository.getTopCarMonthSummary(userId, window.start(), window.end())
                 .ifPresent(summary -> {
                     items.add(monthItem(summary, month));
-                    consumptionItem(summary, userId, monthStart, today, month).ifPresent(items::add);
+                    consumptionItem(summary, userId, window).ifPresent(items::add);
                 });
-        rankItem(userId, month).ifPresent(item -> items.add(Math.min(1, items.size()), item));
+        rankItem(userId, yearMonth, month).ifPresent(item -> items.add(Math.min(1, items.size()), item));
         return items;
     }
 
@@ -52,9 +56,9 @@ public class PersonalTickerService {
                 "homePercent", Long.toString(homePercent)));
     }
 
-    private Optional<TickerItemDTO> consumptionItem(MonthChargeSummary summary, UUID userId,
-                                                    LocalDate monthStart, LocalDate today, String month) {
-        return statisticsService.getPeerBenchmark(summary.carId(), userId, monthStart, today)
+    private Optional<TickerItemDTO> consumptionItem(MonthChargeSummary summary, UUID userId, TickerMonth window) {
+        String month = window.monthParam();
+        return statisticsService.getPeerBenchmark(summary.carId(), userId, window.firstDay(), window.lastDay())
                 .filter(pb -> pb.userPeriodConsumptionKwhPer100km() != null
                         && pb.peerAvgConsumptionKwhPer100km() != null
                         && !pb.peerConsumptionLifetime()
@@ -65,9 +69,9 @@ public class PersonalTickerService {
                         "peers", oneDecimal(pb.peerAvgConsumptionKwhPer100km()))));
     }
 
-    private Optional<TickerItemDTO> rankItem(UUID userId, String month) {
+    private Optional<TickerItemDTO> rankItem(UUID userId, YearMonth yearMonth, String month) {
         if (!userRepository.isLeaderboardVisible(userId)) return Optional.empty();
-        return leaderboardService.getMyBestStanding(userId).map(standing -> TickerItemDTO.personal("my_standing", Map.of(
+        return leaderboardService.getMyBestStanding(userId, yearMonth).map(standing -> TickerItemDTO.personal("my_standing", Map.of(
                 "category", standing.category().name(),
                 "rank", Integer.toString(standing.rank()),
                 "value", standing.value().toPlainString(),

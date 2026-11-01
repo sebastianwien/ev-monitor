@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.PersonalTickerService;
 import com.evmonitor.application.TickerItemDTO;
+import com.evmonitor.application.TickerMonth;
 import com.evmonitor.application.TickerTodayService;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -9,8 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -25,9 +28,13 @@ public class TickerController {
     private final PersonalTickerService personalTickerService;
     private final TickerTodayService tickerTodayService;
 
+    /** Ohne month der laufende Monat; der Vormonat (komplett) für den Monatsrückblick, andere Monate 400. */
     @GetMapping("/me")
-    public ResponseEntity<List<TickerItemDTO>> getMyTicker(@AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(personalTickerService.getItems(principal.getUser().getId()));
+    public ResponseEntity<List<TickerItemDTO>> getMyTicker(@AuthenticationPrincipal UserPrincipal principal,
+                                                           @RequestParam(required = false) String month) {
+        return TickerMonth.parse(month, LocalDate.now())
+                .map(m -> ResponseEntity.ok(personalTickerService.getItems(principal.getUser().getId(), m)))
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 
     /** Bis zu zwei anonyme öffentliche Ladungen von heute (für alle gleich, 15 min gecacht). */
