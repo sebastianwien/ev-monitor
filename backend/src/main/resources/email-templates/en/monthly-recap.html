@@ -1,85 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
-<body style="margin: 0; padding: 8px; background-color: #eef0f4; font-family: Arial, sans-serif; color: #111827;">
-  <div style="max-width: 560px; margin: 0 auto; background: #ffffff; border-radius: 10px; overflow: hidden;">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<meta name="color-scheme" content="light dark">
+<meta name="supported-color-schemes" content="light dark">
+<style>
+  /* App CI (docs/design/ci.md) made mail-safe: edge instead of shadow, green only for result and button,
+     numbers tabular and bold. Phone edge-to-edge, from tablet a card with a border. Dark only where the
+     client honours prefers-color-scheme (Apple Mail); Gmail and Outlook invert on their own. */
+  body { margin: 0; padding: 0; background-color: #f3f4f6; }
+  .wrap { padding: 16px 8px; }
+  .card { max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 2px solid #6b7280; border-radius: 16px; }
+  .num { font-size: 26px; }
+  .hero { font-size: 28px; }
+  @media only screen and (max-width: 480px) {
+    .wrap { padding: 0 !important; }
+    .card { border-left: 0 !important; border-right: 0 !important; border-radius: 0 !important; max-width: none !important; }
+    .num { font-size: 22px !important; }
+    .hero { font-size: 26px !important; }
+  }
+  @media (prefers-color-scheme: dark) {
+    body, .wrap { background-color: #111827 !important; }
+    .card, .tile { background-color: #1f2937 !important; border-color: rgba(255, 255, 255, 0.35) !important; }
+    .txt { color: #f3f4f6 !important; }
+    .muted { color: #9ca3af !important; }
+    .hair { border-color: rgba(255, 255, 255, 0.2) !important; }
+    .bar-bg { background-color: #4b5563 !important; }
+  }
+</style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #111827;">
+  <div style="display: none; max-height: 0; overflow: hidden; font-size: 1px; line-height: 1px; color: #f3f4f6;">{{preheader}}</div>
+  <div class="wrap" style="padding: 16px 8px;">
+  <div class="card" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border: 2px solid #6b7280; border-radius: 16px;">
 
-    <div style="background-color: #4f46e5; padding: 24px 16px 20px; color: #ffffff;">
-      <p style="margin: 0; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: #e0e7ff;">ev-monitor · Monthly recap</p>
-      <p style="margin: 6px 0 0; font-size: 30px; font-weight: bold; line-height: 1.15; color: #ffffff;">Your {{month}} with the {{carName}}</p>
-      <!--if:distance--><p style="margin: 8px 0 0; font-size: 15px; color: #e0e7ff;">{{km}}<!--if:more-->, {{kmDiff}} more than in {{prevMonth}}<!--end:more--><!--if:less-->, {{kmDiff}} less than in {{prevMonth}}<!--end:less-->.</p><!--end:distance-->
-      <!--if:noDistance--><p style="margin: 8px 0 0; font-size: 15px; color: #e0e7ff;">{{charges}} sessions, {{kwh}} kWh.</p><!--end:noDistance-->
+    <div style="padding: 22px 16px 4px;">
+      <p class="muted" style="margin: 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7280;">Your {{month}} with the {{carName}}</p>
+      <p class="txt hero" style="margin: 6px 0 0; font-size: 28px; font-weight: bold; line-height: 1.1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: #111827;">{{hero}}</p>
+      <!--if:kmChange--><p class="muted" style="margin: 8px 0 0; font-size: 15px; font-variant-numeric: tabular-nums; color: #6b7280;"><!--if:more--><b>{{kmDiff}}</b> more than in {{prevMonth}}.<!--end:more--><!--if:less--><b>{{kmDiff}}</b> less than in {{prevMonth}}.<!--end:less--></p><!--end:kmChange-->
     </div>
 
-    <div style="padding: 20px 16px;">
-      <p style="margin: 0 0 18px; font-size: 15px; line-height: 1.6;">Hi {{username}},</p>
+    <div style="padding: 16px 16px 20px;">
+      <p class="txt" style="margin: 0 0 18px; font-size: 15px; line-height: 1.6;">Hi {{username}},</p>
 
       <!--if:savings-->
-      <p style="margin: 0; font-size: 13px; color: #4b5563;">Saved compared to a combustion car*</p>
-      <p style="margin: 2px 0 14px; font-size: 40px; font-weight: bold; line-height: 1.1; color: #15803d;">{{savings}}</p>
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; color: #374151;">
-        <tr><td style="padding: 0 0 4px;">Electricity <b>{{cost}}</b></td></tr>
-        <tr><td style="padding: 0 0 10px;"><table role="presentation" width="{{costBar}}%" cellpadding="0" cellspacing="0"><tr><td style="height: 12px; background-color: #4f46e5; border-radius: 3px; font-size: 0; line-height: 0;">&nbsp;</td></tr></table></td></tr>
-        <tr><td style="padding: 0 0 4px;">Combustion car, same distance <b>about {{fuelCost}}</b></td></tr>
-        <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height: 12px; background-color: #d1d5db; border-radius: 3px; font-size: 0; line-height: 0;">&nbsp;</td></tr></table></td></tr>
+      <p class="muted" style="margin: 0; font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7280;">Saved compared to a combustion car*</p>
+      <p style="margin: 2px 0 14px; font-size: 36px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums; color: #15803d;">{{savings}}</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 14px; font-variant-numeric: tabular-nums; color: #111827;">
+        <tr><td class="txt" style="padding: 0 0 4px;">Electricity <b>{{cost}}</b></td></tr>
+        <tr><td style="padding: 0 0 10px;"><table role="presentation" width="{{costBar}}%" cellpadding="0" cellspacing="0"><tr><td style="height: 10px; background-color: #0ea5e9; border-radius: 2px; font-size: 0; line-height: 0;">&nbsp;</td></tr></table></td></tr>
+        <tr><td class="txt" style="padding: 0 0 4px;">Combustion car, same distance <b>about {{fuelCost}}</b></td></tr>
+        <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td class="bar-bg" style="height: 10px; background-color: #d1d5db; border-radius: 2px; font-size: 0; line-height: 0;">&nbsp;</td></tr></table></td></tr>
       </table>
       <!--end:savings-->
 
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 26px 0 0; border-collapse: separate; border-spacing: 4px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 24px 0 0; table-layout: fixed; border-collapse: separate; border-spacing: 6px 0;">
         <tr>
-          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 10px 8px; vertical-align: top;">
-            <p style="margin: 0; font-size: 20px; font-weight: bold;">{{kwh}}<span style="font-size: 13px; font-weight: normal;"> kWh</span></p>
-            <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: #4b5563;">charged,<br>{{charges}} sessions</p>
+          <td class="tile" style="background-color: #ffffff; border: 2px solid #6b7280; border-radius: 12px; padding: 10px 10px 9px; vertical-align: top;">
+            <p class="txt num" style="margin: 0; font-size: 26px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums;">{{kwh}}</p>
+            <p class="muted" style="margin: 6px 0 0; font-size: 11.5px; line-height: 1.4; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7280;">kWh charged,<br>{{charges}} sessions</p>
           </td>
           <!--if:consumption-->
-          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 10px 8px; vertical-align: top;">
-            <p style="margin: 0; font-size: 20px; font-weight: bold;">{{consumption}}<span style="font-size: 13px; font-weight: normal;"> kWh</span></p>
-            <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: #4b5563;">consumption<br>per 100 km</p>
+          <td class="tile" style="background-color: #ffffff; border: 2px solid #6b7280; border-radius: 12px; padding: 10px 10px 9px; vertical-align: top;">
+            <p class="txt num" style="margin: 0; font-size: 26px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums;">{{consumption}}</p>
+            <p class="muted" style="margin: 6px 0 0; font-size: 11.5px; line-height: 1.4; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7280;">kWh consumption<br>per 100 km</p>
           </td>
           <!--end:consumption-->
           <!--if:costPer100-->
-          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 10px 8px; vertical-align: top;">
-            <p style="margin: 0; font-size: 20px; font-weight: bold;">{{costPer100}}</p>
-            <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: #4b5563;">electricity<br>per 100 km</p>
+          <td class="tile" style="background-color: #ffffff; border: 2px solid #6b7280; border-radius: 12px; padding: 10px 10px 9px; vertical-align: top;">
+            <p class="txt num" style="margin: 0; font-size: 26px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums;">{{costPer100}}</p>
+            <p class="muted" style="margin: 6px 0 0; font-size: 11.5px; line-height: 1.4; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7280;">electricity<br>per 100 km</p>
           </td>
           <!--end:costPer100-->
           <!--if:costTotal-->
-          <td width="33%" style="background-color: #f3f4f6; border-radius: 8px; padding: 10px 8px; vertical-align: top;">
-            <p style="margin: 0; font-size: 20px; font-weight: bold;">{{costTotal}}</p>
-            <p style="margin: 4px 0 0; font-size: 12px; line-height: 1.4; color: #4b5563;">electricity<br>in {{month}}</p>
+          <td class="tile" style="background-color: #ffffff; border: 2px solid #6b7280; border-radius: 12px; padding: 10px 10px 9px; vertical-align: top;">
+            <p class="txt num" style="margin: 0; font-size: 26px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums;">{{costTotal}}</p>
+            <p class="muted" style="margin: 6px 0 0; font-size: 11.5px; line-height: 1.4; letter-spacing: 0.06em; text-transform: uppercase; color: #6b7280;">electricity<br>in {{month}}</p>
           </td>
           <!--end:costTotal-->
         </tr>
       </table>
-      <!--if:details--><p style="margin: 10px 4px 0; font-size: 13px; line-height: 1.5; color: #4b5563;"><!--if:dcAll-->All {{charges}} sessions at fast chargers.<!--end:dcAll--><!--if:dcSome-->{{dc}} of {{charges}} sessions at fast chargers.<!--end:dcSome--><!--if:home--> {{homeShare}} charged at home.<!--end:home--></p><!--end:details-->
-      <!--if:highlights--><p style="margin: 10px 4px 0; font-size: 14px; line-height: 1.5; color: #111827;"><!--if:rank-->{{rankLine}}.<!--end:rank--><!--if:peer--> You: {{peerMine}} kWh/100 km, other drivers of your model in {{month}}: {{peerPeers}}.<!--end:peer--></p><!--end:highlights-->
+      <!--if:details--><p class="txt" style="margin: 14px 0 0; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums; color: #111827;"><!--if:dcAll-->All <b>{{charges}}</b> sessions at fast chargers.<!--end:dcAll--><!--if:dcSome--><b>{{dc}}</b> of <b>{{charges}}</b> sessions at fast chargers.<!--end:dcSome--><!--if:home--> <b>{{homeShare}}</b> charged at home.<!--end:home--></p><!--end:details-->
+      <!--if:highlights--><p class="txt" style="margin: 10px 0 0; font-size: 15px; line-height: 1.5; font-variant-numeric: tabular-nums; color: #111827;"><!--if:rank-->{{rankLine}}.<!--end:rank--><!--if:peer--> You: <b>{{peerMine}} kWh/100 km</b>, other drivers of your model in {{month}}: <b>{{peerPeers}}</b>.<!--end:peer--></p><!--end:highlights-->
 
       <!--if:hintOne-->
-      <div style="margin: 24px 0 0; padding: 14px 16px; border-radius: 8px; background-color: #fef3c7;">
-        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #78350f;">One session has no price: {{hintAt}}<!--if:hintKwh-->, {{hintKwh}}<!--end:hintKwh-->. With the price, the numbers above are exact.</p>
-        <a href="{{priceUrl}}" style="display: inline-block; margin-top: 10px; background-color: #78350f; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; padding: 10px 16px; border-radius: 6px;">Add the price</a>
+      <div style="margin: 24px 0 0; padding: 14px 16px; border: 2px solid #fcd34d; border-radius: 12px; background-color: #fffbeb;">
+        <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #78350f;">One session has no price: {{hintAt}}<!--if:hintKwh-->, {{hintKwh}}<!--end:hintKwh-->. With the price, the numbers above are exact.</p>
+        <a href="{{priceUrl}}" style="display: inline-block; margin-top: 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 15px; line-height: 20px; padding: 12px 18px; border: 2px solid #6b7280; border-radius: 8px; box-shadow: 2px 2px 0 #6b7280;">Add the price</a>
       </div>
       <!--end:hintOne-->
       <!--if:hintMany-->
-      <div style="margin: 24px 0 0; padding: 14px 16px; border-radius: 8px; background-color: #fef3c7;">
-        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #78350f;">{{hintCount}} sessions have no price. With prices, the numbers above are exact.</p>
-        <a href="{{priceUrl}}" style="display: inline-block; margin-top: 10px; background-color: #78350f; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; padding: 10px 16px; border-radius: 6px;">Add prices</a>
+      <div style="margin: 24px 0 0; padding: 14px 16px; border: 2px solid #fcd34d; border-radius: 12px; background-color: #fffbeb;">
+        <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #78350f;">{{hintCount}} sessions have no price. With prices, the numbers above are exact.</p>
+        <a href="{{priceUrl}}" style="display: inline-block; margin-top: 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 15px; line-height: 20px; padding: 12px 18px; border: 2px solid #6b7280; border-radius: 8px; box-shadow: 2px 2px 0 #6b7280;">Add prices</a>
       </div>
       <!--end:hintMany-->
       <!--if:hintAll-->
-      <div style="margin: 24px 0 0; padding: 14px 16px; border-radius: 8px; background-color: #fef3c7;">
-        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #78350f;">None of your sessions has a price. With prices, this mail also shows how much you save compared to a combustion car.</p>
-        <a href="{{priceUrl}}" style="display: inline-block; margin-top: 10px; background-color: #78350f; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; padding: 10px 16px; border-radius: 6px;">Add prices</a>
+      <div style="margin: 24px 0 0; padding: 14px 16px; border: 2px solid #fcd34d; border-radius: 12px; background-color: #fffbeb;">
+        <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #78350f;">None of your sessions has a price. With prices, this mail also shows how much you save compared to a combustion car.</p>
+        <a href="{{priceUrl}}" style="display: inline-block; margin-top: 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 15px; line-height: 20px; padding: 12px 18px; border: 2px solid #6b7280; border-radius: 8px; box-shadow: 2px 2px 0 #6b7280;">Add prices</a>
       </div>
       <!--end:hintAll-->
 
-      <p style="margin: 26px 0 0; font-size: 15px; line-height: 1.6;">Until next month<br>Sebastian</p>
+      <p class="txt" style="margin: 26px 0 0; font-size: 15px; line-height: 1.6;">Until next month<br>Sebastian</p>
     </div>
 
-    <div style="padding: 14px 16px 20px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.5; color: #6b7280;">
+    <div class="hair muted" style="padding: 14px 16px 20px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.5; color: #6b7280;">
       <!--if:savings-->*<!--if:partial--> Only sessions with a price, distance pro rata by kWh.<!--end:partial--> {{fuelLiters}} l/100 km of petrol for a combustion car in the {{carClass}} class at {{fuelPrice}}/l, petrol price in Germany (Tankerkönig).<br><!--end:savings-->
       You get this mail once a month if you had at least three charging sessions. <a href="{{unsubscribeUrl}}" style="color: #6b7280;">Unsubscribe</a>: one click, no login needed.
     </div>
+  </div>
   </div>
 </body>
 </html>

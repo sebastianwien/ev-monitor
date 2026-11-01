@@ -68,6 +68,11 @@ public final class MonthlyRecapMail {
         addDetails(recap, en, sections, vars);
         addHighlights(highlights, en, sections, vars);
         addHint(recap, en, locale, sections, vars);
+        // Vorschautext in der Inbox: der Hero-Satz und, wenn vorhanden, die Ersparnis.
+        String saved = recap.savingsEur() == null ? ""
+                : en ? " " + vars.get("savings") + " saved compared to a combustion car."
+                : " Gegenüber einem Verbrenner " + vars.get("savings") + " gespart.";
+        vars.put("preheader", vars.get("hero") + saved);
 
         String subject = en
                 ? "Your " + month + " with the " + recap.carName()
@@ -75,14 +80,32 @@ public final class MonthlyRecapMail {
         return new Rendered(subject, EmailTemplateRenderer.render(TEMPLATE, en ? "en" : "de", vars, sections));
     }
 
-    /** Unter dem Titel: die Strecke, und der Vormonat nur bei einer Änderung, die man spürt. */
+    /**
+     * Hero wie in der Story: "August: 1.766 km für 147 €.", ohne Strecke "147 € für 12 Ladungen", ohne
+     * Preise "1.766 km, 12 Ladungen", ohne beides nur die Ladungen. Darunter der Vormonat nur bei einer
+     * Änderung, die man spürt.
+     */
     private static void addHeader(MonthlyRecap recap, boolean en, Locale locale, Set<String> sections, Map<String, String> vars) {
-        if (recap.distanceKm() == null) {
-            sections.add("noDistance");
+        String month = vars.get("month");
+        // Geschützte Leerzeichen: Zahl und Einheit bleiben im Hero zusammen (wie keepUnits in der Story).
+        String km = recap.distanceKm() == null ? null : number(recap.distanceKm(), "#,##0", en) + " km";
+        // Unter 0,50 € stünde "0 €" im Hero: dann die Variante ohne Preise.
+        boolean hasCost = recap.costEur() != null && recap.costEur().setScale(0, RoundingMode.HALF_UP).signum() > 0;
+        String cost = hasCost ? money(recap.costEur(), "#,##0", en).replace(" €", " €") : null;
+        String charges = en
+                ? recap.charges() + (recap.charges() == 1 ? " session" : " sessions")
+                : recap.charges() + (recap.charges() == 1 ? " Ladung" : " Ladungen");
+        String forWord = en ? " for " : " für ";
+        String hero;
+        if (km != null && cost != null) hero = month + ": " + km + forWord + cost + ".";
+        else if (cost != null) hero = month + ": " + cost + forWord + charges + ".";
+        else if (km != null) hero = month + ": " + km + ", " + charges + ".";
+        else hero = month + ": " + charges + ".";
+        vars.put("hero", hero);
+        if (km == null) {
             return;
         }
-        sections.add("distance");
-        vars.put("km", number(recap.distanceKm(), "#,##0", en) + " km");
+        vars.put("km", km);
         BigDecimal previous = recap.previousDistanceKm();
         if (previous == null) {
             return;
@@ -91,6 +114,7 @@ public final class MonthlyRecapMail {
         if (diff.abs().compareTo(previous.multiply(MIN_CHANGE_SHARE)) < 0) {
             return;
         }
+        sections.add("kmChange");
         sections.add(diff.signum() > 0 ? "more" : "less");
         vars.put("kmDiff", number(diff.abs(), "#,##0", en) + " km");
         vars.put("prevMonth", monthName(recap.month().minusMonths(1), locale));
