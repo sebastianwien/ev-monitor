@@ -23,7 +23,7 @@ import {
   type Moment, type MomentLog, type MomentTrip, type MomentPoint, type ScoredMoment,
 } from './storyMoments'
 import { useMomentSeen } from './useMomentSeen'
-import { benchmarkPairs, toPlaceRows, type ChargingPlace, type PlaceRow } from './storyPlaces'
+import { benchmarkPairs, operatorGap, toPlaceRows, type ChargingPlace, type PlaceRow } from './storyPlaces'
 import { chargeMonths, earliestOffset } from './storyMonthGrid'
 
 /**
@@ -553,7 +553,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     previousMonth: previousStats.value,
     monthlyCosts: monthlySeries(p => p.costEur),
     monthlyDistance: monthlySeries(p => p.distanceKm),
-    places: places.value,
+    operatorGap: operatorGap(places.value, placeBenchmarks.value),
     monthlyConsumption: monthlySeries(p => p.consumptionKwhPer100km),
     wltpConsumption: ctx().wltpConsumption,
     sohPercent: ctx().sohPercent,

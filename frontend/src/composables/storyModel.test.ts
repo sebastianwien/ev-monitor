@@ -541,29 +541,21 @@ describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => 
     expect(find({})).toBeDefined()
   })
 
-  const place = (over: Record<string, unknown>) => ({
-    geohash: 'u2', kind: 'PUBLIC', charges: 1, kwh: 60.91, costEur: 30.46, pricePerKwh: 0.5,
-    lastChargedAt: '2026-10-30', lastLogId: 'l1', cpoName: 'Stadtwerke Beispielstadt', chargingType: 'DC', ...over,
-  }) as any
-
-  it('Preisvergleich teurer als andere: nennt den Ort, an dem du am meisten draufzahlst', () => {
-    const places = [
-      place({}),
-      place({ cpoName: 'Kaufland', kwh: 40, pricePerKwh: 0.44 }),
-      place({ cpoName: 'Lidl', kwh: 200, pricePerKwh: 0.1 }),
-      place({ kind: 'HOME', cpoName: 'Stadtwerke', kwh: 300, pricePerKwh: 0.6 }),
-      place({ cpoName: null, kwh: 300, pricePerKwh: 0.9 }),
-    ]
-    const item = buildStoryFeed(input({ savingsEur: null, modelPeers: peers(0.2), quality: ok, places }), { max: Infinity }).find(i => i.id === 'peer_cost_eur')!
-    // Beispielstadt (0,50 - 0,20) x 60,91 = 18,27 € vor Kaufland (0,44 - 0,20) x 40 = 9,60 €; Zuhause und ohne Betreiber zählen nicht
-    expect(item.place).toBe('Stadtwerke Beispielstadt')
-    expect(item.params.placePrice).toBe(0.5)
+  const gap = (extraEur: number) => ({
+    cpoName: 'Stadtwerke A', chargingType: 'DC' as const, pricePerKwh: 0.5, medianPricePerKwh: 0.35, extraEur,
+    card: null, benchmark: { cpoName: 'Stadtwerke A', chargingType: 'DC' as const, drivers: 9, medianPricePerKwh: 0.35, lowerQuartilePricePerKwh: 0.3, upperQuartilePricePerKwh: 0.4, cards: [] },
   })
 
-  it('Preisvergleich: kein Ort, wenn du günstiger bist oder kein Ort mindestens 1 € mehr kostet', () => {
-    const find = (over: Partial<StoryInput>) => buildStoryFeed(input({ savingsEur: null, quality: ok, ...over }), { max: Infinity }).find(i => i.id === 'peer_cost_eur')!
-    expect(find({ modelPeers: peers(), places: [place({ pricePerKwh: 0.9 })] }).place).toBeUndefined()
-    expect(find({ modelPeers: peers(0.2), places: [place({ kwh: 3, pricePerKwh: 0.5 })] }).place).toBeUndefined()
+  it('teurer Betreiber: eigene Zeile mit dem Betreiber, nach der Ersparnis und vor dem Kostentrend', () => {
+    const feed = buildStoryFeed(input({ operatorGap: gap(9) }), { max: Infinity })
+    const item = feed.find(i => i.id === 'cpo_price')!
+    expect(item.operator!.cpoName).toBe('Stadtwerke A')
+    expect(item.sentiment).toBe('neutral')
+    expect(item.question).toBe(1)
+    const ids = feed.map(f => f.id)
+    expect(ids.indexOf('cpo_price')).toBeGreaterThan(ids.indexOf('home_savings'))
+    expect(ids.indexOf('cpo_price')).toBeLessThan(ids.indexOf('cost_trend'))
+    expect(buildStoryFeed(input({ operatorGap: null }), { max: Infinity }).map(f => f.id)).not.toContain('cpo_price')
   })
 
   it('Herbst-Prognose nur im Oktober des laufenden Monats: km der letzten Tage mal Winter-Mehrverbrauch mal Preis', () => {

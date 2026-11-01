@@ -36,6 +36,7 @@ import StoryMonthStepper from '../components/story/StoryMonthStepper.vue'
 import CarSwitch from '../components/car/CarSwitch.vue'
 import api from '../api/axios'
 import { teaserParts, type PlacePeriod } from '../composables/storyPlaces'
+import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 import type { EvLogResponse } from '../components/dashboard/EditLogModal.vue'
 import type { SummarySection } from '../components/log-wizard/LogSummary.vue'
 import { dayKeyOf } from '../composables/storyDay'
@@ -173,6 +174,9 @@ function onPointerUp(e: PointerEvent) {
 const openTile = ref<TileId | null>(null)
 const openMap = ref(false)
 const openPrices = ref(false)
+/** Preise eines Betreibers aus "Diesen Monat" (teurer Betreiber), mit deinem Preis dort. */
+const feedPrices = ref<{ benchmark: ChargingBenchmark; pricePerKwh: number } | null>(null)
+function openFeedPrices(benchmark: ChargingBenchmark, pricePerKwh: number) { feedPrices.value = { benchmark, pricePerKwh } }
 /** Zeitraum der Ladekarte, bleibt beim Schließen und Wiederöffnen erhalten. */
 const placesPeriod = ref<PlacePeriod>('12m')
 const operatorLog = ref<EvLogResponse | null>(null)
@@ -440,7 +444,7 @@ onUnmounted(() => unregisterReload?.())
               v-if="narrow && showFeed"
               :feed="feed" :model-name="modelName" :sheets="sheetIds"
               :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0"
-              @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" />
+              @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" @prices="openFeedPrices" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" :selected="paneTile?.id ?? null" @open="openSheet" />
           </template>
         </div>
@@ -459,7 +463,7 @@ onUnmounted(() => unregisterReload?.())
               v-if="showFeed"
               :feed="feed" :model-name="modelName" :sheets="sheetIds"
               :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0" map-preview
-              @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" />
+              @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" @prices="openFeedPrices" />
           </div>
         </div>
       </section>
@@ -477,6 +481,7 @@ onUnmounted(() => unregisterReload?.())
     <StorySheet v-if="sheetTile && narrow" :tile="sheetTile" :context="sheetContext" @close="openTile = null" />
 
     <StoryPriceSheet v-if="openPrices && story.benchmark.value" :benchmark="story.benchmark.value" :price-per-kwh="expensivePrice" @close="openPrices = false" />
+    <StoryPriceSheet v-if="feedPrices" :benchmark="feedPrices.benchmark" :price-per-kwh="feedPrices.pricePerKwh" @close="feedPrices = null" />
 
     <PlacesSheet
       v-if="openMap && selectedCarId"

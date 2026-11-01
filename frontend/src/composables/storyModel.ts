@@ -9,7 +9,7 @@ import { PETROL_KG_CO2_PER_L, STROMMIX_G_PER_KWH, OEKO_G_PER_KWH } from '../comp
 import { combustionLiters } from '../utils/costMix'
 import { energyUse, type EnergyFlow, type EnergyUse, type RangeEstimate } from './storyEnergy'
 import type { ModelPeers, DataQuality, TemperatureEffect, TripMonth } from './storyInsights'
-import type { ChargingPlace } from './storyPlaces'
+import type { OperatorGap } from './storyPlaces'
 import { dayKeyOf, drivenByDay, type DrivenDay, type OdometerGap } from './storyDay'
 
 export type Sentiment = 'good' | 'warn' | 'bad' | 'neutral'
@@ -65,7 +65,7 @@ export interface StoryTile {
 }
 
 export type FeedId =
-  | 'autumn_forecast' | 'peer_cost_eur' | 'home_savings' | 'cost_trend' | 'data_quality' | 'temperature_effect'
+  | 'autumn_forecast' | 'peer_cost_eur' | 'home_savings' | 'cpo_price' | 'cost_trend' | 'data_quality' | 'temperature_effect'
 
 export interface StoryFeedItem {
   id: FeedId
@@ -80,8 +80,8 @@ export interface StoryFeedItem {
   logId?: string | null
   /** Nur Kostentrend: Kosten und Strecke je Monat für die Balken, aeltester zuerst. */
   months?: FeedMonth[]
-  /** Nur Preisvergleich, wenn du mehr zahlst: Betreiber, bei dem du am meisten draufzahlst. */
-  place?: string
+  /** Nur teurer Betreiber: Betreiber, Preise, Karte und Vergleich fürs Preis-Sheet. */
+  operator?: OperatorGap
   /** Textschluessel ohne Zahl, z. B. die Leaderboard-Kategorie. */
   label?: string
 }
@@ -105,8 +105,8 @@ export interface StoryInput {
   monthlyCosts: number[]
   /** Strecke je Monat, gleiche Reihenfolge wie monthlyCosts. */
   monthlyDistance?: number[]
-  /** Ladeorte des Monats (GET /logs/places), für den Ort hinter dem Preisvergleich. */
-  places?: ChargingPlace[]
+  /** Betreiber des Monats, bei dem du am meisten mehr zahlst als andere Fahrer dort; null ohne. */
+  operatorGap?: OperatorGap | null
   monthlyConsumption: number[]
   wltpConsumption: number | null
   sohPercent: number | null
@@ -492,7 +492,6 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
     const theirsEur = m.totalKwhCharged * mp.theirs.costPerKwh
     const diff = m.energyCostEur - theirsEur
     if (Math.abs(diff) >= MIN_COST_DIFF_EUR) {
-      const place = diff > 0 ? priciestPlace(input.places ?? [], mp.theirs.costPerKwh) : null
       items.push({
         id: 'peer_cost_eur',
         question: 3,
@@ -500,10 +499,22 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
         relevance: 60 + Math.min(30, Math.abs(diff)),
         // Teurer als andere ist eine Auskunft fuer die Planung, kein Fehler: nie Amber.
         sentiment: diff < 0 ? 'good' : 'neutral',
-        params: { diffEur: diff, mineEur: m.energyCostEur, theirsEur, cars: mp.cars, ...(place ? { placePrice: place.pricePerKwh } : {}) },
-        ...(place ? { place: place.name } : {}),
+        params: { diffEur: diff, mineEur: m.energyCostEur, theirsEur, cars: mp.cars },
       })
     }
+  }
+
+  // Teurer Betreiber: hier spart ein Kartenwechsel wirklich Geld. Nach der Ersparnis, vor Trends.
+  const op = input.operatorGap
+  if (op) {
+    items.push({
+      id: 'cpo_price',
+      question: 1,
+      relevance: 90 + Math.min(9, op.extraEur / 5),
+      sentiment: 'neutral',
+      params: { extraEur: op.extraEur },
+      operator: op,
+    })
   }
 
   // Herbst-Prognose: Strecke der letzten Tage auf 30 Tage, mal Mehrverbrauch im Winter, mal eigener Preis.
@@ -567,20 +578,6 @@ function feedMonths(input: StoryInput): FeedMonth[] {
   }))
   const first = all.findIndex(x => x.eur > 0 || x.km > 0)
   return first < 0 ? [] : all.slice(first)
-}
-
-/**
- * Der öffentliche Ort mit dem größten Aufpreis gegen den Preis der anderen Fahrer (Preisdifferenz mal kWh).
- * Zuhause zählt nicht, ohne Betreiber gibt es keinen Namen. Unter 1 € Aufpreis keiner.
- */
-function priciestPlace(places: ChargingPlace[], theirsPerKwh: number): { name: string; pricePerKwh: number } | null {
-  let best: { name: string; pricePerKwh: number; extra: number } | null = null
-  for (const p of places) {
-    if (p.kind === 'HOME' || !p.cpoName || p.pricePerKwh == null) continue
-    const extra = (p.pricePerKwh - theirsPerKwh) * p.kwh
-    if (extra >= MIN_COST_DIFF_EUR && (!best || extra > best.extra)) best = { name: p.cpoName, pricePerKwh: p.pricePerKwh, extra }
-  }
-  return best && { name: best.name, pricePerKwh: best.pricePerKwh }
 }
 
 /** Die ersten n nach Relevanz; fehlt darin ein positiver Satz, ersetzt der beste positive den letzten Platz. */

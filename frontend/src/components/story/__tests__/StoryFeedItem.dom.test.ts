@@ -92,12 +92,6 @@ describe('StoryFeedItem Insights mit Vergleichsbasis und Balken', () => {
     const host = mount({ id: 'peer_cost_eur', question: 3, relevance: 60, sentiment: 'neutral', params: { diffEur: 12.2, mineEur: 59.2, theirsEur: 47, cars: 40 } })
     expect(text(host)).toContain('12 € mehr als andere Model 3-Fahrer')
     expect(host.querySelector('b')!.className).not.toContain('amber')
-    expect(text(host)).not.toContain('zahlst du drauf')
-  })
-
-  it('Preisvergleich: mehr als andere nennt den Ort, an dem du am meisten draufzahlst', () => {
-    const host = mount({ id: 'peer_cost_eur', question: 3, relevance: 60, sentiment: 'neutral', params: { diffEur: 35, mineEur: 120, theirsEur: 85, cars: 40, placePrice: 0.5 }, place: 'Stadtwerke Beispielstadt' })
-    expect(text(host)).toContain('Für dieselbe Menge Strom im Oktober. Am meisten zahlst du drauf bei Stadtwerke Beispielstadt (0,50 € je kWh).')
   })
 
   it('Kostentrend: Satz bleibt, darunter Balken je Monat mit Strecke und Betrag, der Monat hervorgehoben', () => {
@@ -114,6 +108,29 @@ describe('StoryFeedItem Insights mit Vergleichsbasis und Balken', () => {
     const host = mount({ id: 'cost_trend', question: 1, relevance: 60, sentiment: 'warn', params: { diff: 75, current: 96.4, previous: 21.6 },
       months: [{ month: 10, eur: 96.4, km: 940 }] })
     expect(host.querySelector('[data-testid="story-insight-bars"]')).toBeNull()
+  })
+
+  const benchmark = { cpoName: 'Stadtwerke A', chargingType: 'DC' as const, drivers: 9, medianPricePerKwh: 0.35, lowerQuartilePricePerKwh: 0.3, upperQuartilePricePerKwh: 0.4, cards: [] }
+  const cpo = (card: Record<string, unknown> | null) => ({ id: 'cpo_price' as const, question: 1 as const, relevance: 90, sentiment: 'neutral' as const, params: { extraEur: 9 },
+    operator: { cpoName: 'Stadtwerke A', chargingType: 'DC' as const, pricePerKwh: 0.5, medianPricePerKwh: 0.35, extraEur: 9, benchmark,
+      card: card && { name: 'Karte X', variant: null, monthlyFeeEur: null, drivers: null, verifiedOn: null, ...card } as any } })
+
+  it('teurer Betreiber mit gepflegter Karte: dein Preis fett, Median, Karte mit Grundgebühr; Tipp öffnet das Preis-Sheet', () => {
+    const opened: unknown[] = []
+    const host = mount(cpo({ variant: 'Basis', pricePerKwh: 0.33, monthlyFeeEur: 4.99, source: 'CURATED' }), { onPrices: (b: unknown, p: unknown) => opened.push([b, p]) })
+    expect(text(host)).toContain('Bei Stadtwerke A (Schnellladen) zahlst du 50 ct/kWh, andere Fahrer dort 35 ct/kWh.')
+    expect(host.querySelector('b')!.textContent!.replace(/\s/g, ' ')).toBe('50 ct/kWh')
+    expect(text(host)).toContain('Mit Karte X Basis kostet es dort 33 ct/kWh, dazu 4,99 € Grundgebühr im Monat.')
+    host.querySelector('button')!.click()
+    expect(opened).toEqual([[benchmark, 0.5]])
+  })
+
+  it('teurer Betreiber: Karte von anderen Fahrern heißt "zahlen andere damit", ohne Karte keine Unterzeile', () => {
+    const drivers = mount(cpo({ pricePerKwh: 0.33, source: 'DRIVERS', drivers: 4 }))
+    expect(text(drivers)).toContain('Mit Karte X zahlen andere Fahrer dort 33 ct/kWh.')
+    app!.unmount(); app = null
+    const none = mount(cpo(null))
+    expect(text(none)).not.toContain('Mit ')
   })
 
   it('Heimlade-Ersparnis: Betrag vorn im Satz, Basis "12 Monate", keine Balken', () => {

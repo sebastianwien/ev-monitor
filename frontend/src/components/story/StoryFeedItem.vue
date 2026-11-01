@@ -6,9 +6,11 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { StoryFeedItem, TileId } from '../../composables/storyModel'
 import { feedTarget } from '../../composables/storyFeedTarget'
 import InsightBars, { type InsightBar } from './InsightBars.vue'
+import type { ChargingBenchmark } from '../../api/chargingBenchmarkService'
 
 /**
- * Eine Insight-Zeile als Karte: Satz mit fetter Zahl (jede Zahl nur einmal), darunter die Vergleichsbasis,
+ * Eine Insight-Zeile als Karte: Satz mit fetter Zahl (jede Zahl nur einmal), darunter die Vergleichsbasis
+ * (beim teuren Betreiber die günstigere Karte),
  * bei Prognose und Preisvergleich zwei Balken, beim Kostentrend ein Balken je Monat. Tippbar, wenn hinter dem Satz eine Kachel mit
  * Sheet steht. Schätzwerte ("ca.", ganze Euro) stehen getrennt von echten Ladekosten.
  */
@@ -21,10 +23,12 @@ const props = withDefaults(defineProps<{
   /** Kacheln, die ein Sheet haben: nur dahin fuehrt ein Tipp auf die Zeile. */
   sheets?: TileId[]
 }>(), { modelName: '', monthName: '', sheets: () => [] })
-const emit = defineEmits<{ open: [id: TileId]; charge: [logId: string, section?: 'cost']; priceless: [] }>()
+const emit = defineEmits<{ open: [id: TileId]; charge: [logId: string, section?: 'cost']; priceless: []; prices: [benchmark: ChargingBenchmark, pricePerKwh: number] }>()
 
 const { t, locale } = useI18n()
-const { formatCurrency, formatDecimal, formatDistance } = useLocaleFormat()
+const { formatCurrency, formatDecimal, formatDistance, formatCostPerKwh } = useLocaleFormat()
+// Zahl und Einheit bleiben in einer Zeile
+const ct = (v: number) => formatCostPerKwh(v, { subunitDecimals: 0 }).replace(' ', '\u00a0')
 
 // Die Zahl, um die es im Satz geht, steht fett: Marker um den Wert, danach in Stücke geteilt (kein v-html).
 const B_OPEN = '\u0001'
@@ -42,6 +46,13 @@ const sentence = computed(() => {
       return t(p.diffEur < 0 ? 'story.feed_peer_eur_less' : 'story.feed_peer_eur_more', { eur: b(eur0(Math.round(Math.abs(p.diffEur)))), model: props.modelName })
     case 'home_savings':
       return t('story.feed_home_savings', { eur: b(eur0(p.eur)) })
+    case 'cpo_price': {
+      const op = props.item.operator
+      return op && t('story.feed_cpo_price', {
+        cpo: op.cpoName, type: t(op.chargingType === 'DC' ? 'story.feed_cpo_dc' : 'story.feed_cpo_ac'),
+        mine: b(ct(op.pricePerKwh)), theirs: ct(op.medianPricePerKwh),
+      })
+    }
     case 'cost_trend':
       return t(p.diff <= 0 ? 'story.feed_cost_lower' : 'story.feed_cost_higher', { diff: b(eur0(Math.abs(p.diff))) })
     case 'data_quality': {
@@ -63,11 +74,15 @@ const sub = computed<string>(() => {
       const weather = p.deltaC != null ? '_weather' : ''
       return t(`story.feed_autumn_sub${weather}${p.peerWinter ? '_peer' : ''}`, { model: props.modelName, deg: Math.abs(p.deltaC ?? 0) })
     }
-    case 'peer_cost_eur': {
-      const base = t('story.feed_peer_eur_sub', { month: props.monthName })
-      return props.item.place && p.placePrice != null
-        ? `${base} ${t('story.feed_peer_place', { place: props.item.place, price: formatCurrency(p.placePrice, { decimals: 2 }) })}`
-        : base
+    case 'peer_cost_eur': return t('story.feed_peer_eur_sub', { month: props.monthName })
+    case 'cpo_price': {
+      const c = props.item.operator?.card
+      if (!c) return ''
+      const card = c.variant ? `${c.name} ${c.variant}` : c.name
+      if (c.source === 'DRIVERS') return t('story.feed_cpo_card_drivers', { card, price: ct(c.pricePerKwh) })
+      return c.monthlyFeeEur != null && c.monthlyFeeEur > 0
+        ? t('story.feed_cpo_card_fee', { card, price: ct(c.pricePerKwh), fee: formatCurrency(c.monthlyFeeEur) })
+        : t('story.feed_cpo_card', { card, price: ct(c.pricePerKwh) })
     }
     case 'home_savings': {
       const base = t('story.feed_home_savings_sub')
@@ -129,6 +144,7 @@ function go() {
   if (to?.kind === 'sheet') emit('open', to.id)
   else if (to?.kind === 'charge') emit('charge', to.logId, to.section)
   else if (to?.kind === 'priceless') emit('priceless')
+  else if (to?.kind === 'prices') emit('prices', to.benchmark, to.pricePerKwh)
 }
 </script>
 

@@ -5,7 +5,7 @@
  * Ein Ort ist der gespeicherte Geohash (öffentlich 7 Zeichen, rund 150 m, privat 6, rund 600 m).
  * Der Server fasst die Ladungen je Ort zusammen, hier wird nur verglichen, sortiert und benannt.
  */
-import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
+import type { BenchmarkCard, ChargingBenchmark } from '../api/chargingBenchmarkService'
 import { tripLine, type TripLine } from '../utils/tripMap'
 import { monthWindow } from './storyModel'
 
@@ -48,6 +48,66 @@ export function placeClass(place: ChargingPlace, benchmark: ChargingBenchmark | 
 export function benchmarkKey(place: ChargingPlace): string | null {
   if (place.kind !== 'PUBLIC' || !place.cpoName?.trim() || !place.chargingType) return null
   return `${place.cpoName}|${place.chargingType}`
+}
+
+/** Betreiber, bei dem du deutlich mehr zahlst als andere Fahrer dort, mit der Karte, die es günstiger macht. */
+export interface OperatorGap {
+  /** Betreibername aus dem Vergleich, nicht der Säulenname. */
+  cpoName: string
+  chargingType: 'AC' | 'DC'
+  /** Dein Preis, nach kWh gewichtet über alle Orte des Betreibers. */
+  pricePerKwh: number
+  medianPricePerKwh: number
+  /** Aufpreis gegen den Median mal deine kWh dort. */
+  extraEur: number
+  /** Karte mit der größten Ersparnis bei deinen kWh dort, Grundgebühr abgezogen (mindestens 1 €); null ohne solche. */
+  card: BenchmarkCard | null
+  benchmark: ChargingBenchmark
+}
+
+/** Unter einem Euro Aufpreis im Monat lohnt kein Kartenwechsel. */
+const MIN_OPERATOR_EXTRA_EUR = 1
+
+/**
+ * Der öffentliche Betreiber (je Ladeart) mit dem größten Aufpreis gegen den Median der anderen Fahrer.
+ * Orte desselben Betreibers zählen zusammen; teurer heißt wie auf der Karte mindestens PRICE_BAND über dem Median.
+ */
+export function operatorGap(places: ChargingPlace[], benchmarks: Record<string, ChargingBenchmark | null>): OperatorGap | null {
+  const sums = new Map<string, { kwh: number; eur: number; benchmark: ChargingBenchmark }>()
+  for (const p of places) {
+    const key = benchmarkKey(p)
+    const benchmark = key ? benchmarks[key] : null
+    if (!key || !benchmark || p.pricePerKwh == null || p.kwh <= 0) continue
+    // Der Server bildet den Betreiber aus dem Namen: verschiedene Säulennamen landen beim selben Vergleich.
+    const op = `${benchmark.cpoName}|${benchmark.chargingType}`
+    const sum = sums.get(op) ?? { kwh: 0, eur: 0, benchmark }
+    sum.kwh += p.kwh
+    sum.eur += p.pricePerKwh * p.kwh
+    sums.set(op, sum)
+  }
+  let best: OperatorGap | null = null
+  for (const { kwh, eur, benchmark } of sums.values()) {
+    const price = eur / kwh
+    const median = benchmark.medianPricePerKwh
+    if (Math.round((price / median - 1) * 1000) / 1000 < PRICE_BAND) continue
+    const extraEur = (price - median) * kwh
+    if (extraEur < MIN_OPERATOR_EXTRA_EUR || (best && extraEur <= best.extraEur)) continue
+    best = {
+      cpoName: benchmark.cpoName, chargingType: benchmark.chargingType, pricePerKwh: price, medianPricePerKwh: median, extraEur,
+      card: bestCard(benchmark.cards, price, kwh), benchmark,
+    }
+  }
+  return best
+}
+
+/** Größte Ersparnis nach Grundgebühr; unbekannte Gebühr (Karten aus Fahrerdaten) zählt als 0. */
+function bestCard(cards: BenchmarkCard[], price: number, kwh: number): BenchmarkCard | null {
+  let best: { card: BenchmarkCard; saved: number } | null = null
+  for (const card of cards) {
+    const saved = (price - card.pricePerKwh) * kwh - (card.monthlyFeeEur ?? 0)
+    if (saved >= MIN_OPERATOR_EXTRA_EUR && (!best || saved > best.saved)) best = { card, saved }
+  }
+  return best?.card ?? null
 }
 
 /** Ein Vergleichsaufruf je Paar Betreiber und Ladeart. Der Server bildet den Betreiber aus dem Namen. */

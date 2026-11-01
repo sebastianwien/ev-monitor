@@ -4,6 +4,7 @@ import StoryFeedItem from './StoryFeedItem.vue'
 import PlacesTeaser from './places/PlacesTeaser.vue'
 import type { StoryFeedItem as Item, TileId } from '../../composables/storyModel'
 import type { PlaceRow, PlacesTeaser as Teaser } from '../../composables/storyPlaces'
+import type { ChargingBenchmark } from '../../api/chargingBenchmarkService'
 
 /**
  * "Diesen Monat" bzw. "Im September": Überschrift mit Linien links und rechts, darunter höchstens drei
@@ -24,7 +25,7 @@ withDefaults(defineProps<{
   /** Kartenbild im Teaser, nur in der rechten Spalte (ab lg). */
   mapPreview?: boolean
 }>(), { placesTeaser: null, placesRows: () => [], monthName: '', runningMonth: true, mapPreview: false })
-const emit = defineEmits<{ open: [id: TileId]; map: []; charge: [logId: string, section?: 'cost']; priceless: [] }>()
+const emit = defineEmits<{ open: [id: TileId]; map: []; charge: [logId: string, section?: 'cost']; priceless: []; prices: [benchmark: ChargingBenchmark, pricePerKwh: number] }>()
 const { t } = useI18n()
 </script>
 
@@ -42,7 +43,7 @@ const { t } = useI18n()
       :model-name="modelName"
       :month-name="monthName"
       :sheets="sheets"
-      @open="emit('open', $event)" @charge="(id, section) => emit('charge', id, section)" @priceless="emit('priceless')" />
+      @open="emit('open', $event)" @charge="(id, section) => emit('charge', id, section)" @priceless="emit('priceless')" @prices="(b, p) => emit('prices', b, p)" />
     <PlacesTeaser :teaser="placesTeaser" :rows="placesRows" :month-name="monthName" :preview="mapPreview" @open="emit('map')" />
   </section>
 </template>

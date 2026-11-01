@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   placeClass, benchmarkPairs, benchmarkKey, sortPlaces, placeName, needsOperator, pinSize, legendClasses,
-  leadParts, periodWindow, tripWindowParams, drawableTripLines, focusZoom, tapPlace, teaserParts,
+  leadParts, periodWindow, tripWindowParams, drawableTripLines, focusZoom, tapPlace, teaserParts, operatorGap,
   type ChargingPlace, type PlaceClass, type PlaceSelection,
 } from './storyPlaces'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
@@ -253,5 +253,68 @@ describe('teaserParts', () => {
     const t = teaserParts([row({ costEur: 12.5 }, 'none', null), row({ geohash: 'h', kind: 'HOME', costEur: 2.5 }, 'home', null)])!
 
     expect(t).toMatchObject({ key: 'plain', places: 2, eur: 15, focus: null })
+  })
+})
+
+describe('operatorGap: der Betreiber, bei dem du am meisten mehr zahlst als andere Fahrer dort', () => {
+  const card = (name: string, pricePerKwh: number, over: Record<string, unknown> = {}) => ({
+    name, variant: null, pricePerKwh, monthlyFeeEur: null, source: 'DRIVERS' as const, drivers: 4, verifiedOn: null, ...over,
+  })
+  const benchFor = (cpo: string, type: 'AC' | 'DC', median: number, cards: ReturnType<typeof card>[] = []): ChargingBenchmark =>
+    ({ ...bench(median), cpoName: cpo, chargingType: type, cards })
+
+  it('größter Aufpreis gewinnt: (dein Preis - Median) mal kWh; Name aus dem Vergleich', () => {
+    const places = [
+      place({ cpoName: 'Stadtwerke A Säule 1', kwh: 60, pricePerKwh: 0.5 }),
+      place({ geohash: 'b', cpoName: 'Netz B', kwh: 40, pricePerKwh: 0.44 }),
+    ]
+    const gap = operatorGap(places, {
+      'Stadtwerke A Säule 1|DC': benchFor('Stadtwerke A', 'DC', 0.35),
+      'Netz B|DC': benchFor('Netz B', 'DC', 0.3),
+    })!
+    // A: 0,15 x 60 = 9 €, B: 0,14 x 40 = 5,60 €
+    expect(gap.cpoName).toBe('Stadtwerke A')
+    expect(gap.chargingType).toBe('DC')
+    expect(gap.pricePerKwh).toBeCloseTo(0.5)
+    expect(gap.medianPricePerKwh).toBe(0.35)
+    expect(gap.extraEur).toBeCloseTo(9)
+  })
+
+  it('mehrere Orte desselben Betreibers zählen zusammen, Preis nach kWh gewichtet', () => {
+    const places = [place({ kwh: 20, pricePerKwh: 0.6 }), place({ geohash: 'b', kwh: 60, pricePerKwh: 0.4 })]
+    const gap = operatorGap(places, { [benchmarkKey(places[0])!]: bench(0.3) })!
+    expect(gap.pricePerKwh).toBeCloseTo(0.45)
+    expect(gap.extraEur).toBeCloseTo(12)
+  })
+
+  it('kein Satz: Zuhause, ohne Vergleich, unter 10 % über dem Median oder unter 1 € Aufpreis', () => {
+    const b = { [benchmarkKey(place())!]: bench(0.3) }
+    expect(operatorGap([place({ kind: 'HOME', pricePerKwh: 0.9 })], b)).toBeNull()
+    expect(operatorGap([place({ pricePerKwh: 0.9 })], {})).toBeNull()
+    expect(operatorGap([place({ pricePerKwh: 0.32 })], b)).toBeNull()
+    expect(operatorGap([place({ kwh: 5, pricePerKwh: 0.45 })], b)).toBeNull()
+    expect(operatorGap([place({ pricePerKwh: null })], b)).toBeNull()
+  })
+
+  it('Karte mit der größten Ersparnis nach Grundgebühr, egal in welcher Reihenfolge der Server sie liefert', () => {
+    const key = benchmarkKey(place())!
+    // 128 kWh zu 0,50 €: X spart 0,20 x 128 - 20 = 5,60 €, Y spart 0,14 x 128 = 17,92 €, Z mit Gebühr über der Ersparnis gar nicht
+    const x = card('X', 0.3, { source: 'CURATED', monthlyFeeEur: 20 })
+    const y = card('Y', 0.36)
+    const z = card('Z', 0.2, { source: 'CURATED', monthlyFeeEur: 60 })
+    const gap = operatorGap([place({ pricePerKwh: 0.5 })], { [key]: { ...bench(0.35), cards: [z, x, y] } })!
+    expect(gap.card).toEqual(y)
+    const onlyFee = operatorGap([place({ pricePerKwh: 0.5 })], { [key]: { ...bench(0.35), cards: [z] } })!
+    expect(onlyFee.card).toBeNull()
+  })
+
+  it('nennt die günstigste Karte, die unter deinem Preis liegt, sonst keine', () => {
+    const key = benchmarkKey(place())!
+    const cheap = card('Karte X', 0.33)
+    const withCard = operatorGap([place({ pricePerKwh: 0.5 })], { [key]: { ...bench(0.35), cards: [cheap, card('Karte Y', 0.39)] } })!
+    expect(withCard.card).toEqual(cheap)
+    expect(withCard.benchmark.cards).toHaveLength(2)
+    const none = operatorGap([place({ pricePerKwh: 0.5 })], { [key]: { ...bench(0.35), cards: [card('Teuer', 0.55)] } })!
+    expect(none.card).toBeNull()
   })
 })
