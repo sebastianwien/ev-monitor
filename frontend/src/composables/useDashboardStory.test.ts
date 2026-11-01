@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { ref, nextTick } from 'vue'
 
 const getMock = vi.fn()
@@ -10,6 +10,7 @@ vi.mock('../api/carService', () => ({ carService: { getSohHistory: vi.fn().mockR
 
 import { useDashboardStory, clearStoryCache, wantsWeatherOutlook } from './useDashboardStory'
 import { PETROL_EUR_PER_L_DE, monthWindow } from './storyModel'
+import { peerModelComparisonService } from '../api/peerModelComparisonService'
 
 const stats = (totalCostEur: number) => ({
   totalKwhCharged: 100, energyCostEur: totalCostEur, fixedCostEur: 0, fixedIncomeEur: 0, totalCostEur,
@@ -361,38 +362,39 @@ describe('wantsWeatherOutlook', () => {
 
 describe('useDashboardStory - Reichweite', () => {
   beforeEach(() => { clearStoryCache(); getMock.mockReset() })
+  afterEach(() => { vi.mocked(peerModelComparisonService.getPeerModelComparison).mockResolvedValue({ modelComparisons: [] } as never) })
   const withCapacity = () => ({ ...ctx(), effectiveBatteryCapacityKwh: 60 })
-  const mock = (trips: unknown[]) => getMock.mockImplementation((url: string) => {
-    if (url.includes('/logs/statistics')) return Promise.resolve({ data: { ...stats(10), avgConsumptionKwhPer100km: 49.5 } })
-    if (url.includes('/trips?') && url.includes('from=')) {
-      // Wie das Backend: nur Fahrten im angefragten Zeitraum
-      const q = new URL(url, 'http://x').searchParams
-      const from = Date.parse(q.get('from')!), to = Date.parse(q.get('to')!)
-      return Promise.resolve({ data: (trips as { tripStartedAt: string }[]).filter(t => Date.parse(t.tripStartedAt) >= from && Date.parse(t.tripStartedAt) <= to) })
-    }
-    return Promise.resolve({ data: [] })
-  })
+  const mock = (statsExtra: Record<string, unknown>, peer: Record<string, unknown> = {}) => {
+    getMock.mockImplementation((url: string) => url.includes('/logs/statistics')
+      ? Promise.resolve({ data: { ...stats(10), avgConsumptionKwhPer100km: 49.5, ...statsExtra } })
+      : Promise.resolve({ data: [] }))
+    vi.mocked(peerModelComparisonService.getPeerModelComparison).mockResolvedValue(
+      { modelComparisons: [], allVariants: null, allVariantsWinterConsumptionKwhPer100km: 30, ...peer })
+  }
   const rangeTile = (story: ReturnType<typeof useDashboardStory>) => story.tiles.value.find(t => t.id === 'range')
 
-  it('rechnet mit dem Antrieb der Fahrten der letzten 4 Wochen, nicht mit dem Verbrauch aus den Ladungen', async () => {
-    // 20 Tage alt: liegt im 4-Wochen-Fenster, nicht in den drei Tagen der Momente
-    const at = new Date(Date.now() - 20 * 86_400_000).toISOString()
-    mock([
-      { id: 't1', tripStartedAt: at, tripEndedAt: at, distanceKm: 50, estimatedConsumedKwh: 12 },
-      { id: 't2', tripStartedAt: at, tripEndedAt: at, distanceKm: 50, estimatedConsumedKwh: 12 },
-    ])
+  it('rechnet mit der Basis aus dem Backend, nicht mit dem Verbrauch aus den Ladungen', async () => {
+    mock({ rangeBasis: { consumptionKwhPer100km: 24, source: 'OWN_DRIVE' } })
     const story = useDashboardStory(ref<string | null>('car-1'), withCapacity)
     await flush()
     // 24 kWh / 100 km: 60 * 0.8 / 24 * 100 = 200 km statt 97 mit 49,5
     expect(rangeTile(story)?.range?.consumption).toBe(24)
     expect(rangeTile(story)?.range?.km).toBe(200)
+    expect(rangeTile(story)?.range?.source).toBe('OWN_DRIVE')
   })
 
-  it('ohne Fahrdaten bleibt es beim Verbrauch aus den Ladungen', async () => {
-    mock([])
+  it('ohne Basis vom Backend bleibt es beim Verbrauch aus den Ladungen', async () => {
+    mock({})
     const story = useDashboardStory(ref<string | null>('car-1'), withCapacity)
     await flush()
     expect(rangeTile(story)?.range?.consumption).toBe(49.5)
+  })
+
+  it('Winter anderer Fahrer aus ihren Fahrten, sonst aus ihren Ladungen', async () => {
+    mock({ winterConsumptionKwhPer100km: null }, { allVariantsDriveWinterConsumptionKwhPer100km: 24 })
+    const story = useDashboardStory(ref<string | null>('car-1'), withCapacity)
+    await flush()
+    expect(rangeTile(story)?.range?.peerWinter?.consumption).toBe(24)
   })
 })
 

@@ -2,11 +2,11 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
-import type { RangeEstimate, RangeSeason } from '../../../composables/storyEnergy'
+import { rangeBasisLabel, type RangeEstimate, type RangeSeason } from '../../../composables/storyEnergy'
 
 /**
- * Reichweite 90 -> 10 %: oben eine Zahl (letzte 4 Wochen), darunter Sommer und Winter, wie weit es
- * notfalls bis leer geht, dann Verbrauch und Ladefenster. Fehlt der eigene Winter, steht der Winter
+ * Reichweite 90 -> 10 %: oben eine Zahl (letzte 4 Wochen), mit dem Herkunftssatz, wenn sie nicht aus den
+ * eigenen Fahrten kommt; darunter Sommer und Winter, wie weit es notfalls bis leer geht, dann Verbrauch und Ladefenster. Fehlt der eigene Winter, steht der Winter
  * anderer Fahrer desselben Modells mit Tilde da; eine fehlende Saison entfällt.
  */
 const props = defineProps<{
@@ -18,6 +18,14 @@ const props = defineProps<{
 const { t } = useI18n()
 const { formatConsumption, formatDistance, formatDecimal } = useLocaleFormat()
 
+const fromModel = computed(() => props.range.source === 'MODEL_DRIVE')
+/** Nur wenn die Basis nicht die eigenen Fahrten sind; mit eigenen Fahrten stimmt der Satz unter der Zahl wörtlich. */
+const basisNote = computed(() => {
+  if (props.range.source === 'MODEL_DRIVE') return t('story.range_note_model', { model: props.modelName })
+  if (props.range.source === 'OWN_CHARGES') return t('story.range_note_charges')
+  return ''
+})
+
 const winter = computed(() => props.range.winter ?? props.range.peerWinter)
 const winterFromPeers = computed(() => !props.range.winter && !!props.range.peerWinter)
 
@@ -28,7 +36,7 @@ const seasons = computed(() => [
 
 const bases = computed<Array<{ label: string; row: RangeSeason }>>(() => {
   const rows: Array<{ label: string; row: RangeSeason | null }> = [
-    { label: t('story.range_basis_recent'), row: { consumption: props.range.consumption, km: props.range.km } },
+    { label: rangeBasisLabel(props.range.source, props.modelName, t), row: { consumption: props.range.consumption, km: props.range.km } },
     { label: t('story.range_basis_summer'), row: props.range.summer },
     {
       label: winterFromPeers.value ? t('story.range_basis_winter_peers', { model: props.modelName }) : t('story.range_basis_winter'),
@@ -44,9 +52,10 @@ const LABEL = 'text-[12px] font-semibold uppercase tracking-wide text-gray-500 d
 <template>
   <div>
     <p class="mt-1 text-[28px] font-bold leading-[1.1] text-gray-900 tabular-nums dark:text-gray-50" data-testid="story-range-hero">
-      {{ formatDistance(range.km) }}
+      {{ (fromModel ? '~' : '') + formatDistance(range.km) }}
     </p>
-    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ t('story.range_hero_sub') }}</p>
+    <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ range.source === 'OWN_DRIVE' ? t('story.range_hero_sub') : t('story.range_hero_sub_plain') }}</p>
+    <p v-if="basisNote" class="mt-1 text-xs text-gray-500 dark:text-gray-400" data-testid="story-range-basis-note">{{ basisNote }}</p>
 
     <table v-if="seasons.length" class="mt-3 w-full text-sm tabular-nums" data-testid="story-range-seasons">
       <tbody class="divide-y divide-gray-100 dark:divide-gray-700">

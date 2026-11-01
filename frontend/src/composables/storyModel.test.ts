@@ -158,6 +158,48 @@ describe('buildStoryTiles', () => {
     expect(wltp.sentiment).toBe('warn')
   })
 
+  it('WLTP-Kachel mit Fahrten: Fahrverbrauch des Monats und Monatsbalken aus den Fahrten', () => {
+    const wltp = buildStoryTiles(input({
+      month: stats({ avgConsumptionKwhPer100km: 42, driveConsumptionKwhPer100km: 17.1 }),
+      monthlyDriveConsumption: [0, 0, 16, 15.5, 16.4, 17.1],
+    })).find(t => t.id === 'wltp')!
+    expect(wltp.value).toBeCloseTo(17.1)
+    expect(wltp.basis).toBe('drive')
+    expect(wltp.deltaPercent).toBeCloseTo(6.2, 0)
+    expect(wltp.spark).toEqual([0, 0, 16, 15.5, 16.4, 17.1])
+  })
+
+  it('WLTP-Kachel ohne Fahrten: Verbrauch aus Ladungen, als solcher gekennzeichnet', () => {
+    const wltp = buildStoryTiles(input()).find(t => t.id === 'wltp')!
+    expect(wltp.basis).toBe('charges')
+    expect(wltp.spark).toEqual([21.4, 20.5, 18.2, 16.8, 17.5, 17.9])
+  })
+
+  it('WLTP-Kachel mit Fahrten auch ohne Ladungsverbrauch', () => {
+    const tiles = buildStoryTiles(input({ month: stats({ avgConsumptionKwhPer100km: null, totalDistanceKm: null, driveConsumptionKwhPer100km: 17 }) }))
+    expect(tiles.find(t => t.id === 'wltp')!.value).toBe(17)
+  })
+
+  it('Peer-Kachel mit Fahrten: Fahrverbrauch gegen Fahrverbrauch anderer Fahrer des Modells', () => {
+    const peer = buildStoryTiles(input({
+      month: stats({ driveConsumptionKwhPer100km: 16, modelDriveConsumptionKwhPer100km: 17, modelDriveUsers: 7, totalCharges: 2 }),
+    })).find(t => t.id === 'peer')!
+    expect(peer.value).toBe(16)
+    expect(peer.basis).toBe('drive')
+    expect(peer.spark).toEqual([17, 16])
+    expect(peer.peerCount).toBe(7)
+    // Wenige Ladungen sagen nichts über den Fahrverbrauch
+    expect(peer.thinCharges).toBeUndefined()
+  })
+
+  it('Peer-Kachel ohne eigene Fahrten oder ohne Modellschnitt: Ladungen gegen Ladungen, nie gemischt', () => {
+    const own = buildStoryTiles(input({ month: stats({ driveConsumptionKwhPer100km: 16, modelDriveConsumptionKwhPer100km: null }) })).find(t => t.id === 'peer')!
+    expect(own.basis).toBe('charges')
+    expect(own.value).toBeCloseTo(17.9)
+    const model = buildStoryTiles(input({ month: stats({ driveConsumptionKwhPer100km: null, modelDriveConsumptionKwhPer100km: 17, modelDriveUsers: 7 }) })).find(t => t.id === 'peer')!
+    expect(model.basis).toBe('charges')
+  })
+
   it('Peer-Kachel: Prozent besser als Durchschnitt, Fahrerzahl', () => {
     const peer = buildStoryTiles(input()).find(t => t.id === 'peer')!
     expect(peer.deltaPercent).toBeCloseTo(-3.2, 0)
@@ -447,7 +489,7 @@ describe('monthWindow', () => {
 })
 
 const flow = { gridKwh: 524, vehicleKwh: 472, lossKwh: 52, lossPercent: 10, acKwh: 430, dcKwh: 94, privateKwh: 430, publicKwh: 94, distanceKm: 2931, coveredLogCount: 12, totalLogCount: 14, partial: true }
-const range = { consumption: 21, km: 229, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 229 }], summer: null, winter: { consumption: 21, km: 229 }, peerWinter: null, emptyKm: 206 }
+const range = { consumption: 21, source: 'OWN_DRIVE' as const, km: 229, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 229 }], summer: null, winter: { consumption: 21, km: 229 }, peerWinter: null, emptyKm: 206 }
 
 describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
   it('ordnet die Kacheln fest: Reichweite zuerst, Kosten zuletzt', () => {
@@ -559,8 +601,9 @@ describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => 
   })
 
   it('Herbst-Prognose nur im Oktober des laufenden Monats: km der letzten Tage mal Winter-Mehrverbrauch mal Preis', () => {
-    const range = { consumption: 17.9, windows: [], km: 300, summer: { consumption: 16, km: 320 }, winter: { consumption: 21, km: 250 }, peerWinter: null, emptyKm: 350 }
-    const base = { savingsEur: null, quality: ok, range, monthOfYear: 10, runningMonth: true, recent: { distanceKm: 840, days: 28 } }
+    // Es geht um Euro: Saisonwerte aus den Ladungen, nicht aus den Fahrten der Reichweite
+    const chargeSeasons = { summer: 16, winter: 21, peerWinter: null }
+    const base = { savingsEur: null, quality: ok, chargeSeasons, monthOfYear: 10, runningMonth: true, recent: { distanceKm: 840, days: 28 } }
     const item = buildStoryFeed(input(base)).find(i => i.id === 'autumn_forecast')!
     // 900 km in 30 Tagen x 5 kWh/100 km x 0,245 € = 11,03 €
     expect(item.params.deltaEur).toBeCloseTo(900 * 5 / 100 * 0.245)
@@ -572,9 +615,9 @@ describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => 
     expect(find({ monthOfYear: 9 })).toBeUndefined()
     expect(find({ monthOfYear: 11 })).toBeUndefined()
     expect(find({ runningMonth: false })).toBeUndefined()
-    expect(find({ range: { ...range, summer: null } })).toBeUndefined()
-    expect(find({ range: { ...range, winter: null, peerWinter: { consumption: 20, km: 260 } } })!.params.peerWinter).toBe(1)
-    expect(find({ range: { ...range, winter: null } })).toBeUndefined()
+    expect(find({ chargeSeasons: { ...chargeSeasons, summer: null } })).toBeUndefined()
+    expect(find({ chargeSeasons: { ...chargeSeasons, winter: null, peerWinter: 20 } })!.params.peerWinter).toBe(1)
+    expect(find({ chargeSeasons: { ...chargeSeasons, winter: null } })).toBeUndefined()
     expect(find({ recent: { distanceKm: 100, days: 28 } })).toBeUndefined()
     // Wetter-Ausblick: nur wenn es spuerbar kaelter wird, steht der Grad-Wert im Satz
     expect(find({ weather: { deltaC: -6.4, aheadDays: 14 } })!.params.deltaC).toBe(-6)

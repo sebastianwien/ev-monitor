@@ -7,7 +7,7 @@ import UseBar from './UseBar.vue'
 import ShareBar from './ShareBar.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { StoryTile } from '../../composables/storyModel'
-import type { EnergyUse } from '../../composables/storyEnergy'
+import { rangeBasisLabel, type EnergyUse } from '../../composables/storyEnergy'
 
 /**
  * Eine Fahrerfrage als Kachel in fester Höhe, Inhalt oben: Label in Versalien, eine Zahl mit
@@ -15,7 +15,7 @@ import type { EnergyUse } from '../../composables/storyEnergy'
  * Qualitätszeile, nicht die Kachel.
  */
 /** selected: Detail steht ab lg rechts in der Spalte (aria-current, grüner Rahmen). */
-const props = defineProps<{ tile: StoryTile; selected?: boolean }>()
+const props = defineProps<{ tile: StoryTile; selected?: boolean; /** Modell ohne Variante, z. B. "Model 3". */ modelName?: string }>()
 const emit = defineEmits<{ open: [id: StoryTile['id']] }>()
 
 const { t } = useI18n()
@@ -34,7 +34,8 @@ const value = computed(() => {
       const e = euroParts(x.value)
       return { n: `~${e.n}`, unit: `${e.unit} ${t('story.use_loss_unit')}`.trim() }
     }
-    case 'range': return { n: formatDecimal(x.value, 0), unit: distanceUnitLabel() }
+    // Mit dem Verbrauch anderer Fahrer gerechnet: mit Tilde
+    case 'range': return { n: `${x.range?.source === 'MODEL_DRIVE' ? '~' : ''}${formatDecimal(x.value, 0)}`, unit: distanceUnitLabel() }
     case 'wltp': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'trips': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'peer': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
@@ -99,11 +100,13 @@ const note = computed(() => {
       return m.mainRoute ? `${base}, ${t('story.trips_main', { route: routeLabel(m.mainRoute) })}` : base
     }
     case 'range':
-      return `${t('story.range_basis_recent')}, ${t('story.range_window', { max: rangeWindow.value.max, min: rangeWindow.value.min })}`
+      return rangeBasisLabel(x.range?.source, props.modelName ?? '', t)
     case 'wltp': {
       const pct = formatDecimal(Math.abs(x.deltaPercent ?? 0), 0)
       const wltp = formatConsumption(x.reference ?? 0, { showUnit: false })
-      return (x.deltaPercent ?? 0) >= 0 ? t('story.wltp_delta_over', { pct, wltp }) : t('story.wltp_delta_under', { pct, wltp })
+      const delta = (x.deltaPercent ?? 0) >= 0 ? t('story.wltp_delta_over', { pct, wltp }) : t('story.wltp_delta_under', { pct, wltp })
+      // Ohne Fahrten steckt der Strom im Stand mit drin, das sagt die Unterzeile
+      return x.basis === 'charges' ? `${delta}, ${t('story.wltp_from_charges')}` : delta
     }
     case 'peer': {
       // Wenige Ladungen: kein Prozentsatz gegen andere, nur ihr Schnitt.

@@ -79,17 +79,29 @@ describe('buildRange', () => {
     expect(buildRange(stats({ winterConsumptionKwhPer100km: null }), 60)!.winter).toBeNull()
   })
 
-  it('mit Fahrdaten zählt nur der Antrieb, der Verlust im Stand verkürzt die Reichweite nicht', () => {
+  it('rechnet mit der Basis aus dem Backend, der Verlust im Stand verkürzt die Reichweite nicht', () => {
     // Laden ergibt 49,5 (mit Stand), gefahren 24: 60 * 0.8 / 24 * 100 = 200 statt 97
-    const r = buildRange(stats({ avgConsumptionKwhPer100km: 49.5 }), 60, null, 24)!
+    const r = buildRange(stats({ avgConsumptionKwhPer100km: 49.5, rangeBasis: { consumptionKwhPer100km: 24, source: 'OWN_DRIVE' } }), 60)!
     expect(r.consumption).toBe(24)
+    expect(r.source).toBe('OWN_DRIVE')
     expect(r.km).toBe(200)
     expect(r.emptyKm).toBe(225)
   })
 
-  it('ohne Fahrdaten bleibt es beim Verbrauch aus den Ladungen', () => {
-    expect(buildRange(stats(), 60, null, null)!.consumption).toBe(18)
-    expect(buildRange(stats(), 60, null, 0)!.consumption).toBe(18)
+  it('reicht die Herkunft der Basis durch', () => {
+    expect(buildRange(stats({ rangeBasis: { consumptionKwhPer100km: 17, source: 'MODEL_DRIVE' } }), 60)!.source).toBe('MODEL_DRIVE')
+  })
+
+  it('ohne Basis vom Backend (älterer Stand) der Verbrauch aus den Ladungen', () => {
+    const r = buildRange(stats(), 60)!
+    expect(r.consumption).toBe(18)
+    expect(r.source).toBe('OWN_CHARGES')
+  })
+
+  it('Saisonzeilen aus den Fahrten, ohne Fahrten aus den Ladungen', () => {
+    const r = buildRange(stats({ summerConsumptionKwhPer100km: 16, driveSummerConsumptionKwhPer100km: 15, driveWinterConsumptionKwhPer100km: null }), 60)!
+    expect(r.summer).toEqual({ consumption: 15, km: 320 })
+    expect(r.winter).toEqual({ consumption: 21, km: 229 })
   })
 
   it('rechnet von 90 % bis ganz leer mit dem Verbrauch der letzten 4 Wochen', () => {

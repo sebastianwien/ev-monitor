@@ -451,7 +451,7 @@ onUnmounted(() => unregisterReload?.())
               :feed="feed" :model-name="modelName" :sheets="sheetIds"
               :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0"
               @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" @prices="openFeedPrices" />
-            <StoryTileRow v-if="hasCharges" :tiles="tiles" :selected="paneTile?.id ?? null" @open="openSheet" />
+            <StoryTileRow v-if="hasCharges" :tiles="tiles" :selected="paneTile?.id ?? null" :model-name="modelName" @open="openSheet" />
           </template>
           <StoryCommunityMonth
             v-if="communityMonth && !error"

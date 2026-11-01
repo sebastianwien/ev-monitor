@@ -22,7 +22,8 @@ const { formatConsumption, formatCostPerKwh, formatCostPerDistance, formatDecima
 const text = computed(() => {
   const pb = props.stats?.peerBenchmark
   return t('story.sheet_peer_text', {
-    peerAvg: formatConsumption(pb?.peerAvgConsumptionKwhPer100km ?? 0),
+    // Wert der anderen aus der Kachel: mit Fahrten deren Fahrverbrauch, sonst ihr Verbrauch aus Ladungen
+    peerAvg: formatConsumption(props.tile.spark[0] ?? pb?.peerAvgConsumptionKwhPer100km ?? 0),
     mine: formatConsumption(props.tile.value),
     peerPrice: pb?.peerAvgCostPerKwh != null ? formatCostPerKwh(pb.peerAvgCostPerKwh) : '–',
     myPrice: pb?.userPeriodCostPerKwh != null ? formatCostPerKwh(pb.userPeriodCostPerKwh) : '–',

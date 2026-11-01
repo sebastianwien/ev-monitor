@@ -11,11 +11,11 @@ import {
   buildStoryTiles, buildStoryFeed, buildDayCoverage, monthWindow, PETROL_EUR_PER_L_DE, petrolLitersPer100km,
   type StoryTile, type StoryFeedItem, type DayCoverage,
 } from './storyModel'
-import { buildEnergyFlow, buildRange, costLayers, monthCosts, type MonthCosts } from './storyEnergy'
+import { buildEnergyFlow, buildRange, costLayers, monthCosts, rangeConsumption, type MonthCosts } from './storyEnergy'
 import {
   temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, pricelessInMonth, ranksFromStandings,
   type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
-import { summarizeTripMonth, type TripForSummary } from '../utils/tripMonthSummary'
+import type { TripForSummary } from '../utils/tripMonthSummary'
 import type { OdometerGap } from './storyDay'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRankClosing,
@@ -277,12 +277,9 @@ async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<Lat
   return { logs, benchmark: bench }
 }
 
-/**
- * Antrieb laut Fahrzeug über die Fahrten der letzten 4 Wochen in kWh/100 km, dieselbe Rechnung wie
- * "Wie fahre ich?". Ohne Verlust im Stand, darum Basis der Reichweite; null ohne Energiedaten.
- */
-function recentDriveConsumption(trips: TripForSummary[], effectiveCapacityKwh: number | null): number | null {
-  return summarizeTripMonth(trips, effectiveCapacityKwh)?.consumptionKwhPer100km ?? null
+/** Winter anderer Fahrer für die Reichweite: aus ihren Fahrten, sonst aus ihren Ladungen. */
+function peerWinterConsumption(p: PeerModelComparisonResponse | null): number | null {
+  return p?.allVariantsDriveWinterConsumptionKwhPer100km ?? p?.allVariantsWinterConsumptionKwhPer100km ?? null
 }
 
 async function fetchCarBundle(carId: string): Promise<CarBundle> {
@@ -456,7 +453,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     lifetimeSeries.value = b.lifetimeSeries
     previousRanks.value = b.previousRanks
     latest.value = buildLatest(b.recentLogs[0] ?? null, pickLatestTrip(b.latestTrip, b.recentTrips),
-      { consumptionKwh100: recentDriveConsumption(b.recentTrips, ctx().effectiveBatteryCapacityKwh) ?? b.recentStats?.avgConsumptionKwhPer100km ?? null,
+      { consumptionKwh100: b.recentStats ? rangeConsumption(b.recentStats) : null,
         effectiveCapacityKwh: ctx().effectiveBatteryCapacityKwh })
   }
 
@@ -499,11 +496,20 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     })
   }
 
+  /** Fahrverbrauch je Monat der sechs Balken, gleiche Reihenfolge wie monthlySeries; 0 ohne Wert. */
+  function monthlyDrive(): number[] {
+    const m = month.value
+    const months = series.value?.driveMonths ?? []
+    return Array.from({ length: 6 }, (_, i) => {
+      const d = new Date(m.year, m.month - 1 - (5 - i), 1)
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+      return months.find(x => x.month === key)?.consumptionKwhPer100km ?? 0
+    })
+  }
+
   const flow = computed(() => monthStats.value ? buildEnergyFlow(monthStats.value) : null)
   const range = computed(() => recentStats.value
-    ? buildRange(recentStats.value, ctx().effectiveBatteryCapacityKwh,
-      peerModels.value?.allVariantsWinterConsumptionKwhPer100km ?? null,
-      recentDriveConsumption(recentTrips.value, ctx().effectiveBatteryCapacityKwh))
+    ? buildRange(recentStats.value, ctx().effectiveBatteryCapacityKwh, peerWinterConsumption(peerModels.value))
     : null)
   const layers = computed(() => monthStats.value ? costLayers(monthStats.value) : null)
   /** Die Sechs-Monats-Statistik summiert Fixkosten und Einnahmen über alle sechs Balken. */
@@ -555,6 +561,12 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     monthlyDistance: monthlySeries(p => p.distanceKm),
     operatorGap: operatorGap(places.value, placeBenchmarks.value),
     monthlyConsumption: monthlySeries(p => p.consumptionKwhPer100km),
+    monthlyDriveConsumption: monthlyDrive(),
+    chargeSeasons: recentStats.value ? {
+      summer: recentStats.value.summerConsumptionKwhPer100km,
+      winter: recentStats.value.winterConsumptionKwhPer100km,
+      peerWinter: peerModels.value?.allVariantsWinterConsumptionKwhPer100km ?? null,
+    } : null,
     wltpConsumption: ctx().wltpConsumption,
     sohPercent: ctx().sohPercent,
     sohEstimated: sohIsEstimated(sohHistory.value),

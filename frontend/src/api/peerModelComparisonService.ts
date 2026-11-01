@@ -26,6 +26,8 @@ export interface PeerModelComparisonResponse {
   allVariants: PeerMetrics | null
   /** Winterverbrauch derselben Autos, November bis Februar; null ohne genug Winterdaten anderer Fahrer. */
   allVariantsWinterConsumptionKwhPer100km: number | null
+  /** Fahrverbrauch im Winter derselben Fahrer aus ihren Fahrten; null unter 5 Nutzern. Fehlt bei älterem Backend. */
+  allVariantsDriveWinterConsumptionKwhPer100km?: number | null
 }
 
 export const peerModelComparisonService = {

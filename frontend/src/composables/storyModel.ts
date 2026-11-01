@@ -37,6 +37,8 @@ export interface StoryTile {
   use?: EnergyUse
   /** Rohdaten fuer die Akku-Silhouette (nur id 'range'). */
   range?: RangeEstimate
+  /** Nur 'wltp' und 'peer': Fahrverbrauch aus den Fahrten oder Verbrauch aus Ladungen (mit Strom im Stand). */
+  basis?: 'drive' | 'charges'
   /** Gesetzt, wenn der Monatswert auf weniger als MIN_SOLID_CHARGES Ladungen beruht: die Kachel nennt die Zahl. */
   thinCharges?: number
   /** Nur 'cost': Ladungen des Monats ohne Preis. Die Kosten sind dann zu niedrig, die Kachel nennt die Zahl statt eines Deltas. */
@@ -108,6 +110,10 @@ export interface StoryInput {
   /** Betreiber des Monats, bei dem du am meisten mehr zahlst als andere Fahrer dort; null ohne. */
   operatorGap?: OperatorGap | null
   monthlyConsumption: number[]
+  /** Fahrverbrauch je Monat, gleiche Reihenfolge, 0 ohne Wert; Balken der WLTP-Kachel, wenn sie mit Fahrten rechnet. */
+  monthlyDriveConsumption?: number[]
+  /** Saisonverbrauch aus Ladungen (Euro-Fragen wie die Herbst-Prognose), Winter notfalls von den Modellfahrern. */
+  chargeSeasons?: { summer: number | null; winter: number | null; peerWinter: number | null } | null
   wltpConsumption: number | null
   sohPercent: number | null
   /** Akkuwert berechnet statt selbst gemessen: die Kachel zeigt ihn mit Tilde und "geschätzt". */
@@ -299,17 +305,21 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
   })
 
   const hasDistance = m.totalDistanceKm != null && m.totalDistanceKm > 0 && m.avgConsumptionKwhPer100km != null
-  if (hasDistance && input.wltpConsumption != null && input.wltpConsumption > 0) {
-    const d = pct(m.avgConsumptionKwhPer100km!, input.wltpConsumption)
+  // WLTP misst nur das Fahren: mit Fahrten der Fahrverbrauch des Monats, sonst der Verbrauch aus Ladungen (mit Stand)
+  const drive = m.driveConsumptionKwhPer100km ?? null
+  const wltpValue = drive ?? (hasDistance ? m.avgConsumptionKwhPer100km : null)
+  if (wltpValue != null && input.wltpConsumption != null && input.wltpConsumption > 0) {
+    const d = pct(wltpValue, input.wltpConsumption)
     tiles.push({
       id: 'wltp',
-      value: m.avgConsumptionKwhPer100km!,
+      value: wltpValue,
       delta: null,
       deltaPercent: d,
       sentiment: d > WLTP_WARN_PERCENT ? 'warn' : 'good',
-      spark: input.monthlyConsumption,
+      spark: drive != null ? input.monthlyDriveConsumption ?? [] : input.monthlyConsumption,
       sparkVariant: 'line',
       reference: input.wltpConsumption,
+      basis: drive != null ? 'drive' : 'charges',
     })
   }
 
@@ -384,8 +394,25 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
     })
   }
 
+  // Gleiche Größe auf beiden Seiten: Fahrverbrauch gegen Fahrverbrauch anderer Fahrer des Modells im selben
+  // Zeitraum, wenn beide da sind; sonst Ladungen gegen Ladungen. Nie gemischt.
+  const ownDrive = m.driveConsumptionKwhPer100km ?? null
+  const modelDrive = m.modelDriveConsumptionKwhPer100km ?? null
   const pb = m.peerBenchmark
-  if (pb && pb.userPeriodConsumptionKwhPer100km != null && pb.peerAvgConsumptionKwhPer100km != null && pb.uniquePeerUsers >= MIN_PEERS) {
+  if (ownDrive != null && modelDrive != null) {
+    const d = pct(ownDrive, modelDrive)
+    tiles.push({
+      id: 'peer',
+      value: ownDrive,
+      delta: null,
+      deltaPercent: d,
+      sentiment: Math.abs(d) <= PEER_NEUTRAL_PERCENT ? 'neutral' : d < 0 ? 'good' : 'warn',
+      spark: [modelDrive, ownDrive],
+      sparkVariant: 'range',
+      peerCount: m.modelDriveUsers ?? 0,
+      basis: 'drive',
+    })
+  } else if (pb && pb.userPeriodConsumptionKwhPer100km != null && pb.peerAvgConsumptionKwhPer100km != null && pb.uniquePeerUsers >= MIN_PEERS) {
     const d = pct(pb.userPeriodConsumptionKwhPer100km, pb.peerAvgConsumptionKwhPer100km)
     tiles.push({
       id: 'peer',
@@ -396,6 +423,7 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
       spark: [pb.peerAvgConsumptionKwhPer100km, pb.userPeriodConsumptionKwhPer100km],
       sparkVariant: 'range',
       peerCount: pb.uniquePeerUsers,
+      basis: 'charges',
     })
   }
 
@@ -441,7 +469,8 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
 
   const thin = m.totalCharges > 0 && m.totalCharges < MIN_SOLID_CHARGES ? m.totalCharges : undefined
   if (thin != null) {
-    for (const t of tiles) if (t.id === 'cost' || t.id === 'wltp' || t.id === 'peer') t.thinCharges = thin
+    // Wenige Ladungen sagen nichts über einen Fahrverbrauch aus den Fahrten
+    for (const t of tiles) if ((t.id === 'cost' || t.id === 'wltp' || t.id === 'peer') && t.basis !== 'drive') t.thinCharges = thin
   }
   return tiles.sort((a, b) => TILE_ORDER.indexOf(a.id) - TILE_ORDER.indexOf(b.id))
 }
@@ -518,14 +547,15 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
   }
 
   // Herbst-Prognose: Strecke der letzten Tage auf 30 Tage, mal Mehrverbrauch im Winter, mal eigener Preis.
-  // Verbrauch aus der Statistik (Sommer und Winter ueber alle Jahre, Winter notfalls von den Modellfahrern).
-  const r = input.range
-  const winter = r?.winter ?? r?.peerWinter ?? null
+  // Es geht um Euro, darum Verbrauch aus Ladungen (Sommer und Winter ueber alle Jahre, Winter notfalls von den Modellfahrern).
+  const seasons = input.chargeSeasons
+  const winter = seasons?.winter ?? seasons?.peerWinter ?? null
+  const summer = seasons?.summer ?? null
   const rec = input.recent
-  if (input.runningMonth && AUTUMN_MONTHS.includes(input.monthOfYear) && r?.summer && winter && rec?.distanceKm != null && rec.distanceKm > 0 && rec.days > 0
+  if (input.runningMonth && AUTUMN_MONTHS.includes(input.monthOfYear) && summer && winter && rec?.distanceKm != null && rec.distanceKm > 0 && rec.days > 0
       && m.avgCostPerKwh > 0 && m.energyCostEur > 0 && input.elapsedDays >= MIN_COMPARE_DAYS && (input.quality?.priceless ?? 0) === 0) {
     const km30 = rec.distanceKm / rec.days * 30
-    const deltaEur = km30 * (winter.consumption - r.summer.consumption) / 100 * m.avgCostPerKwh
+    const deltaEur = km30 * (winter - summer) / 100 * m.avgCostPerKwh
     if (deltaEur >= MIN_FORECAST_EUR) {
       items.push({
         id: 'autumn_forecast',
@@ -533,7 +563,7 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
         relevance: 75,
         sentiment: 'neutral',
         params: {
-          deltaEur, currentEur: m.energyCostEur, nextEur: m.energyCostEur + deltaEur, nextMonth: FIRST_WINTER_MONTH, peerWinter: r.winter ? 0 : 1,
+          deltaEur, currentEur: m.energyCostEur, nextEur: m.energyCostEur + deltaEur, nextMonth: FIRST_WINTER_MONTH, peerWinter: seasons?.winter ? 0 : 1,
           ...(input.weather && input.weather.deltaC <= -MIN_COLDER_C ? { deltaC: Math.round(input.weather.deltaC) } : {}),
         },
       })

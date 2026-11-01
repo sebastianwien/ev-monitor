@@ -1,4 +1,4 @@
-import type { StatisticsData } from './useDashboardStats'
+import type { RangeBasis, RangeBasisSource, StatisticsData } from './useDashboardStats'
 import type { TripMonth } from './storyInsights'
 
 /**
@@ -165,8 +165,10 @@ export interface RangeSeason {
 }
 
 export interface RangeEstimate {
-  /** Verbrauch der letzten 4 Wochen in kWh/100 km, Basis der Kachel: Antrieb aus den Fahrten, sonst aus den Ladungen. */
+  /** Verbrauch der Kachel in kWh/100 km, Basis vom Backend (rangeBasis), ohne sie der Verbrauch aus Ladungen. */
   consumption: number
+  /** Woher der Verbrauch kommt: eigene Fahrten, andere Fahrer des Modells oder eigene Ladungen. */
+  source: RangeBasisSource
   windows: RangeWindow[]
   /** Reichweite im empfohlenen Fenster. */
   km: number
@@ -183,35 +185,59 @@ function kmFor(effectiveCapacityKwh: number, consumption: number, socMax: number
   return Math.round((effectiveCapacityKwh * (socMax - socMin) / 100) / consumption * 100)
 }
 
-function seasonRow(effectiveCapacityKwh: number, consumption: number | null): RangeSeason | null {
+function seasonRow(effectiveCapacityKwh: number, consumption: number | null | undefined): RangeSeason | null {
   if (consumption == null || consumption <= 0) return null
   const w = RANGE_SOC_WINDOWS.find(x => x.recommended)!
   return { consumption, km: kmFor(effectiveCapacityKwh, consumption, w.socMax, w.socMin) }
 }
 
+/** Basis der Reichweite vom Backend; ein älteres Backend ohne rangeBasis rechnet mit dem Verbrauch aus Ladungen. */
+function rangeBasisOf(stats: StatisticsData): RangeBasis | null {
+  if (stats.rangeBasis !== undefined) return stats.rangeBasis
+  return stats.avgConsumptionKwhPer100km != null ? { consumptionKwhPer100km: stats.avgConsumptionKwhPer100km, source: 'OWN_CHARGES' } : null
+}
+
+/** Verbrauch, mit dem die Reichweite rechnet; auch "Heute geladen, reicht für etwa". Null ohne Wert. */
+export function rangeConsumption(stats: StatisticsData): number | null {
+  return rangeBasisOf(stats)?.consumptionKwhPer100km ?? null
+}
+
+const RANGE_BASIS_KEYS: Record<RangeBasisSource, string> = {
+  OWN_DRIVE: 'story.range_basis_drive',
+  MODEL_DRIVE: 'story.range_basis_model',
+  OWN_CHARGES: 'story.range_basis_charges',
+}
+
+/** Herkunft der Reichweite als Unterzeile ("Ø 4 Wochen, Fahrten ab 20 km"), für Kachel und Sheet. */
+export function rangeBasisLabel(source: RangeBasisSource | undefined, model: string,
+  t: (key: string, params: Record<string, string>) => string): string {
+  return t(RANGE_BASIS_KEYS[source ?? 'OWN_CHARGES'], { model })
+}
+
 /**
  * Kachelwert aus dem Verbrauch der letzten 4 Wochen, Sommer und Winter als eigene Zeilen für das
  * Sheet. Kein Jahresmittel, keine Saisonzuordnung des Monats: ein Monat mit zwei Ladungen hätte
- * sonst 450 km ergeben. Mit Fahrdaten zählt der Antrieb laut Fahrzeug (driveKwhPer100km): der
- * Verbrauch aus den Ladungen enthält den Verlust im Stand, und der verkürzt keine Fahrt. Ohne
- * Fahrdaten der Verbrauch der Statistik. Null ohne Kapazität oder ohne Verbrauch.
+ * sonst 450 km ergeben. Welcher Verbrauch zählt, entscheidet das Backend (rangeBasis: eigene Fahrten,
+ * Modellschnitt oder Ladungen); ein älteres Backend ohne rangeBasis liefert den Verbrauch aus Ladungen.
+ * Saisonzeilen aus den Fahrten, je Saison ohne Fahrten aus den Ladungen. Null ohne Kapazität oder Verbrauch.
  */
 export function buildRange(
   stats: StatisticsData,
   effectiveCapacityKwh: number | null,
   peerWinterConsumption: number | null = null,
-  driveKwhPer100km: number | null = null,
 ): RangeEstimate | null {
   if (effectiveCapacityKwh == null || effectiveCapacityKwh <= 0) return null
-  const c = driveKwhPer100km != null && driveKwhPer100km > 0 ? driveKwhPer100km : stats.avgConsumptionKwhPer100km
-  if (c == null || c <= 0) return null
+  const basis = rangeBasisOf(stats)
+  const c = basis?.consumptionKwhPer100km
+  if (basis == null || c == null || c <= 0) return null
   const windows = RANGE_SOC_WINDOWS.map(w => ({ ...w, km: kmFor(effectiveCapacityKwh, c, w.socMax, w.socMin) }))
-  const winter = seasonRow(effectiveCapacityKwh, stats.winterConsumptionKwhPer100km)
+  const winter = seasonRow(effectiveCapacityKwh, stats.driveWinterConsumptionKwhPer100km ?? stats.winterConsumptionKwhPer100km)
   return {
     consumption: c,
+    source: basis.source,
     windows,
     km: windows.find(w => w.recommended)!.km,
-    summer: seasonRow(effectiveCapacityKwh, stats.summerConsumptionKwhPer100km),
+    summer: seasonRow(effectiveCapacityKwh, stats.driveSummerConsumptionKwhPer100km ?? stats.summerConsumptionKwhPer100km),
     winter,
     peerWinter: winter ? null : seasonRow(effectiveCapacityKwh, peerWinterConsumption),
     emptyKm: kmFor(effectiveCapacityKwh, c, RANGE_SOC_WINDOWS.find(w => w.recommended)!.socMax, 0),

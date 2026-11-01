@@ -83,6 +83,29 @@ export interface StatisticsData {
   locationSplit: LocationSplit | null
   peerBenchmark: PeerBenchmark | null
   chargingEfficiencySplit: ChargingEfficiencySplit | null
+  /**
+   * Fahrverbrauch aus den eigenen Fahrten ab 20 km im Zeitraum (DriveConsumptionService), ohne Stand.
+   * Basis für Reichweite, WLTP- und Peer-Vergleich; null, wenn die Fahrten nicht reichen. Fehlt bei älterem Backend.
+   */
+  driveConsumptionKwhPer100km?: number | null
+  /** Fahrverbrauch Mai bis August bzw. November bis Februar, alle Jahre. */
+  driveSummerConsumptionKwhPer100km?: number | null
+  driveWinterConsumptionKwhPer100km?: number | null
+  /** Fahrverbrauch anderer Fahrer desselben Modells im Zeitraum, ab 5 Nutzern. */
+  modelDriveConsumptionKwhPer100km?: number | null
+  modelDriveUsers?: number
+  /** Basis der Reichweite im Zeitraum; null ohne Wert. */
+  rangeBasis?: RangeBasis | null
+  /** Fahrverbrauch je Kalendermonat ("2026-10"), nur Monate mit Wert. */
+  driveMonths?: { month: string; consumptionKwhPer100km: number }[]
+}
+
+/** OWN_DRIVE: eigene Fahrten, MODEL_DRIVE: andere Fahrer des Modells, OWN_CHARGES: eigene Ladungen (mit Stand). */
+export type RangeBasisSource = 'OWN_DRIVE' | 'MODEL_DRIVE' | 'OWN_CHARGES'
+
+export interface RangeBasis {
+  consumptionKwhPer100km: number
+  source: RangeBasisSource
 }
 
 export interface CarInfo {

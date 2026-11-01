@@ -14,10 +14,10 @@ const cost = (over: Partial<Tile> = {}): Tile => ({
   id: 'cost', value: 0, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [0, 18, 0], sparkVariant: 'line', ...over,
 })
 
-function mount(tile: Tile) {
+function mount(tile: Tile, modelName?: string) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(StoryTile, { tile })
+  app = createApp(StoryTile, { tile, modelName })
   app.use(createPinia()).use(i18n)
   app.mount(host)
   return host.textContent!.replace(/\s+/g, ' ')
@@ -94,10 +94,24 @@ describe('StoryTile Akku und Reichweite', () => {
     expect(manual).not.toContain('geschätzt')
   })
 
-  it('Reichweite nennt Basis und Ladefenster', () => {
-    const text = mount({ id: 'range', value: 201, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [201], sparkVariant: 'bars',
-      range: { consumption: 21, km: 201, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 201 }], summer: null, winter: null, peerWinter: null, emptyKm: 206 } })
-    expect(text).toContain('Ø letzte 4 Wochen, 90 → 10 %')
+  const rangeTile = (source: 'OWN_DRIVE' | 'MODEL_DRIVE' | 'OWN_CHARGES'): Tile => ({ id: 'range', value: 201, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [201], sparkVariant: 'bars',
+    range: { consumption: 21, source, km: 201, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 201 }], summer: null, winter: null, peerWinter: null, emptyKm: 206 } })
+
+  it('Reichweite nennt die Basis: eigene Fahrten, Ladungen oder andere Fahrer mit Tilde', () => {
+    expect(mount(rangeTile('OWN_DRIVE'))).toContain('Ø 4 Wochen, Fahrten ab 20 km')
+    app!.unmount(); app = null
+    expect(mount(rangeTile('OWN_CHARGES'))).toContain('Ø 4 Wochen aus Ladungen')
+    app!.unmount(); app = null
+    const model = mount(rangeTile('MODEL_DRIVE'), 'Model 3')
+    expect(model).toContain('Ø anderer Model 3-Fahrer')
+    expect(model).toContain('~201')
+  })
+
+  it('WLTP ohne Fahrten nennt den Strom im Stand, mit Fahrten nicht', () => {
+    const wltp = (basis: 'drive' | 'charges'): Tile => ({ id: 'wltp', value: 42.4, delta: null, deltaPercent: 163, sentiment: 'warn', spark: [], sparkVariant: 'line', reference: 16.1, basis })
+    expect(mount(wltp('charges'))).toContain('aus Ladungen, mit Strom im Stand')
+    app!.unmount(); app = null
+    expect(mount(wltp('drive'))).not.toContain('Strom im Stand')
   })
 })
 
