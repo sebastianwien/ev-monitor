@@ -64,7 +64,8 @@ const { isDark } = storeToRefs(themeStore)
 useStatusBarTheme(isDark)
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 const route = useRoute()
-const previewFeedback = isPreviewHost()
+// Lokal im Dev-Server sichtbar, damit der Knopf ohne Deploy prüfbar ist
+const previewFeedback = isPreviewHost() || import.meta.env.DEV
 // Sicherheitsnetz gegen Kannibalisierung: nur DE-Seiten dürfen in den Google-Index. Views mit
 // eigenem useHead (Modellseiten, Landing) setzen robots selbst und überschreiben diesen Eintrag.
 useHead({ meta: [{ name: 'robots', content: () => robotsForPath(route.path) }] })
@@ -630,7 +631,7 @@ const handleBottomLogout = () => {
     <LogUndoToast />
     <DemoWelcomeModal v-if="authStore.isDemoAccount" />
     <!-- Vorschau: Tester schicken Feedback als vorausgefüllte Mail -->
-    <PreviewFeedbackButton v-if="previewFeedback && authStore.isAuthenticated() && !captureOpen && !mobileFullscreen" />
+    <PreviewFeedbackButton v-if="previewFeedback && authStore.isAuthenticated() && (!captureOpen || captureMinimized) && !mobileFullscreen" :above-capture-bar="captureOpen && captureMinimized" />
   </div>
 </template>
 
