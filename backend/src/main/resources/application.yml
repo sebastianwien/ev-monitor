@@ -26,6 +26,9 @@ spring:
       - modelsWithData
       - modelStats
       - topModels
+      # Ladungswerte je Modell und Flottenfaktoren (CommunityConsumptionService), Basis von Seite, Liste und Reichweite
+      - communityModel
+      - fleetFactors
       - fastChargePower
       - modelsWithoutData
       - efficientModels

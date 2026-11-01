@@ -1,11 +1,19 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.DriveConsumptionService.PeerQuery;
+import com.evmonitor.application.DriveConsumptionService.Period;
+import com.evmonitor.application.DriveConsumptionService.Season;
 import com.evmonitor.application.charging.FastChargePowerTable;
-import com.evmonitor.application.range.RangeWindow;
+import com.evmonitor.application.community.CommunityConsumptionService;
+import com.evmonitor.application.community.WltpFleetFactors;
+import com.evmonitor.application.range.ModelRangeConsumption;
 import com.evmonitor.domain.Car;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvTripRepository;
+import com.evmonitor.domain.RangeBasis;
+import com.evmonitor.domain.RangeConsumptionPolicy;
+import com.evmonitor.domain.RangeMath;
 import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
 import com.evmonitor.infrastructure.persistence.JpaUserRepository;
@@ -38,13 +46,66 @@ public class PublicModelService {
     /** Minimum real community log count for a model to be included in the sitemap.
      *  Keep in sync with consumptionDataCount >= 25 in PublicModelViewV2.vue. */
     static final int SITEMAP_MIN_LOG_COUNT = 25;
+    /** A season's charge consumption counts as measured from this many logs (model page, calculator, embed). */
+    public static final int MIN_LOGS_PER_SEASON = 10;
 
     private final JpaEvLogRepository evLogRepository;
     private final JpaVehicleSpecificationRepository vehicleSpecificationRepository;
     private final JpaUserRepository userRepository;
     private final CarRepository carRepository;
     private final EvTripRepository evTripRepository;
-    private final EvLogStatisticsService evLogStatisticsService;
+    private final CommunityConsumptionService community;
+    private final DriveConsumptionService driveConsumptionService;
+
+    /** Flottenfaktoren der Community ({@link CommunityConsumptionService#fleetFactors}), für den Rechner. */
+    public WltpFleetFactors fleetFactors(boolean isSeedUser) {
+        return community.fleetFactors(isSeedUser);
+    }
+
+    /**
+     * Verbrauch hinter den Reichweiten eines Modells, je Zeitraum nach den Stufen der
+     * {@link RangeConsumptionPolicy} ohne eigene Werte: Fahrten anderer Fahrer ab 2 Fahrern, sonst der
+     * kleinere Wert aus Ladungen der Fahrer und WLTP mal Flottenfaktor.
+     */
+    private ModelRangeConsumption modelRange(CarBrand.CarModel model, BigDecimal chargesAvg,
+                                             SeasonalConsumptionResult seasonal, BigDecimal wltpAvg, WltpFleetFactors fleet) {
+        boolean summerOk = seasonal.summerLogCount() >= MIN_LOGS_PER_SEASON;
+        boolean winterOk = seasonal.winterLogCount() >= MIN_LOGS_PER_SEASON;
+        return new ModelRangeConsumption(
+                basis(model, Season.ALL, chargesAvg, wltpAvg, fleet.overallOrFallback()),
+                basis(model, Season.SUMMER, summerOk ? seasonal.summerConsumptionKwhPer100km() : null, wltpAvg, fleet.summerOrFallback()),
+                basis(model, Season.WINTER, winterOk ? seasonal.winterConsumptionKwhPer100km() : null, wltpAvg, fleet.winterOrFallback()));
+    }
+
+    private RangeBasis basis(CarBrand.CarModel model, Season season, BigDecimal charges, BigDecimal wltpAvg, BigDecimal factor) {
+        return RangeConsumptionPolicy.decidePublic(
+                driveConsumptionService.peerDrive(new PeerQuery(model, null, Period.ALL, season, null)),
+                charges, wltpAvg, factor);
+    }
+
+    private static BigDecimal consumption(RangeBasis basis) {
+        return basis != null ? basis.consumptionKwhPer100km() : null;
+    }
+
+    /**
+     * km je Variante aus ihrem Netto-Akku und der Modell-Basis. Fahrerspanne (durstigster bis sparsamster
+     * Fahrer aus Ladungen) nur, wenn die Basis Ladungen sind und der Wert in der Spanne liegt: der Deckel
+     * aus WLTP mal Flottenfaktor kann ihn sonst darüber hinaus heben.
+     */
+    private static PublicModelStatsResponse.VariantRange variantRange(VariantStats s, ModelRangeConsumption range) {
+        BigDecimal net = s.batteryCapacityKwh();
+        Integer rangeKm = RangeMath.rangeKm(net, consumption(range.overall()));
+        boolean fromCharges = range.overall() != null && range.overall().source() == RangeBasis.Source.PEER_CHARGES;
+        Integer min = fromCharges ? RangeMath.rangeKm(net, s.realConsumptionMaxKwhPer100km()) : null;
+        Integer max = fromCharges ? RangeMath.rangeKm(net, s.realConsumptionMinKwhPer100km()) : null;
+        boolean spread = rangeKm != null && min != null && max != null && min <= rangeKm && rangeKm <= max;
+        return new PublicModelStatsResponse.VariantRange(
+                rangeKm,
+                RangeMath.rangeKm(net, consumption(range.summer())),
+                RangeMath.rangeKm(net, consumption(range.winter())),
+                spread ? min : null,
+                spread ? max : null);
+    }
 
     private static boolean isValidCarModelEnumName(String name) {
         if (name == null) return false;
@@ -134,14 +195,14 @@ public class PublicModelService {
         // Fetch consumption via EvLogService (authoritative calculation, same logic as user stats)
         // Demo Mode: If seed user, includes ALL seed data
         List<Car> carsForModel = carRepository.findAllByModel(carModel);
-        CommunityConsumptionResult communityResult = evLogStatisticsService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
+        CommunityConsumptionService.ModelCommunity modelCommunity = community.forModel(carModel, isSeedUser);
+        CommunityConsumptionResult communityResult = modelCommunity.overall();
         BigDecimal avgConsumption = communityResult.value() != null
                 ? communityResult.value().setScale(2, RoundingMode.HALF_UP) : null;
 
-        // Fetch seasonal distribution via EvLogService (same SoC-based logic as overall consumption)
-        // Demo Mode: If seed user, includes ALL seed data
+        // Seasonal distribution, same SoC-based logic as the overall consumption (cached per model)
         PublicModelStatsResponse.SeasonalDistribution seasonalDistribution = null;
-        SeasonalConsumptionResult seasonal = evLogStatisticsService.calculateSeasonalConsumption(carsForModel, isSeedUser);
+        SeasonalConsumptionResult seasonal = modelCommunity.seasonal();
         long totalKm = (long) seasonal.summerKm() + seasonal.winterKm();
         if (totalKm > 0) {
             int summerPct = (int) Math.round((seasonal.summerKm() * 100.0) / totalKm);
@@ -180,6 +241,10 @@ public class PublicModelService {
         List<VehicleSpecificationEntity> wltpEntities =
                 vehicleSpecificationRepository.findByCarModelAndRatingSourceOrderByBatteryCapacityKwhAsc(modelEnumName, "WLTP");
 
+        // Reichweite: Fahrten anderer Fahrer, sonst Schätzung; die Variante steuert nur den Akku
+        ModelRangeConsumption range = modelRange(carModel, avgConsumption, seasonal,
+                summarizeWltpSpecs(modelEnumName).avgConsumption(), fleetFactors(isSeedUser));
+
         List<PublicModelStatsResponse.WltpVariant> wltpVariants = buildVariantStats(wltpEntities, carsForModel, carModel, isSeedUser)
                 .stream()
                 .map(s -> new PublicModelStatsResponse.WltpVariant(
@@ -190,7 +255,7 @@ public class PublicModelService {
                         s.realConsumptionKwhPer100km(),
                         s.realConsumptionMinKwhPer100km(), s.realConsumptionMaxKwhPer100km(),
                         s.realConsumptionTripCount(), s.estimatedConsumptionCount(),
-                        s.realConsumptionRangeSource(), s.seasonalDistribution()))
+                        s.realConsumptionRangeSource(), s.seasonalDistribution(), variantRange(s, range)))
                 .toList();
 
         List<VehicleSpecificationEntity> epaEntities =
@@ -207,7 +272,7 @@ public class PublicModelService {
                                 s.realConsumptionKwhPer100km(),
                                 s.realConsumptionMinKwhPer100km(), s.realConsumptionMaxKwhPer100km(),
                                 s.realConsumptionTripCount(), s.estimatedConsumptionCount(),
-                                s.realConsumptionRangeSource(), s.seasonalDistribution()))
+                                s.realConsumptionRangeSource(), s.seasonalDistribution(), variantRange(s, range)))
                         .toList();
 
         List<PublicModelStatsResponse.YearEntry> yearDistribution =
@@ -229,7 +294,7 @@ public class PublicModelService {
                         .toList();
 
         PublicModelStatsResponse.RouteTypeConsumption routeTypeConsumption = toRouteTypeConsumption(
-                evLogStatisticsService.calculateRouteTypeConsumption(carsForModel, isSeedUser));
+                community.calculateRouteTypeConsumption(carsForModel, isSeedUser));
 
         return Optional.of(new PublicModelStatsResponse(
                 brandEnumName,
@@ -254,7 +319,8 @@ public class PublicModelService {
                 seasonalDistribution,
                 yearDistribution,
                 routeTypeDistribution,
-                routeTypeConsumption
+                routeTypeConsumption,
+                range
         ));
     }
 
@@ -363,7 +429,7 @@ public class PublicModelService {
 
                     // Get community avg consumption (model-level)
                     List<Car> carsForModel = carRepository.findAllByModel(model);
-                    CommunityConsumptionResult communityResult = evLogStatisticsService.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
+                    CommunityConsumptionResult communityResult = community.calculateCommunityAvgConsumption(carsForModel, isSeedUser);
                     BigDecimal avgConsumption = communityResult.value() != null
                             ? communityResult.value().setScale(1, java.math.RoundingMode.HALF_UP) : null;
 
@@ -436,7 +502,7 @@ public class PublicModelService {
         record ModelData(CarBrand.CarModel carModel, long logCount, int contributorCount, int carCount,
                          BigDecimal avgConsumption, BigDecimal minRealConsumption,
                          BigDecimal maxRealConsumption, WltpSummary wltp,
-                         BigDecimal avgCostPerKwh, BigDecimal realRangeKm, List<Car> cars) {}
+                         BigDecimal avgCostPerKwh, BigDecimal realRangeKm, SeasonalConsumptionResult seasonal) {}
         // Per-variant consumption + derived real range (km). Range only for variants
         // that clear the same >= 100 trip gate used for variant consumption.
         record VariantPoint(BigDecimal consumption, BigDecimal rangeKm) {}
@@ -449,7 +515,7 @@ public class PublicModelService {
                 .distinct()
                 .toList();
 
-        List<TopModelResponse> topModels = modelsWithWltp.stream()
+        List<ModelData> models = modelsWithWltp.stream()
                 .map(modelName -> {
                     CarBrand.CarModel carModel;
                     try {
@@ -475,7 +541,8 @@ public class PublicModelService {
                     }
 
                     List<Car> cars = carRepository.findAllByModel(carModel);
-                    CommunityConsumptionResult result = evLogStatisticsService.calculateCommunityAvgConsumption(cars, isSeedUser);
+                    CommunityConsumptionService.ModelCommunity modelCommunity = community.forModel(carModel, isSeedUser);
+                    CommunityConsumptionResult result = modelCommunity.overall();
                     BigDecimal avgConsumption = result.value() != null
                             ? result.value().setScale(1, RoundingMode.HALF_UP) : null;
 
@@ -491,7 +558,7 @@ public class PublicModelService {
                             .collect(Collectors.groupingBy(Car::getNominalNetCapacityKwh))
                             .entrySet().stream()
                             .map(entry -> {
-                                CommunityConsumptionResult r = evLogStatisticsService
+                                CommunityConsumptionResult r = community
                                         .calculateCommunityAvgConsumption(entry.getValue(), isSeedUser);
                                 if (r.tripCount() < 100 || r.value() == null) return null;
                                 BigDecimal cons = r.value().setScale(1, RoundingMode.HALF_UP);
@@ -513,16 +580,25 @@ public class PublicModelService {
                             .map(VariantPoint::rangeKm).filter(Objects::nonNull)
                             .max(BigDecimal::compareTo).orElse(null);
 
+                    SeasonalConsumptionResult seasonal = modelCommunity.seasonal();
                     return new ModelData(carModel, logCount, contributorCount, carCount, avgConsumption,
-                            minReal, maxReal, wltp, avgCostPerKwh, realRangeKm, cars);
+                            minReal, maxReal, wltp, avgCostPerKwh, realRangeKm, seasonal);
                 })
                 .filter(m -> m != null)
                 .sorted((a, b) -> Long.compare(b.logCount(), a.logCount()))
+                .toList();
+
+        WltpFleetFactors fleet = community.fleetFactors(isSeedUser);
+
+        List<TopModelResponse> topModels = models.stream()
                 .map(m -> {
                     String modelDisplay = m.carModel().getDisplayName();
-                    // Seasonal split via EvLogService, same as getModelStats - only for the listed models
-                    SeasonalConsumptionResult seasonal = evLogStatisticsService.calculateSeasonalConsumption(m.cars(), isSeedUser);
+                    SeasonalConsumptionResult seasonal = m.seasonal();
                     BigDecimal winter = scale1(seasonal.winterConsumptionKwhPer100km());
+                    // Range on the same rule as the model page: other drivers' trips, else the estimate
+                    ModelRangeConsumption range = modelRange(m.carModel(), m.avgConsumption(), seasonal, m.wltp().avgConsumption(), fleet);
+                    BigDecimal rangeBase = consumption(range.overall());
+                    BigDecimal rangeWinter = consumption(range.winter());
                     return new TopModelResponse(
                             m.carModel().getBrand().name(),
                             m.carModel().name(),
@@ -547,11 +623,14 @@ public class PublicModelService {
                             m.carCount(),
                             m.wltp().minNetCapacityKwh(),
                             m.wltp().maxNetCapacityKwh(),
-                            rangeKm(m.wltp().minNetCapacityKwh(), m.avgConsumption()),
-                            rangeKm(m.wltp().maxNetCapacityKwh(), m.avgConsumption()),
-                            rangeKm(m.wltp().minNetCapacityKwh(), winter),
-                            rangeKm(m.wltp().maxNetCapacityKwh(), winter),
-                            fastChargePower.measuredKw(m.carModel().name())
+                            rangeKm(m.wltp().minNetCapacityKwh(), rangeBase),
+                            rangeKm(m.wltp().maxNetCapacityKwh(), rangeBase),
+                            rangeKm(m.wltp().minNetCapacityKwh(), rangeWinter),
+                            rangeKm(m.wltp().maxNetCapacityKwh(), rangeWinter),
+                            fastChargePower.measuredKw(m.carModel().name()),
+                            scale1(rangeBase),
+                            range.overall() != null ? range.overall().source().name() : null,
+                            range.overall() != null ? range.overall().users() : null
                     );
                 })
                 .toList();
@@ -647,14 +726,9 @@ public class PublicModelService {
                 r.typedMeanKwhPer100km());
     }
 
-    /**
-     * Range in km from a net capacity and a consumption in kWh/100 km, on the range window (100 to 10 %)
-     * like the model page; null if either is missing.
-     */
+    /** Range on the window of the public pages (100 to 10 %), the one formula of {@link RangeMath}. */
     private static Integer rangeKm(BigDecimal netCapacityKwh, BigDecimal consumptionKwhPer100km) {
-        if (netCapacityKwh == null || consumptionKwhPer100km == null || consumptionKwhPer100km.signum() <= 0) return null;
-        return netCapacityKwh.multiply(RangeWindow.SHARE).multiply(BigDecimal.valueOf(100))
-                .divide(consumptionKwhPer100km, 0, RoundingMode.HALF_UP).intValue();
+        return RangeMath.rangeKm(netCapacityKwh, consumptionKwhPer100km);
     }
 
     private static BigDecimal scale1(BigDecimal value) {
@@ -804,7 +878,7 @@ public class PublicModelService {
 
             CommunityConsumptionResult variantResult = carsForVariant.isEmpty()
                     ? CommunityConsumptionResult.EMPTY
-                    : evLogStatisticsService.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
+                    : community.calculateCommunityAvgConsumption(carsForVariant, isSeedUser);
             BigDecimal variantConsumption = variantResult.value() != null
                     ? variantResult.value().setScale(1, RoundingMode.HALF_UP) : null;
 
@@ -819,7 +893,7 @@ public class PublicModelService {
 
             PublicModelStatsResponse.SeasonalDistribution variantSeasonal = null;
             if (!carsForVariant.isEmpty()) {
-                SeasonalConsumptionResult vs = evLogStatisticsService.calculateSeasonalConsumption(carsForVariant, isSeedUser);
+                SeasonalConsumptionResult vs = community.calculateSeasonalConsumption(carsForVariant, isSeedUser);
                 long vsKm = (long) vs.summerKm() + vs.winterKm();
                 if (vsKm > 0) {
                     int sPct = (int) Math.round((vs.summerKm() * 100.0) / vsKm);

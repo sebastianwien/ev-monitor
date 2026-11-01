@@ -1,4 +1,4 @@
-package com.evmonitor.application.personalrange;
+package com.evmonitor.application.community;
 
 import org.junit.jupiter.api.Test;
 

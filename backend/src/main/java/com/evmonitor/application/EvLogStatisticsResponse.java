@@ -1,5 +1,6 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.range.RangeEstimateService;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
 
 import java.math.BigDecimal;
@@ -46,9 +47,13 @@ public record EvLogStatisticsResponse(
         UUID mostExpensiveChargeLogId,
 
         // Fahrverbrauch aus den Fahrten (DriveConsumptionService), flach im JSON: driveConsumptionKwhPer100km,
-        // driveSummer/WinterConsumptionKwhPer100km, modelDriveConsumptionKwhPer100km, modelDriveUsers, rangeBasis.
+        // driveSummer/WinterConsumptionKwhPer100km, modelDriveConsumptionKwhPer100km, modelDriveUsers, driveMonths.
         // Null ohne Berechnung; die Felder fehlen dann im JSON.
-        @JsonUnwrapped DriveStatistics drive
+        @JsonUnwrapped DriveStatistics drive,
+
+        // Reichweite je Zeitraum (current, summer, winter) nach den vier Stufen der RangeConsumptionPolicy
+        // (RangeEstimateService); null ohne Berechnung.
+        RangeEstimateService.RangeStatistics range
 ) {
     /** Ohne Fahrverbrauch; {@link #withDrive} ergänzt ihn. */
     public EvLogStatisticsResponse(BigDecimal totalKwhCharged, BigDecimal energyCostEur, BigDecimal fixedCostEur,
@@ -61,7 +66,7 @@ public record EvLogStatisticsResponse(
         this(totalKwhCharged, energyCostEur, fixedCostEur, fixedIncomeEur, totalCostEur, avgCostPerKwh, cheapestChargeEur,
                 mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges, totalDistanceKm, avgConsumptionKwhPer100km,
                 estimatedConsumptionCount, summerConsumptionKwhPer100km, winterConsumptionKwhPer100km, chargesOverTime,
-                chargingTypeSplit, locationSplit, peerBenchmark, chargingEfficiencySplit, mostExpensiveChargeLogId, null);
+                chargingTypeSplit, locationSplit, peerBenchmark, chargingEfficiencySplit, mostExpensiveChargeLogId, null, null);
     }
 
     public EvLogStatisticsResponse withDrive(DriveStatistics drive) {
@@ -69,7 +74,15 @@ public record EvLogStatisticsResponse(
                 avgCostPerKwh, cheapestChargeEur, mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges,
                 totalDistanceKm, avgConsumptionKwhPer100km, estimatedConsumptionCount, summerConsumptionKwhPer100km,
                 winterConsumptionKwhPer100km, chargesOverTime, chargingTypeSplit, locationSplit, peerBenchmark,
-                chargingEfficiencySplit, mostExpensiveChargeLogId, drive);
+                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range);
+    }
+
+    public EvLogStatisticsResponse withRange(RangeEstimateService.RangeStatistics range) {
+        return new EvLogStatisticsResponse(totalKwhCharged, energyCostEur, fixedCostEur, fixedIncomeEur, totalCostEur,
+                avgCostPerKwh, cheapestChargeEur, mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges,
+                totalDistanceKm, avgConsumptionKwhPer100km, estimatedConsumptionCount, summerConsumptionKwhPer100km,
+                winterConsumptionKwhPer100km, chargesOverTime, chargingTypeSplit, locationSplit, peerBenchmark,
+                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range);
     }
 
     public record ChargeDataPoint(

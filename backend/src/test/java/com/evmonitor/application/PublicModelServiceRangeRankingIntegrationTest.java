@@ -40,6 +40,8 @@ class PublicModelServiceRangeRankingIntegrationTest extends AbstractIntegrationT
     void setUp() {
         cacheManager.getCache("longestRangeModels").clear();
         cacheManager.getCache("topModels").clear();
+        cacheManager.getCache("communityModel").clear();
+        cacheManager.getCache("fleetFactors").clear();
         userId = createAndSaveUser("range-" + System.currentTimeMillis() + "@example.com").getId();
     }
 

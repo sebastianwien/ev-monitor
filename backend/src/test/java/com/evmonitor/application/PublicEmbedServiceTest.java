@@ -1,5 +1,7 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.range.ModelRangeConsumption;
+import com.evmonitor.domain.RangeConsumptionPolicy;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -53,7 +55,7 @@ class PublicEmbedServiceTest {
     private static TopModelResponse top(int logCount, String avg, String wltp) {
         return new TopModelResponse("VW", "ID_3", "VW", "Volkswagen", "VW ID.3", "ID.3", logCount, new BigDecimal(avg), null, null,
                 null, null, null, "COMPACT", "Kompakt", null, wltp == null ? null : new BigDecimal(wltp),
-                null, null, null, null, null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     @Test
@@ -82,7 +84,7 @@ class PublicEmbedServiceTest {
     }
 
     @Test
-    void seasonalRangesAreNullBelowTenLogsPerSeason() {
+    void seasonalRangeIsNullBelowTenLogsOfThatSeason_eachSeasonOnItsOwn() {
         var thin = seasonal(new BigDecimal("15.5"), new BigDecimal("21.4"), 40, 9);
         var v = variant(new BigDecimal("77"), new BigDecimal("17.2"), 150, thin);
         when(publicModelService.getModelStats("VW", "ID.3", false))
@@ -90,7 +92,7 @@ class PublicEmbedServiceTest {
 
         ModelTileResponse tile = service.getModelTile("VW", "ID.3");
 
-        assertThat(tile.summerRangeKm()).isNull();
+        assertThat(tile.summerRangeKm()).isEqualTo(450);
         assertThat(tile.winterRangeKm()).isNull();
         assertThat(tile.typicalRangeKm()).isEqualTo(400);
     }
@@ -205,13 +207,26 @@ class PublicEmbedServiceTest {
     private static PublicModelStatsResponse.WltpVariant variant(BigDecimal netKwh, BigDecimal real, Integer trips,
                                                                 PublicModelStatsResponse.SeasonalDistribution s) {
         return new PublicModelStatsResponse.WltpVariant(netKwh, null, null, null, null, null, null, null,
-                real, null, null, trips, null, null, s);
+                real, null, null, trips, null, null, s, null);
+    }
+
+    /** Range consumption as PublicModelService derives it without trips: the charge figures, seasons from 10 logs. */
+    private static ModelRangeConsumption range(BigDecimal avg, PublicModelStatsResponse.SeasonalDistribution s) {
+        boolean summerOk = s != null && s.summerLogCount() >= 10, winterOk = s != null && s.winterLogCount() >= 10;
+        return new ModelRangeConsumption(
+                RangeConsumptionPolicy.decidePublic(null, avg, null, null),
+                RangeConsumptionPolicy.decidePublic(null, summerOk ? s.summerConsumptionKwhPer100km() : null, null, null),
+                RangeConsumptionPolicy.decidePublic(null, winterOk ? s.winterConsumptionKwhPer100km() : null, null, null));
     }
 
     private static PublicModelStatsResponse stats(List<PublicModelStatsResponse.WltpVariant> variants,
                                                   BigDecimal avg, int logCount, int cars, Extras extras) {
+        // Seasons of the tile: the most measured variant's, as the page opens with it
+        PublicModelStatsResponse.SeasonalDistribution seasonal = variants.stream()
+                .filter(v -> v.seasonalDistribution() != null).map(PublicModelStatsResponse.WltpVariant::seasonalDistribution)
+                .findFirst().orElse(extras.seasonal());
         return new PublicModelStatsResponse("VW", "ID_3", "VW", "Volkswagen", "VW ID.3", "COMPACT", "Kompakt",
                 logCount, cars, cars, extras.avgPrice(), null, extras.dcPrice(), extras.kwhPerSession(), avg, 0, null,
-                variants, null, extras.seasonal(), List.of(), List.of(), null);
+                variants, null, extras.seasonal(), List.of(), List.of(), null, range(avg, seasonal));
     }
 }

@@ -12,7 +12,8 @@ import java.util.UUID;
  *                         Autos; null unter 10 Winterladungen oder ohne Spec
  * @param allVariantsDriveWinterConsumptionKwhPer100km Fahrverbrauch im Winter (November bis Februar, alle Jahre)
  *                         anderer Fahrer des Modells aus ihren Fahrten ({@link DriveConsumptionService}); null unter
- *                         5 Nutzern oder ohne Spec
+ *                         2 anderen Nutzern oder ohne Spec. Nur noch für ein älteres Frontend (Blue/Green), die
+ *                         Story liest den Winter aus {@code range.winter} der Statistik.
  */
 public record PeerModelComparisonResponse(
         List<PeerModelComparisonItem> modelComparisons,
