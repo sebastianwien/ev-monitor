@@ -2,6 +2,8 @@ package com.evmonitor.infrastructure.email;
 
 import com.evmonitor.application.recap.MonthlyRecap;
 import com.evmonitor.application.recap.MonthlyRecap.PricelessHint;
+import com.evmonitor.application.recap.RecapHighlights;
+import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.domain.VehicleCategory;
 
 import java.math.BigDecimal;
@@ -45,7 +47,7 @@ public final class MonthlyRecapMail {
     /**
      * @param priceUrl Einstieg "Preise nachtragen" in der App, steht nur im Hinweis auf fehlende Preise
      */
-    public static Rendered render(MonthlyRecap recap, String unsubscribeUrl, String priceUrl) {
+    public static Rendered render(MonthlyRecap recap, RecapHighlights highlights, String unsubscribeUrl, String priceUrl) {
         boolean en = isEnglish(recap.locale());
         Locale locale = en ? Locale.ENGLISH : Locale.GERMAN;
         String month = monthName(recap.month(), locale);
@@ -64,6 +66,7 @@ public final class MonthlyRecapMail {
         addSavings(recap, en, sections, vars);
         addTiles(recap, en, sections, vars);
         addDetails(recap, en, sections, vars);
+        addHighlights(highlights, en, sections, vars);
         addHint(recap, en, locale, sections, vars);
 
         String subject = en
@@ -155,6 +158,46 @@ public final class MonthlyRecapMail {
             sections.add("home");
             vars.put("homeShare", recap.homeSharePercent() + (en ? "%" : " %"));
         }
+    }
+
+    /**
+     * Platz in der Rangliste und Modellvergleich, wie in der Rückblick-Karte der Story. Die Plätze
+     * kommen als ein Satz ("Platz 2 bei Längste Strecke · Platz 3 bei Meiste kWh"), der Vergleich
+     * als zwei Zahlen; das Template setzt den Satz dazu.
+     */
+    private static void addHighlights(RecapHighlights highlights, boolean en, Set<String> sections, Map<String, String> vars) {
+        if (highlights == null) return;
+        if (!highlights.places().isEmpty()) {
+            sections.add("highlights");
+            sections.add("rank");
+            StringBuilder line = new StringBuilder();
+            for (RecapHighlights.Place p : highlights.places()) {
+                if (!line.isEmpty()) line.append(" · ");
+                line.append(en ? "Rank " + p.rank() + " in " + englishCategory(p.category())
+                        : "Platz " + p.rank() + " bei " + p.category().getDisplayName());
+            }
+            vars.put("rankLine", line.toString());
+        }
+        if (highlights.peer() != null) {
+            sections.add("highlights");
+            sections.add("peer");
+            vars.put("peerMine", number(highlights.peer().mine(), "0.0", en));
+            vars.put("peerPeers", number(highlights.peer().peers(), "0.0", en));
+        }
+    }
+
+    /** Dieselben Namen wie in der Rangliste der App (leaderboard.cat_* in en.yaml). */
+    private static String englishCategory(LeaderboardCategory category) {
+        return switch (category) {
+            case MONTHLY_KWH -> "Most energy charged";
+            case MONTHLY_CHARGES -> "Charging sessions";
+            case MONTHLY_DISTANCE -> "Longest distance";
+            case MONTHLY_CHEAPEST -> "Cheapest charger";
+            case MONTHLY_NIGHT_OWL -> "Night Owl";
+            case MONTHLY_ICE_CHARGER -> "Ice Charger";
+            case MONTHLY_HEAT_CHARGER -> "Sahara Session";
+            case MONTHLY_POWER_CHARGER -> "Fastest Charger";
+        };
     }
 
     /**

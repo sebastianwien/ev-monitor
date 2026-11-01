@@ -15,12 +15,12 @@
       <p style="margin: 0 0 18px; font-size: 15px; line-height: 1.6;">Hallo {{username}},</p>
 
       <!--if:savings-->
-      <p style="margin: 0; font-size: 13px; color: #4b5563;">Gespart gegenüber einem Benziner*</p>
+      <p style="margin: 0; font-size: 13px; color: #4b5563;">Gespart gegenüber einem Verbrenner*</p>
       <p style="margin: 2px 0 14px; font-size: 40px; font-weight: bold; line-height: 1.1; color: #15803d;">{{savings}}</p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; color: #374151;">
         <tr><td style="padding: 0 0 4px;">Strom <b>{{cost}}</b></td></tr>
         <tr><td style="padding: 0 0 10px;"><table role="presentation" width="{{costBar}}%" cellpadding="0" cellspacing="0"><tr><td style="height: 12px; background-color: #4f46e5; border-radius: 3px; font-size: 0; line-height: 0;">&nbsp;</td></tr></table></td></tr>
-        <tr><td style="padding: 0 0 4px;">Benzin, gleiche Strecke <b>rund {{fuelCost}}</b></td></tr>
+        <tr><td style="padding: 0 0 4px;">Verbrenner, gleiche Strecke <b>rund {{fuelCost}}</b></td></tr>
         <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height: 12px; background-color: #d1d5db; border-radius: 3px; font-size: 0; line-height: 0;">&nbsp;</td></tr></table></td></tr>
       </table>
       <!--end:savings-->
@@ -52,6 +52,7 @@
         </tr>
       </table>
       <!--if:details--><p style="margin: 10px 4px 0; font-size: 13px; line-height: 1.5; color: #4b5563;"><!--if:dcAll-->Alle {{charges}} Ladungen am Schnelllader.<!--end:dcAll--><!--if:dcSome-->{{dc}} von {{charges}} Ladungen am Schnelllader.<!--end:dcSome--><!--if:home--> {{homeShare}} daheim geladen.<!--end:home--></p><!--end:details-->
+      <!--if:highlights--><p style="margin: 10px 4px 0; font-size: 14px; line-height: 1.5; color: #111827;"><!--if:rank-->{{rankLine}}.<!--end:rank--><!--if:peer--> Du: {{peerMine}} kWh/100 km, andere Fahrer deines Modells im {{month}}: {{peerPeers}}.<!--end:peer--></p><!--end:highlights-->
 
       <!--if:hintOne-->
       <div style="margin: 24px 0 0; padding: 14px 16px; border-radius: 8px; background-color: #fef3c7;">
@@ -67,7 +68,7 @@
       <!--end:hintMany-->
       <!--if:hintAll-->
       <div style="margin: 24px 0 0; padding: 14px 16px; border-radius: 8px; background-color: #fef3c7;">
-        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #78350f;">Bei keiner Ladung ist ein Preis eingetragen. Mit Preisen zeigt dir diese Mail auch, was du gegenüber einem Benziner sparst.</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #78350f;">Bei keiner Ladung ist ein Preis eingetragen. Mit Preisen zeigt dir diese Mail auch, was du gegenüber einem Verbrenner sparst.</p>
         <a href="{{priceUrl}}" style="display: inline-block; margin-top: 10px; background-color: #78350f; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; padding: 10px 16px; border-radius: 6px;">Preise nachtragen</a>
       </div>
       <!--end:hintAll-->
@@ -76,7 +77,7 @@
     </div>
 
     <div style="padding: 14px 16px 20px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.5; color: #6b7280;">
-      <!--if:savings-->*<!--if:partial--> Nur Ladungen mit Preis, die Strecke anteilig nach kWh.<!--end:partial--> {{fuelLiters}} l/100 km für einen Benziner der Klasse {{carClass}} bei {{fuelPrice}}/l, Benzinpreis laut Tankerkönig.<br><!--end:savings-->
+      <!--if:savings-->*<!--if:partial--> Nur Ladungen mit Preis, die Strecke anteilig nach kWh.<!--end:partial--> {{fuelLiters}} l/100 km Benzin für einen Verbrenner der Klasse {{carClass}} bei {{fuelPrice}}/l, Benzinpreis laut Tankerkönig.<br><!--end:savings-->
       Diese Mail kommt einmal im Monat, wenn du mindestens drei Ladungen hattest. <a href="{{unsubscribeUrl}}" style="color: #6b7280;">Abbestellen</a>: ein Klick, kein Login nötig.
     </div>
   </div>

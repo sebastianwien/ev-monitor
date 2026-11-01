@@ -21,7 +21,7 @@ import java.util.*;
 public class PersonalTickerService {
 
     /** Unter drei Vergleichsfahrern ließe sich der Wert eines einzelnen Fremden ablesen. */
-    static final int MIN_PEER_USERS = 3;
+    public static final int MIN_PEER_USERS = 3;
 
     private final LeaderboardQueryRepository queryRepository;
     private final EvLogStatisticsService statisticsService;

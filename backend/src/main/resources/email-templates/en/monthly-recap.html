@@ -15,12 +15,12 @@
       <p style="margin: 0 0 18px; font-size: 15px; line-height: 1.6;">Hi {{username}},</p>
 
       <!--if:savings-->
-      <p style="margin: 0; font-size: 13px; color: #4b5563;">Saved compared to a petrol car*</p>
+      <p style="margin: 0; font-size: 13px; color: #4b5563;">Saved compared to a combustion car*</p>
       <p style="margin: 2px 0 14px; font-size: 40px; font-weight: bold; line-height: 1.1; color: #15803d;">{{savings}}</p>
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size: 13px; color: #374151;">
         <tr><td style="padding: 0 0 4px;">Electricity <b>{{cost}}</b></td></tr>
         <tr><td style="padding: 0 0 10px;"><table role="presentation" width="{{costBar}}%" cellpadding="0" cellspacing="0"><tr><td style="height: 12px; background-color: #4f46e5; border-radius: 3px; font-size: 0; line-height: 0;">&nbsp;</td></tr></table></td></tr>
-        <tr><td style="padding: 0 0 4px;">Petrol, same distance <b>about {{fuelCost}}</b></td></tr>
+        <tr><td style="padding: 0 0 4px;">Combustion car, same distance <b>about {{fuelCost}}</b></td></tr>
         <tr><td><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td style="height: 12px; background-color: #d1d5db; border-radius: 3px; font-size: 0; line-height: 0;">&nbsp;</td></tr></table></td></tr>
       </table>
       <!--end:savings-->
@@ -52,6 +52,7 @@
         </tr>
       </table>
       <!--if:details--><p style="margin: 10px 4px 0; font-size: 13px; line-height: 1.5; color: #4b5563;"><!--if:dcAll-->All {{charges}} sessions at fast chargers.<!--end:dcAll--><!--if:dcSome-->{{dc}} of {{charges}} sessions at fast chargers.<!--end:dcSome--><!--if:home--> {{homeShare}} charged at home.<!--end:home--></p><!--end:details-->
+      <!--if:highlights--><p style="margin: 10px 4px 0; font-size: 14px; line-height: 1.5; color: #111827;"><!--if:rank-->{{rankLine}}.<!--end:rank--><!--if:peer--> You: {{peerMine}} kWh/100 km, other drivers of your model in {{month}}: {{peerPeers}}.<!--end:peer--></p><!--end:highlights-->
 
       <!--if:hintOne-->
       <div style="margin: 24px 0 0; padding: 14px 16px; border-radius: 8px; background-color: #fef3c7;">
@@ -67,7 +68,7 @@
       <!--end:hintMany-->
       <!--if:hintAll-->
       <div style="margin: 24px 0 0; padding: 14px 16px; border-radius: 8px; background-color: #fef3c7;">
-        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #78350f;">None of your sessions has a price. With prices, this mail also shows how much you save compared to a petrol car.</p>
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #78350f;">None of your sessions has a price. With prices, this mail also shows how much you save compared to a combustion car.</p>
         <a href="{{priceUrl}}" style="display: inline-block; margin-top: 10px; background-color: #78350f; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 14px; padding: 10px 16px; border-radius: 6px;">Add prices</a>
       </div>
       <!--end:hintAll-->
@@ -76,7 +77,7 @@
     </div>
 
     <div style="padding: 14px 16px 20px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.5; color: #6b7280;">
-      <!--if:savings-->*<!--if:partial--> Only sessions with a price, distance pro rata by kWh.<!--end:partial--> {{fuelLiters}} l/100 km for a petrol car in the {{carClass}} class at {{fuelPrice}}/l, petrol price in Germany (Tankerkönig).<br><!--end:savings-->
+      <!--if:savings-->*<!--if:partial--> Only sessions with a price, distance pro rata by kWh.<!--end:partial--> {{fuelLiters}} l/100 km of petrol for a combustion car in the {{carClass}} class at {{fuelPrice}}/l, petrol price in Germany (Tankerkönig).<br><!--end:savings-->
       You get this mail once a month if you had at least three charging sessions. <a href="{{unsubscribeUrl}}" style="color: #6b7280;">Unsubscribe</a>: one click, no login needed.
     </div>
   </div>
