@@ -151,13 +151,13 @@ describe('StoryTile Fahrten', () => {
 describe('StoryTile CO₂, Laden, Stand', () => {
   const base = { delta: null, deltaPercent: null, sentiment: 'neutral' as const, spark: [], sparkVariant: 'bars' as const }
   const co2 = (over: Record<string, unknown> = {}) => ({ petrolGPerKm: 178, gridGPerKm: 102, greenGPerKm: 8, petrolLiters: 11, petrolLitersPer100km: 7.5, category: null, lifetime: null, ...over })
-  it('CO₂: Prozent weniger als ein Benziner, kg im Satz, Balken in Prozent', () => {
+  it('CO₂: Prozent weniger als ein Verbrenner, kg im Satz, Balken in Prozent', () => {
     const text = mount({ ...base, id: 'co2', value: 11.2, co2: co2() })
     expect(text).toContain('Wie viel CO₂ spare ich?')
     // 102 von 178 g/km sind 57 %, also 43 % weniger
     expect(text).toMatch(/43\s?% weniger CO₂/)
-    expect(text).toContain('11 kg weniger als ein Benziner')
-    expect(text).toMatch(/Benziner\s*100 %/)
+    expect(text).toContain('11 kg weniger als ein Verbrenner')
+    expect(text).toMatch(/Verbrenner\s*100 %/)
     expect(text).toMatch(/Dein Auto\s*57 %/)
     expect(text).not.toContain('g/km')
   })
@@ -165,10 +165,10 @@ describe('StoryTile CO₂, Laden, Stand', () => {
     const text = mount({ ...base, id: 'co2', value: 11.2, co2: co2({ lifetime: { kg: 532, since: new Date(2022, 3, 2).getTime() } }) })
     expect(text).toContain('11 kg weniger, seit 2022 schon 532 kg')
   })
-  it('CO₂: mehr als ein Benziner wird so benannt', () => {
+  it('CO₂: mehr als ein Verbrenner wird so benannt', () => {
     const text = mount({ ...base, id: 'co2', value: -4, co2: co2({ gridGPerKm: 190 }) })
     expect(text).toMatch(/7\s?% mehr CO₂/)
-    expect(text).toContain('4 kg mehr als ein Benziner')
+    expect(text).toContain('4 kg mehr als ein Verbrenner')
   })
   it('Laden: Anteil schnell, Preis je kWh je Art, Beschriftung im Balken', () => {
     const text = mount({ ...base, id: 'charging', value: 25, charging: { acKwh: 300, dcKwh: 100, unknownKwh: 0, acEurPerKwh: 0.3, dcEurPerKwh: 0.61 } })

@@ -36,19 +36,19 @@ describe('Sheets der neuen Kacheln', () => {
     co2: { petrolGPerKm: 137.46, gridGPerKm: 68, greenGPerKm: 5.4, petrolLiters: 170, petrolLitersPer100km: 5.8, category: 'CITY_CAR', lifetime: { kg: 868.3, since: new Date(2025, 2, 4).getTime() }, ...over } })
   it('CO₂: drei Zeilen in g/km', () => {
     const text = mount(SheetCo2, { tile: co2Tile() })
-    expect(text).toContain('322 kg weniger als mit einem Benziner.')
+    expect(text).toContain('322 kg weniger als mit einem Verbrenner.')
     expect(text).toContain('Mit Ökostrom geladen')
     expect(text).toContain('5 g/km')
   })
-  it('CO₂: Liter des Monats, Summe seit der ersten Ladung, Benziner der Fahrzeugklasse', () => {
+  it('CO₂: Liter des Monats, Summe seit der ersten Ladung, Verbrenner der Fahrzeugklasse', () => {
     const text = mount(SheetCo2, { tile: co2Tile() })
-    expect(text).toContain('Ein Benziner hätte 170 l getankt.')
+    expect(text).toContain('Ein Verbrenner hätte 170 l getankt.')
     expect(text).toContain('Seit März 2025: 868 kg weniger.')
-    expect(text).toContain('Gerechnet mit einem Benziner deiner Klasse (Kleinwagen, 5,8 l auf 100 km) und dem deutschen Strommix.')
+    expect(text).toContain('Gerechnet mit einem Verbrenner deiner Klasse (Kleinwagen, 5,8 l Benzin auf 100 km) und dem deutschen Strommix.')
   })
   it('CO₂: ohne Summe und ohne Klasse', () => {
     const text = mount(SheetCo2, { tile: co2Tile({ lifetime: null, category: null, petrolLitersPer100km: 7.5 }) })
     expect(text).not.toContain('Seit')
-    expect(text).toContain('Gerechnet mit einem Benziner mit 7,5 l auf 100 km und dem deutschen Strommix.')
+    expect(text).toContain('Gerechnet mit einem Verbrenner mit 7,5 l Benzin auf 100 km und dem deutschen Strommix.')
   })
 })
