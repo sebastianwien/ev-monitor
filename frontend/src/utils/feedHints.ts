@@ -1,15 +1,17 @@
 /**
  * Hinweise über dem Log-Feed, in einer Karte statt als Bannerstapel.
  *
- * Erst die Aufgaben (unplausibel, ohne Preis), dann höchstens ein Angebot, zuletzt der
+ * Erst die Aufgaben (unplausibel, ohne Preis, ohne Säule), dann höchstens ein Angebot, zuletzt der
  * einmalige Tipp. Gedeckelt, damit der Feed auf dem Handy im ersten Bildschirm beginnt:
  * was über die Grenze fällt, rückt nach, sobald ein Hinweis erledigt oder ausgeblendet ist.
  */
-export type FeedHintId = 'implausible' | 'priceless' | 'trips' | 'live' | 'autosync' | 'supporter' | 'cost_tip'
+export type FeedHintId = 'implausible' | 'priceless' | 'site_questions' | 'trips' | 'live' | 'autosync' | 'supporter' | 'cost_tip'
 
 export interface FeedHintFlags {
   implausible: boolean
   priceless: boolean
+  /** Ladungen, bei denen mehrere Säulen in Frage kommen: der Nutzer weiß, welche es war */
+  siteQuestions: boolean
   /** Auto einer Marke mit Fahrten, aber noch ohne Fahrt: Fahrten automatisch erfassen */
   trips: boolean
   live: boolean
@@ -24,6 +26,7 @@ export function feedHints(f: FeedHintFlags): FeedHintId[] {
   const hints: FeedHintId[] = []
   if (f.implausible) hints.push('implausible')
   if (f.priceless) hints.push('priceless')
+  if (f.siteQuestions) hints.push('site_questions')
   const offer: FeedHintId | null = f.trips ? 'trips' : f.live ? 'live' : f.autosync ? 'autosync' : f.supporter ? 'supporter' : null
   if (offer) hints.push(offer)
   if (f.costTip) hints.push('cost_tip')

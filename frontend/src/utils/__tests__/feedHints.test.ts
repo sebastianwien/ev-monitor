@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { feedHints, tripsHintVisible, MAX_FEED_HINTS, type FeedHintFlags } from '../feedHints'
 
-const none: FeedHintFlags = { implausible: false, priceless: false, trips: false, live: false, autosync: false, supporter: false, costTip: false }
+const none: FeedHintFlags = { implausible: false, priceless: false, siteQuestions: false, trips: false, live: false, autosync: false, supporter: false, costTip: false }
 
 describe('feedHints', () => {
   it('shows nothing without a reason', () => {
@@ -23,8 +23,13 @@ describe('feedHints', () => {
   })
 
   it(`caps the list at ${MAX_FEED_HINTS} rows, the tip goes first`, () => {
-    const all = { implausible: true, priceless: true, trips: false, live: false, autosync: true, supporter: false, costTip: true }
+    const all = { implausible: true, priceless: true, siteQuestions: false, trips: false, live: false, autosync: true, supporter: false, costTip: true }
     expect(feedHints(all)).toEqual(['implausible', 'priceless', 'autosync'])
+  })
+
+  it('fragt nach der Säule direkt nach "ohne Preis", noch vor einem Angebot', () => {
+    expect(feedHints({ ...none, siteQuestions: true, supporter: true, priceless: true }))
+      .toEqual(['priceless', 'site_questions', 'supporter'])
   })
 
   it('Fahrten automatisch erfassen geht als Angebot vor allen anderen', () => {

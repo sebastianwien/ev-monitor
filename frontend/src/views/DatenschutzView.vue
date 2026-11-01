@@ -135,7 +135,7 @@ onMounted(async () => {
           </p>
           <p class="mt-4">
             <strong>Zuordnung zur Ladesäule:</strong> Öffentliche Ladevorgänge werden der Ladesäule aus dem
-            öffentlichen Ladesäulenregister der Bundesnetzagentur zugeordnet - durch Ihre Auswahl beim Erfassen oder automatisch, wenn
+            öffentlichen Ladesäulenregister der Bundesnetzagentur zugeordnet - durch Ihre Auswahl (beim Erfassen oder auf spätere Nachfrage) oder automatisch, wenn
             die Säule im Umkreis von ca. 150 m eindeutig bestimmbar ist. Gespeichert werden dann die öffentlichen
             Registerangaben der Säule (Name, Betreiber, Adresse, Registernummer, Ladeleistung). Für diese
             Ladevorgänge ist der Ladeort damit auf die Säule genau bekannt. Das Register wird über den Kartendienst

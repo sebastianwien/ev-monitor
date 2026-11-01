@@ -2,9 +2,11 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
-  ExclamationTriangleIcon, CurrencyEuroIcon, BoltIcon, ArrowPathIcon, HeartIcon, InformationCircleIcon, MapIcon,
+  ExclamationTriangleIcon, CurrencyEuroIcon, BoltIcon, ArrowPathIcon, HeartIcon, InformationCircleIcon, MapIcon, MapPinIcon,
 } from '@heroicons/vue/24/outline'
 import FeedHintRow from './FeedHintRow.vue'
+import SiteQuestionsSheet from './SiteQuestionsSheet.vue'
+import { siteQuestionService, type SiteQuestion } from '../../api/siteQuestionService'
 import WattBadge from '../shared/WattBadge.vue'
 import { useCarContext } from '../../composables/useCarContext'
 import { useCoinStore } from '../../stores/coins'
@@ -27,7 +29,7 @@ const emit = defineEmits<{ 'open-implausible': []; 'open-priceless': [] }>()
 const { t } = useI18n()
 const {
   selectedCar, latestTrip, logsLoading, teslaStatus, implausibleCount, implausibleBannerDismissed, dismissImplausibleBanner,
-  pricelessCount, pricelessBannerDismissed, dismissPricelessBanner,
+  pricelessCount, pricelessBannerDismissed, dismissPricelessBanner, refreshLogsAndGroups, fetchPricelessCount,
 } = useCarContext()
 const coinStore = useCoinStore()
 coinStore.ensureCatalog()
@@ -156,9 +158,42 @@ function dismissTripsHint() {
   try { localStorage.setItem(LS_TRIPS_HINT_DISMISSED, JSON.stringify(tripsHintDismissed.value)) } catch { /* privater Modus */ }
 }
 
+// Frage nach der Säule: Orte, an denen mehrere Säulen in Frage kommen. Gilt für alle Autos des
+// Nutzers (eine Frage ist ein Ort, kein Auto). Während das Sheet offen ist, bleibt die Zeile stehen,
+// sonst verschwände mit der letzten Antwort die Karte samt Sheet.
+const LS_SITE_QUESTIONS_DISMISSED = 'site_questions_hint_dismissed'
+const siteQuestionsDismissed = ref(localStorage.getItem(LS_SITE_QUESTIONS_DISMISSED) === 'true')
+const siteQuestions = ref<SiteQuestion[]>([])
+const siteQuestionsOpen = ref(false)
+let siteQuestionsAnswered = false
+const siteQuestionLogs = computed(() => siteQuestions.value.reduce((sum, q) => sum + q.logCount, 0))
+const wattForSiteQuestions = computed(() => (coinStore.catalog?.SITE_CONFIRMED?.amount ?? 0) * siteQuestions.value.length)
+async function loadSiteQuestions() {
+  try { siteQuestions.value = await siteQuestionService.list() } catch { /* ohne Fragen keine Zeile */ }
+}
+function onSiteQuestionAnswered() {
+  siteQuestionsAnswered = true
+}
+function openSiteQuestions() {
+  siteQuestionsAnswered = false
+  siteQuestionsOpen.value = true
+  analytics.track('site_question_opened', { places: siteQuestions.value.length })
+}
+async function closeSiteQuestions() {
+  siteQuestionsOpen.value = false
+  if (!siteQuestionsAnswered) return loadSiteQuestions()
+  // Zugeordnete Ladungen haben jetzt Säule, Betreiber und eventuell Preis
+  await Promise.all([loadSiteQuestions(), refreshLogsAndGroups(), fetchPricelessCount()])
+}
+function dismissSiteQuestions() {
+  siteQuestionsDismissed.value = true
+  try { localStorage.setItem(LS_SITE_QUESTIONS_DISMISSED, 'true') } catch { /* privater Modus */ }
+}
+
 const visibleHints = computed(() => feedHints({
   implausible: implausibleCount.value > 0 && !implausibleBannerDismissed.value,
   priceless: pricelessCount.value > 0 && !pricelessBannerDismissed.value,
+  siteQuestions: siteQuestionsOpen.value || (siteQuestions.value.length > 0 && !siteQuestionsDismissed.value),
   trips: showTripsHint.value,
   live: showLiveBanner.value,
   autosync: showAutoSyncBanner.value,
@@ -167,6 +202,7 @@ const visibleHints = computed(() => feedHints({
 }))
 
 onMounted(async () => {
+  loadSiteQuestions()
   try {
     const status = await subscriptionService.getStatus()
     subscriptionTier.value = status.tier ?? 'NONE'
@@ -189,6 +225,11 @@ onMounted(async () => {
         :dismiss-label="t('priceless.dismiss')" @open="emit('open-priceless')" @dismiss="dismissPricelessBanner">
         {{ t('priceless.banner', pricelessCount) }}
         <template #sub>{{ t('priceless.banner_cta') }} <WattBadge :amount="wattForAllPriceless" up-to /></template>
+      </FeedHintRow>
+      <FeedHintRow v-else-if="hint === 'site_questions'" data-testid="site-questions-banner" task :icon="MapPinIcon"
+        :dismiss-label="t('site_question.dismiss')" @open="openSiteQuestions" @dismiss="dismissSiteQuestions">
+        {{ t('site_question.banner', siteQuestionLogs) }}
+        <template #sub>{{ t('site_question.banner_cta') }} <WattBadge :amount="wattForSiteQuestions" up-to /></template>
       </FeedHintRow>
       <!-- Die Importseite öffnet für Tesla, Polestar und XPeng den passenden Abschnitt des aktiven Autos -->
       <FeedHintRow v-else-if="hint === 'trips'" data-testid="trips-hint" :icon="MapIcon" to="/imports"
@@ -223,5 +264,7 @@ onMounted(async () => {
         </span>
       </FeedHintRow>
     </template>
+    <SiteQuestionsSheet v-if="siteQuestionsOpen" :questions="siteQuestions"
+      @answered="onSiteQuestionAnswered" @close="closeSiteQuestions" />
   </ul>
 </template>

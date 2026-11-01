@@ -9,10 +9,12 @@ import { stationSub } from './stationSub'
 import StationThumb from './StationThumb.vue'
 
 /**
- * Kachel einer Ladesäule in der Ortswahl (Liste im Umkreis, gesuchte Säule, Suchebene): Kartenbild der genauen
- * Lage, wenn das Register sie kennt, sonst das Blitz-Symbol; Name, Ladepunkte, Adresse, Entfernung.
+ * Kachel einer Ladesäule in der Ortswahl (Liste im Umkreis, gesuchte Säule, Suchebene) und in der Frage nach
+ * der Säule: Kartenbild der genauen Lage, wenn das Register sie kennt, sonst das Blitz-Symbol; Name, Ladepunkte,
+ * Adresse, Entfernung.
  */
-const props = defineProps<{ station: StationMatch & { distanceMeters?: number }; selected?: boolean }>()
+type TileStation = Pick<StationMatch, 'name' | 'maxAcKw' | 'maxDcKw' | 'chargePoints' | 'address' | 'latitude' | 'longitude'>
+const props = defineProps<{ station: TileStation & { distanceMeters?: number }; selected?: boolean }>()
 const { t, locale } = useI18n()
 const coords = computed(() => {
   const { latitude: lat, longitude: lon } = props.station
