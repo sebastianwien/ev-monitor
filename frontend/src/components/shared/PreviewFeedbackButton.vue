@@ -39,7 +39,7 @@ function onClick(e: MouseEvent) {
   <a :href="`mailto:${FEEDBACK_MAIL}`"
      @click="onClick"
      :class="aboveCaptureBar ? 'bottom-[calc(8.5rem+env(safe-area-inset-bottom))]' : 'bottom-[calc(4.5rem+env(safe-area-inset-bottom))]'"
-     class="fixed right-4 z-40 md:bottom-6 inline-flex items-center rounded-full bg-green-600 px-3 py-1.5 text-sm font-medium text-white shadow-lg hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
+     class="btn-3d fixed right-4 z-40 md:bottom-6 inline-flex items-center min-h-11 px-3 rounded-xl border-2 border-edge bg-green-600 text-sm font-semibold text-white hover:bg-green-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-gray-900">
     {{ t('previewFeedback.button') }}
   </a>
 </template>
