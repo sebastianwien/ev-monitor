@@ -6,6 +6,8 @@ import geohash from 'ngeohash'
  * Zoom und Subdomain-Wahl müssen Leaflet exakt entsprechen, sonst trifft der Cache nicht (anderer Host = andere URL).
  */
 export const MINIMAP_ZOOM = 17
+/** Kartenkopf über Ort und Zahlen (Wizard, Bearbeiten): eine Stufe weiter draußen, die Umgebung gibt Orientierung */
+export const MINIMAP_HEAD_ZOOM = 16
 /** Private Ladung: die ganze Zelle (rund 0,75 x 0,6 km) muss ins Bild, daher weiter draußen */
 export const MINIMAP_AREA_ZOOM = 14
 /** Höchste Kopfhöhe: die Karte ist immer so hoch gerendert und wird nur beschnitten. Zahl und Klasse müssen zusammenpassen. */

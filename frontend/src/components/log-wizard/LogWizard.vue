@@ -37,7 +37,7 @@ import type { CardChoice, CommunityPrice } from './CardStrip.vue'
 import { providerPriceForType } from '../../utils/chargingProviderPricing'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import StepReview from './StepReview.vue'
-import { prefetchMinimapTiles, privateArea, MINIMAP_MAX_PX, MINIMAP_AREA_ZOOM, MINIMAP_ZOOM, type MinimapArea } from './minimapTiles'
+import { prefetchMinimapTiles, privateArea, MINIMAP_MAX_PX, MINIMAP_AREA_ZOOM, MINIMAP_HEAD_ZOOM, type MinimapArea } from './minimapTiles'
 import { nextField } from './keyboardNav'
 import { useIsMobile } from '../../composables/useIsMobile'
 const VoiceCapture = defineAsyncComponent(() => import('./VoiceCapture.vue'))
@@ -522,7 +522,7 @@ onMounted(async () => {
 })
 // Kacheln der Prüfseiten-Karte schon in Schritt 1 in den Cache holen: die Karte steht dann beim Betreten, statt kachelweise reinzuploppen
 watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.value.area != null] as const, ([lat, lon, isArea]) => {
-  if (lat != null && lon != null) prefetchMinimapTiles(lat, lon, window.innerWidth, Math.min(MINIMAP_MAX_PX, window.innerHeight * 0.6), isArea ? MINIMAP_AREA_ZOOM : MINIMAP_ZOOM)
+  if (lat != null && lon != null) prefetchMinimapTiles(lat, lon, window.innerWidth, Math.min(MINIMAP_MAX_PX, window.innerHeight * 0.6), isArea ? MINIMAP_AREA_ZOOM : MINIMAP_HEAD_ZOOM)
 })
 </script>
 

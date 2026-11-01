@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
-import { MINIMAP_MAX_CLASS, MINIMAP_AREA_ZOOM, MINIMAP_ZOOM, type MinimapArea } from './minimapTiles'
+import { MINIMAP_MAX_CLASS, MINIMAP_AREA_ZOOM, MINIMAP_HEAD_ZOOM, type MinimapArea } from './minimapTiles'
 import { useI18n } from 'vue-i18n'
 import { MapPinIcon, CreditCardIcon, ClockIcon } from '@heroicons/vue/24/outline'
 const PlaceMinimap = defineAsyncComponent(() => import('./PlaceMinimap.vue'))
@@ -33,7 +33,7 @@ const { t } = useI18n()
       :style="hasMap ? { [grow ? 'minHeight' : 'height']: `${height}px` } : undefined">
       <!-- Die Karte ist immer so hoch wie der größte Kopf und mittig verankert: der Rahmen wächst und schrumpft animiert,
            die Karte wird nur beschnitten statt neu layoutet - sonst flackern die Kacheln bei jeder Zwischenhöhe. -->
-      <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" :area="context.area ?? null" :zoom="context.area ? MINIMAP_AREA_ZOOM : MINIMAP_ZOOM" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />
+      <PlaceMinimap v-if="hasMap" :lat="context.lat!" :lon="context.lon!" :area="context.area ?? null" :zoom="context.area ? MINIMAP_AREA_ZOOM : MINIMAP_HEAD_ZOOM" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />
       <!-- Säule, Adresse, Karte stehen direkt auf der Karte; der hohe Verlauf nach unten macht den Text lesbar und führt zu den Schaltern -->
       <div :class="hasMap ? 'absolute inset-x-0 bottom-0 z-[500] px-4 pb-3 pt-14 bg-gradient-to-t from-white via-white/70 to-transparent dark:from-gray-900 dark:via-gray-900/70' : 'px-4'">
         <div class="flex items-end justify-between gap-3">
