@@ -41,6 +41,9 @@ class LeaderboardServiceIntegrationTest {
     @Mock
     private FuelPriceService fuelPriceService;
 
+    @Mock
+    private Co2Service co2Service;
+
     private LeaderboardService leaderboardService;
 
     private final UUID userA = UUID.randomUUID();
@@ -50,7 +53,7 @@ class LeaderboardServiceIntegrationTest {
     void setUp() {
         // Echter RankingProvider ohne Spring-Proxy (kein Cache) über dem gemockten Repository.
         leaderboardService = new LeaderboardService(queryRepository, new LeaderboardRankingProvider(queryRepository),
-                coinLogService, fuelPriceService);
+                coinLogService, fuelPriceService, co2Service);
     }
 
     // ---- Ranking and delta ----
@@ -265,6 +268,39 @@ class LeaderboardServiceIntegrationTest {
                 && "leader".equals(i.messageKey())
                 && "MONTHLY_KWH".equals(i.params().get("category"))
                 && i.params().get("name").contains("anna"));
+    }
+
+    @Test
+    void getTicker_co2Saved_comesFromCo2ServiceWithTheCarsOfTheMonth() {
+        stubAllRankingsEmpty();
+        UUID carId = UUID.randomUUID();
+        when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(new BigDecimal("5000"));
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(100, 60));
+        when(queryRepository.getTotalCostEur(any(), any())).thenReturn(new BigDecimal("900.00"));
+        when(queryRepository.getCarModelsWithChargesBetween(any(), any()))
+                .thenReturn(java.util.Map.of(carId, com.evmonitor.domain.CarBrand.CarModel.MODEL_3));
+        when(co2Service.community(eq(java.util.Map.of(carId, com.evmonitor.domain.VehicleCategory.SEDAN)), any(), any()))
+                .thenReturn(new com.evmonitor.domain.Co2Balance(9000, 700, 2100, 600, 1500));
+
+        var items = leaderboardService.getTicker();
+
+        var co2 = items.stream().filter(i -> "co2_saved".equals(i.messageKey())).findFirst().orElseThrow();
+        assertThat(co2.params()).containsEntry("unit", "tonnes").containsEntry("amount", "1.5");
+    }
+
+    @Test
+    void getTicker_noCo2Item_withoutSegmentsOrWithoutSaving() {
+        stubAllRankingsEmpty();
+        when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(new BigDecimal("5000"));
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(100, 60));
+        when(queryRepository.getTotalCostEur(any(), any())).thenReturn(new BigDecimal("900.00"));
+        when(co2Service.community(any(), any(), any())).thenReturn(null);
+
+        assertThat(leaderboardService.getTicker()).noneMatch(i -> "co2_saved".equals(i.messageKey()));
+
+        when(co2Service.community(any(), any(), any())).thenReturn(new com.evmonitor.domain.Co2Balance(10, 1, 3, 4, -1));
+
+        assertThat(leaderboardService.getTicker()).noneMatch(i -> "co2_saved".equals(i.messageKey()));
     }
 
     // ---- Month-end rewards ----
