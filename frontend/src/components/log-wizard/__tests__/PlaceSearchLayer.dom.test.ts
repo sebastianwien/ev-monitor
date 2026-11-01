@@ -166,7 +166,7 @@ describe('PlaceSearchLayer', () => {
     afterEach(() => { delete (HTMLElement.prototype as any).animate })
 
     it('startet an der Stelle von "Woanders geladen?" und gleitet zurück, bevor sie schließt', async () => {
-      const { q, close } = await mount({ origin: { top: 700, left: 16, width: 358, height: 44 } })
+      const { q, close } = await mount({ origin: { top: 700, left: 16 } })
       await nextTick()
       const bar = animate.mock.contexts.find((el: HTMLElement) => el.dataset.testid === 'place-layer-bar') as HTMLElement
       expect(bar).toBeTruthy()

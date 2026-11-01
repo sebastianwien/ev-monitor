@@ -62,7 +62,7 @@ const layerOrigin = ref<OriginRect | null>(null)
 const openLayer = (e: MouseEvent) => {
   focusProxy.value?.focus({ preventScroll: true })
   const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
-  layerOrigin.value = { top: r.top, left: r.left, width: r.width, height: r.height }
+  layerOrigin.value = { top: r.top, left: r.left }
   layerOpen.value = true
 }
 const onLayerChoose = (c: PlaceChoice) => { layerOpen.value = false; onSearchChoose(c) }

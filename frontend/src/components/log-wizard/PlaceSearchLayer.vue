@@ -21,7 +21,7 @@ import ListTransition from '../shared/ListTransition.vue'
  * zuletzt gewählte Adresse wird per Tap zur Adresse. Säulen aus dem Register nach Namen stehen obenan.
  * Mit `origin` (Lage des Knopfs "Woanders geladen?") gleitet die Suchleiste von dort nach oben und beim Schließen zurück.
  */
-export interface OriginRect { top: number; left: number; width: number; height: number }
+export interface OriginRect { top: number; left: number }
 const props = defineProps<{ near: LatLon | null; origin?: OriginRect | null }>()
 const emit = defineEmits<{ close: []; choose: [choice: PlaceChoice]; picked: [place: PickedPlace] }>()
 const { t } = useI18n()
