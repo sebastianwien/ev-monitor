@@ -29,28 +29,28 @@ const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim(
 const all = (host: Element, id: string) => [...host.querySelectorAll(`[data-testid="${id}"]`)].map(el => [...el.children].map(text).join(' '))
 
 describe('StoryRecapHero', () => {
-  it('zeigt Satz, Ersparnis, Strecke, Energie, Ladungen, AC und DC mit Kosten und das gesparte CO₂', () => {
+  it('zeigt Satz, Ersparnis, €/100 km, Energie, Ladungen, AC und DC mit Kosten und das gesparte CO₂', () => {
     const host = mount(recap(facts))
     expect(text(host)).toContain('September: 512 km für 61 €.')
     expect(text(host)).toContain('Gegenüber einem Verbrenner: 6 € gespart.')
-    expect(all(host, 'recap-fact')).toEqual(['512 km Strecke', '96 kWh Geladen', '9 Ladungen'])
-    expect(all(host, 'recap-split')).toEqual(['Normal (AC) 71 kWh 21 €', 'Schnell (DC) 25 kWh 15 €'])
+    expect(all(host, 'recap-fact')).toEqual(['6 € Gespart', '11,91 € pro 100 km', '96 kWh Geladen', '9 Ladungen'])
+    expect(all(host, 'recap-split')).toEqual(['Normal (AC) 21 € 71 kWh', 'Schnell (DC) 15 € 25 kWh'])
     expect(text(host.querySelector('[data-testid="recap-co2"]'))).toBe('45 kg CO₂ weniger als mit einem Benziner.')
     expect([...host.querySelectorAll('[data-testid="recap-co2"] strong')].map(text)).toEqual(['45'])
   })
 
-  it('führt zum Vormonat und bietet kein Teilen an', () => {
+  it('führt beim Tippen auf die ganze Karte zum Vormonat und bietet kein Teilen an', () => {
     const events: unknown[][] = []
     const host = mount(recap(facts), events)
-    const link = [...host.querySelectorAll('button')].find(b => text(b) === 'September ansehen')!
-    link.click()
+    expect(host.querySelector('button')).toBeNull()
+    ;(host.querySelector('[data-testid="story-recap-hero"]') as HTMLElement).click()
     expect(events).toEqual([['act', 'prev_month']])
     expect(text(host)).not.toMatch(/teilen/i)
   })
 
-  it('ohne Zahlen des Vormonats nur Strecke und Ladungen, ohne Aufteilung und CO₂', () => {
+  it('ohne Zahlen des Vormonats ohne Energie, ohne Aufteilung und CO₂', () => {
     const host = mount(recap(null))
-    expect(all(host, 'recap-fact')).toEqual(['512 km Strecke', '9 Ladungen'])
+    expect(all(host, 'recap-fact')).toEqual(['6 € Gespart', '11,91 € pro 100 km', '9 Ladungen'])
     expect(host.querySelector('[data-testid="recap-split"]')).toBeNull()
     expect(host.querySelector('[data-testid="recap-co2"]')).toBeNull()
   })
