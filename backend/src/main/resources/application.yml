@@ -123,7 +123,7 @@ management:
       client:
         max-uri-tags: 500  # Höheres Limit für HTTP-Client-Metrics (Open-Meteo Backfill)
 
-    basis: ${RANGE_BASIS:drive}
+evmonitor:
   consumption:
     plausibility:
       absolute-min-kwh-per-100km: 10.0
