@@ -247,6 +247,8 @@ public class EvLogStatisticsService {
             ConsumptionResult cr = entry.getValue();
             if (cr == null) continue;
             if (cr.distanceKm() > 0) totalDistAll += cr.distanceKm();
+            // Wie die Saisonwerte (getPlausibleEntriesForCar): ein unplausibles Paar zählt nicht in den Schnitt
+            if (!cr.plausible()) continue;
             if (cr.estimated()) estimatedCount++;
             totalWeighted = totalWeighted.add(cr.value().multiply(BigDecimal.valueOf(cr.distanceKm())));
             totalDist += cr.distanceKm();
