@@ -45,6 +45,8 @@ async function type(text: string) {
   input.dispatchEvent(new Event('input'))
   await nextTick(); await vi.runAllTimersAsync(); await nextTick()
 }
+/** Sichtbar = nicht in einer zugeklappten Collapse (inert; jsdom schreibt offen inert="false") */
+const shown = (el: Element | null) => !!el && !el.closest('[inert]:not([inert="false"])')
 const nearbyCalls = () => vi.mocked(api.get).mock.calls.filter(c => String(c[0]).includes('nearby-stations'))
 
 describe('PlaceSearchLayer', () => {
@@ -141,18 +143,68 @@ describe('PlaceSearchLayer', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 
-  it('Zurück und Escape schließen die Ebene', async () => {
+  it('neue Adresse: die alten Säulen bleiben gedimmt stehen, bis die neuen da sind - kein Springen über einen Spinner', async () => {
+    const { q } = await mount()
+    await type('Lindenweg 3')
+    let release: (v: unknown) => void = () => {}
+    vi.mocked(api.get).mockImplementation(((url: string) => url.includes('nearby-stations')
+      ? new Promise(r => { release = r }) : Promise.resolve({ data: [] })) as never)
+    q('place-layer-other')!.querySelector('button')!.click()
+    await nextTick(); await nextTick()
+    const list = q('place-layer-stations')!
+    expect(list.textContent).toContain('Billa')
+    expect(list.querySelector('[data-testid="place-layer-station-list"]')!.className).toContain('opacity-50')
+    release({ data: [] })
+  })
+
+  describe('Suchleiste gleitet vom Knopf nach oben', () => {
+    let animate: ReturnType<typeof vi.fn>
+    beforeEach(() => {
+      animate = vi.fn(() => ({ finished: Promise.resolve(), cancel: () => {} }))
+      ;(HTMLElement.prototype as any).animate = animate
+    })
+    afterEach(() => { delete (HTMLElement.prototype as any).animate })
+
+    it('startet an der Stelle von "Woanders geladen?" und gleitet zurück, bevor sie schließt', async () => {
+      const { q, close } = await mount({ origin: { top: 700, left: 16, width: 358, height: 44 } })
+      await nextTick()
+      const bar = animate.mock.contexts.find((el: HTMLElement) => el.dataset.testid === 'place-layer-bar') as HTMLElement
+      expect(bar).toBeTruthy()
+      const first = animate.mock.calls[animate.mock.contexts.indexOf(bar)][0][0]
+      expect(first.transform).toBe('translate(16px, 700px)')
+      animate.mockClear()
+      q('place-layer-back')!.click()
+      expect(close).not.toHaveBeenCalled()
+      expect(animate.mock.contexts).toContain(bar)
+      await vi.runAllTimersAsync(); await nextTick()
+      expect(close).toHaveBeenCalledTimes(1)
+    })
+
+    it('ohne Herkunft (Bearbeiten, Tastatur) keine Bewegung', async () => {
+      await mount()
+      await nextTick()
+      expect(animate.mock.contexts.some((el: HTMLElement) => el.dataset.testid === 'place-layer-bar')).toBe(false)
+    })
+  })
+
+  it('Zurück schließt die Ebene, ein zweites Schließen meldet nichts doppelt', async () => {
     const { q, close } = await mount()
     q('place-layer-back')!.click()
     q('place-layer')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
-    expect(close).toHaveBeenCalledTimes(2)
+    expect(close).toHaveBeenCalledTimes(1)
+  })
+
+  it('Escape schließt die Ebene', async () => {
+    const { q, close } = await mount()
+    q('place-layer')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+    expect(close).toHaveBeenCalledTimes(1)
   })
 
   it('ohne Adresse und ohne Säule ein Hinweis statt leerer Fläche', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue(photon()) as any
     const { q } = await mount()
     await type('Nirgendwo 99')
-    expect(q('place-layer-none')).not.toBeNull()
-    expect(q('place-layer-private')).toBeNull()
+    expect(shown(q('place-layer-none'))).toBe(true)
+    expect(shown(q('place-layer-private'))).toBe(false)
   })
 })

@@ -4,7 +4,7 @@ import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowPathIcon, HomeIcon, BoltIcon, MapPinIcon, MagnifyingGlassIcon, CheckCircleIcon, Cog6ToothIcon, ChevronDownIcon } from '@heroicons/vue/24/outline'
 import StationTile from './StationTile.vue'
-import PlaceSearchLayer from './PlaceSearchLayer.vue'
+import PlaceSearchLayer, { type OriginRect } from './PlaceSearchLayer.vue'
 import { RADIUS_STEPS, type NearbyStation, type StationMatch } from '../../composables/useNearbyStations'
 import { isLocationInaccurate, formatDistance } from './placeDistance'
 import type { ChargingSiteRef } from '../log-form/logFormData'
@@ -57,7 +57,14 @@ const platform = settingsPlatform()
 // das Hilfsfeld bekommt ihn sofort, das Suchfeld der Ebene übernimmt ihn, sobald sie steht.
 const layerOpen = ref(false)
 const focusProxy = ref<HTMLInputElement | null>(null)
-const openLayer = () => { focusProxy.value?.focus({ preventScroll: true }); layerOpen.value = true }
+/** Lage des Knopfs: von dort gleitet die Suchleiste nach oben und beim Schließen zurück */
+const layerOrigin = ref<OriginRect | null>(null)
+const openLayer = (e: MouseEvent) => {
+  focusProxy.value?.focus({ preventScroll: true })
+  const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  layerOrigin.value = { top: r.top, left: r.left, width: r.width, height: r.height }
+  layerOpen.value = true
+}
 const onLayerChoose = (c: PlaceChoice) => { layerOpen.value = false; onSearchChoose(c) }
 const near = computed(() => props.latitude != null && props.longitude != null ? { lat: props.latitude, lon: props.longitude } : null)
 const dist = (m: number) => formatDistance(m, locale.value)
@@ -251,6 +258,6 @@ const tileClass = (on: boolean) => [cardClass(on), 'w-full flex items-center gap
     </button>
     </template>
     <input ref="focusProxy" type="text" tabindex="-1" aria-hidden="true" class="pointer-events-none fixed left-0 top-0 h-px w-px text-[16px] opacity-0" />
-    <PlaceSearchLayer v-if="layerOpen" :near="near" @close="layerOpen = false" @choose="onLayerChoose" @picked="p => emit('placePicked', p)" />
+    <PlaceSearchLayer v-if="layerOpen" :near="near" :origin="layerOrigin" @close="layerOpen = false" @choose="onLayerChoose" @picked="p => emit('placePicked', p)" />
   </div>
 </template>
