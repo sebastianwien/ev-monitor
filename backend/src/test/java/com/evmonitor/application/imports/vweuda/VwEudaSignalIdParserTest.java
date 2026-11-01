@@ -1,7 +1,7 @@
 package com.evmonitor.application.imports.vweuda;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -18,37 +18,40 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class VwEudaSignalIdParserTest {
 
-    private VwEudaJsonParser parser;
+    private static final VwEudaJsonParser parser = new VwEudaJsonParser(new ObjectMapper());
 
-    @BeforeEach
-    void setUp() {
-        parser = new VwEudaJsonParser(new ObjectMapper());
+    /** Parsen der 23-MB-Fixture dauert mehrere Sekunden, deshalb einmal pro Klasse. */
+    private static VwEudaParseResult result;
+
+    @BeforeAll
+    static void parseFixture() throws Exception {
+        result = parser.parse(signalIdJson());
     }
 
     /** Fixture liegt als ZIP vor (23 MB entpackt), anonymisiert. */
-    private InputStream signalIdJson() throws Exception {
+    private static InputStream signalIdJson() throws Exception {
         try (ZipInputStream zip = new ZipInputStream(
-                getClass().getClassLoader().getResourceAsStream("eudataact/MEB_signal_ids.zip"))) {
+                VwEudaSignalIdParserTest.class.getClassLoader().getResourceAsStream("eudataact/MEB_signal_ids.zip"))) {
             zip.getNextEntry();
             return new ByteArrayInputStream(zip.readAllBytes());
         }
     }
 
     @Test
-    void parsesVin() throws Exception {
-        assertEquals("WVWZZZED0TESTVIN0", parser.parse(signalIdJson()).vin());
+    void parsesVin() {
+        assertEquals("WVWZZZED0TESTVIN0", result.vin());
     }
 
     @Test
-    void detectsNineChargingSessions() throws Exception {
-        assertEquals(9, parser.parse(signalIdJson()).sessions().size());
+    void detectsNineChargingSessions() {
+        assertEquals(9, result.sessions().size());
     }
 
     @Test
     void ignoresZeroSocDropouts() throws Exception {
         // Die Rohreihe enthaelt 3x SoC=0.0 (Offline-Platzhalter mitten in fallender Kurve).
         // Werden sie mitgerechnet, entstehen Geister-Ladungen 0% -> 79% in zwei Minuten.
-        List<VwEudaSession> sessions = parser.parse(signalIdJson()).sessions();
+        List<VwEudaSession> sessions = result.sessions();
         sessions.forEach(s -> assertTrue(s.socBefore() > 0,
                 "Geister-Session aus 0.0-Dropout bei " + s.startedAt()));
     }
@@ -57,7 +60,7 @@ class VwEudaSignalIdParserTest {
     void splitsSessionsByOdometerChange() throws Exception {
         // 20.05.: SoC faellt noch bei 12:17 (Wagen faehrt, km 4377 -> 4379), Ladung startet erst 12:30.
         // Ohne Kilometerstand-Split wuerde die Session 13 Minuten zu frueh beginnen.
-        VwEudaSession s = parser.parse(signalIdJson()).sessions().get(3);
+        VwEudaSession s = result.sessions().get(3);
 
         assertEquals(54, s.socBefore());
         assertEquals(70, s.socAfter()); // 69.5 gerundet
@@ -66,8 +69,8 @@ class VwEudaSignalIdParserTest {
     }
 
     @Test
-    void sessionsHaveSocAndOdometer() throws Exception {
-        List<VwEudaSession> sessions = parser.parse(signalIdJson()).sessions();
+    void sessionsHaveSocAndOdometer() {
+        List<VwEudaSession> sessions = result.sessions();
         sessions.forEach(s -> {
             assertNotNull(s.socBefore());
             assertNotNull(s.socAfter());
@@ -81,7 +84,7 @@ class VwEudaSignalIdParserTest {
     void exposesExactSocDeltaForKwhCalculation() throws Exception {
         // Der Parser kennt die Batteriekapazitaet nicht - kWh rechnet der Service.
         // Er braucht dafuer den ungerundeten Delta (43.0 -> 91.5 = 48.5, nicht 49).
-        VwEudaSession s = parser.parse(signalIdJson()).sessions().get(0);
+        VwEudaSession s = result.sessions().get(0);
 
         assertNull(s.calculatedKwh(), "Ohne Kapazitaet kann der Parser keine kWh liefern");
         assertNotNull(s.socDeltaPct());
@@ -89,9 +92,9 @@ class VwEudaSignalIdParserTest {
     }
 
     @Test
-    void hasNoChargeTypeOrPower() throws Exception {
+    void hasNoChargeTypeOrPower() {
         // Diese Variante liefert kein Leistungssignal - nicht raten.
-        List<VwEudaSession> sessions = parser.parse(signalIdJson()).sessions();
+        List<VwEudaSession> sessions = result.sessions();
         sessions.forEach(s -> {
             assertNull(s.chargeType());
             assertNull(s.maxChargingPowerKw());
@@ -99,8 +102,8 @@ class VwEudaSignalIdParserTest {
     }
 
     @Test
-    void sessionsAreSortedChronologically() throws Exception {
-        List<VwEudaSession> sessions = parser.parse(signalIdJson()).sessions();
+    void sessionsAreSortedChronologically() {
+        List<VwEudaSession> sessions = result.sessions();
         for (int i = 1; i < sessions.size(); i++) {
             assertTrue(sessions.get(i).startedAt().isAfter(sessions.get(i - 1).startedAt()));
         }

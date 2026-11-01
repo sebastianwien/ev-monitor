@@ -1,7 +1,7 @@
 package com.evmonitor.application.imports.vweuda;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -20,32 +20,31 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class VwEudaSecondVehicleTest {
 
-    private VwEudaJsonParser parser;
+    /** Parsen der grossen Fixture dauert mehrere Sekunden, deshalb einmal pro Klasse. */
+    private static VwEudaParseResult result;
 
-    @BeforeEach
-    void setUp() {
-        parser = new VwEudaJsonParser(new ObjectMapper());
+    @BeforeAll
+    static void parseFixture() throws Exception {
+        result = new VwEudaJsonParser(new ObjectMapper()).parse(json());
     }
 
-    private InputStream json() throws Exception {
+    private static InputStream json() throws Exception {
         try (ZipInputStream zip = new ZipInputStream(
-                getClass().getClassLoader().getResourceAsStream("eudataact/MEB_signal_ids_car2.zip"))) {
+                VwEudaSecondVehicleTest.class.getClassLoader().getResourceAsStream("eudataact/MEB_signal_ids_car2.zip"))) {
             zip.getNextEntry();
             return new ByteArrayInputStream(zip.readAllBytes());
         }
     }
 
     @Test
-    void isRecognisedAsMebFormat() throws Exception {
-        VwEudaParseResult result = parser.parse(json());
-
+    void isRecognisedAsMebFormat() {
         assertEquals("WVWZZZED0TESTVIN2", result.vin());
         assertFalse(result.sessions().isEmpty(), "Ladevorgaenge muessen erkannt werden");
     }
 
     @Test
-    void sessionsArePlausible() throws Exception {
-        List<VwEudaSession> sessions = parser.parse(json()).sessions();
+    void sessionsArePlausible() {
+        List<VwEudaSession> sessions = result.sessions();
 
         sessions.forEach(s -> {
             assertTrue(s.socBefore() > 0 && s.socBefore() <= 100, "SoC vorher: " + s.socBefore());
@@ -58,8 +57,8 @@ class VwEudaSecondVehicleTest {
     }
 
     @Test
-    void sessionsAreSortedChronologically() throws Exception {
-        List<VwEudaSession> sessions = parser.parse(json()).sessions();
+    void sessionsAreSortedChronologically() {
+        List<VwEudaSession> sessions = result.sessions();
         for (int i = 1; i < sessions.size(); i++) {
             assertTrue(sessions.get(i).startedAt().isAfter(sessions.get(i - 1).startedAt()));
         }
