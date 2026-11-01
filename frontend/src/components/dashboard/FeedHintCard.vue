@@ -213,7 +213,8 @@ onMounted(async () => {
 </script>
 
 <template>
-  <ul v-if="visibleHints.length" data-testid="feed-hints"
+  <!-- Eine Zeile: die Karte ist ein Knopf und sinkt beim Drücken ein (nicht beim Schließen-Knopf). Mehrere: Zeilen dunkeln ab. -->
+  <ul v-if="visibleHints.length" data-testid="feed-hints" :class="visibleHints.length === 1 && 'press-card'"
     class="divide-y divide-gray-200 rounded-2xl bg-white edge-card dark:divide-gray-700/70 dark:bg-gray-800">
     <template v-for="hint in visibleHints" :key="hint">
       <FeedHintRow v-if="hint === 'implausible'" data-testid="implausible-banner" task :icon="ExclamationTriangleIcon"
@@ -268,3 +269,9 @@ onMounted(async () => {
       @answered="onSiteQuestionAnswered" @close="closeSiteQuestions" />
   </ul>
 </template>
+
+<style scoped>
+.press-card { transition: transform 0.08s ease, box-shadow 0.08s ease; }
+.press-card:has(> li > :first-child:active) { transform: translate(2px, 2px); box-shadow: 0 0 0 0 transparent; transition-duration: 0.05s; }
+@media (prefers-reduced-motion: reduce) { .press-card { transition: none; } }
+</style>
