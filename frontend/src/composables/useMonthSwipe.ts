@@ -7,6 +7,8 @@ const DECIDE_PX = 8
 const RUBBER = 0.25
 
 export type SwipeSide = 'prev' | 'next'
+/** Ziel je Richtung: selbst blättern, nichts (zäh), oder die Geste dem umgebenden Tab-Pager lassen. */
+export interface SwipeTargets { prev: boolean; next: boolean; passNext?: boolean }
 
 /** Wohin führt ein Wisch beim Loslassen? Nach rechts zum vorigen Ziel, nach links zum nächsten. */
 export function monthSwipeTarget(dx: number, hasPrev: boolean, hasNext: boolean, threshold = SWIPE_THRESHOLD_PX): SwipeSide | null {
@@ -21,7 +23,7 @@ export function monthSwipeTarget(dx: number, hasPrev: boolean, hasNext: boolean,
  */
 export function useMonthSwipe(
   target: Ref<HTMLElement | null>,
-  has: () => { prev: boolean; next: boolean },
+  has: () => SwipeTargets,
   onSelect: (side: SwipeSide) => void,
 ) {
   const dragX = ref(0)
@@ -51,9 +53,13 @@ export function useMonthSwipe(
       if (Math.abs(dx) < DECIDE_PX && Math.abs(dy) < DECIDE_PX) return
       decided = true
       horizontal = Math.abs(dx) > Math.abs(dy)
+      // Nach links ohne eigenes Ziel, aber mit Tab-Pager: die Geste gehört ihm, wie bisher direkt zu den Logs
+      if (horizontal && dx < 0 && has().passNext) { active = false; return }
       if (horizontal) dragging.value = true
     }
     if (!horizontal) return
+    // Eigene Geste: der Tab-Pager drumherum zieht nicht mit
+    e.stopPropagation()
     const h = has()
     dragX.value = (dx > 0 ? h.prev : h.next) ? dx : dx * RUBBER
     if (e.cancelable) e.preventDefault()

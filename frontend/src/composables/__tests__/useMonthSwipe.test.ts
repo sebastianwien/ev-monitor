@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest'
 import { ref, nextTick } from 'vue'
-import { monthSwipeTarget, useMonthSwipe, type SwipeSide } from '../useMonthSwipe'
+import { monthSwipeTarget, useMonthSwipe, type SwipeSide, type SwipeTargets } from '../useMonthSwipe'
 
 describe('monthSwipeTarget', () => {
   it('nach rechts zum vorigen, nach links zum nächsten Ziel, erst ab der Schwelle', () => {
@@ -17,7 +17,7 @@ describe('monthSwipeTarget', () => {
 })
 
 describe('useMonthSwipe', () => {
-  async function setup(has = { prev: true, next: true }) {
+  async function setup(has: SwipeTargets = { prev: true, next: true }) {
     const el = document.createElement('div')
     document.body.appendChild(el)
     const target = ref<HTMLElement | null>(null)
@@ -48,6 +48,15 @@ describe('useMonthSwipe', () => {
     touch('touchstart', 100); touch('touchmove', 300)
     expect(swipe.dragX.value).toBe(50)
     touch('touchend', 300)
+    expect(picked).toEqual([])
+  })
+
+  it('nach links ohne eigenes Ziel mit passNext: Geste bleibt beim Tab-Pager', async () => {
+    const { swipe, picked, touch } = await setup({ prev: true, next: false, passNext: true })
+    touch('touchstart', 200); touch('touchmove', 100)
+    expect(swipe.dragging.value).toBe(false)
+    expect(swipe.dragX.value).toBe(0)
+    touch('touchend', 100)
     expect(picked).toEqual([])
   })
 
