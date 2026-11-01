@@ -107,7 +107,26 @@ for (const v of VIEWS) {
       d.logs = [log(NOW_MID, { loggedAt: iso(NOW_MID - 10 * DAY), createdAt: iso(NOW_MID - 10 * DAY) })];
       await openStory(page, d);
       await expect(page.getByTestId('story-empty-autosync')).toContainText('schickt Ladungen selbst an EV Monitor');
+      // Leerer laufender Monat: der Rückblick steht oben, auch wenn seine Karte weggeklickt ist, und fehlt im Stapel.
+      await expect(page.getByTestId('story-recap-hero')).toContainText(/September: 512\skm für 61\s€\./);
+      await expect(page.getByTestId('story-recap-hero').getByTestId('story-news-dismiss')).toHaveCount(0);
+      await expect(page.getByTestId('story-news-month_change')).toHaveCount(0);
       await shot(page, v.name, '06-leerer-monat-autosync');
+    });
+
+    test('Leerer Wintermonat: Ausblick nur im laufenden Monat', async ({ page }) => {
+      await brand(page, 'VW');
+      const now = new Date(2026, 1, 10, 12).getTime();
+      const d = calmMonth(now);
+      d.monthStats = stats({ totalCharges: 0, totalKwhCharged: 0, energyCostEur: 0, totalCostEur: 0, totalDistanceKm: 0, chargesOverTime: [] });
+      d.logs = [log(now, { loggedAt: iso(now - 10 * DAY), createdAt: iso(now - 10 * DAY) })];
+      await openStory(page, d);
+      await expect(page.getByTestId('story-winter-outlook')).toContainText(/Ausblick Februar.*Im Winter kommst du mit einer Akkuladung etwa/i);
+      await shot(page, v.name, '07-leerer-wintermonat');
+      // Ein vergangener leerer Wintermonat bekommt keinen Ausblick mehr.
+      await page.getByTestId('story-month-prev').first().click();
+      await expect(page.getByTestId('story-month-label').first()).toHaveAttribute('aria-label', /Januar/);
+      await expect(page.getByTestId('story-winter-outlook')).toHaveCount(0);
     });
 
     test('Meilenstein: Projekt unterstützen', async ({ page }) => {

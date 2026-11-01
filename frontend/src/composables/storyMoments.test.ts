@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
   recapPlaces, detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate,
-  momentScore, pickCards, HOUR, DAY, type MomentSeen, type Moment,
+  momentScore, pickCards, winterOutlook, HOUR, DAY, type MomentSeen, type Moment,
 } from './storyMoments'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
@@ -308,5 +308,24 @@ describe('momentScore und pickCards', () => {
     expect(pickCards([silence], NOW, dismissed)).toEqual([])
     const expired: MomentSeen = { shown: {}, dismissed: { 'silence:l': NOW - 1 } }
     expect(pickCards([silence], NOW, expired).map(s => s.moment.kind)).toEqual(['silence'])
+  })
+})
+
+describe('winterOutlook', () => {
+  const range = { winter: { km: 310 }, summer: { km: 380 } }
+
+  it('nennt Winter- und Sommerreichweite in den Wintermonaten November bis Februar', () => {
+    for (const month of [11, 12, 1, 2]) expect(winterOutlook(range, month)).toEqual({ winterKm: 310, summerKm: 380 })
+  })
+
+  it('schweigt außerhalb des Winters', () => {
+    for (const month of [3, 4, 5, 8, 9, 10]) expect(winterOutlook(range, month)).toBeNull()
+  })
+
+  it('schweigt ohne beide Werte oder wenn der Winter nicht kürzer ist', () => {
+    expect(winterOutlook(null, 11)).toBeNull()
+    expect(winterOutlook({ winter: null, summer: { km: 380 } }, 11)).toBeNull()
+    expect(winterOutlook({ winter: { km: 310 }, summer: null }, 11)).toBeNull()
+    expect(winterOutlook({ winter: { km: 400 }, summer: { km: 380 } }, 11)).toBeNull()
   })
 })

@@ -4537,6 +4537,8 @@ story:
   empty_autosync_title: "Før inn ladinger automatisk"
   empty_autosync: "{car} sender ladinger selv til EV Monitor."
   empty_autosync_cta: "Sett opp AutoSync"
+  outlook_eyebrow: "Utsikter for {month}"
+  outlook_winter: "Om vinteren kommer du omtrent {winter} på én batterilading, om sommeren {summer}."
   sheet_use_charge_sub: "fra {n} lading | fra {n} ladinger"
   sheet_use_charge_estimated: "fra {n} ladinger, {e} av dem anslått"
   sheet_use_charged: "Ladet"

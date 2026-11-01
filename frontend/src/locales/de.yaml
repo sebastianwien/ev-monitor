@@ -4701,6 +4701,8 @@ story:
   empty_autosync_title: "Ladungen automatisch eintragen"
   empty_autosync: "Dein {car} schickt Ladungen selbst an EV Monitor."
   empty_autosync_cta: "AutoSync einrichten"
+  outlook_eyebrow: "Ausblick {month}"
+  outlook_winter: "Im Winter kommst du mit einer Akkuladung etwa {winter} weit, im Sommer {summer}."
   sheet_use_charge_sub: "aus {n} Ladung | aus {n} Ladungen"
   sheet_use_charge_estimated: "aus {n} Ladungen, {e} davon geschätzt"
   sheet_use_charged: "Geladen"

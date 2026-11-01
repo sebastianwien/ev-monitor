@@ -216,6 +216,21 @@ export function detectFirstFrost(input: {
   }
 }
 
+/**
+ * Ausblick im leeren Wintermonat (November bis Februar, dieselben Monate wie die Winterwerte im
+ * Backend): Reichweite mit einer Akkuladung im Winter gegen den Sommer. Nur wenn der Winter kürzer ist.
+ */
+export function winterOutlook(
+  range: { winter: { km: number } | null; summer: { km: number } | null } | null,
+  month: number,
+): { winterKm: number; summerKm: number } | null {
+  if (![11, 12, 1, 2].includes(month)) return null
+  const winter = range?.winter
+  const summer = range?.summer
+  if (!winter || !summer || winter.km >= summer.km) return null
+  return { winterKm: winter.km, summerKm: summer.km }
+}
+
 export function detectMonthChange(input: {
   now: number
   previous: { year: number; month: number; distanceKm: number | null; energyCostEur: number | null; charges: number; priceless: number } | null

@@ -633,13 +633,36 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     return diffEur != null ? { kind: 'cost', diffEur } : null
   }
 
+  /**
+   * Rückblick auf den Vormonat im laufenden Monat, unabhängig von "gesehen" und "weggeklickt":
+   * im leeren Monat steht er als Kopf der Seite, sonst als Karte im Stapel (über cards).
+   */
+  const monthRecap = computed<Moment | null>(() => {
+    if (month.value.offset !== 0) return null
+    const c = ctx()
+    const now = Date.now()
+    const prev = previousStats.value
+    const prevMonth = new Date(month.value.year, month.value.month - 2, 1)
+    return detectMonthChange({
+      now,
+      previous: prev ? {
+        year: prevMonth.getFullYear(), month: prevMonth.getMonth() + 1,
+        distanceKm: prev.totalDistanceKm, energyCostEur: prev.energyCostEur, charges: prev.totalCharges,
+        priceless: pricelessInPreviousMonth.value,
+      } : null,
+      petrolEurPerLitre: petrol.value.eurPerLitre,
+      petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory),
+      // Plätze des Vormonats (Treppchen alle, sonst der beste bis 10) und Modellvergleich: Verbrauch im
+      // selben Monat, sonst der Preis in Euro nach derselben Regel wie "Diesen Monat".
+      places: recapPlaces(previousRanks.value),
+      peer: previousPeerLine(prev, prevMonth),
+    })
+  })
+
   const cards = computed<ScoredMoment[]>(() => {
     const c = ctx()
     const now = Date.now()
     const lastLog = recentLogs.value[0] ?? null
-    const running = month.value.offset === 0
-    const prev = running ? previousStats.value : null
-    const prevMonth = new Date(month.value.year, month.value.month - 2, 1)
     // Die heutige Ladung fragt ihren Preis schon in der Zuletzt-Karte ab.
     const today = latest.value?.charge && new Date(latest.value.charge.at).toDateString() === new Date(now).toDateString()
       ? latest.value.charge.id : null
@@ -647,20 +670,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       detectExpensive({ logs: recentLogs.value, benchmark: benchmark.value, now }),
       detectLongTrip({ trips: recentTrips.value, logs: recentLogs.value, now }),
       detectFirstFrost({ trips: recentTrips.value, now, range: range.value }),
-      detectMonthChange({
-        now,
-        previous: prev ? {
-          year: prevMonth.getFullYear(), month: prevMonth.getMonth() + 1,
-          distanceKm: prev.totalDistanceKm, energyCostEur: prev.energyCostEur, charges: prev.totalCharges,
-          priceless: pricelessInPreviousMonth.value,
-        } : null,
-        petrolEurPerLitre: petrol.value.eurPerLitre,
-        petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory),
-        // Plätze des Vormonats (Treppchen alle, sonst der beste bis 10) und Modellvergleich: Verbrauch im
-        // selben Monat, sonst der Preis in Euro nach derselben Regel wie "Diesen Monat".
-        places: recapPlaces(previousRanks.value),
-        peer: previousPeerLine(prev, prevMonth),
-      }),
+      monthRecap.value,
       detectBattery({ history: sohHistory.value, now }),
       detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
       withSupport(detectMilestone({ series: lifetimeSeries.value, now, petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory) }), c.supporterAsk),
@@ -705,7 +715,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   return {
     offset, month, months, setOffset, switching, placeRows, dataMonths, minOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
-    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, recentTrips, cards, benchmark,
+    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, recentTrips, cards, monthRecap, range, benchmark,
     reload, markPriceUnknown, savingsAccess,
   }
 }

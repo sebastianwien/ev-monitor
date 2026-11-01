@@ -4695,6 +4695,8 @@ story:
   empty_autosync_title: "Log charges automatically"
   empty_autosync: "Your {car} sends charging sessions to EV Monitor by itself."
   empty_autosync_cta: "Set up AutoSync"
+  outlook_eyebrow: "Outlook for {month}"
+  outlook_winter: "In winter one battery charge takes you about {winter}, in summer {summer}."
   sheet_use_charge_sub: "from {n} charge | from {n} charges"
   sheet_use_charge_estimated: "from {n} charges, {e} of them estimated"
   sheet_use_charged: "Charged"

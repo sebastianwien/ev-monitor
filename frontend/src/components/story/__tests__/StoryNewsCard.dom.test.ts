@@ -12,10 +12,10 @@ const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 const NOW = new Date(2026, 9, 24, 12).getTime()
 const base = { at: NOW, lifetimeMs: Infinity, actionable: false, dismissible: false }
 
-function mount(moment: Moment, events: unknown[][] = []) {
+function mount(moment: Moment, events: unknown[][] = [], extra: Record<string, unknown> = {}) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(StoryNewsCard, { moment, carId: 'c1', carName: 'Tesla Model 3', now: NOW, onAct: (id: string) => events.push(['act', id]), onDismiss: () => events.push(['dismiss']) })
+  app = createApp(StoryNewsCard, { moment, carId: 'c1', carName: 'Tesla Model 3', now: NOW, onAct: (id: string) => events.push(['act', id]), onDismiss: () => events.push(['dismiss']), ...extra })
   app.component('router-link', RouterLink)
   app.use(createPinia()).use(i18n)
   app.mount(host)
@@ -93,5 +93,10 @@ describe('StoryNewsCard', () => {
     app?.unmount(); document.body.innerHTML = ''
     host = mount(ms)
     expect(host.querySelector('a[href^="/supporter"]')).toBeNull()
+  })
+
+  it('ohne Erledigt: kein × und kein "Alles erfasst", wenn die Karte als Kopf steht', () => {
+    const host = mount({ ...base, kind: 'first_frost', key: 'f', tempC: 3, winterKm: 330, summerKm: 430 }, [], { dismissable: false })
+    expect(host.querySelector('[data-testid="story-news-dismiss"]')).toBeNull()
   })
 })

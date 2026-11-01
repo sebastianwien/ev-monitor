@@ -13,7 +13,8 @@ import { keepUnits } from '../../utils/modelStory'
  * Rückblick teilen) als Knopf in ganzer Breite, Ansehen (Winterwerte, Fahrten, Preise, Akku,
  * Rangliste) als grüner Link mit Pfeil, Teilen beim Meilenstein als Symbol oben rechts. × heißt erledigt.
  */
-const props = defineProps<{ moment: Moment; carId: string | null; carName: string; now?: number }>()
+// dismissable: false, wenn die Karte als Kopf der Seite steht (Monatsrückblick im leeren Monat).
+const props = withDefaults(defineProps<{ moment: Moment; carId: string | null; carName: string; now?: number; dismissable?: boolean }>(), { dismissable: true })
 const emit = defineEmits<{ act: [id: string]; dismiss: [] }>()
 const { t } = useI18n()
 const view = useMomentView(props)
@@ -37,7 +38,7 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
         <button v-if="shareIcon" type="button" class="grid h-10 w-10 place-items-center rounded-full text-gray-700 hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10" :aria-label="t('story.moment_action_share')" data-testid="story-news-share" @click="emit('act', 'share')">
           <ShareIcon class="h-5 w-5" aria-hidden="true" />
         </button>
-        <button type="button" class="grid h-10 w-10 place-items-center rounded-full text-gray-700 hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10" :aria-label="t('story.news_done')" data-testid="story-news-dismiss" @click="emit('dismiss')">
+        <button v-if="dismissable" type="button" class="grid h-10 w-10 place-items-center rounded-full text-gray-700 hover:bg-black/5 dark:text-gray-200 dark:hover:bg-white/10" :aria-label="t('story.news_done')" data-testid="story-news-dismiss" @click="emit('dismiss')">
           <XMarkIcon class="h-5 w-5" aria-hidden="true" />
         </button>
       </span>
@@ -68,19 +69,19 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
         <span>{{ keepUnits(d.text) }}</span>
       </li>
     </ul>
-    <div v-if="primary || view.secondary || view.dismiss || $slots.more" class="mt-1 grid gap-1" :class="primary && !primaryIsView ? '' : 'justify-items-start'">
+    <div v-if="primary || view.secondary || (dismissable && view.dismiss) || $slots.more" class="mt-1 grid gap-1" :class="primary && !primaryIsView ? '' : 'justify-items-start'">
       <!-- Link-Aktion und "more" (Stapel: alle Neuigkeiten) teilen sich eine Zeile: more links, Link rechts -->
       <div v-if="primary" :class="primaryIsView && $slots.more ? 'flex w-full flex-row-reverse items-center justify-between gap-4' : 'contents'">
         <router-link v-if="primary.to" :to="primary.to" :class="primaryIsView ? link : button" @click="emit('act', primary.id)">{{ primary.label }}<ChevronRightIcon v-if="primaryIsView" class="h-4 w-4" aria-hidden="true" /></router-link>
         <button v-else type="button" :class="primaryIsView ? link : button" @click="emit('act', primary.id)">{{ primary.label }}<ChevronRightIcon v-if="primaryIsView" class="h-4 w-4" aria-hidden="true" /></button>
         <slot v-if="primaryIsView" name="more" />
       </div>
-      <div v-if="view.secondary || view.dismiss" class="flex flex-wrap items-center gap-x-4">
+      <div v-if="view.secondary || (dismissable && view.dismiss)" class="flex flex-wrap items-center gap-x-4">
         <template v-if="view.secondary">
           <router-link v-if="view.secondary.to" :to="view.secondary.to" :class="quiet" @click="emit('act', view.secondary.id)">{{ view.secondary.label }}</router-link>
           <button v-else type="button" :class="quiet" @click="emit('act', view.secondary.id)">{{ view.secondary.label }}</button>
         </template>
-        <button v-if="view.dismiss" type="button" :class="quiet" @click="emit('dismiss')">{{ t('story.moment_action_dismiss') }}</button>
+        <button v-if="dismissable && view.dismiss" type="button" :class="quiet" @click="emit('dismiss')">{{ t('story.moment_action_dismiss') }}</button>
       </div>
       <slot v-if="!primaryIsView" name="more" />
     </div>

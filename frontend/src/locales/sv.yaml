@@ -4537,6 +4537,8 @@ story:
   empty_autosync_title: "För in laddningar automatiskt"
   empty_autosync: "Din {car} skickar laddningar själv till EV Monitor."
   empty_autosync_cta: "Konfigurera AutoSync"
+  outlook_eyebrow: "Utsikter för {month}"
+  outlook_winter: "På vintern kommer du ungefär {winter} på en batteriladdning, på sommaren {summer}."
   sheet_use_charge_sub: "från {n} laddning | från {n} laddningar"
   sheet_use_charge_estimated: "från {n} laddningar, {e} av dem uppskattade"
   sheet_use_charged: "Laddat"

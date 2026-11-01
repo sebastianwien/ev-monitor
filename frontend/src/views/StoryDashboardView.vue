@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, defineAsyncComponent, nextTick, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowPathIcon, ArrowRightIcon, ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
 import { useCarContext } from '../composables/useCarContext'
@@ -21,7 +22,8 @@ import { purchasesAvailable } from '../utils/iapPolicy'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
 import { isPreviewHost, mainAppOrigin } from '../utils/previewHost'
-import { DAY, type Moment } from '../composables/storyMoments'
+import { DAY, winterOutlook, type Moment } from '../composables/storyMoments'
+import StoryNewsCard from '../components/story/StoryNewsCard.vue'
 import { useMomentSeen } from '../composables/useMomentSeen'
 import StoryNewsStack from '../components/story/StoryNewsStack.vue'
 import StoryNewsList from '../components/story/StoryNewsList.vue'
@@ -53,6 +55,7 @@ const StoryDaySheet = defineAsyncComponent(() => import('../components/story/day
 const LogFormModal = defineAsyncComponent(() => import('../components/log-form/LogFormModal.vue'))
 
 const { t, locale } = useI18n()
+const { formatDistance } = useLocaleFormat()
 const router = useRouter()
 const authStore = useAuthStore()
 const { haptic } = useHaptic()
@@ -125,9 +128,23 @@ const narrow = useIsMobile('(max-width: 1023px)')
 const sheetIds = computed(() => tiles.value.map(x => x.id))
 // Steht, sobald ein Monat da ist, und bleibt beim Monatswechsel stehen (der neue kommt mit seinen Daten)
 const showFeed = computed(() => !!monthStats.value && !error.value && (hasCharges.value || liveActive.value))
-/** Vormonat aus der offenen Rückblick-Karte: der Community-Block hängt an ihr und verschwindet mit ihr. */
+/**
+ * Laufender Monat ohne Ladung und ohne Live-Laden: der Rückblick auf den Vormonat steht als Kopf,
+ * auch wenn seine Karte schon weggeklickt ist. Im Stapel fehlt er dann.
+ */
+const recapHero = computed<Moment | null>(() =>
+  !(loading.value && !monthStats.value) && !error.value && !hasCharges.value && heroMode.value === 'month' && month.value.offset === 0
+    ? story.monthRecap.value : null)
+const newsCards = computed(() => recapHero.value ? story.cards.value.filter(c => c.moment.kind !== 'month_change') : story.cards.value)
+/** Winter-Ausblick im leeren laufenden Monat; steht die Frost-Karte offen, sagt sie dasselbe. */
+const outlook = computed(() => {
+  if (month.value.offset !== 0 || newsCards.value.some(c => c.moment.kind === 'first_frost')) return null
+  const o = winterOutlook(story.range.value, month.value.month)
+  return o && t('story.outlook_winter', { winter: formatDistance(o.winterKm, { round: true }), summer: formatDistance(o.summerKm, { round: true }) })
+})
+/** Vormonat aus dem offenen Rückblick (Kopf oder Karte): der Community-Block hängt an ihm und verschwindet mit ihm. */
 const communityMonth = computed(() => {
-  const m = story.cards.value.find(c => c.moment.kind === 'month_change')?.moment
+  const m = recapHero.value ?? story.cards.value.find(c => c.moment.kind === 'month_change')?.moment
   return m?.kind === 'month_change' && month.value.offset === 0 ? { year: m.year, month: m.month } : null
 })
 /** Steht der Monatssatz (StoryHero)? Dann sitzen die Monatspfeile in ihm, sonst als eigene Zeile darüber. */
@@ -408,7 +425,13 @@ onUnmounted(() => unregisterReload?.())
           </div>
 
           <div v-else-if="!hasCharges && heroMode === 'month'" class="grid gap-4 py-2">
-            <p class="text-center text-[17px] font-bold text-balance text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
+            <StoryNewsCard v-if="recapHero" :moment="recapHero" :car-id="selectedCarId" :car-name="carName" :dismissable="false"
+              data-testid="story-recap-hero" @act="id => onNewsAct(recapHero!, id)" />
+            <p v-else class="text-center text-[17px] font-bold text-balance text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
+            <div v-if="outlook" data-testid="story-winter-outlook" class="grid gap-0.5">
+              <p class="text-[12px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ t('story.outlook_eyebrow', { month: monthLabel(month) }) }}</p>
+              <p class="text-[15px] text-pretty text-gray-900 tabular-nums dark:text-gray-50">{{ outlook }}</p>
+            </div>
             <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
             <router-link v-if="autoSyncOffer" to="/imports" data-testid="story-empty-autosync"
               class="flex items-start gap-3 rounded-xl bg-green-50 p-3.5 text-left edge-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-green-900/20"
@@ -468,14 +491,14 @@ onUnmounted(() => unregisterReload?.())
         </div>
         <!-- Steht beim Scrollen unter dem Kopf; eigene Scrollhöhe, Rand für Kante und Fokusring -->
         <div
-          v-if="!narrow && (showFeed || paneTile || story.cards.value.length)" ref="monthSide"
+          v-if="!narrow && (showFeed || paneTile || newsCards.length)" ref="monthSide"
           class="min-w-0 lg:sticky lg:top-[calc(var(--content-top,4rem)+1rem)] lg:col-span-5 lg:-mx-2 lg:max-h-[calc(100dvh-var(--content-top,4rem)-2rem)] lg:self-start lg:overflow-y-auto lg:overscroll-contain lg:px-2 lg:pb-2"
           :class="switching ? monthWaiting : ''" data-testid="story-side">
           <StoryTilePane v-if="paneTile" :tile="paneTile" :context="sheetContext" :back-label="feedLabel" @close="closePane" @step="stepTile" />
           <div v-else class="grid content-start gap-6">
             <StoryNewsList
               v-if="selectedCarId"
-              :cards="story.cards.value" :car-id="selectedCarId" :car-name="carName" :seen="seen"
+              :cards="newsCards" :car-id="selectedCarId" :car-name="carName" :seen="seen"
               @shown="onNewsShown" @act="onNewsAct" @dismiss="onNewsDismiss" />
             <StoryFeed
               v-if="showFeed"
@@ -541,7 +564,7 @@ onUnmounted(() => unregisterReload?.())
     <Teleport to="body">
       <StoryNewsStack
         v-if="narrow && route.path === '/story' && selectedCarId"
-        :cards="story.cards.value" :car-id="selectedCarId" :car-name="carName" :seen="seen"
+        :cards="newsCards" :car-id="selectedCarId" :car-name="carName" :seen="seen"
         @shown="onNewsShown" @act="onNewsAct" @dismiss="onNewsDismiss"
         @collapsed="analytics.track('story_news_collapsed')" @expanded="analytics.track('story_news_expanded')" @list="analytics.track('story_news_list_opened')" />
       <LogFormModal
