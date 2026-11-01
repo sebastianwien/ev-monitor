@@ -98,9 +98,8 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
           sentence: t(`story.hero_${line.kind}`, { month, km: line.km != null ? km(line.km) : '', eur: line.eur != null ? eur(line.eur) : '', n: m.charges }, m.charges),
           sub: m.savingEur != null ? t('story.moment_month_saving', { eur: eur(m.savingEur) }) : undefined,
           details: details.length ? details : undefined,
-          action: { id: 'share', label: t('story.moment_action_share_review') },
-          // Der Vormonat steht mit allen Kacheln und Insights eine Seite zurück.
-          secondary: { id: 'prev_month', label: t('story.moment_month_view', { month }) },
+          // Der Vormonat steht mit allen Kacheln und Insights eine Seite zurück. Teilen ruht vorerst.
+          action: { id: 'prev_month', label: t('story.moment_month_view', { month }) },
         }
       }
       case 'battery': {

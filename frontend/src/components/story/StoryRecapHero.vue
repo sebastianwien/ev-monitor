@@ -1,0 +1,93 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { ChevronRightIcon, TrophyIcon, BoltIcon, BanknotesIcon, SparklesIcon } from '@heroicons/vue/24/outline'
+import type { Moment } from '../../composables/storyMoments'
+import { useMomentView } from '../../composables/useMomentView'
+import { useLocaleFormat } from '../../composables/useLocaleFormat'
+import { keepUnits } from '../../utils/modelStory'
+import BoldNumbers from './BoldNumbers.vue'
+
+/**
+ * Monatsrückblick als Kopf der Seite, solange der laufende Monat leer ist: Satz und Ersparnis wie die
+ * Karte, darunter Strecke, Energie und Ladungen, Normal- gegen Schnellladen mit Kosten, das gesparte
+ * CO₂, Platz und Modellvergleich. Einzige Handlung: den Vormonat ansehen.
+ */
+const props = defineProps<{ moment: Moment; carId: string | null; carName: string }>()
+const emit = defineEmits<{ act: [id: string] }>()
+const { t } = useI18n()
+const { formatDecimal, formatDistance, formatCurrency } = useLocaleFormat()
+const view = useMomentView(props)
+
+const recap = computed(() => props.moment.kind === 'month_change' ? props.moment : null)
+const facts = computed(() => recap.value?.facts ?? null)
+
+const kpis = computed(() => {
+  const m = recap.value
+  if (!m) return []
+  return [
+    m.km != null ? { id: 'km', value: formatDistance(m.km, { round: true }), label: t('story.recap_km') } : null,
+    facts.value ? { id: 'kwh', value: `${formatDecimal(facts.value.kwh, 0)} kWh`, label: t('story.recap_kwh') } : null,
+    { id: 'charges', value: String(m.charges), label: t('story.recap_charges', m.charges) },
+  ].filter((x): x is { id: string; value: string; label: string } => x != null)
+})
+
+const split = computed(() => {
+  const f = facts.value
+  if (!f) return []
+  const total = (f.ac?.kwh ?? 0) + (f.dc?.kwh ?? 0)
+  return [
+    f.ac ? { id: 'ac', label: t('story.charging_ac'), ...f.ac, bar: 'bg-green-600 dark:bg-green-500', cls: 'text-green-700 dark:text-green-400' } : null,
+    f.dc ? { id: 'dc', label: t('story.charging_dc'), ...f.dc, bar: 'bg-sky-600 dark:bg-sky-500', cls: 'text-sky-700 dark:text-sky-400' } : null,
+  ].filter(x => x != null).map(x => ({ ...x!, share: total > 0 ? (x!.kwh / total) * 100 : 0 }))
+})
+
+const co2 = computed(() => facts.value?.co2Kg != null ? t('story.recap_co2', { kg: `${formatDecimal(facts.value.co2Kg, 0)} kg` }) : null)
+
+const link = 'inline-flex min-h-11 items-center gap-0.5 text-[15px] font-semibold text-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:text-green-400'
+</script>
+
+<template>
+  <article class="grid gap-4" data-testid="story-recap-hero" :aria-label="view.eyebrow">
+    <div class="grid gap-1">
+      <p class="text-[12px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ view.eyebrow }}</p>
+      <p class="text-pretty text-[22px] font-bold leading-tight tracking-tight text-gray-900 tabular-nums md:text-[26px] dark:text-gray-50">{{ keepUnits(view.sentence) }}</p>
+      <p v-if="view.sub" class="text-pretty text-[15px] text-gray-700 tabular-nums dark:text-gray-200"><BoldNumbers :text="keepUnits(view.sub)" /></p>
+    </div>
+
+    <ul class="grid divide-x divide-gray-200 rounded-xl bg-white py-3 edge-card dark:divide-white/15 dark:bg-gray-700/50" :class="kpis.length === 3 ? 'grid-cols-3' : 'grid-cols-2'">
+      <li v-for="k in kpis" :key="k.id" data-testid="recap-fact" class="grid gap-0.5 px-2 text-center">
+        <strong class="whitespace-nowrap text-[18px] font-bold text-gray-900 tabular-nums dark:text-gray-50">{{ keepUnits(k.value) }}</strong>
+        <span class="text-[12px] text-gray-600 dark:text-gray-300">{{ k.label }}</span>
+      </li>
+    </ul>
+
+    <section v-if="split.length" class="grid gap-2" :aria-label="t('story.recap_split')">
+      <div class="flex h-2.5 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700" aria-hidden="true">
+        <span v-for="s in split" :key="s.id" :class="s.bar" :style="{ width: `${s.share}%` }" />
+      </div>
+      <ul class="grid gap-1 text-[15px] tabular-nums">
+        <li v-for="s in split" :key="s.id" data-testid="recap-split" class="flex items-baseline gap-3">
+          <span class="flex-1 font-semibold" :class="s.cls">{{ s.label }}</span>
+          <strong class="font-bold text-gray-900 dark:text-gray-50">{{ formatDecimal(s.kwh, 0) }} kWh</strong>
+          <strong v-if="s.eur != null" class="w-16 text-right font-bold text-gray-900 dark:text-gray-50">{{ formatCurrency(s.eur, { decimals: 0 }) }}</strong>
+        </li>
+      </ul>
+    </section>
+
+    <ul v-if="co2 || view.details?.length" class="grid gap-1.5">
+      <li v-if="co2" data-testid="recap-co2" class="flex items-start gap-2 text-pretty text-[15px] text-gray-900 tabular-nums dark:text-gray-50">
+        <SparklesIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+        <BoldNumbers :text="co2" />
+      </li>
+      <li v-for="d in view.details" :key="d.id" class="flex items-start gap-2 text-pretty text-[15px] text-gray-900 tabular-nums dark:text-gray-50">
+        <component :is="d.id === 'rank' ? TrophyIcon : d.id === 'cost' ? BanknotesIcon : BoltIcon" class="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+        <BoldNumbers :text="keepUnits(d.text)" />
+      </li>
+    </ul>
+
+    <div v-if="view.action" class="-mt-1">
+      <button type="button" :class="link" @click="emit('act', view.action.id)">{{ view.action.label }}<ChevronRightIcon class="h-4 w-4" aria-hidden="true" /></button>
+    </div>
+  </article>
+</template>

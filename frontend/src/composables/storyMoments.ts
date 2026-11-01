@@ -1,5 +1,5 @@
 import { tripTimestamp } from '../utils/recentActivity'
-import { co2SavedKg, heroLine, petrolCostEur } from './storyModel'
+import { co2Comparison, co2SavedKg, heroLine, petrolCostEur } from './storyModel'
 import { COLD_MAX_C, type RankEntry } from './storyInsights'
 import { SHORT_TRIP_KM } from './storyDay'
 import { geohashDistanceKm } from '../utils/tripMap'
@@ -37,7 +37,8 @@ export type MomentData =
   | { kind: 'month_change'; year: number; month: number; km: number | null; eur: number | null; charges: number;
       /** Was ein Verbrenner mehr gekostet hätte, nur wenn er teurer war */ savingEur: number | null
       /** Plätze des Vormonats: Treppchen alle, sonst der beste bis 10 */ places: RankPlace[]
-      /** Vergleich mit den Fahrern des Modells im Vormonat */ peer: PeerLine | null }
+      /** Vergleich mit den Fahrern des Modells im Vormonat */ peer: PeerLine | null
+      /** Zahlen des Vormonats für den Rückblick als Kopf */ facts?: RecapFacts | null }
   | { kind: 'battery'; sohPercent: number; estimated: boolean; previousSohPercent: number | null; previousAt: number | null }
   | { kind: 'silence'; days: number; kwh: number | null; autoSync: boolean }
   | { kind: 'gap'; logId: string; count: number; kwh: number | null; since: number }
@@ -213,6 +214,40 @@ export function detectFirstFrost(input: {
     tempC: Math.min(...cold.map(x => x.temp)),
     winterKm: winter.km,
     summerKm: summer.km,
+  }
+}
+
+/** Energie, AC und DC mit Kosten und gespartes CO₂ eines abgeschlossenen Monats. */
+export interface RecapFacts {
+  kwh: number
+  ac: { kwh: number; eur: number | null } | null
+  dc: { kwh: number; eur: number | null } | null
+  co2Kg: number | null
+}
+
+/**
+ * Zahlen für den Rückblick aus der Monatsstatistik. Kosten je Ladetyp nur, wenn keiner Ladung der Preis
+ * fehlt (wie die Ersparnis). CO₂ wie die CO₂-Kachel: Benziner gegen Strommix auf derselben Strecke.
+ */
+export function recapFacts(
+  stats: {
+    totalKwhCharged: number; totalDistanceKm: number | null; avgConsumptionKwhPer100km: number | null
+    chargingTypeSplit: { acKwh: number; dcKwh: number; acEurPerKwh?: number | null; dcEurPerKwh?: number | null } | null
+  },
+  priceless: number,
+  petrolLitersPer100km: number,
+): RecapFacts {
+  const cs = stats.chargingTypeSplit
+  const part = (kwh: number | undefined, eurPerKwh: number | null | undefined) =>
+    kwh != null && kwh > 0 ? { kwh, eur: priceless === 0 && eurPerKwh != null ? kwh * eurPerKwh : null } : null
+  const km = stats.totalDistanceKm
+  const c = km != null && km > 0 && stats.avgConsumptionKwhPer100km != null
+    ? co2Comparison(km, stats.avgConsumptionKwhPer100km, petrolLitersPer100km) : null
+  return {
+    kwh: stats.totalKwhCharged,
+    ac: part(cs?.acKwh, cs?.acEurPerKwh),
+    dc: part(cs?.dcKwh, cs?.dcEurPerKwh),
+    co2Kg: c && c.petrolKg > c.gridKg ? c.petrolKg - c.gridKg : null,
   }
 }
 

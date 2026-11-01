@@ -23,7 +23,8 @@ import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
 import { isPreviewHost, mainAppOrigin } from '../utils/previewHost'
 import { DAY, winterOutlook, type Moment } from '../composables/storyMoments'
-import StoryNewsCard from '../components/story/StoryNewsCard.vue'
+import StoryRecapHero from '../components/story/StoryRecapHero.vue'
+import BoldNumbers from '../components/story/BoldNumbers.vue'
 import { useMomentSeen } from '../composables/useMomentSeen'
 import StoryNewsStack from '../components/story/StoryNewsStack.vue'
 import StoryNewsList from '../components/story/StoryNewsList.vue'
@@ -425,12 +426,11 @@ onUnmounted(() => unregisterReload?.())
           </div>
 
           <div v-else-if="!hasCharges && heroMode === 'month'" class="grid gap-4 py-2">
-            <StoryNewsCard v-if="recapHero" :moment="recapHero" :car-id="selectedCarId" :car-name="carName" :dismissable="false"
-              data-testid="story-recap-hero" @act="id => onNewsAct(recapHero!, id)" />
+            <StoryRecapHero v-if="recapHero" :moment="recapHero" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapHero!, id)" />
             <p v-else class="text-center text-[17px] font-bold text-balance text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
             <div v-if="outlook" data-testid="story-winter-outlook" class="grid gap-0.5">
               <p class="text-[12px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ t('story.outlook_eyebrow', { month: monthLabel(month) }) }}</p>
-              <p class="text-[15px] text-pretty text-gray-900 tabular-nums dark:text-gray-50">{{ outlook }}</p>
+              <p class="text-[15px] text-pretty text-gray-900 tabular-nums dark:text-gray-50"><BoldNumbers :text="outlook" /></p>
             </div>
             <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
             <router-link v-if="autoSyncOffer" to="/imports" data-testid="story-empty-autosync"

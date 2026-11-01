@@ -19,7 +19,7 @@ import {
 import type { TripForSummary } from '../utils/tripMonthSummary'
 import type { OdometerGap } from './storyDay'
 import {
-  detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
+  detectLongTrip, detectFirstFrost, detectMonthChange, recapFacts, detectBattery,
   detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickCards,
   type Moment, type MomentLog, type MomentTrip, type MomentPoint, type ScoredMoment,
   recapPlaces, type PeerLine,
@@ -643,7 +643,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     const now = Date.now()
     const prev = previousStats.value
     const prevMonth = new Date(month.value.year, month.value.month - 2, 1)
-    return detectMonthChange({
+    const m = detectMonthChange({
       now,
       previous: prev ? {
         year: prevMonth.getFullYear(), month: prevMonth.getMonth() + 1,
@@ -657,6 +657,9 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       places: recapPlaces(previousRanks.value),
       peer: previousPeerLine(prev, prevMonth),
     })
+    return m?.kind === 'month_change' && prev
+      ? { ...m, facts: recapFacts(prev, pricelessInPreviousMonth.value, petrolLitersPer100km(c.vehicleCategory)) }
+      : m
   })
 
   const cards = computed<ScoredMoment[]>(() => {

@@ -109,7 +109,8 @@ for (const v of VIEWS) {
       await expect(page.getByTestId('story-empty-autosync')).toContainText('schickt Ladungen selbst an EV Monitor');
       // Leerer laufender Monat: der Rückblick steht oben, auch wenn seine Karte weggeklickt ist, und fehlt im Stapel.
       await expect(page.getByTestId('story-recap-hero')).toContainText(/September: 512\skm für 61\s€\./);
-      await expect(page.getByTestId('story-recap-hero').getByTestId('story-news-dismiss')).toHaveCount(0);
+      await expect(page.getByTestId('recap-fact')).toHaveText([/512\skm/, /95\skWh/, /11/]);
+      await expect(page.getByTestId('story-recap-hero')).not.toContainText('teilen');
       await expect(page.getByTestId('story-news-month_change')).toHaveCount(0);
       await shot(page, v.name, '06-leerer-monat-autosync');
     });
@@ -118,10 +119,13 @@ for (const v of VIEWS) {
       await brand(page, 'VW');
       const now = new Date(2026, 1, 10, 12).getTime();
       const d = calmMonth(now);
+      d.previousStats = { ...d.previousStats, chargingTypeSplit: { acKwh: 70, dcKwh: 25, unknownKwh: 0, acEurPerKwh: 0.32, dcEurPerKwh: 0.59 } };
       d.monthStats = stats({ totalCharges: 0, totalKwhCharged: 0, energyCostEur: 0, totalCostEur: 0, totalDistanceKm: 0, chargesOverTime: [] });
       d.logs = [log(now, { loggedAt: iso(now - 10 * DAY), createdAt: iso(now - 10 * DAY) })];
       await openStory(page, d);
       await expect(page.getByTestId('story-winter-outlook')).toContainText(/Ausblick Februar.*Im Winter kommst du mit einer Akkuladung etwa/i);
+      await expect(page.getByTestId('recap-split')).toHaveText([/Normal \(AC\)\s*70\skWh\s*22\s€/, /Schnell \(DC\)\s*25\skWh\s*15\s€/]);
+      await expect(page.getByTestId('recap-co2')).toContainText('CO₂ weniger als mit einem Benziner');
       await shot(page, v.name, '07-leerer-wintermonat');
       // Ein vergangener leerer Wintermonat bekommt keinen Ausblick mehr.
       await page.getByTestId('story-month-prev').first().click();

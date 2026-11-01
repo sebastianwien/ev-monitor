@@ -3,7 +3,7 @@ import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowRightIcon, BoltIcon } from '@heroicons/vue/24/outline'
 import { useTickerItems, VARIANT_ICON } from '../../composables/useTickerItems'
-import { numberParts } from '../../utils/numberParts'
+import BoldNumbers from './BoldNumbers.vue'
 
 /**
  * "Die Community im Oktober": alle Monatsstatistiken des Community-Tickers, gleiche Icons wie
@@ -34,7 +34,7 @@ watch(key, k => { fetchCommunityMonth(k) }, { immediate: true })
         <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" aria-hidden="true">
           <component :is="VARIANT_ICON[line.variant] ?? BoltIcon" class="h-3 w-3" />
         </span>
-        <span><template v-for="(part, i) in numberParts(line.text)" :key="i"><strong v-if="part.number" class="font-semibold">{{ part.text }}</strong><template v-else>{{ part.text }}</template></template></span>
+        <BoldNumbers :text="line.text" />
       </li>
     </ul>
     <router-link

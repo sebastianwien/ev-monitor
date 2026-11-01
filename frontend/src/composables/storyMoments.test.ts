@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
   recapPlaces, detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate,
-  momentScore, pickCards, winterOutlook, HOUR, DAY, type MomentSeen, type Moment,
+  momentScore, pickCards, winterOutlook, recapFacts, HOUR, DAY, type MomentSeen, type Moment,
 } from './storyMoments'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
@@ -327,5 +327,34 @@ describe('winterOutlook', () => {
     expect(winterOutlook({ winter: null, summer: { km: 380 } }, 11)).toBeNull()
     expect(winterOutlook({ winter: { km: 310 }, summer: null }, 11)).toBeNull()
     expect(winterOutlook({ winter: { km: 400 }, summer: { km: 380 } }, 11)).toBeNull()
+  })
+})
+
+describe('recapFacts', () => {
+  const prev = {
+    totalKwhCharged: 96, totalDistanceKm: 412, avgConsumptionKwhPer100km: 18,
+    chargingTypeSplit: { acKwh: 71, dcKwh: 25, unknownKwh: 0, acEurPerKwh: 0.3, dcEurPerKwh: 0.6 },
+  }
+
+  it('nennt Energie, AC und DC mit Kosten und das gesparte CO₂ gegen einen Benziner', () => {
+    const f = recapFacts(prev, 0, 7.5)!
+    expect(f.kwh).toBe(96)
+    expect(f.ac).toEqual({ kwh: 71, eur: 71 * 0.3 })
+    expect(f.dc).toEqual({ kwh: 25, eur: 25 * 0.6 })
+    // Benziner 412 km x 7,5 l/100 km x 2,37 kg = 73,2 kg, Strommix 74,16 kWh x 0,38 kg = 28,2 kg
+    expect(f.co2Kg).toBeCloseTo(4.12 * 7.5 * 2.37 - 4.12 * 18 * 0.38, 5)
+  })
+
+  it('lässt Kosten weg, wenn Ladungen ohne Preis fehlen oder der Typ keinen Preis hat', () => {
+    expect(recapFacts(prev, 2, 7.5)).toMatchObject({ ac: { kwh: 71, eur: null }, dc: { kwh: 25, eur: null } })
+    const noDcPrice = { ...prev, chargingTypeSplit: { ...prev.chargingTypeSplit, dcEurPerKwh: null } }
+    expect(recapFacts(noDcPrice, 0, 7.5)).toMatchObject({ dc: { kwh: 25, eur: null } })
+  })
+
+  it('lässt einen Ladetyp ohne kWh und CO₂ ohne Strecke oder Verbrauch weg', () => {
+    const acOnly = { ...prev, chargingTypeSplit: { ...prev.chargingTypeSplit, dcKwh: 0 }, totalDistanceKm: null }
+    expect(recapFacts(acOnly, 0, 7.5)).toMatchObject({ dc: null, co2Kg: null })
+    expect(recapFacts({ ...prev, avgConsumptionKwhPer100km: null }, 0, 7.5)).toMatchObject({ co2Kg: null })
+    expect(recapFacts({ ...prev, chargingTypeSplit: null }, 0, 7.5)).toMatchObject({ ac: null, dc: null })
   })
 })

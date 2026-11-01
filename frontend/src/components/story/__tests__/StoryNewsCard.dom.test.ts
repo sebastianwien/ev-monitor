@@ -12,10 +12,10 @@ const RouterLink = { props: ['to'], template: '<a :href="to"><slot /></a>' }
 const NOW = new Date(2026, 9, 24, 12).getTime()
 const base = { at: NOW, lifetimeMs: Infinity, actionable: false, dismissible: false }
 
-function mount(moment: Moment, events: unknown[][] = [], extra: Record<string, unknown> = {}) {
+function mount(moment: Moment, events: unknown[][] = []) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(StoryNewsCard, { moment, carId: 'c1', carName: 'Tesla Model 3', now: NOW, onAct: (id: string) => events.push(['act', id]), onDismiss: () => events.push(['dismiss']), ...extra })
+  app = createApp(StoryNewsCard, { moment, carId: 'c1', carName: 'Tesla Model 3', now: NOW, onAct: (id: string) => events.push(['act', id]), onDismiss: () => events.push(['dismiss']) })
   app.component('router-link', RouterLink)
   app.use(createPinia()).use(i18n)
   app.mount(host)
@@ -53,15 +53,17 @@ describe('StoryNewsCard', () => {
     expect(host.querySelector('.bg-green-600')).toBeNull()
   })
 
-  it('Rückblick: Satz des Vormonats, Ersparnis gegenüber dem Verbrenner darunter, "Rückblick teilen" als Knopf', () => {
+  it('Rückblick: Satz des Vormonats, Ersparnis gegenüber dem Verbrenner darunter, "September ansehen" als grüner Link, kein Teilen', () => {
     const host = mount({ ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: 6.4, places: [], peer: null })
     expect(text(host)).toContain('September: 512 km für 61 €.')
     expect(host.querySelector('[data-testid="story-news-details"]')).toBeNull()
     expect(text(host)).toContain('Gegenüber einem Verbrenner: 6 € gespart.')
-    expect(text(host.querySelector('button.bg-green-600'))).toBe('Rückblick teilen')
+    expect(host.querySelector('.bg-green-600')).toBeNull()
+    expect(text(host.querySelector('button.text-green-700'))).toBe('September ansehen')
+    expect(text(host)).not.toContain('teilen')
   })
 
-  it('Rückblick mit Plätzen und Modellvergleich: Zusatzzeilen mit Symbol, "September ansehen" als leiser Knopf', () => {
+  it('Rückblick mit Plätzen und Modellvergleich: Zusatzzeilen mit Symbol', () => {
     const events: unknown[][] = []
     const host = mount({
       ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: 6.4,
@@ -93,10 +95,5 @@ describe('StoryNewsCard', () => {
     app?.unmount(); document.body.innerHTML = ''
     host = mount(ms)
     expect(host.querySelector('a[href^="/supporter"]')).toBeNull()
-  })
-
-  it('ohne Erledigt: kein × und kein "Alles erfasst", wenn die Karte als Kopf steht', () => {
-    const host = mount({ ...base, kind: 'first_frost', key: 'f', tempC: 3, winterKm: 330, summerKm: 430 }, [], { dismissable: false })
-    expect(host.querySelector('[data-testid="story-news-dismiss"]')).toBeNull()
   })
 })
