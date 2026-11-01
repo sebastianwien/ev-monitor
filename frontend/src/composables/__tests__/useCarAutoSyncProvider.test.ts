@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { brandDeliversTrips, tripsComeByImport,
-    autoSyncProviderFor, providerLabel, hasFreeDataSource, isAutoSyncUnsupported, hasOnlyUnsupportedBrands,
+    autoSyncProviderFor, providerLabel, hasFreeDataSource, isAutoSyncUnsupported, hasOnlyUnsupportedBrands, autoSyncOfferFor,
 } from '../useCarAutoSyncProvider'
 
 describe('autoSyncProviderFor', () => {
@@ -137,5 +137,32 @@ describe('tripsComeByImport', () => {
     expect(tripsComeByImport({ brand: ' xpeng ' })).toBe(true)
     expect(tripsComeByImport({ brand: 'TESLA' })).toBe(false)
     expect(tripsComeByImport({ brand: 'POLESTAR' })).toBe(false)
+  })
+})
+
+describe('autoSyncOfferFor', () => {
+  const tesla = { id: 't1', brand: 'TESLA' }
+  const vw = { id: 'v1', brand: 'VW' }
+  const teslaOn = (carId: string | null) => ({ connected: true, carId }) as any
+
+  it('bietet AutoSync nicht an, wenn der Tesla über Telemetry verbunden ist', () => {
+    expect(autoSyncOfferFor(tesla, null, teslaOn('t1'))).toBe(false)
+    expect(autoSyncOfferFor(tesla, null, teslaOn(null))).toBe(false)
+  })
+
+  it('bietet AutoSync für einen Tesla ohne Verbindung an, aber erst wenn der Status da ist', () => {
+    expect(autoSyncOfferFor(tesla, null, { connected: false, carId: null } as any)).toBe(true)
+    expect(autoSyncOfferFor(tesla, null, teslaOn('anderer'))).toBe(true)
+    expect(autoSyncOfferFor(tesla, null, null)).toBe(false)
+  })
+
+  it('prüft Smartcar-Marken gegen die Smartcar-Verbindung des Autos', () => {
+    expect(autoSyncOfferFor(vw, null, null)).toBe(true)
+    expect(autoSyncOfferFor(vw, { connections: [{ carId: 'v1', connected: true }] } as any, null)).toBe(false)
+  })
+
+  it('nie für Marken ohne AutoSync-Weg oder ohne Auto', () => {
+    expect(autoSyncOfferFor({ id: 'z', brand: 'ZEEKR' }, null, null)).toBe(false)
+    expect(autoSyncOfferFor(null, null, null)).toBe(false)
   })
 })

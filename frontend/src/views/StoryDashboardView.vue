@@ -16,9 +16,8 @@ import { useHaptic } from '../composables/useHaptic'
 import { useIsMobile } from '../composables/useIsMobile'
 import { analytics } from '../services/analytics'
 import type { TileId } from '../composables/storyModel'
-import { autoSyncProviderFor } from '../composables/useCarAutoSyncProvider'
+import { autoSyncProviderFor, autoSyncOfferFor } from '../composables/useCarAutoSyncProvider'
 import { purchasesAvailable } from '../utils/iapPolicy'
-import { connectionsOf } from '../api/smartcarService'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
 import { isPreviewHost, mainAppOrigin } from '../utils/previewHost'
@@ -68,7 +67,7 @@ const { set: setOptIn } = useStoryOptIn()
 // die Uebersicht mit /logs. Mobil liegt sie auch auf /logs gemountet im Pager daneben.
 // Boxen mobil randlos, ab md mit Kante auf dem Wallpaper.
 const ctx = useCarContext()
-const { selectedCarId, cars, carImageUrls, wltp, currentOdometerKm, smartcarStatus } = ctx
+const { selectedCarId, cars, carImageUrls, wltp, currentOdometerKm, smartcarStatus, teslaStatus } = ctx
 
 const selectedCar = computed(() => cars.value.find((c: any) => c.id === selectedCarId.value) ?? cars.value[0] ?? null)
 const sohPercent = computed(() => selectedCar.value?.batteryDegradationPercent != null ? 100 - selectedCar.value.batteryDegradationPercent : null)
@@ -81,10 +80,8 @@ const liveCarId = computed(() => liveGate.value ? selectedCarId.value : null)
 const { data: live, isLive: liveActive } = useChargingLive(liveCarId)
 watch(liveActive, (v) => { if (v) analytics.track('story_live_shown') })
 
-// AutoSync-Satz im Stille-Moment: Marke hat einen Weg, dieses Auto ist nicht verbunden.
-const autoSyncOffer = computed(() => !!selectedCar.value
-  && autoSyncProviderFor(selectedCar.value) !== 'NONE'
-  && !connectionsOf(smartcarStatus.value).some(c => c.carId === selectedCar.value.id))
+// AutoSync-Satz im Stille-Moment und im leeren Monat: Marke hat einen Weg, dieses Auto ist nicht verbunden.
+const autoSyncOffer = computed(() => autoSyncOfferFor(selectedCar.value, smartcarStatus.value, teslaStatus.value))
 
 const storyCtx = (): StoryCarContext => ({
   wltpConsumption: wltp.value?.officialConsumptionKwhPer100km ?? null,

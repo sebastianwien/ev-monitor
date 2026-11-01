@@ -1,5 +1,7 @@
 import type { Car } from '../api/carService'
 import { SMARTCAR_BRANDS } from '../config/smartcarBrands'
+import { connectionsOf, type SmartcarConnectionStatus } from '../api/smartcarService'
+import type { TeslaConnectionStatus } from '../api/teslaFleetService'
 
 /**
  * Single source of truth for which AutoSync provider serves a given car.
@@ -41,6 +43,27 @@ export function autoSyncProviderFor(car: Pick<Car, 'brand'>): AutoSyncProvider {
     // car.brand ist der CarBrand-Enum-Name (LAND_ROVER), die Anzeigeliste führt "Land Rover".
     if (SMARTCAR_BRAND_LOOKUP.has(brand.replace(/_/g, ' '))) return 'SMARTCAR'
     return 'NONE'
+}
+
+/**
+ * AutoSync anbieten: die Marke hat einen Weg und dieses Auto ist nicht verbunden. Ein Tesla
+ * zählt erst, wenn der Fleet-Status geladen ist, damit verbundene Fahrer den Hinweis nicht kurz
+ * sehen. Eine Tesla-Verbindung ohne carId stammt von vor der Zuordnung und gilt als dieses Auto.
+ */
+export function autoSyncOfferFor(
+    car: Pick<Car, 'id' | 'brand'> | null | undefined,
+    smartcar: SmartcarConnectionStatus | null | undefined,
+    tesla: TeslaConnectionStatus | null | undefined,
+): boolean {
+    if (!car) return false
+    switch (autoSyncProviderFor(car)) {
+        case 'TESLA':
+            return !!tesla && !(tesla.connected && (tesla.carId == null || tesla.carId === car.id))
+        case 'SMARTCAR':
+            return !connectionsOf(smartcar).some(c => c.carId === car.id)
+        default:
+            return false
+    }
 }
 
 /**
