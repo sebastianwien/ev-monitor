@@ -14,8 +14,8 @@ afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
 const candidate = (name: string) => ({ name, maxAcKw: 22, maxDcKw: null, chargePoints: 2, address: 'Hauptstraße 1, 12345 Beispielstadt' })
 const questions: SiteQuestion[] = [
-  { id: 'q1', chargingType: 'AC', logCount: 3, lastLoggedAt: '2026-10-18T20:00:00', candidates: [candidate('Discounter'), candidate('Supermarkt')] },
-  { id: 'q2', chargingType: 'DC', logCount: 1, lastLoggedAt: '2026-09-29T10:00:00', candidates: [candidate('Raststätte'), candidate('Autohof')] },
+  { id: 'q1', geohash: 'u0v9zq5', chargingType: 'AC', logCount: 3, lastLoggedAt: '2026-10-18T20:00:00', candidates: [candidate('Discounter'), candidate('Supermarkt')] },
+  { id: 'q2', geohash: null, chargingType: 'DC', logCount: 1, lastLoggedAt: '2026-09-29T10:00:00', candidates: [candidate('Raststätte'), candidate('Autohof')] },
 ]
 
 function mount(props: { questions: SiteQuestion[]; onAnswered?: () => void; onClose?: () => void }) {
@@ -47,6 +47,16 @@ describe('SiteQuestionsSheet', () => {
     expect(text()).toContain('1 von 2')
     expect(text()).toContain("Welche Säule war's?")
     expect(tiles().map((t) => t.textContent)).toEqual([expect.stringContaining('Discounter'), expect.stringContaining('Supermarkt')])
+  })
+
+  it('zeigt die Zelle der Frage als Karte, ohne Ort keine Karte', async () => {
+    mount({ questions: [questions[0]] })
+    await flush()
+    expect(document.querySelector('[data-testid="site-question-map"]')).not.toBeNull()
+    app?.unmount(); document.body.innerHTML = ''
+    mount({ questions: [questions[1]] })
+    await flush()
+    expect(document.querySelector('[data-testid="site-question-map"]')).toBeNull()
   })
 
   it('Antippen ordnet zu und springt zum nächsten Ort', async () => {

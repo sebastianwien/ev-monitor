@@ -12,6 +12,8 @@ export interface SiteCandidate {
 /** Frage nach der Säule: an einem Ort mit einer Ladeart kommen mehrere Säulen in Frage. */
 export interface SiteQuestion {
   id: string
+  /** Zelle (7 Stellen) der Ladungen, um die es geht */
+  geohash: string | null
   chargingType: 'AC' | 'DC' | 'UNKNOWN' | null
   /** Ladungen dort, die noch keine Säule haben */
   logCount: number

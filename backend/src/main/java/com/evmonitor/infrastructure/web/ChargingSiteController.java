@@ -70,10 +70,10 @@ public class ChargingSiteController {
         }
     }
 
-    public record QuestionResponse(UUID id, ChargingType chargingType, int logCount, LocalDateTime lastLoggedAt,
+    public record QuestionResponse(UUID id, String geohash, ChargingType chargingType, int logCount, LocalDateTime lastLoggedAt,
                                    List<CandidateResponse> candidates) {
         static QuestionResponse from(ChargingSiteQuestionService.OpenQuestion q) {
-            return new QuestionResponse(q.id(), q.chargingType(), q.logCount(), q.lastLoggedAt(),
+            return new QuestionResponse(q.id(), q.geohash(), q.chargingType(), q.logCount(), q.lastLoggedAt(),
                     q.candidates().stream().map(CandidateResponse::from).toList());
         }
     }

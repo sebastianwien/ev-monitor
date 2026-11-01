@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, defineAsyncComponent, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CheckIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import BottomSheet from '../shared/BottomSheet.vue'
@@ -7,6 +7,8 @@ import StationTile from '../log-wizard/StationTile.vue'
 import { siteQuestionService, type SiteQuestion } from '../../api/siteQuestionService'
 import { useCoinStore } from '../../stores/coins'
 import { analytics } from '../../services/analytics'
+import { geohashArea, MINIMAP_MAX_CLASS } from '../log-wizard/minimapTiles'
+const PlaceMinimap = defineAsyncComponent(() => import('../log-wizard/PlaceMinimap.vue'))
 
 /**
  * Frage nach der Säule: ein Ort je Schritt, die Säulen dort als Kacheln. Antippen ordnet alle
@@ -27,6 +29,9 @@ const assigned = ref(0)
 const watt = ref(0)
 
 const current = computed<SiteQuestion | null>(() => props.questions[step.value] ?? null)
+
+/** Ort der Frage als Fläche: die Zelle, nicht eine Position darin */
+const area = computed(() => current.value?.geohash ? geohashArea(current.value.geohash) : null)
 
 const context = computed(() => {
   const q = current.value
@@ -96,7 +101,13 @@ function unknown() {
             :class="i <= step ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-200 dark:bg-gray-700'" />
         </div>
 
-        <h2 class="text-xl font-bold leading-tight text-gray-900 dark:text-gray-50">{{ t('site_question.title') }}</h2>
+        <!-- Kopfkarte wie im Lade-Wizard: Karte randlos, nach unten in den Sheet-Hintergrund verlaufend -->
+        <div v-if="area" data-testid="site-question-map" class="relative -mx-4 -mb-6 h-36 overflow-hidden" aria-hidden="true">
+          <PlaceMinimap :key="current.id" :lat="area.lat" :lon="area.lon" :area="area" :zoom="16" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />
+          <div class="absolute inset-x-0 bottom-0 z-[500] h-16 bg-gradient-to-t from-white to-transparent dark:from-gray-900" />
+        </div>
+
+        <h2 class="relative z-[501] text-xl font-bold leading-tight text-gray-900 dark:text-gray-50">{{ t('site_question.title') }}</h2>
         <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ context }}</p>
 
         <div class="mt-4 space-y-3">

@@ -42,7 +42,7 @@ public class ChargingSiteQuestionService {
     private final ObjectMapper objectMapper;
 
     /** @param candidates Säulen, die nach Umkreis und Technik in Frage kamen, die nächste zuerst */
-    public record OpenQuestion(UUID id, ChargingType chargingType, int logCount, LocalDateTime lastLoggedAt,
+    public record OpenQuestion(UUID id, String geohash, ChargingType chargingType, int logCount, LocalDateTime lastLoggedAt,
                                List<NearbyStation> candidates) {
     }
 
@@ -61,7 +61,7 @@ public class ChargingSiteQuestionService {
 
     public List<OpenQuestion> openQuestions(UUID userId) {
         return repository.findOpenWithLogs(userId).stream()
-                .map(w -> new OpenQuestion(w.question().id(), w.question().chargingType(), w.logCount(),
+                .map(w -> new OpenQuestion(w.question().id(), w.question().geohash(), w.question().chargingType(), w.logCount(),
                         w.lastLoggedAt(), read(w.question().candidatesJson())))
                 .toList();
     }

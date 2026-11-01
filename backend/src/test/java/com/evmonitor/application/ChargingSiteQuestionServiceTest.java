@@ -70,6 +70,7 @@ class ChargingSiteQuestionServiceTest extends AbstractIntegrationTest {
         assertThat(open.get(0).logCount()).isEqualTo(2);
         assertThat(open.get(0).lastLoggedAt()).isEqualTo(LocalDateTime.of(2026, 10, 2, 20, 0));
         assertThat(open.get(0).chargingType()).isEqualTo(ChargingType.AC);
+        assertThat(open.get(0).geohash()).isEqualTo(CELL);
         assertThat(open.get(0).candidates()).extracting(NearbyStation::name)
                 .containsExactly("Discounter", "Supermarkt", "Parkhaus");
     }

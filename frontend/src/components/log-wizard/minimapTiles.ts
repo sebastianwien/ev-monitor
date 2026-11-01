@@ -62,6 +62,10 @@ export interface MinimapArea { south: number; west: number; north: number; east:
 /** Privat gespeichert wird nur die Zelle (Geohash 6 Stellen, wie im Backend) - die Karte zeigt genau sie, nie die Position darin */
 export const PRIVATE_GEOHASH_PRECISION = 6
 export function privateArea(lat: number, lon: number): MinimapArea {
-  const [south, west, north, east] = geohash.decode_bbox(geohash.encode(lat, lon, PRIVATE_GEOHASH_PRECISION))
+  return geohashArea(geohash.encode(lat, lon, PRIVATE_GEOHASH_PRECISION))
+}
+/** Die Zelle eines Geohash als Fläche */
+export function geohashArea(hash: string): MinimapArea {
+  const [south, west, north, east] = geohash.decode_bbox(hash)
   return { south, west, north, east, lat: (south + north) / 2, lon: (west + east) / 2 }
 }
