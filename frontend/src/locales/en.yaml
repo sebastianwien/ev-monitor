@@ -1348,6 +1348,16 @@ ticker:
     heat_charger: "Your hottest charge in {month}: {value} °C - that puts you #{rank} in the ranking"
     power_charger: "Your fastest charge in {month}: {value} kW - that puts you #{rank} in the ranking"
   open: "View"
+  summary:
+    stat_base: "{kwh} kWh charged across {charges} sessions"
+    savings_vs_fuel: "€{amount} saved vs. combustion cars (petrol €{price}/L)"
+    co2_saved: "{amount} {unit} of CO2 saved vs. combustion cars"
+    households: "As much electricity as {count} homes use in a month"
+    wind: "A wind turbine would need to run {amount} {unit} for this"
+    solar: "{count} rooftop solar panels would have produced this electricity"
+    charge_time: "{amount} {unit} of charging in total"
+    home_quota: "{percent}% of all sessions at home"
+    top_provider: "Most popular public charging provider: {provider} with {count} sessions"
   units:
     kwh: "kWh"
     charges: "charge | charges"

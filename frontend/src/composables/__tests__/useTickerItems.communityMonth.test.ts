@@ -25,14 +25,9 @@ describe('loadCommunityMonthRaw', () => {
 })
 
 describe('pickCommunitySummary', () => {
-  it('ordnet nach Aussagekraft: Basis, Ersparnis, Anbieter, und nimmt höchstens drei', () => {
-    const picked = pickCommunitySummary([item('wind'), item('top_provider'), item('home_quota'), item('savings_vs_fuel'), item('stat_base')])
-    expect(picked.map(i => i.key)).toEqual(['stat_base', 'savings_vs_fuel', 'top_provider'])
-  })
-
-  it('rückt nach, wenn eine bevorzugte Zeile fehlt', () => {
-    const picked = pickCommunitySummary([item('charge_time'), item('home_quota'), item('stat_base')])
-    expect(picked.map(i => i.key)).toEqual(['stat_base', 'home_quota', 'charge_time'])
+  it('ordnet nach Aussagekraft: Energie, Ersparnis, Vergleiche, Orte, und nimmt alle Kategorien', () => {
+    const picked = pickCommunitySummary([item('wind'), item('top_provider'), item('home_quota'), item('households'), item('savings_vs_fuel'), item('co2_saved'), item('solar'), item('charge_time'), item('stat_base')])
+    expect(picked.map(i => i.key)).toEqual(['stat_base', 'savings_vs_fuel', 'co2_saved', 'households', 'wind', 'solar', 'charge_time', 'home_quota', 'top_provider'])
   })
 
   it('lässt Führende und persönliche Einträge weg', () => {

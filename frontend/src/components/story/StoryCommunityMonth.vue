@@ -2,21 +2,20 @@
 import { computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ArrowRightIcon, BoltIcon } from '@heroicons/vue/24/outline'
-import { useTickerItems, pickCommunitySummary, VARIANT_ICON } from '../../composables/useTickerItems'
+import { useTickerItems, VARIANT_ICON } from '../../composables/useTickerItems'
 
 /**
- * "Die Community im Oktober": drei Sätze aus dem Community-Ticker des Vormonats, gleicher
- * Renderer und gleiche Icons wie das Band oben. Steht auf der Seite, solange die Rückblick-Karte
+ * "Die Community im Oktober": alle Monatsstatistiken des Community-Tickers, gleiche Icons wie
+ * das Band oben, der Monat steht nur im Titel. Steht auf der Seite, solange die Rückblick-Karte
  * offen ist, und verschwindet mit ihr. Ohne Daten nichts.
  */
 const props = defineProps<{ year: number; month: number }>()
 const emit = defineEmits<{ rank: [] }>()
 
 const { t, locale } = useI18n()
-const { items, fetchCommunityMonth } = useTickerItems()
+const { summaryItems: lines, fetchCommunityMonth } = useTickerItems()
 
 const key = computed(() => `${props.year}-${String(props.month).padStart(2, '0')}`)
-const lines = computed(() => pickCommunitySummary(items.value))
 const monthName = computed(() => new Intl.DateTimeFormat(locale.value, { month: 'long' }).format(new Date(props.year, props.month - 1, 1)))
 
 watch(key, k => { fetchCommunityMonth(k) }, { immediate: true })
@@ -24,10 +23,10 @@ watch(key, k => { fetchCommunityMonth(k) }, { immediate: true })
 
 <template>
   <section v-if="lines.length" data-testid="story-community-month" class="border-t border-edge pt-4">
-    <h2 class="text-[13px] font-semibold uppercase tracking-wide text-story-accent dark:text-story-accent-dark">
+    <h2 class="text-center text-[18px] font-bold tracking-tight text-story-accent md:text-[20px] dark:text-story-accent-dark">
       {{ t('story.community_month_title', { month: monthName }) }}
     </h2>
-    <ul class="mt-2 grid gap-2">
+    <ul class="mt-3 grid gap-2">
       <li v-for="line in lines" :key="line.key" data-testid="story-community-line" class="flex items-start gap-2.5 text-[15px] text-pretty text-gray-900 tabular-nums dark:text-gray-50">
         <span class="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300" aria-hidden="true">
           <component :is="VARIANT_ICON[line.variant] ?? BoltIcon" class="h-3 w-3" />

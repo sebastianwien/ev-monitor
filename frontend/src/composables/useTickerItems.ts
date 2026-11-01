@@ -83,15 +83,14 @@ export async function loadCommunityMonthRaw(get: TickerGet, month: string): Prom
     return settledData((await Promise.allSettled([get(`/public/leaderboard/ticker?month=${month}`)]))[0])
 }
 
-/** Reihenfolge der Zusammenfassung: erst die Summe, dann Ersparnis, Anbieter, der Rest nach Aussagekraft. */
-const SUMMARY_ORDER = ['stat_base', 'savings_vs_fuel', 'top_provider', 'home_quota', 'co2_saved', 'charge_time', 'households', 'solar', 'wind']
+/** Reihenfolge der Zusammenfassung: erst Energie und Ersparnis, dann die Vergleiche, zuletzt wo geladen wurde. */
+const SUMMARY_ORDER = ['stat_base', 'savings_vs_fuel', 'co2_saved', 'households', 'wind', 'solar', 'charge_time', 'home_quota', 'top_provider']
 
-/** Höchstens drei Community-Statistiken, ohne Führende und persönliche Einträge (das Backend mischt). */
-export function pickCommunitySummary<T extends { type: RawTickerItem['type']; key?: string }>(items: T[], max = 3): T[] {
+/** Community-Statistiken in fester Reihenfolge, ohne Führende und persönliche Einträge (das Backend mischt). */
+export function pickCommunitySummary<T extends { type: RawTickerItem['type']; key?: string }>(items: T[]): T[] {
     return items
         .filter(i => i.type === 'STAT' && i.key && SUMMARY_ORDER.includes(i.key))
         .sort((a, b) => SUMMARY_ORDER.indexOf(a.key!) - SUMMARY_ORDER.indexOf(b.key!))
-        .slice(0, max)
 }
 
 // Backend category enum name -> i18n key suffix (reused leaderboard.cat_* labels)
@@ -131,8 +130,10 @@ export function useTickerItems() {
 
     const num = (v: string) => formatNumber(Number(v))
 
-    function render(item: RawTickerItem): string {
+    /** summary: Sätze für den Monatsrückblick, der Monat steht dort schon im Titel. */
+    function render(item: RawTickerItem, summary = false): string {
         const p = item.params ?? {}
+        const k = (key: string) => (summary ? `ticker.summary.${key}` : `ticker.${key}`)
         const month = p.month ? monthName(Number(p.month)) : ''
         // Mit Anzahl: Einzahl bei 1, die Mehrzahl steht im Dativ ("mit 5 Ladevorgängen")
         const unit = (u?: string, count?: number) => (u ? (count == null ? t(`ticker.units.${u}`) : t(`ticker.units.${u}`, count)) : '')
@@ -146,23 +147,23 @@ export function useTickerItems() {
                     unit: unit(CAT_UNIT[p.category], Number(p.value)),
                 })
             case 'stat_base':
-                return t('ticker.stat_base', { month, kwh: num(p.kwh), charges: num(p.charges) })
+                return t(k('stat_base'), { month, kwh: num(p.kwh), charges: num(p.charges) })
             case 'co2_saved':
-                return t('ticker.co2_saved', { month, amount: num(p.amount), unit: unit(p.unit) })
+                return t(k('co2_saved'), { month, amount: num(p.amount), unit: unit(p.unit) })
             case 'households':
-                return t('ticker.households', { month, count: num(p.count) })
+                return t(k('households'), { month, count: num(p.count) })
             case 'solar':
-                return t('ticker.solar', { month, count: num(p.count) })
+                return t(k('solar'), { month, count: num(p.count) })
             case 'wind':
-                return t('ticker.wind', { month, amount: num(p.amount), unit: unit(p.unit) })
+                return t(k('wind'), { month, amount: num(p.amount), unit: unit(p.unit) })
             case 'savings_vs_fuel':
-                return t('ticker.savings_vs_fuel', { month, amount: num(p.amount), price: formatDecimal(Number(p.price), 2) })
+                return t(k('savings_vs_fuel'), { month, amount: num(p.amount), price: formatDecimal(Number(p.price), 2) })
             case 'charge_time':
-                return t('ticker.charge_time', { month, amount: num(p.amount), unit: unit(p.unit) })
+                return t(k('charge_time'), { month, amount: num(p.amount), unit: unit(p.unit) })
             case 'home_quota':
-                return t('ticker.home_quota', { month, percent: p.percent })
+                return t(k('home_quota'), { month, percent: p.percent })
             case 'top_provider':
-                return t('ticker.top_provider', { month, provider: p.provider, count: num(p.count) })
+                return t(k('top_provider'), { month, provider: p.provider, count: num(p.count) })
             case 'today_charge':
                 return t('ticker.today_charge', { kwh: num(p.kwh), provider: p.provider, cost: formatDecimal(Number(p.cost), 2), ct: num(p.ct) })
             case 'today_charge_anon':
@@ -192,6 +193,13 @@ export function useTickerItems() {
             .filter(i => i.text.trim().length > 0)
     )
 
+    /** Community-Zusammenfassung des Monats, ohne Monatsnamen in jedem Satz. */
+    const summaryItems = computed<TickerItem[]>(() =>
+        pickCommunitySummary(raw.value
+            .map(r => ({ type: r.type, key: r.messageKey, text: render(r, true), variant: r.variant }))
+            .filter(i => i.text.trim().length > 0))
+    )
+
     /** withUserItems nur im Ticker eingeloggter Nutzer, nie auf der Landing Page. */
     async function fetchTicker(options: { withUserItems?: boolean } = {}): Promise<void> {
         // Fehler pro Teil werden in loadTickerRaw geschluckt - ohne Daten bleibt die Section verborgen.
@@ -203,5 +211,5 @@ export function useTickerItems() {
         raw.value = await loadCommunityMonthRaw(url => apiClient.get<RawTickerItem[]>(url), month)
     }
 
-    return { items, fetchTicker, fetchCommunityMonth }
+    return { items, summaryItems, fetchTicker, fetchCommunityMonth }
 }

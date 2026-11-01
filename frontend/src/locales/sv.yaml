@@ -1307,6 +1307,16 @@ ticker:
     heat_charger: "Din varmaste laddning i {month}: {value} °C - det ger dig #{rank} på topplistan"
     power_charger: "Din snabbaste laddning i {month}: {value} kW - det ger dig #{rank} på topplistan"
   open: "Visa"
+  summary:
+    stat_base: "{kwh} kWh laddat på {charges} laddningar"
+    savings_vs_fuel: "{amount} € sparat jämfört med fossilbilar (bensin {price} €/L)"
+    co2_saved: "{amount} {unit} CO2 sparat jämfört med fossilbilar"
+    households: "Lika mycket el som {count} hushåll använder på en månad"
+    wind: "Ett vindkraftverk skulle behöva gå {amount} {unit} för detta"
+    solar: "{count} solpaneler på taket hade producerat denna el"
+    charge_time: "Totalt {amount} {unit} laddning"
+    home_quota: "{percent}% av alla laddningar hemma"
+    top_provider: "Populäraste publika laddoperatören: {provider} med {count} laddningar"
   units:
     kwh: "kWh"
     charges: "laddning | laddningar"

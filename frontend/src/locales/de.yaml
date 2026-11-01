@@ -1351,6 +1351,16 @@ ticker:
     heat_charger: "Dein heißester Ladevorgang im {month}: {value} °C - damit bist du #{rank} in der Rangliste"
     power_charger: "Dein schnellster Ladevorgang im {month}: {value} kW - damit bist du #{rank} in der Rangliste"
   open: "Ansehen"
+  summary:
+    stat_base: "{kwh} kWh in {charges} Ladevorgängen geladen"
+    savings_vs_fuel: "{amount} € gespart gegenüber Verbrennern (Benzin {price} €/L)"
+    co2_saved: "{amount} {unit} CO2 gegenüber Verbrennern gespart"
+    households: "So viel Strom brauchen {count} Haushalte in einem Monat"
+    wind: "Ein Windrad müsste dafür {amount} {unit} laufen"
+    solar: "{count} Solarmodule auf dem Dach hätten diesen Strom erzeugt"
+    charge_time: "Zusammen {amount} {unit} am Stück geladen"
+    home_quota: "{percent}% aller Ladevorgänge zu Hause"
+    top_provider: "Beliebtester öffentlicher Ladeanbieter: {provider} mit {count} Ladevorgängen"
   units:
     kwh: "kWh"
     charges: "Ladevorgang | Ladevorgängen"

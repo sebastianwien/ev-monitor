@@ -32,7 +32,7 @@ const flush = () => new Promise(r => setTimeout(r, 0))
 const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 
 describe('StoryCommunityMonth', () => {
-  it('nennt den Monat, höchstens drei Sätze in fester Reihenfolge und den Weg zur Rangliste', async () => {
+  it('nennt den Monat nur im Titel, alle Kategorien in fester Reihenfolge und den Weg zur Rangliste', async () => {
     const events: string[] = []
     const host = mount([
       stat('wind', { amount: '16', unit: 'hours' }, 'eco'),
@@ -46,10 +46,13 @@ describe('StoryCommunityMonth', () => {
     expect(vi.mocked(apiClient.get)).toHaveBeenCalledWith('/public/leaderboard/ticker?month=2026-10')
     expect(text(host.querySelector('h2'))).toBe('Die Community im Oktober')
     const lines = [...host.querySelectorAll('[data-testid="story-community-line"]')].map(text)
-    expect(lines).toHaveLength(3)
-    expect(lines[0]).toContain('Community Oktober: 48.300 kWh in 2.140 Ladevorgängen')
-    expect(lines[1]).toContain('12.000 €')
-    expect(lines[2]).toContain('EnBW')
+    expect(lines).toEqual([
+      '48.300 kWh in 2.140 Ladevorgängen geladen',
+      '12.000 € gespart gegenüber Verbrennern (Benzin 1,75 €/L)',
+      'Ein Windrad müsste dafür 16 Stunden laufen',
+      'Beliebtester öffentlicher Ladeanbieter: EnBW mit 312 Ladevorgängen',
+    ])
+    expect(lines.join(' ')).not.toMatch(/Oktober|Community/)
     const link = host.querySelector('a[href="/leaderboard"]')!
     expect(text(link)).toBe('Rangliste ansehen')
     ;(link as HTMLElement).click()
