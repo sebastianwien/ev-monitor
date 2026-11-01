@@ -111,6 +111,8 @@ export async function mockStory(page: Page, data: StoryData) {
   });
   await page.route(/\/api\/logs\?carId=[^&]+&limit=10$/, route => json(route, data.logs));
   await page.route(/\/api\/logs\/priceless\?/, route => json(route, data.priceless));
+  // Kein Tesla verbunden: sonst hängt das AutoSync-Angebot an der Test-DB.
+  await page.route(/\/api\/tesla\/fleet\/status$/, route => json(route, { connected: false, carId: null }));
   await page.route(/\/api\/logs\/[^/]+\/peer-model-comparison/, route => json(route, { modelComparisons: [] }));
   await page.route(/\/api\/cars\/[^/]+\/soh$/, route => json(route, data.soh));
   await page.route(/\/api\/cars\/[^/]+\/live\/charging\/history/, route => json(route, { points: [] }));

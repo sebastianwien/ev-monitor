@@ -2,7 +2,7 @@
 import { ref, computed, defineAsyncComponent, nextTick, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
+import { ArrowPathIcon, ArrowRightIcon, ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
 import { useCarContext } from '../composables/useCarContext'
 import { useDashboardStory, type StoryMonth, type StoryCarContext } from '../composables/useDashboardStory'
 import { useStoryOptIn } from '../composables/useStoryOptIn'
@@ -407,15 +407,23 @@ onUnmounted(() => unregisterReload?.())
             <button type="button" class="ml-2 min-h-[44px] font-semibold underline" @click="story.reload()">{{ t('story.retry') }}</button>
           </div>
 
-          <div v-else-if="!hasCharges && heroMode === 'month'" class="py-4 text-center">
-            <p class="text-lg font-bold text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ t('story.empty_body') }}</p>
+          <div v-else-if="!hasCharges && heroMode === 'month'" class="grid gap-4 py-2">
+            <p class="text-center text-[17px] font-bold text-balance text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
             <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
-            <template v-if="autoSyncOffer">
-              <p data-testid="story-empty-autosync" class="mx-auto mt-4 max-w-sm text-[15px] text-gray-800 text-pretty dark:text-gray-100">{{ t('story.empty_autosync', { car: carName }) }}</p>
-              <router-link to="/imports" class="btn-3d cta-shadow-sm mx-auto mt-3 flex min-h-12 w-full max-w-sm items-center justify-center rounded-lg border-2 border-edge bg-green-600 px-4 text-[15px] font-bold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-                @click="analytics.track('story_empty_autosync')">{{ t('story.moment_action_autosync') }}</router-link>
-            </template>
+            <router-link v-if="autoSyncOffer" to="/imports" data-testid="story-empty-autosync"
+              class="flex items-start gap-3 rounded-xl bg-green-50 p-3.5 text-left edge-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-green-900/20"
+              @click="analytics.track('story_empty_autosync')">
+              <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" aria-hidden="true">
+                <ArrowPathIcon class="h-5 w-5" />
+              </span>
+              <span class="grid gap-0.5">
+                <span class="text-[15px] font-semibold text-gray-900 dark:text-gray-50">{{ t('story.empty_autosync_title') }}</span>
+                <span class="text-sm text-pretty text-gray-700 dark:text-gray-200">{{ t('story.empty_autosync', { car: carName }) }}</span>
+                <span class="mt-1 inline-flex items-center gap-1 text-sm font-semibold text-green-700 dark:text-green-300">
+                  {{ t('story.empty_autosync_cta') }}<ArrowRightIcon class="h-4 w-4" aria-hidden="true" />
+                </span>
+              </span>
+            </router-link>
           </div>
 
           <template v-else>
