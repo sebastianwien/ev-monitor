@@ -1,6 +1,7 @@
 import { tripTimestamp } from '../utils/recentActivity'
 import { tripConsumption, type TripForCalc } from '../utils/tripCalculations'
 import { calcCostPer100km } from './useDashboardStats'
+import { rangeAtSoc } from './storyEnergy'
 import { summarizeTripMonth, type TripForSummary } from '../utils/tripMonthSummary'
 import type { OdometerGap } from './storyDay'
 import { odometerMoved } from '../utils/phantomDrain'
@@ -286,7 +287,7 @@ export interface LatestCharge {
   /** Ladestand vor und nach der Ladung, nur wenn beide stimmig sind. */
   socFrom: number | null
   socTo: number | null
-  /** Reichweite nach der Ladung, auf 10 km gerundet: Ladestand mal effektive Kapazität durch Verbrauch der letzten 4 Wochen. */
+  /** Reichweite nach der Ladung bis 10 %, auf 10 km gerundet: Anteil des Ladestands an der Reichweite der letzten 4 Wochen. */
   rangeKm: number | null
 }
 
@@ -316,10 +317,9 @@ export interface LatestLogSource {
   socAfterChargePercent?: number | null
 }
 
-/** Verbrauch der letzten 4 Wochen und effektive Kapazität (SoH-bereinigt) für die Reichweite der letzten Ladung. */
+/** Reichweite der letzten 4 Wochen (100 auf 10 %, vom Backend) als Basis für die Reichweite der letzten Ladung. */
 export interface LatestRangeBasis {
-  consumptionKwh100: number | null
-  effectiveCapacityKwh: number | null
+  rangeKm: number | null
 }
 
 export interface LatestTripSource {
@@ -346,13 +346,11 @@ export function pickLatestTrip(latest: LatestTripSource | null | undefined, rece
 
 /** Fahrzeug-kWh vor Saeulen-kWh (wie die Ladeliste), Fahrt nach ihrem Ende datiert. Null ohne beides. */
 export function buildLatest(log: LatestLogSource | null | undefined, trip: LatestTripSource | null | undefined,
-  basis: LatestRangeBasis = { consumptionKwh100: null, effectiveCapacityKwh: null }): StoryLatest | null {
+  basis: LatestRangeBasis = { rangeKm: null }): StoryLatest | null {
   const from = log?.socBeforeChargePercent ?? null
   const to = log?.socAfterChargePercent ?? null
   const socOk = from != null && to != null && to > from
-  const c = basis.consumptionKwh100
-  const cap = basis.effectiveCapacityKwh
-  const rangeKm = socOk && c != null && c > 0 && cap != null && cap > 0 ? Math.round((to / 100) * cap / c * 100 / 10) * 10 : null
+  const rangeKm = socOk ? rangeAtSoc(basis.rangeKm, to) : null
   const charge: LatestCharge | null = log
     ? {
       id: log.id, at: log.loggedAt, kwh: log.kwhAtVehicle ?? log.kwhCharged ?? null, costEur: log.costEur ?? null,

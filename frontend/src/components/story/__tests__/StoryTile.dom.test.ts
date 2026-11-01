@@ -94,17 +94,26 @@ describe('StoryTile Akku und Reichweite', () => {
     expect(manual).not.toContain('geschätzt')
   })
 
-  const rangeTile = (source: 'OWN_DRIVE' | 'MODEL_DRIVE' | 'OWN_CHARGES'): Tile => ({ id: 'range', value: 201, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [201], sparkVariant: 'bars',
-    range: { consumption: 21, source, km: 201, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 201 }], summer: null, winter: null, peerWinter: null, emptyKm: 206 } })
+  const rangeTile = (source: 'OWN_DRIVE' | 'PEER_DRIVE' | 'OWN_CHARGES' | 'PEER_CHARGES' | 'WLTP_ESTIMATE', scope: 'VARIANT' | 'MODEL' | null = null): Tile => ({
+    id: 'range', value: 201, delta: null, deltaPercent: null, sentiment: 'neutral', spark: [201], sparkVariant: 'bars',
+    range: { consumption: 21, source, scope, km: 201, summer: null, winter: null } })
 
-  it('Reichweite nennt die Basis: eigene Fahrten, Ladungen oder andere Fahrer mit Tilde', () => {
-    expect(mount(rangeTile('OWN_DRIVE'))).toContain('Ø 4 Wochen, Fahrten ab 20 km')
+  it('Reichweite nennt die Basis: eigene Fahrten ohne Tilde, Ladungen, andere Fahrer und Schätzung mit Tilde', () => {
+    const own = mount(rangeTile('OWN_DRIVE'))
+    expect(own).toContain('Ø 4 Wochen, Fahrten ab 20 km')
+    expect(own).not.toContain('~201')
     app!.unmount(); app = null
     expect(mount(rangeTile('OWN_CHARGES'))).toContain('Ø 4 Wochen aus Ladungen')
     app!.unmount(); app = null
-    const model = mount(rangeTile('MODEL_DRIVE'), 'Model 3')
+    const model = mount(rangeTile('PEER_DRIVE', 'MODEL'), 'Model 3')
     expect(model).toContain('Ø anderer Model 3-Fahrer')
     expect(model).toContain('~201')
+    app!.unmount(); app = null
+    expect(mount(rangeTile('PEER_DRIVE', 'VARIANT'), 'Model 3')).toContain('Ø anderer Fahrer deiner Variante')
+    app!.unmount(); app = null
+    expect(mount(rangeTile('PEER_CHARGES'), 'Model 3')).toContain('Ø Ladungen anderer Model 3-Fahrer')
+    app!.unmount(); app = null
+    expect(mount(rangeTile('WLTP_ESTIMATE'), 'Model 3')).toContain('geschätzt')
   })
 
   it('WLTP ohne Fahrten nennt den Strom im Stand, mit Fahrten nicht', () => {

@@ -482,6 +482,9 @@ model:
     hero_basis: "Båda värdena från 100 till 10 % batteri."
     hero_spread: "Beroende på förare är det {min} till {max}."
     hero_depends: "Hur långt du kommer beror på sträcka, fart och årstid."
+    range_source_trips: "Förbrukning och räckvidd kommer från andra förares körning, utan ström när bilen står."
+    range_source_charges: "Förbrukning och räckvidd kommer från förarnas laddningar, med ström när bilen står."
+    range_source_estimate: "Förbrukning och räckvidd är uppskattade från tillverkarens värde."
     cta_button: "Räkna ut för min körning"
     cta_cost: "Vad kostar det mig i månaden?"
     cta_rhythm: "Hur ofta måste jag ladda?"
@@ -667,6 +670,7 @@ model:
   seo_consumption_good: Enligt verkliga data från EV Monitor-användare ligger den genomsnittliga förbrukningen på {consumption} – baserat på {sessions} laddningssessioner ({count} med förbrukningsmätning).
   seo_consumption_low: Enligt användardata uppgår förbrukningen till {consumption} – baserat på {count} resor där förbrukningen har mätts.
   seo_consumption_sparse: "De första mätningarna finns nu tillgängliga: {consumption} från resor på {count} med förbrukningsdata."
+  seo_consumption_drive: "Under körning använder {drivers} förare av denna modell i snitt {consumption}, mätt över deras resor, utan ström när bilen står."
   seo_no_data_cta: Bli den första att registrera laddningssessioner för denna {model}!
   seo_costs_title: Ladningskostnader vid daglig användning
   seo_costs_intro: Det genomsnittliga laddningspriset för en {model}, enligt användardata, är {price}.
@@ -680,6 +684,7 @@ model:
   faq_consumption_data_good: baserat på {n} resor med förbrukningsmätning
   faq_consumption_data_low: baserat på {n} resor med mätning av förbrukning – värdet kommer att förbättras med mer data
   faq_consumption_data_sparse: endast {n} resor med förbrukningsdata – ännu inte representativt
+  faq_consumption_data_drive: "mätt över resorna från {n} förare, utan ström när bilen står"
   faq_q_consumption: Hur stor är den faktiska förbrukningen för {model}?
   faq_a_consumption: Enligt användardata från EV Monitor ligger förbrukningen för {model} på {consumption} ({dataNote}). Det officiella {ratingLabel}-värdet är {wltp}. På vintern kan förbrukningen bli 15–30 % högre på grund av uppvärmning och kallare batterier.
   faq_q_range: Hur långt räcker egentligen {model}?
@@ -4362,22 +4367,28 @@ story:
   flow_public: "Offentlig"
   range_basis_drive: "Ø 4 veckor, resor från 20 km"
   range_basis_charges: "Ø 4 veckor från laddningar"
-  range_basis_model: "Ø andra {model}-förare"
+  range_basis_peer_variant: "Ø andra förare med din variant"
+  range_basis_peer_model: "Ø andra {model}-förare"
+  range_basis_peer_charges: "Ø laddningar från andra {model}-förare"
+  range_basis_wltp: "uppskattat från tillverkarens värde"
   range_basis_summer: "Sommar, maj till augusti, alla år"
   range_basis_winter: "Vinter, november till februari, alla år"
-  range_basis_winter_peers: "Vinter, andra {model}-förare"
-  range_hero_sub: "per laddning från 90 till 10 %, så som du har kört de senaste 4 veckorna"
-  range_hero_sub_plain: "per laddning från 90 till 10 %"
+  range_origin_drive: "dina resor"
+  range_origin_peer_variant: "andra förare med din variant"
+  range_origin_peer_model: "andra {model}-förare"
+  range_origin_charges: "från dina laddningar"
+  range_origin_peer_charges: "laddningar från andra {model}-förare"
+  range_origin_wltp: "uppskattat"
+  range_hero_sub: "per laddning från 100 till 10 %, så som du har kört de senaste 4 veckorna"
+  range_hero_sub_plain: "per laddning från 100 till 10 %"
   range_note_charges: "Beräknat med förbrukningen från dina laddningar. Den innehåller även ström som bilen använder när den står still, så räckvidden är troligen något för kort."
-  range_note_model: "Körförbrukningen hos andra {model}-förare, räknat på ditt batteri."
+  range_note_peer_variant: "Körförbrukningen hos andra {model}-förare med din variant, räknat på ditt batteri."
+  range_note_peer_model: "Körförbrukningen hos andra {model}-förare, räknat på ditt batteri."
+  range_note_peer_charges: "Förbrukning från andra {model}-förares laddningar, med ström när bilen står, räknat på ditt batteri."
+  range_note_wltp: "Uppskattat från tillverkarens värde och det påslag andra bilar i snitt ligger över, räknat på ditt batteri."
   range_season_summer: "Sommar"
   range_season_winter: "Vinter"
-  range_to_empty: "Vid behov ända till tomt: ungefär {km}."
-  range_peer_note: "Vinter: förbrukningen hos andra {model}-förare, räknat på ditt batteri."
   range_consumption_title: "Förbrukning"
-  range_windows_sub: "Laddfönster med förbrukningen de senaste 4 veckorna"
-  range_window: "{max} → {min} %"
-  range_recommended: "rekommenderat"
   live_eyebrow: "Laddar nu"
   live_soc_from: "från {start}\u00A0%"
   live_eta: "{min}\u00A0min till {limit}\u00A0%"

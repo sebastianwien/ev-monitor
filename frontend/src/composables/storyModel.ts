@@ -407,7 +407,7 @@ export function buildStoryTiles(input: StoryInput): StoryTile[] {
       delta: null,
       deltaPercent: null,
       sentiment: 'neutral',
-      spark: input.range.windows.map(w => w.km),
+      spark: [input.range.summer?.km, input.range.km, input.range.winter?.km].filter((k): k is number => k != null),
       sparkVariant: 'bars',
       range: input.range,
     })

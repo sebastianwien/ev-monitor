@@ -7,7 +7,7 @@ import UseBar from './UseBar.vue'
 import ShareBar from './ShareBar.vue'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import type { StoryTile } from '../../composables/storyModel'
-import { rangeBasisLabel, type EnergyUse } from '../../composables/storyEnergy'
+import { RANGE_SOC_MAX, RANGE_SOC_MIN, rangeBasisLabel, type EnergyUse } from '../../composables/storyEnergy'
 
 /**
  * Eine Fahrerfrage als Kachel in fester Höhe, Inhalt oben: Label in Versalien, eine Zahl mit
@@ -34,8 +34,8 @@ const value = computed(() => {
       const e = euroParts(x.value)
       return { n: `~${e.n}`, unit: `${e.unit} ${t('story.use_loss_unit')}`.trim() }
     }
-    // Mit dem Verbrauch anderer Fahrer gerechnet: mit Tilde
-    case 'range': return { n: `${x.range?.source === 'MODEL_DRIVE' ? '~' : ''}${formatDecimal(x.value, 0)}`, unit: distanceUnitLabel() }
+    // Nicht aus den eigenen Fahrten (andere Fahrer, Ladungen, Schätzung): mit Tilde
+    case 'range': return { n: `${x.range && x.range.source !== 'OWN_DRIVE' ? '~' : ''}${formatDecimal(x.value, 0)}`, unit: distanceUnitLabel() }
     case 'wltp': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'trips': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
     case 'peer': return { n: formatConsumption(x.value, { showUnit: false }), unit: consumptionUnitLabel() }
@@ -100,7 +100,7 @@ const note = computed(() => {
       return m.mainRoute ? `${base}, ${t('story.trips_main', { route: routeLabel(m.mainRoute) })}` : base
     }
     case 'range':
-      return rangeBasisLabel(x.range?.source, props.modelName ?? '', t)
+      return rangeBasisLabel(x.range, props.modelName ?? '', t)
     case 'wltp': {
       const pct = formatDecimal(Math.abs(x.deltaPercent ?? 0), 0)
       const wltp = formatConsumption(x.reference ?? 0, { showUnit: false })
@@ -169,10 +169,8 @@ const lengthSegments = computed(() => (props.tile.tripMonth?.lengthShares ?? [])
 
 /** Position des eigenen Werts auf der Skala sparsam ... hoch: Schnitt in der Mitte, ±100 % an den Rändern. */
 const peerPos = computed(() => Math.min(1, Math.max(0, 0.5 + (props.tile.deltaPercent ?? 0) / 200)))
-const rangeWindow = computed(() => {
-  const w = props.tile.range?.windows.find(x => x.recommended) ?? props.tile.range?.windows[0]
-  return w ? { min: w.socMin, max: w.socMax } : { min: 10, max: 90 }
-})
+/** Das Fenster der Reichweite, überall dasselbe: pro Ladung von 100 auf 10 %. */
+const rangeWindow = { min: RANGE_SOC_MIN, max: RANGE_SOC_MAX }
 const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.tile.value, { decimals: 0 }) : formatConsumption(props.tile.value, { showUnit: false }))
 </script>
 

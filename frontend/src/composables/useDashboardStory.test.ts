@@ -374,28 +374,22 @@ describe('useDashboardStory - Reichweite', () => {
   }
   const rangeTile = (story: ReturnType<typeof useDashboardStory>) => story.tiles.value.find(t => t.id === 'range')
 
-  it('rechnet mit der Basis aus dem Backend, nicht mit dem Verbrauch aus den Ladungen', async () => {
-    mock({ rangeBasis: { consumptionKwhPer100km: 24, source: 'OWN_DRIVE' } })
+  it('nimmt die Reichweite fertig vom Backend, nicht aus dem Verbrauch der Ladungen', async () => {
+    mock({ range: { current: { rangeKm: 225, consumptionKwhPer100km: 24, source: 'OWN_DRIVE', scope: null }, summer: null,
+      winter: { rangeKm: 180, consumptionKwhPer100km: 30, source: 'PEER_DRIVE', scope: 'MODEL' } } })
     const story = useDashboardStory(ref<string | null>('car-1'), withCapacity)
     await flush()
-    // 24 kWh / 100 km: 60 * 0.8 / 24 * 100 = 200 km statt 97 mit 49,5
     expect(rangeTile(story)?.range?.consumption).toBe(24)
-    expect(rangeTile(story)?.range?.km).toBe(200)
+    expect(rangeTile(story)?.range?.km).toBe(225)
     expect(rangeTile(story)?.range?.source).toBe('OWN_DRIVE')
+    expect(rangeTile(story)?.range?.winter).toEqual({ km: 180, consumption: 30, source: 'PEER_DRIVE', scope: 'MODEL' })
   })
 
-  it('ohne Basis vom Backend bleibt es beim Verbrauch aus den Ladungen', async () => {
+  it('ohne Reichweite vom Backend gibt es keine Kachel', async () => {
     mock({})
     const story = useDashboardStory(ref<string | null>('car-1'), withCapacity)
     await flush()
-    expect(rangeTile(story)?.range?.consumption).toBe(49.5)
-  })
-
-  it('Winter anderer Fahrer aus ihren Fahrten, sonst aus ihren Ladungen', async () => {
-    mock({ winterConsumptionKwhPer100km: null }, { allVariantsDriveWinterConsumptionKwhPer100km: 24 })
-    const story = useDashboardStory(ref<string | null>('car-1'), withCapacity)
-    await flush()
-    expect(rangeTile(story)?.range?.peerWinter?.consumption).toBe(24)
+    expect(rangeTile(story)).toBeUndefined()
   })
 })
 

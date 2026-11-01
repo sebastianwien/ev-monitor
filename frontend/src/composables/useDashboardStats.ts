@@ -91,21 +91,36 @@ export interface StatisticsData {
   /** Fahrverbrauch Mai bis August bzw. November bis Februar, alle Jahre. */
   driveSummerConsumptionKwhPer100km?: number | null
   driveWinterConsumptionKwhPer100km?: number | null
-  /** Fahrverbrauch anderer Fahrer desselben Modells im Zeitraum, ab 5 Nutzern. */
+  /** Fahrverbrauch anderer Fahrer desselben Modells im Zeitraum, ab 2 anderen Nutzern. */
   modelDriveConsumptionKwhPer100km?: number | null
   modelDriveUsers?: number
-  /** Basis der Reichweite im Zeitraum; null ohne Wert. */
-  rangeBasis?: RangeBasis | null
   /** Fahrverbrauch je Kalendermonat ("2026-10"), nur Monate mit Wert. */
   driveMonths?: { month: string; consumptionKwhPer100km: number }[]
+  /** Reichweite je Zeitraum, fertig gerechnet vom Backend (vier Stufen); fehlt bei älterem Backend. */
+  range?: RangeStatistics | null
 }
 
-/** OWN_DRIVE: eigene Fahrten, MODEL_DRIVE: andere Fahrer des Modells, OWN_CHARGES: eigene Ladungen (mit Stand). */
-export type RangeBasisSource = 'OWN_DRIVE' | 'MODEL_DRIVE' | 'OWN_CHARGES'
+/**
+ * Stufe der Reichweiten-Basis: OWN_DRIVE eigene Fahrten, PEER_DRIVE Fahrten anderer Fahrer (Variante oder
+ * Modell), OWN_CHARGES eigene Ladungen (mit Stand), PEER_CHARGES Ladungen anderer Fahrer des Modells,
+ * WLTP_ESTIMATE Schätzung aus der Herstellerangabe (nur ohne jede Ladung).
+ */
+export type RangeBasisSource = 'OWN_DRIVE' | 'PEER_DRIVE' | 'OWN_CHARGES' | 'PEER_CHARGES' | 'WLTP_ESTIMATE'
+export type RangeScope = 'VARIANT' | 'MODEL'
 
-export interface RangeBasis {
+/** Ein Zeitraum der Reichweite: km von 100 auf 10 % mit der eigenen Kapazität, Basis und Herkunft. */
+export interface RangeEstimateDto {
+  rangeKm: number | null
   consumptionKwhPer100km: number
   source: RangeBasisSource
+  scope: RangeScope | null
+}
+
+export interface RangeStatistics {
+  /** Zeitraum der Statistik, in der Story die letzten 4 Wochen. */
+  current: RangeEstimateDto | null
+  summer: RangeEstimateDto | null
+  winter: RangeEstimateDto | null
 }
 
 export interface CarInfo {

@@ -490,7 +490,7 @@ describe('monthWindow', () => {
 })
 
 const flow = { gridKwh: 524, vehicleKwh: 472, lossKwh: 52, lossPercent: 10, acKwh: 430, dcKwh: 94, privateKwh: 430, publicKwh: 94, distanceKm: 2931, coveredLogCount: 12, totalLogCount: 14, partial: true }
-const range = { consumption: 21, source: 'OWN_DRIVE' as const, km: 229, windows: [{ socMax: 90, socMin: 10, recommended: true, km: 229 }], summer: null, winter: { consumption: 21, km: 229 }, peerWinter: null, emptyKm: 206 }
+const range = { consumption: 21, source: 'OWN_DRIVE' as const, scope: null, km: 229, summer: null, winter: { consumption: 21, km: 229, source: 'OWN_DRIVE' as const, scope: null } }
 
 describe('buildStoryTiles v2: Energiefluss und Reichweite', () => {
   it('ordnet die Kacheln fest: Reichweite zuerst, Kosten zuletzt', () => {

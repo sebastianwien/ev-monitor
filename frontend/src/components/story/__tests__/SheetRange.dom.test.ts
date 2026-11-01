@@ -4,15 +4,14 @@ import { createApp, type App } from 'vue'
 import { createPinia } from 'pinia'
 import { i18n } from '../../../i18n'
 import SheetRange from '../sheets/SheetRange.vue'
-import type { RangeEstimate } from '../../../composables/storyEnergy'
+import type { RangeEstimate, RangeSeason } from '../../../composables/storyEnergy'
 
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
+const own = (km: number, consumption: number): RangeSeason => ({ km, consumption, source: 'OWN_DRIVE', scope: null })
 const range = (over: Partial<RangeEstimate> = {}): RangeEstimate => ({
-  consumption: 26.9, source: 'OWN_DRIVE', km: 201, emptyKm: 226,
-  windows: [{ socMax: 90, socMin: 10, recommended: true, km: 201 }],
-  summer: { consumption: 17.4, km: 311 }, winter: null, peerWinter: null, ...over,
+  ...own(201, 26.9), summer: own(311, 17.4), winter: null, ...over,
 })
 
 function mount(r: RangeEstimate) {
@@ -25,45 +24,52 @@ function mount(r: RangeEstimate) {
 }
 
 describe('SheetRange', () => {
-  it('ohne Winterwert: Sommerzeile, kein Platzhalter, Details offen', () => {
+  it('eigene Fahrten: Zahl ohne Tilde, Fenster 100 auf 10 %, Sommerzeile ohne Herkunft, kein Winter', () => {
     const text = mount(range())
+    expect(text).toContain('201 km')
+    expect(text).not.toContain('~201')
+    expect(text).toContain('pro Ladung von 100 auf 10 %, so wie du in den letzten 4 Wochen gefahren bist')
     expect(text).toMatch(/Sommer\s?311\s?km/)
-    expect(text).toMatch(/Notfalls bis ganz leer: etwa 226\s?km/)
-    expect(text).toContain('90 → 10 %')
-    expect(text).not.toContain('noch kein Wert')
+    expect(text).toContain('Ø 4 Wochen, Fahrten ab 20 km')
     expect(text).not.toContain('Winter')
+    expect(text).not.toContain('Notfalls')
+    expect(text).not.toContain('90 → 10')
   })
 
-  it('Winter anderer Fahrer: mit Tilde und Herkunft', () => {
-    const text = mount(range({ peerWinter: { consumption: 31.5, km: 172 } }))
-    expect(text).toMatch(/Winter\s?~172\s?km/)
-    expect(text).toContain('Verbrauch anderer Ioniq 5-Fahrer')
+  it('Winter anderer Fahrer des Modells: Tilde und Herkunft in der Zeile und in der Verbrauchstabelle', () => {
+    const text = mount(range({ winter: { km: 172, consumption: 31.5, source: 'PEER_DRIVE', scope: 'MODEL' } }))
+    expect(text).toMatch(/Winter\s?andere Ioniq 5-Fahrer\s?~172\s?km/)
+    expect(text).toContain('Winter, November bis Februar, alle Jahre, andere Ioniq 5-Fahrer')
   })
 
-  it('eigener Winter: ohne Tilde und ohne Herkunftshinweis', () => {
-    const text = mount(range({ winter: { consumption: 30, km: 180 } }))
+  it('eigener Winter: ohne Tilde und ohne Herkunft', () => {
+    const text = mount(range({ winter: own(180, 30) }))
     expect(text).toMatch(/Winter\s?180\s?km/)
     expect(text).not.toContain('anderer')
+    expect(text).not.toContain('andere ')
   })
 
-  it('eigene Fahrten: Satz unter der Zahl ohne Zusatz, Basis "Fahrten ab 20 km"', () => {
-    const text = mount(range())
-    expect(text).toContain('so wie du in den letzten 4 Wochen gefahren bist')
-    expect(text).toContain('Ø 4 Wochen, Fahrten ab 20 km')
-    expect(text).not.toContain('Gerechnet mit dem Verbrauch aus deinen Ladungen')
-  })
-
-  it('ohne Fahrten: Hinweis auf den Strom im Stand, Basis "aus Ladungen"', () => {
+  it('ohne Fahrten: Hinweis auf den Strom im Stand, Basis "aus Ladungen", Tilde', () => {
     const text = mount(range({ source: 'OWN_CHARGES' }))
+    expect(text).toContain('~201 km')
+    expect(text).toContain('pro Ladung von 100 auf 10 %')
     expect(text).not.toContain('so wie du')
     expect(text).toContain('Er enthält auch Strom, den das Auto im Stand braucht, die Reichweite ist daher eher zu kurz.')
     expect(text).toContain('Ø 4 Wochen aus Ladungen')
   })
 
-  it('Modellschnitt: Zahl mit Tilde und Herkunftssatz', () => {
-    const text = mount(range({ source: 'MODEL_DRIVE' }))
+  it('andere Fahrer derselben Variante: Zahl mit Tilde und Herkunftssatz', () => {
+    const text = mount(range({ source: 'PEER_DRIVE', scope: 'VARIANT' }))
     expect(text).toMatch(/~201\s?km/)
-    expect(text).toContain('Verbrauch beim Fahren anderer Ioniq 5-Fahrer, auf deinen Akku gerechnet.')
-    expect(text).toContain('Ø anderer Ioniq 5-Fahrer')
+    expect(text).toContain('Verbrauch beim Fahren anderer Ioniq 5-Fahrer mit deiner Variante, auf deinen Akku gerechnet.')
+    expect(text).toContain('Ø anderer Fahrer deiner Variante')
+  })
+
+  it('Ladungen anderer Fahrer: Tilde und Satz zur Herkunft, Schätzung aus der Herstellerangabe als Saisonzeile', () => {
+    const text = mount(range({ source: 'PEER_CHARGES', summer: { km: 240, consumption: 22, source: 'WLTP_ESTIMATE', scope: null } }))
+    expect(text).toMatch(/~201\s?km/)
+    expect(text).toContain('Verbrauch aus den Ladungen anderer Ioniq 5-Fahrer, mit Strom im Stand, auf deinen Akku gerechnet.')
+    expect(text).toContain('Ø Ladungen anderer Ioniq 5-Fahrer')
+    expect(text).toMatch(/Sommer\s?geschätzt\s?~240\s?km/)
   })
 })

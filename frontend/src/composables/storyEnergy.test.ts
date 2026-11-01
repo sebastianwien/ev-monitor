@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { buildEnergyFlow, buildRange, costLayers, monthCosts, costStack, flowShares, energyUse, RANGE_SOC_WINDOWS, type UseTrips } from './storyEnergy'
-import type { StatisticsData } from './useDashboardStats'
+import { buildEnergyFlow, buildRange, costLayers, monthCosts, costStack, flowShares, energyUse, rangeConsumption, currentRangeKm, rangeAtSoc, rangeOriginKey, type UseTrips } from './storyEnergy'
+import type { RangeBasisSource, RangeScope, StatisticsData } from './useDashboardStats'
 
 function stats(over: Partial<StatisticsData> = {}): StatisticsData {
   return {
@@ -61,64 +61,62 @@ describe('buildEnergyFlow', () => {
   })
 })
 
+const dto = (rangeKm: number | null, consumptionKwhPer100km: number, source: RangeBasisSource = 'OWN_DRIVE', scope: RangeScope | null = null) =>
+  ({ rangeKm, consumptionKwhPer100km, source, scope })
+
 describe('buildRange', () => {
-  it('rechnet die Reichweite je SoC-Fenster mit dem Verbrauch der letzten 4 Wochen', () => {
-    const r = buildRange(stats(), 60)!
-    expect(r.consumption).toBe(18)
-    expect(r.windows).toHaveLength(RANGE_SOC_WINDOWS.length)
-    // 90 -> 10 %: 60 kWh * 0.8 / 18 * 100 = 266,7 km
-    expect(r.km).toBe(267)
-    expect(r.windows.find(w => w.socMax === 100)!.km).toBe(333)
+  it('nimmt km, Verbrauch und Herkunft der letzten 4 Wochen vom Backend, keine eigene Formel', () => {
+    const r = buildRange(stats({ range: { current: dto(300, 18), summer: null, winter: null } }))!
+    expect(r).toEqual({ km: 300, consumption: 18, source: 'OWN_DRIVE', scope: null, summer: null, winter: null })
   })
 
-  it('traegt Sommer und Winter als eigene Zeilen, fehlende Saison bleibt null', () => {
-    const r = buildRange(stats({ summerConsumptionKwhPer100km: 16 }), 60)!
-    // Saisonwerte kommen fertig aggregiert aus dem Backend: 60 * 0.8 / 21 * 100 = 229, / 16 = 300
-    expect(r.winter).toEqual({ consumption: 21, km: 229 })
-    expect(r.summer).toEqual({ consumption: 16, km: 300 })
-    expect(buildRange(stats({ winterConsumptionKwhPer100km: null }), 60)!.winter).toBeNull()
+  it('Sommer und Winter als eigene Zeilen mit eigener Herkunft, fehlende Saison bleibt null', () => {
+    const r = buildRange(stats({ range: { current: dto(300, 18), summer: dto(338, 16), winter: dto(225, 24, 'PEER_DRIVE', 'MODEL') } }))!
+    expect(r.summer).toEqual({ km: 338, consumption: 16, source: 'OWN_DRIVE', scope: null })
+    expect(r.winter).toEqual({ km: 225, consumption: 24, source: 'PEER_DRIVE', scope: 'MODEL' })
+    expect(buildRange(stats({ range: { current: dto(300, 18), summer: null, winter: null } }))!.winter).toBeNull()
   })
 
-  it('rechnet mit der Basis aus dem Backend, der Verlust im Stand verkürzt die Reichweite nicht', () => {
-    // Laden ergibt 49,5 (mit Stand), gefahren 24: 60 * 0.8 / 24 * 100 = 200 statt 97
-    const r = buildRange(stats({ avgConsumptionKwhPer100km: 49.5, rangeBasis: { consumptionKwhPer100km: 24, source: 'OWN_DRIVE' } }), 60)!
-    expect(r.consumption).toBe(24)
-    expect(r.source).toBe('OWN_DRIVE')
-    expect(r.km).toBe(200)
-    expect(r.emptyKm).toBe(225)
+  it('reicht Variante oder Modell bei anderen Fahrern durch', () => {
+    expect(buildRange(stats({ range: { current: dto(338, 16, 'PEER_DRIVE', 'VARIANT'), summer: null, winter: null } }))!.scope).toBe('VARIANT')
   })
 
-  it('reicht die Herkunft der Basis durch', () => {
-    expect(buildRange(stats({ rangeBasis: { consumptionKwhPer100km: 17, source: 'MODEL_DRIVE' } }), 60)!.source).toBe('MODEL_DRIVE')
+  it('liefert null ohne Reichweite der letzten 4 Wochen oder ohne km (keine Kapazität)', () => {
+    expect(buildRange(stats())).toBeNull()
+    expect(buildRange(stats({ range: null }))).toBeNull()
+    expect(buildRange(stats({ range: { current: null, summer: dto(338, 16), winter: null } }))).toBeNull()
+    expect(buildRange(stats({ range: { current: dto(null, 18), summer: null, winter: null } }))).toBeNull()
   })
+})
 
-  it('ohne Basis vom Backend (älterer Stand) der Verbrauch aus den Ladungen', () => {
-    const r = buildRange(stats(), 60)!
-    expect(r.consumption).toBe(18)
-    expect(r.source).toBe('OWN_CHARGES')
+describe('rangeConsumption und currentRangeKm', () => {
+  it('lesen die 4-Wochen-Zeile, null ohne Backend-Wert', () => {
+    const s = stats({ range: { current: dto(300, 18), summer: null, winter: null } })
+    expect(rangeConsumption(s)).toBe(18)
+    expect(currentRangeKm(s)).toBe(300)
+    expect(rangeConsumption(stats())).toBeNull()
+    expect(currentRangeKm(stats())).toBeNull()
   })
+})
 
-  it('Saisonzeilen aus den Fahrten, ohne Fahrten aus den Ladungen', () => {
-    const r = buildRange(stats({ summerConsumptionKwhPer100km: 16, driveSummerConsumptionKwhPer100km: 15, driveWinterConsumptionKwhPer100km: null }), 60)!
-    expect(r.summer).toEqual({ consumption: 15, km: 320 })
-    expect(r.winter).toEqual({ consumption: 21, km: 229 })
+describe('rangeAtSoc: Reichweite nach der Ladung als Anteil des Fensters 100 → 10 %', () => {
+  it('skaliert die Backend-km auf den Ladestand, auf 10 km gerundet', () => {
+    // 409 km für 90 Punkte, bis 80 % sind 70 Punkte: 318 → 320
+    expect(rangeAtSoc(409, 80)).toBe(320)
+    expect(rangeAtSoc(409, 100)).toBe(410)
+    expect(rangeAtSoc(409, 10)).toBeNull()
+    expect(rangeAtSoc(null, 80)).toBeNull()
   })
+})
 
-  it('rechnet von 90 % bis ganz leer mit dem Verbrauch der letzten 4 Wochen', () => {
-    // 60 kWh * 0.9 / 18 * 100 = 300 km
-    expect(buildRange(stats(), 60)!.emptyKm).toBe(300)
-  })
-
-  it('rechnet den Winterwert anderer Fahrer mit der eigenen Kapazitaet, nur ohne eigenen Winter', () => {
-    // 60 * 0.8 / 24 * 100 = 200
-    expect(buildRange(stats({ winterConsumptionKwhPer100km: null }), 60, 24)!.peerWinter).toEqual({ consumption: 24, km: 200 })
-    expect(buildRange(stats({ winterConsumptionKwhPer100km: 21 }), 60, 24)!.peerWinter).toBeNull()
-    expect(buildRange(stats({ winterConsumptionKwhPer100km: null }), 60)!.peerWinter).toBeNull()
-  })
-
-  it('liefert null ohne Kapazitaet oder ohne Verbrauch der letzten 4 Wochen', () => {
-    expect(buildRange(stats(), null)).toBeNull()
-    expect(buildRange(stats({ avgConsumptionKwhPer100km: null }), 60)).toBeNull()
+describe('rangeOriginKey', () => {
+  it('ein Schlüssel je Stufe, bei anderen Fahrern je Variante oder Modell', () => {
+    expect(rangeOriginKey({ source: 'OWN_DRIVE', scope: null })).toBe('story.range_origin_drive')
+    expect(rangeOriginKey({ source: 'PEER_DRIVE', scope: 'VARIANT' })).toBe('story.range_origin_peer_variant')
+    expect(rangeOriginKey({ source: 'PEER_DRIVE', scope: 'MODEL' })).toBe('story.range_origin_peer_model')
+    expect(rangeOriginKey({ source: 'OWN_CHARGES', scope: null })).toBe('story.range_origin_charges')
+    expect(rangeOriginKey({ source: 'PEER_CHARGES', scope: null })).toBe('story.range_origin_peer_charges')
+    expect(rangeOriginKey({ source: 'WLTP_ESTIMATE', scope: null })).toBe('story.range_origin_wltp')
   })
 })
 

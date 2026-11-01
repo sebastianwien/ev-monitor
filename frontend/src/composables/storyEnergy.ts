@@ -1,4 +1,4 @@
-import type { RangeBasis, RangeBasisSource, StatisticsData } from './useDashboardStats'
+import type { RangeBasisSource, RangeEstimateDto, RangeScope, StatisticsData } from './useDashboardStats'
 import type { TripMonth } from './storyInsights'
 
 /**
@@ -145,103 +145,82 @@ export function energyUse(stats: StatisticsData, tm: UseTrips | null): EnergyUse
   }
 }
 
-export const RANGE_SOC_WINDOWS = [
-  { socMax: 100, socMin: 0, recommended: false },
-  { socMax: 90, socMin: 10, recommended: true },
-  { socMax: 80, socMin: 20, recommended: false },
-] as const
+/** Fenster der Reichweite überall: pro Ladung von 100 auf 10 %. Die km rechnet das Backend (RangeMath). */
+export const RANGE_SOC_MAX = 100
+export const RANGE_SOC_MIN = 10
 
-export interface RangeWindow {
-  socMax: number
-  socMin: number
-  recommended: boolean
-  km: number
-}
-
-/** Reichweite 90 -> 10 % mit einem Saisonverbrauch, den das Backend ueber alle Jahre aggregiert. */
+/** Eine Zeile der Reichweite (4 Wochen, Sommer, Winter): km, Verbrauch und woher er kommt. */
 export interface RangeSeason {
-  consumption: number
   km: number
+  consumption: number
+  source: RangeBasisSource
+  scope: RangeScope | null
 }
 
-export interface RangeEstimate {
-  /** Verbrauch der Kachel in kWh/100 km, Basis vom Backend (rangeBasis), ohne sie der Verbrauch aus Ladungen. */
-  consumption: number
-  /** Woher der Verbrauch kommt: eigene Fahrten, andere Fahrer des Modells oder eigene Ladungen. */
-  source: RangeBasisSource
-  windows: RangeWindow[]
-  /** Reichweite im empfohlenen Fenster. */
-  km: number
+export interface RangeEstimate extends RangeSeason {
   /** Mai bis August bzw. November bis Februar, alle Jahre. Null, solange das Backend keinen Wert hat. */
   summer: RangeSeason | null
   winter: RangeSeason | null
-  /** Winter anderer Fahrer desselben Modells mit der eigenen Kapazitaet, nur solange der eigene Winter fehlt. */
-  peerWinter: RangeSeason | null
-  /** Vom oberen Ende des empfohlenen Fensters bis ganz leer, Verbrauch der letzten 4 Wochen. */
-  emptyKm: number
 }
 
-function kmFor(effectiveCapacityKwh: number, consumption: number, socMax: number, socMin: number): number {
-  return Math.round((effectiveCapacityKwh * (socMax - socMin) / 100) / consumption * 100)
+function seasonRow(dto: RangeEstimateDto | null | undefined): RangeSeason | null {
+  if (dto == null || dto.rangeKm == null || dto.consumptionKwhPer100km <= 0) return null
+  return { km: dto.rangeKm, consumption: dto.consumptionKwhPer100km, source: dto.source, scope: dto.scope }
 }
 
-function seasonRow(effectiveCapacityKwh: number, consumption: number | null | undefined): RangeSeason | null {
-  if (consumption == null || consumption <= 0) return null
-  const w = RANGE_SOC_WINDOWS.find(x => x.recommended)!
-  return { consumption, km: kmFor(effectiveCapacityKwh, consumption, w.socMax, w.socMin) }
-}
-
-/** Basis der Reichweite vom Backend; ein älteres Backend ohne rangeBasis rechnet mit dem Verbrauch aus Ladungen. */
-function rangeBasisOf(stats: StatisticsData): RangeBasis | null {
-  if (stats.rangeBasis !== undefined) return stats.rangeBasis
-  return stats.avgConsumptionKwhPer100km != null ? { consumptionKwhPer100km: stats.avgConsumptionKwhPer100km, source: 'OWN_CHARGES' } : null
-}
-
-/** Verbrauch, mit dem die Reichweite rechnet; auch "Heute geladen, reicht für etwa". Null ohne Wert. */
+/** Verbrauch, mit dem die Reichweite der letzten 4 Wochen rechnet. Null ohne Wert. */
 export function rangeConsumption(stats: StatisticsData): number | null {
-  return rangeBasisOf(stats)?.consumptionKwhPer100km ?? null
+  return stats.range?.current?.consumptionKwhPer100km ?? null
 }
 
-const RANGE_BASIS_KEYS: Record<RangeBasisSource, string> = {
-  OWN_DRIVE: 'story.range_basis_drive',
-  MODEL_DRIVE: 'story.range_basis_model',
-  OWN_CHARGES: 'story.range_basis_charges',
-}
-
-/** Herkunft der Reichweite als Unterzeile ("Ø 4 Wochen, Fahrten ab 20 km"), für Kachel und Sheet. */
-export function rangeBasisLabel(source: RangeBasisSource | undefined, model: string,
-  t: (key: string, params: Record<string, string>) => string): string {
-  return t(RANGE_BASIS_KEYS[source ?? 'OWN_CHARGES'], { model })
+/** Reichweite der letzten 4 Wochen in km, Basis der Zeile "Heute geladen". Null ohne Wert. */
+export function currentRangeKm(stats: StatisticsData): number | null {
+  return stats.range?.current?.rangeKm ?? null
 }
 
 /**
- * Kachelwert aus dem Verbrauch der letzten 4 Wochen, Sommer und Winter als eigene Zeilen für das
- * Sheet. Kein Jahresmittel, keine Saisonzuordnung des Monats: ein Monat mit zwei Ladungen hätte
- * sonst 450 km ergeben. Welcher Verbrauch zählt, entscheidet das Backend (rangeBasis: eigene Fahrten,
- * Modellschnitt oder Ladungen); ein älteres Backend ohne rangeBasis liefert den Verbrauch aus Ladungen.
- * Saisonzeilen aus den Fahrten, je Saison ohne Fahrten aus den Ladungen. Null ohne Kapazität oder Verbrauch.
+ * Reichweite nach einer Ladung bis {@code socTo} %: der Anteil des Fensters 100 → 10 % an der Reichweite,
+ * auf 10 km gerundet. Keine eigene Verbrauchsformel, nur die Skalierung des Backend-Werts.
  */
-export function buildRange(
-  stats: StatisticsData,
-  effectiveCapacityKwh: number | null,
-  peerWinterConsumption: number | null = null,
-): RangeEstimate | null {
-  if (effectiveCapacityKwh == null || effectiveCapacityKwh <= 0) return null
-  const basis = rangeBasisOf(stats)
-  const c = basis?.consumptionKwhPer100km
-  if (basis == null || c == null || c <= 0) return null
-  const windows = RANGE_SOC_WINDOWS.map(w => ({ ...w, km: kmFor(effectiveCapacityKwh, c, w.socMax, w.socMin) }))
-  const winter = seasonRow(effectiveCapacityKwh, stats.driveWinterConsumptionKwhPer100km ?? stats.winterConsumptionKwhPer100km)
-  return {
-    consumption: c,
-    source: basis.source,
-    windows,
-    km: windows.find(w => w.recommended)!.km,
-    summer: seasonRow(effectiveCapacityKwh, stats.driveSummerConsumptionKwhPer100km ?? stats.summerConsumptionKwhPer100km),
-    winter,
-    peerWinter: winter ? null : seasonRow(effectiveCapacityKwh, peerWinterConsumption),
-    emptyKm: kmFor(effectiveCapacityKwh, c, RANGE_SOC_WINDOWS.find(w => w.recommended)!.socMax, 0),
+export function rangeAtSoc(rangeKm: number | null, socTo: number | null): number | null {
+  if (rangeKm == null || rangeKm <= 0 || socTo == null || socTo <= RANGE_SOC_MIN) return null
+  return Math.round(rangeKm * (Math.min(socTo, RANGE_SOC_MAX) - RANGE_SOC_MIN) / (RANGE_SOC_MAX - RANGE_SOC_MIN) / 10) * 10
+}
+
+/** Herkunft einer Zeile in einem Wort für Kachel und Sheet, je Stufe und bei anderen Fahrern je Variante oder Modell. */
+export function rangeOriginKey(row: Pick<RangeSeason, 'source' | 'scope'>): string {
+  switch (row.source) {
+    case 'OWN_DRIVE': return 'story.range_origin_drive'
+    case 'PEER_DRIVE': return row.scope === 'VARIANT' ? 'story.range_origin_peer_variant' : 'story.range_origin_peer_model'
+    case 'OWN_CHARGES': return 'story.range_origin_charges'
+    case 'PEER_CHARGES': return 'story.range_origin_peer_charges'
+    case 'WLTP_ESTIMATE': return 'story.range_origin_wltp'
   }
+}
+
+/** Unterzeile der Kachel ("Ø 4 Wochen, Fahrten ab 20 km") und erste Zeile der Verbrauchstabelle im Sheet. */
+export function rangeBasisLabel(row: Pick<RangeSeason, 'source' | 'scope'> | undefined, model: string,
+  t: (key: string, params: Record<string, string>) => string): string {
+  if (!row) return ''
+  const keys: Record<RangeBasisSource, string> = {
+    OWN_DRIVE: 'story.range_basis_drive',
+    PEER_DRIVE: row.scope === 'VARIANT' ? 'story.range_basis_peer_variant' : 'story.range_basis_peer_model',
+    OWN_CHARGES: 'story.range_basis_charges',
+    PEER_CHARGES: 'story.range_basis_peer_charges',
+    WLTP_ESTIMATE: 'story.range_basis_wltp',
+  }
+  return t(keys[row.source], { model })
+}
+
+/**
+ * Kachelwert der letzten 4 Wochen, Sommer und Winter als eigene Zeilen für das Sheet, alles fertig vom
+ * Backend: welcher Verbrauch zählt (eigene Fahrten, andere Fahrer, Ladungen, Schätzung) und die km auf
+ * der eigenen Kapazität. Null ohne Wert für die 4 Wochen.
+ */
+export function buildRange(stats: StatisticsData): RangeEstimate | null {
+  const current = seasonRow(stats.range?.current)
+  if (current == null) return null
+  return { ...current, summer: seasonRow(stats.range?.summer), winter: seasonRow(stats.range?.winter) }
 }
 
 export type CostLayerKind = 'energy' | 'fixed' | 'income' | 'net'

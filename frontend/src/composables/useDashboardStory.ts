@@ -12,7 +12,7 @@ import {
   type StoryTile, type StoryFeedItem, type DayCoverage,
   peerCostDiffEur,
 } from './storyModel'
-import { buildEnergyFlow, buildRange, costLayers, monthCosts, rangeConsumption, type MonthCosts } from './storyEnergy'
+import { buildEnergyFlow, buildRange, costLayers, currentRangeKm, monthCosts, type MonthCosts } from './storyEnergy'
 import {
   temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, pricelessInMonth, ranksFromStandings,
   type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth, standbyChange, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource, peerConsumptionFromTicker } from './storyInsights'
@@ -297,11 +297,6 @@ async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<Lat
   return { logs, benchmark: bench }
 }
 
-/** Winter anderer Fahrer für die Reichweite: aus ihren Fahrten, sonst aus ihren Ladungen. */
-function peerWinterConsumption(p: PeerModelComparisonResponse | null): number | null {
-  return p?.allVariantsDriveWinterConsumptionKwhPer100km ?? p?.allVariantsWinterConsumptionKwhPer100km ?? null
-}
-
 async function fetchCarBundle(carId: string): Promise<CarBundle> {
   const tripsFrom = daysAgo(RECENT_DAYS - 1).toISOString()
   const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime, prevRanks, weather, prevPeer] = await Promise.allSettled([
@@ -479,8 +474,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     previousRanks.value = b.previousRanks
     previousPeer.value = b.previousPeer
     latest.value = buildLatest(b.recentLogs[0] ?? null, pickLatestTrip(b.latestTrip, b.recentTrips),
-      { consumptionKwh100: b.recentStats ? rangeConsumption(b.recentStats) : null,
-        effectiveCapacityKwh: ctx().effectiveBatteryCapacityKwh })
+      { rangeKm: b.recentStats ? currentRangeKm(b.recentStats) : null })
   }
 
   /** Gecachter Stand sofort, frischer im Hintergrund (stale while revalidate). */
@@ -534,9 +528,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   }
 
   const flow = computed(() => monthStats.value ? buildEnergyFlow(monthStats.value) : null)
-  const range = computed(() => recentStats.value
-    ? buildRange(recentStats.value, ctx().effectiveBatteryCapacityKwh, peerWinterConsumption(peerModels.value))
-    : null)
+  const range = computed(() => recentStats.value ? buildRange(recentStats.value) : null)
   const layers = computed(() => monthStats.value ? costLayers(monthStats.value) : null)
   /** Die Sechs-Monats-Statistik summiert Fixkosten und Einnahmen über alle sechs Balken. */
   const hasFixedCosts = computed(() => (series.value?.fixedCostEur ?? 0) > 0 || (series.value?.fixedIncomeEur ?? 0) > 0)

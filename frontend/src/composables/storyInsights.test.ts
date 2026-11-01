@@ -230,14 +230,14 @@ describe('buildLatest', () => {
     expect(l.trip).toMatchObject({ routeType: 'CITY' })
   })
 
-  it('Ladestand vor und nach der Ladung, Reichweite aus Ladestand, Kapazität und Verbrauch auf 10 km gerundet', () => {
+  it('Ladestand vor und nach der Ladung, Reichweite als Anteil der Backend-Reichweite auf 10 km gerundet', () => {
     const withSoc = { ...log, socBeforeChargePercent: 35, socAfterChargePercent: 80 }
-    // 80 % von 75 kWh = 60 kWh, bei 16,5 kWh/100 km 363,6 km -> 360 km
-    const l = buildLatest(withSoc, null, { consumptionKwh100: 16.5, effectiveCapacityKwh: 75 })!
-    expect(l.charge).toMatchObject({ socFrom: 35, socTo: 80, rangeKm: 360 })
+    // 409 km von 100 auf 10 %; bis 80 % geladen sind es 70 von 90 Punkten: 318 -> 320 km
+    const l = buildLatest(withSoc, null, { rangeKm: 409 })!
+    expect(l.charge).toMatchObject({ socFrom: 35, socTo: 80, rangeKm: 320 })
     expect(buildLatest(withSoc, null)!.charge).toMatchObject({ socFrom: 35, socTo: 80, rangeKm: null })
     // Unstimmiger Ladestand (nach <= vor) zählt nicht
-    expect(buildLatest({ ...log, socBeforeChargePercent: 80, socAfterChargePercent: 35 }, null, { consumptionKwh100: 16.5, effectiveCapacityKwh: 75 })!.charge)
+    expect(buildLatest({ ...log, socBeforeChargePercent: 80, socAfterChargePercent: 35 }, null, { rangeKm: 409 })!.charge)
       .toMatchObject({ socFrom: null, socTo: null, rangeKm: null })
   })
 
