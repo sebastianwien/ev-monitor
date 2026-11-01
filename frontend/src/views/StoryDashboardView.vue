@@ -402,9 +402,11 @@ onUnmounted(() => unregisterReload?.())
       <div class="relative overflow-hidden md:overflow-visible">
       <div v-if="dragX !== 0" class="absolute inset-y-0 bg-gray-100 dark:bg-gray-800" :class="dragX > 0 ? 'left-0' : 'right-0'"
         :style="{ width: `${Math.abs(dragX)}px` }" aria-hidden="true" data-testid="story-swipe-strip">
-        <!-- Buchstaben über die ganze Höhe verteilt (justify), egal wie hoch die Box ist -->
-        <span class="absolute inset-y-6 whitespace-nowrap text-[26px] font-bold uppercase leading-none [text-align-last:justify] [writing-mode:vertical-rl] transition-colors"
-          :class="[dragX > 0 ? 'left-4' : 'right-4', Math.abs(dragX) >= swipeThreshold ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400']">{{ dragX > 0 ? swipeLabels.prev : swipeLabels.next }}</span>
+        <!-- Buchstaben einzeln über die ganze Höhe verteilt, egal wie hoch die Box ist; jeder gedreht wie ein Buchrücken -->
+        <span class="absolute inset-y-6 flex flex-col items-center justify-between text-[26px] font-bold uppercase leading-none transition-colors"
+          :class="[dragX > 0 ? 'left-4' : 'right-4', Math.abs(dragX) >= swipeThreshold ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400']">
+          <span v-for="(c, i) in [...(dragX > 0 ? swipeLabels.prev : swipeLabels.next) ?? '']" :key="i" class="[writing-mode:vertical-rl]">{{ c }}</span>
+        </span>
       </div>
       <section ref="heroBox" class="relative grid touch-pan-y grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box"
         :class="dragging ? '' : 'transition-transform duration-200 ease-out'" :style="dragX ? { transform: `translateX(${dragX}px)` } : undefined">
