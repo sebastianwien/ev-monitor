@@ -1,4 +1,4 @@
-package com.evmonitor.application.personalrange;
+package com.evmonitor.application.community;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -23,8 +23,19 @@ public record WltpFleetFactors(
         BigDecimal summer, int summerModels,
         BigDecimal winter, int winterModels
 ) {
-    static final int MIN_CARS_PER_MODEL = 5;
+    public static final int MIN_CARS_PER_MODEL = 5;
     static final int MIN_MODELS = 10;
+
+    /**
+     * Fixed factors while the fleet has too few models for a median: the medians measured on
+     * 11.10.2026 (1.13, 1.49, 1.21, summer rounded up).
+     */
+    public static final WltpFleetFactors FALLBACK = new WltpFleetFactors(
+            new BigDecimal("1.21"), 0, new BigDecimal("1.15"), 0, new BigDecimal("1.49"), 0);
+
+    public BigDecimal overallOrFallback() { return overall != null ? overall : FALLBACK.overall(); }
+    public BigDecimal summerOrFallback() { return summer != null ? summer : FALLBACK.summer(); }
+    public BigDecimal winterOrFallback() { return winter != null ? winter : FALLBACK.winter(); }
 
     /** One model: car count, WLTP and the community consumption values (null when missing). */
     public record Sample(int carCount, BigDecimal wltp, BigDecimal overall, BigDecimal summer, BigDecimal winter) {}

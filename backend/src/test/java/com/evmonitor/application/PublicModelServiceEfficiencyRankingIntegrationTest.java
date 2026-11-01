@@ -39,6 +39,8 @@ class PublicModelServiceEfficiencyRankingIntegrationTest extends AbstractIntegra
     void setUp() {
         cacheManager.getCache("efficientModels").clear();
         cacheManager.getCache("topModels").clear();
+        cacheManager.getCache("communityModel").clear();
+        cacheManager.getCache("fleetFactors").clear();
         userId = createAndSaveUser("efficiency-" + System.currentTimeMillis() + "@example.com").getId();
     }
 

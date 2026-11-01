@@ -42,7 +42,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class AdminVehicleSpecificationService {
 
-    static final String[] MODEL_CACHES = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData"};
+    static final String[] MODEL_CACHES = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData", "communityModel", "fleetFactors"};
 
     private final VehicleSpecificationRepository specRepository;
     private final VehicleSpecificationChangeRepository changeRepository;
@@ -67,7 +67,7 @@ public class AdminVehicleSpecificationService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData"}, allEntries = true)
+    @CacheEvict(cacheNames = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData", "communityModel", "fleetFactors"}, allEntries = true)
     public SaveResult create(UUID adminId, SpecCommand cmd) {
         SpecRules.requireHard(cmd, true);
         VehicleSpecification spec = apply(VehicleSpecification.builder()
@@ -82,7 +82,7 @@ public class AdminVehicleSpecificationService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData"}, allEntries = true)
+    @CacheEvict(cacheNames = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData", "communityModel", "fleetFactors"}, allEntries = true)
     public SaveResult update(UUID adminId, UUID id, SpecCommand cmd) {
         VehicleSpecification before = require(id);
         SpecRules.requireHard(cmd, false);
@@ -99,7 +99,7 @@ public class AdminVehicleSpecificationService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData"}, allEntries = true)
+    @CacheEvict(cacheNames = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData", "communityModel", "fleetFactors"}, allEntries = true)
     public void delete(UUID adminId, UUID id, String reason) {
         VehicleSpecification spec = require(id);
         if (reason == null || reason.isBlank()) {
@@ -116,7 +116,7 @@ public class AdminVehicleSpecificationService {
     }
 
     @Transactional
-    @CacheEvict(cacheNames = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData"}, allEntries = true)
+    @CacheEvict(cacheNames = {"modelStats", "modelsWithData", "fastChargePower", "topModels", "modelsWithoutData", "communityModel", "fleetFactors"}, allEntries = true)
     public void reassignCar(UUID adminId, UUID carId, UUID specId) {
         VehicleSpecification spec = require(specId);
         Car car = carRepository.findById(carId)

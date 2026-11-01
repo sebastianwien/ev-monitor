@@ -12,9 +12,10 @@ import java.math.BigDecimal;
  * @param tripCount          number of plausible trips used in the calculation
  * @param estimatedTripCount number of trips calculated via kWh/distance fallback (without SoC)
  */
-public record CommunityConsumptionResult(BigDecimal value, BigDecimal minValue, BigDecimal maxValue, RangeSource rangeSource, int tripCount, int estimatedTripCount) {
+public record CommunityConsumptionResult(BigDecimal value, BigDecimal minValue, BigDecimal maxValue, RangeSource rangeSource, int tripCount, int estimatedTripCount,
+                                         /** Autos mit mindestens einer plausiblen Ladung */ int carCount) {
 
     public enum RangeSource { PER_DRIVER, PER_TRIP }
 
-    public static final CommunityConsumptionResult EMPTY = new CommunityConsumptionResult(null, null, null, null, 0, 0);
+    public static final CommunityConsumptionResult EMPTY = new CommunityConsumptionResult(null, null, null, null, 0, 0, 0);
 }

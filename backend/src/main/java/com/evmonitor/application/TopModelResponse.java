@@ -12,8 +12,9 @@ import java.math.BigDecimal;
  * null when a season has no plausible trips.
  * contributorCount/carCount: drivers and cars behind logCount (data basis shown per row).
  * min/maxNetCapacityKwh: smallest and largest net battery of the model's WLTP specs.
- * typicalRangeMin/MaxKm: net capacity (small/large battery) × RangeWindow.SHARE × 100 / avgConsumption;
- * winterRangeMin/MaxKm: same with winterConsumption, null without winter data.
+ * typicalRangeMin/MaxKm: net capacity (small/large battery) on the range window (RangeMath) with the
+ * model's range consumption (RangeConsumptionPolicy: other drivers' trips, else the estimate);
+ * winterRangeMin/MaxKm: same with the winter basis, null without winter data.
  * The trailing fields are nullable so an older frontend (Blue/Green) can ignore them.
  */
 public record TopModelResponse(
@@ -46,5 +47,13 @@ public record TopModelResponse(
         Integer winterRangeMinKm,
         Integer winterRangeMaxKm,
         /** Fast-charge power on a short stop from a low SoC (75th percentile), null below 8 sessions */
-        BigDecimal fastChargePowerKw
+        BigDecimal fastChargePowerKw,
+        /**
+         * The consumption the list shows and the range rests on (RangeConsumptionPolicy, public: other
+         * drivers' trips, else their charges, else WLTP × fleet factor) with its source name and, for
+         * PEER_DRIVE, the drivers behind it. Only measured sources (PEER_DRIVE, PEER_CHARGES) may rank.
+         */
+        BigDecimal rangeConsumptionKwhPer100km,
+        String rangeConsumptionSource,
+        Integer rangeConsumptionDrivers
 ) {}

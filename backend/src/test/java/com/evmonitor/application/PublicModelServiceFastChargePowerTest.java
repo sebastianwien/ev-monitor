@@ -20,7 +20,7 @@ class PublicModelServiceFastChargePowerTest {
     private final JpaEvLogRepository evLogRepository = mock(JpaEvLogRepository.class);
     private final PublicModelService service = new PublicModelService(evLogRepository,
             mock(JpaVehicleSpecificationRepository.class), mock(JpaUserRepository.class), mock(CarRepository.class),
-            mock(EvTripRepository.class), mock(EvLogStatisticsService.class));
+            mock(EvTripRepository.class), mock(com.evmonitor.application.community.CommunityConsumptionService.class), mock(DriveConsumptionService.class));
 
     @Test
     void thePlaceholderModelForUnlistedCarsNeverEntersTheFleetMedian() {

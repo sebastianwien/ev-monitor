@@ -2,6 +2,8 @@ package com.evmonitor.application;
 
 import com.evmonitor.application.consumption.ConsumptionCalculationService;
 import com.evmonitor.application.consumption.ConsumptionMath;
+import com.evmonitor.application.community.CommunityConsumptionService;
+import com.evmonitor.application.range.RangeEstimateService;
 import com.evmonitor.domain.*;
 import com.evmonitor.domain.exception.ForbiddenException;
 import com.evmonitor.domain.exception.NotFoundException;
@@ -32,7 +34,6 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EvLogStatisticsService {
 
-    private static final int MIN_TRIPS_FOR_CAR_RANGE = 5;
     /** Unter dieser Stichprobe im Zeitraum fällt die Peer-Seite auf Lifetime zurück. */
     private static final int MIN_PEER_PERIOD_SAMPLE = 3;
 
@@ -47,6 +48,9 @@ public class EvLogStatisticsService {
     private final LocationPricing locationPricing;
     private final CacheManager cacheManager;
     private final DriveConsumptionService driveConsumptionService;
+    private final RangeEstimateService rangeEstimateService;
+    /** Modellrechnungen (Community-Schnitt, Saisons, Streckentypen), auch Basis der Modellseiten. */
+    private final CommunityConsumptionService community;
 
     public static final String PEER_SIDE_CACHE = "peerBenchmarkPeers";
 
@@ -156,9 +160,11 @@ public class EvLogStatisticsService {
             BigDecimal distanceFromTrips = (startDate != null || endDate != null)
                     ? computeOdometerDeltaDistance(carId, startDate, endDate)
                     : null;
-            return createEmptyStatisticsWithFixedCostAndDistance(fixedCosts, distanceFromTrips)
-                    .withDrive(driveConsumptionService.forStatistics(car, user,
-                            new DriveConsumptionService.Period(startDate, endDate), null));
+            // Ohne Ladung im Zeitraum bleiben Sommer und Winter aller Jahre die eigene Basis (Stufe 3)
+            SeasonalConsumptionResult allYears = community.calculateSeasonalConsumption(List.of(car), isSeedUser);
+            return withDriveAndRange(createEmptyStatisticsWithFixedCostAndDistance(fixedCosts, distanceFromTrips),
+                    car, user, new DriveConsumptionService.Period(startDate, endDate),
+                    new RangeEstimateService.OwnCharges(null, allYears.summerConsumptionKwhPer100km(), allYears.winterConsumptionKwhPer100km()));
         }
 
         // Compute per-log consumption once - used for both chart data and overall average
@@ -276,7 +282,7 @@ public class EvLogStatisticsService {
         }
 
         // Seasonal consumption - uses ALL logs (not time-filtered) for best signal
-        SeasonalConsumptionResult seasonal = calculateSeasonalConsumption(List.of(car), isSeedUser);
+        SeasonalConsumptionResult seasonal = community.calculateSeasonalConsumption(List.of(car), isSeedUser);
 
         // Peer benchmark - only when car has a vehicle spec linked
         EvLogStatisticsResponse.PeerBenchmark peerBenchmark = null;
@@ -295,7 +301,7 @@ public class EvLogStatisticsService {
                 : vehicleSpecificationRepository.findById(car.getVehicleSpecificationId()).orElse(null);
         EvLogStatisticsResponse.ChargingEfficiencySplit efficiencySplit = buildChargingEfficiencySplit(logs, spec);
 
-        return new EvLogStatisticsResponse(
+        EvLogStatisticsResponse response = new EvLogStatisticsResponse(
                 totalKwhCharged,
                 energyCostEur,
                 fixedCosts.cost(),
@@ -317,8 +323,17 @@ public class EvLogStatisticsService {
                 peerBenchmark,
                 efficiencySplit,
                 mostExpensiveLog != null ? mostExpensiveLog.getId() : null
-        ).withDrive(driveConsumptionService.forStatistics(car, user,
-                new DriveConsumptionService.Period(startDate, endDate), avgConsumptionKwhPer100km));
+        );
+        return withDriveAndRange(response, car, user, new DriveConsumptionService.Period(startDate, endDate),
+                new RangeEstimateService.OwnCharges(avgConsumptionKwhPer100km,
+                        seasonal.summerConsumptionKwhPer100km(), seasonal.winterConsumptionKwhPer100km()));
+    }
+
+    /** Fahrverbrauch und Reichweite (vier Stufen je Zeitraum) an die Statistik hängen. */
+    private EvLogStatisticsResponse withDriveAndRange(EvLogStatisticsResponse response, Car car, User user,
+                                                      DriveConsumptionService.Period period, RangeEstimateService.OwnCharges charges) {
+        DriveStatistics drive = driveConsumptionService.forStatistics(car, user, period);
+        return response.withDrive(drive).withRange(rangeEstimateService.forStatistics(car, user, period, drive, charges));
     }
 
     private EvLogStatisticsResponse createEmptyStatisticsWithFixedCost(FixedCostTotals fixedCosts) {
@@ -382,11 +397,11 @@ public class EvLogStatisticsService {
 
         // User consumption within the selected period (full log list as context for SoC/distance)
         BigDecimal userPeriodConsumption = null;
-        List<PlausibleEntry> userEntries = getPlausibleEntriesForCar(currentCar, allLogsForCurrentCar, periodLogs);
+        List<CommunityConsumptionService.PlausibleEntry> userEntries = community.getPlausibleEntriesForCar(currentCar, allLogsForCurrentCar, periodLogs);
         if (!userEntries.isEmpty()) {
             BigDecimal weighted = BigDecimal.ZERO;
             int dist = 0;
-            for (PlausibleEntry e : userEntries) {
+            for (CommunityConsumptionService.PlausibleEntry e : userEntries) {
                 weighted = weighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
                 dist += e.distanceKm();
             }
@@ -485,10 +500,10 @@ public class EvLogStatisticsService {
 
         // Peer consumption within the same period as the user side; too thin a sample falls back to lifetime
         boolean hasPeriod = startDate != null || endDate != null;
-        CommunityConsumptionResult peerConsumption = calculateCommunityAvgConsumption(nonSeedPeerCars, false, startDate, endDate);
+        CommunityConsumptionResult peerConsumption = community.calculateCommunityAvgConsumption(nonSeedPeerCars, false, startDate, endDate);
         boolean peerConsumptionLifetime = false;
         if (hasPeriod && (peerConsumption.value() == null || peerConsumption.tripCount() < MIN_PEER_PERIOD_SAMPLE)) {
-            peerConsumption = calculateCommunityAvgConsumption(nonSeedPeerCars, false);
+            peerConsumption = community.calculateCommunityAvgConsumption(nonSeedPeerCars, false);
             peerConsumptionLifetime = true;
         }
 
@@ -536,236 +551,6 @@ public class EvLogStatisticsService {
                 ? totalCost.divide(totalKwh, 4, RoundingMode.HALF_UP)
                 : null;
         return new PeerCost(avg, logCount, costLogCount);
-    }
-
-    private record PlausibleEntry(EvLog log, BigDecimal consumptionKwhPer100km, int distanceKm, boolean estimated) {}
-
-    /**
-     * Returns all plausible consumption entries for a car: SoC-based first, fallback if no SoC data.
-     * Encapsulates the two-path logic shared by community avg and seasonal calculations.
-     */
-    private List<PlausibleEntry> getPlausibleEntriesForCar(Car car, List<EvLog> allLogs, List<EvLog> statsLogs) {
-        Map<UUID, ConsumptionResult> perLog = calculationService.calculateConsumptionPerLog(
-                allLogs, calculationService.buildCapacityLookup(car), calculationService.lookupWltp(car));
-
-        List<PlausibleEntry> entries = new ArrayList<>();
-
-        // Pass 1: SoC-based consumption (plausible only)
-        for (EvLog log : statsLogs) {
-            ConsumptionResult cr = perLog.get(log.getId());
-            if (cr == null || !cr.plausible()) continue;
-            entries.add(new PlausibleEntry(log, cr.value(), cr.distanceKm(), false));
-        }
-
-        // Pass 2: Fallback kWh/distance for logs without SoC result (hybrid approach)
-        // This allows using old Sprit-Monitor imports without SoC data alongside newer logs with SoC.
-        // Marked as estimated (less accurate, but better than nothing).
-        Map<UUID, Integer> distanceByLogId = calculationService.computeDistanceByLogId(allLogs);
-        for (EvLog log : statsLogs) {
-            // Skip if already computed via SoC (plausible)
-            if (perLog.containsKey(log.getId()) && perLog.get(log.getId()).plausible()) continue;
-
-            Integer dist = distanceByLogId.get(log.getId());
-            if (dist == null || dist < plausibility.getMinTripDistanceKm()) continue;
-            if (!log.hasEnergyData()) continue;
-
-            double c = calculationService.effectiveKwhForConsumption(log).doubleValue() / dist * 100;
-            if (c < plausibility.getAbsoluteMinKwhPer100km() || c > plausibility.getAbsoluteMaxKwhPer100km()) continue;
-
-            entries.add(new PlausibleEntry(log, BigDecimal.valueOf(c).setScale(2, RoundingMode.HALF_UP), dist, true));
-        }
-        return entries;
-    }
-
-    /**
-     * Calculates the community average consumption (kWh/100km) for a list of cars.
-     *
-     * Uses the same logic as per-user statistics (SoC-based → fallback), applied per car.
-     * Results are distance-weighted across all cars to give a fair community average.
-     *
-     * isSeedUser=true: includes all logs (for demo mode).
-     * isSeedUser=false: only logs with includeInStatistics=true.
-     *
-     * Trips with implausible consumption (outside absoluteMin/Max) are excluded
-     * in the fallback path via per-trip filtering with PlausibilityProperties.
-     *
-     * @return distance-weighted avg kWh/100km, or null if no valid data
-     */
-    public CommunityConsumptionResult calculateCommunityAvgConsumption(List<Car> cars, boolean isSeedUser) {
-        return calculateCommunityAvgConsumption(cars, isSeedUser, null, null);
-    }
-
-    /**
-     * Variante mit optionalem Zeitraum: nur Logs innerhalb [startDate, endDate] zählen als Trips,
-     * die Vollhistorie bleibt Kontext für SoC- und Distanz-Differenzen (wie bei der Nutzer-Statistik).
-     */
-    public CommunityConsumptionResult calculateCommunityAvgConsumption(
-            List<Car> cars, boolean isSeedUser, java.time.LocalDate startDate, java.time.LocalDate endDate) {
-        if (cars.isEmpty()) return CommunityConsumptionResult.EMPTY;
-
-        List<UUID> carIds = cars.stream().map(Car::getId).toList();
-        Map<UUID, List<EvLog>> logsByCarId = evLogRepository.findAllByCarIds(carIds).stream()
-                .sorted(Comparator.comparing(EvLog::getLoggedAt))
-                .collect(Collectors.groupingBy(EvLog::getCarId));
-
-        BigDecimal totalWeighted = BigDecimal.ZERO;
-        int totalDistance = 0;
-        int tripCount = 0;
-        int estimatedTripCount = 0;
-        List<BigDecimal> perCarAverages = new ArrayList<>();
-        List<List<PlausibleEntry>> allCarEntries = new ArrayList<>();
-
-        for (Car car : cars) {
-            List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
-            List<EvLog> statsLogs = allLogs.stream()
-                    .filter(l -> isSeedUser || l.isIncludeInStatistics())
-                    .filter(l -> l.isLoggedWithin(startDate, endDate))
-                    .toList();
-            if (statsLogs.isEmpty()) continue;
-
-            List<PlausibleEntry> entries = getPlausibleEntriesForCar(car, allLogs, statsLogs);
-            BigDecimal carWeighted = BigDecimal.ZERO;
-            int carDistance = 0;
-            for (PlausibleEntry e : entries) {
-                BigDecimal weighted = e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm()));
-                carWeighted = carWeighted.add(weighted);
-                carDistance += e.distanceKm();
-                if (e.estimated()) estimatedTripCount++;
-            }
-            tripCount += entries.size();
-            totalWeighted = totalWeighted.add(carWeighted);
-            totalDistance += carDistance;
-            BigDecimal carAvg = ConsumptionMath.weightedAverage(carWeighted, carDistance);
-            if (carAvg != null && entries.size() >= MIN_TRIPS_FOR_CAR_RANGE) perCarAverages.add(carAvg);
-            allCarEntries.add(entries);
-        }
-
-        Collections.sort(perCarAverages);
-        BigDecimal minValue;
-        BigDecimal maxValue;
-        CommunityConsumptionResult.RangeSource rangeSource;
-        if (perCarAverages.size() >= 2) {
-            minValue = interpolatedPercentile(perCarAverages, 0.25);
-            maxValue = interpolatedPercentile(perCarAverages, 0.75);
-            rangeSource = CommunityConsumptionResult.RangeSource.PER_DRIVER;
-        } else {
-            List<BigDecimal> allTripConsumptions = allCarEntries.stream()
-                    .flatMap(Collection::stream)
-                    .map(PlausibleEntry::consumptionKwhPer100km)
-                    .sorted()
-                    .collect(Collectors.toCollection(ArrayList::new));
-            if (allTripConsumptions.size() >= MIN_TRIPS_FOR_CAR_RANGE) {
-                minValue = interpolatedPercentile(allTripConsumptions, 0.25);
-                maxValue = interpolatedPercentile(allTripConsumptions, 0.75);
-                rangeSource = CommunityConsumptionResult.RangeSource.PER_TRIP;
-            } else {
-                minValue = null;
-                maxValue = null;
-                rangeSource = null;
-            }
-        }
-
-        return new CommunityConsumptionResult(ConsumptionMath.weightedAverage(totalWeighted, totalDistance), minValue, maxValue, rangeSource, tripCount, estimatedTripCount);
-    }
-
-    /**
-     * Calculates seasonal (summer/winter) community consumption for a list of cars.
-     * Summer: April-September (months 4-9), Winter: October-March (months 1-3, 10-12).
-     *
-     * Uses the same SoC-based logic as calculateCommunityAvgConsumption(), bucketed by season.
-     * Fallback (kWh/distance) is applied per-car when no SoC data is available.
-     *
-     * @return SeasonalConsumptionResult with nullable consumptions if no data for a season
-     */
-    public SeasonalConsumptionResult calculateSeasonalConsumption(List<Car> cars, boolean isSeedUser) {
-        if (cars.isEmpty()) return new SeasonalConsumptionResult(null, null, null, 0, 0, 0, 0);
-
-        List<UUID> carIds = cars.stream().map(Car::getId).toList();
-        Map<UUID, List<EvLog>> logsByCarId = evLogRepository.findAllByCarIds(carIds).stream()
-                .sorted(Comparator.comparing(EvLog::getLoggedAt))
-                .collect(Collectors.groupingBy(EvLog::getCarId));
-
-        BigDecimal summerWeighted = BigDecimal.ZERO;
-        BigDecimal winterWeighted = BigDecimal.ZERO;
-        BigDecimal totalWeighted = BigDecimal.ZERO;
-        int summerKm = 0, winterKm = 0, totalKm = 0, summerLogCount = 0, winterLogCount = 0;
-
-        for (Car car : cars) {
-            List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
-            List<EvLog> statsLogs = allLogs.stream()
-                    .filter(l -> isSeedUser || l.isIncludeInStatistics())
-                    .toList();
-            if (statsLogs.isEmpty()) continue;
-
-            for (PlausibleEntry e : getPlausibleEntriesForCar(car, allLogs, statsLogs)) {
-                BigDecimal weighted = e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm()));
-                int month = e.log().getLoggedAt().getMonthValue();
-                totalWeighted = totalWeighted.add(weighted);
-                totalKm += e.distanceKm();
-                if (month >= 5 && month <= 8) {
-                    summerWeighted = summerWeighted.add(weighted);
-                    summerKm += e.distanceKm();
-                    summerLogCount++;
-                } else if (month == 11 || month == 12 || month == 1 || month == 2) {
-                    winterWeighted = winterWeighted.add(weighted);
-                    winterKm += e.distanceKm();
-                    winterLogCount++;
-                }
-            }
-        }
-
-        return new SeasonalConsumptionResult(
-                ConsumptionMath.weightedAverage(summerWeighted, summerKm),
-                ConsumptionMath.weightedAverage(winterWeighted, winterKm),
-                ConsumptionMath.weightedAverage(totalWeighted, totalKm),
-                summerKm, winterKm, summerLogCount, winterLogCount);
-    }
-
-    /**
-     * Community consumption per route type for a list of cars. Same plausible entries
-     * (SoC first, kWh/distance fallback) as calculateSeasonalConsumption(), bucketed by the
-     * route type of the log that closes the trip. Logs without route type count nowhere.
-     */
-    public RouteTypeConsumptionResult calculateRouteTypeConsumption(List<Car> cars, boolean isSeedUser) {
-        if (cars.isEmpty()) return RouteTypeConsumptionResult.empty();
-
-        List<UUID> carIds = cars.stream().map(Car::getId).toList();
-        Map<UUID, List<EvLog>> logsByCarId = evLogRepository.findAllByCarIds(carIds).stream()
-                .sorted(Comparator.comparing(EvLog::getLoggedAt))
-                .collect(Collectors.groupingBy(EvLog::getCarId));
-
-        Map<RouteType, BigDecimal> weighted = new java.util.EnumMap<>(RouteType.class);
-        Map<RouteType, Integer> km = new java.util.EnumMap<>(RouteType.class);
-        Map<RouteType, Integer> count = new java.util.EnumMap<>(RouteType.class);
-        java.util.Set<UUID> highwayCars = new java.util.HashSet<>();
-
-        for (Car car : cars) {
-            List<EvLog> allLogs = logsByCarId.getOrDefault(car.getId(), List.of());
-            List<EvLog> statsLogs = allLogs.stream()
-                    .filter(l -> isSeedUser || l.isIncludeInStatistics())
-                    .toList();
-            if (statsLogs.isEmpty()) continue;
-
-            for (PlausibleEntry e : getPlausibleEntriesForCar(car, allLogs, statsLogs)) {
-                RouteType type = e.log().getRouteType();
-                if (type == null) continue;
-                RouteTypeSource source = e.log().getRouteTypeSource();
-                if (source != null && !source.countsInStatistics()) continue; // Faustregel verzerrt den Autobahnwert
-                weighted.merge(type, e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())), BigDecimal::add);
-                km.merge(type, e.distanceKm(), Integer::sum);
-                count.merge(type, 1, Integer::sum);
-                if (type == RouteType.HIGHWAY) highwayCars.add(car.getId());
-            }
-        }
-
-        return new RouteTypeConsumptionResult(
-                ConsumptionMath.weightedAverage(weighted.getOrDefault(RouteType.CITY, BigDecimal.ZERO), km.getOrDefault(RouteType.CITY, 0)),
-                ConsumptionMath.weightedAverage(weighted.getOrDefault(RouteType.COMBINED, BigDecimal.ZERO), km.getOrDefault(RouteType.COMBINED, 0)),
-                ConsumptionMath.weightedAverage(weighted.getOrDefault(RouteType.HIGHWAY, BigDecimal.ZERO), km.getOrDefault(RouteType.HIGHWAY, 0)),
-                count.getOrDefault(RouteType.CITY, 0),
-                count.getOrDefault(RouteType.COMBINED, 0),
-                count.getOrDefault(RouteType.HIGHWAY, 0),
-                highwayCars.size());
     }
 
     /**
@@ -848,25 +633,6 @@ public class EvLogStatisticsService {
             case "MONTH" -> String.format("%d-%02d", date.getYear(), date.getMonthValue());
             default -> String.format("%d-%02d", date.getYear(), date.getMonthValue());
         };
-    }
-
-    /**
-     * Returns a price suggestion for the log form based on the most recent log at the same geohash.
-     * Includes the cost per kWh and the charging provider (tariff) that was used there.
-     */
-    // Linear interpolation: avoids single outliers dominating the displayed consumption range
-    private static BigDecimal interpolatedPercentile(List<BigDecimal> sorted, double p) {
-        int n = sorted.size();
-        if (n == 1) return sorted.get(0).setScale(2, RoundingMode.HALF_UP);
-        double pos = p * (n - 1);
-        int lower = (int) Math.floor(pos);
-        int upper = (int) Math.ceil(pos);
-        if (lower == upper) return sorted.get(lower).setScale(2, RoundingMode.HALF_UP);
-        double fraction = pos - lower;
-        BigDecimal lv = sorted.get(lower);
-        BigDecimal uv = sorted.get(upper);
-        return lv.add(uv.subtract(lv).multiply(BigDecimal.valueOf(fraction)))
-                 .setScale(2, RoundingMode.HALF_UP);
     }
 
     /** Price of the last paid charge at this geohash - a stored charge has no lat/lon, only its geohash. */
@@ -985,8 +751,9 @@ public class EvLogStatisticsService {
             items.add(new PeerModelComparisonItem(variant.specId(), variant.displayName(), isUserSpec,
                     variant.netBatteryCapacityKwh(), isUserSpec ? userMetrics(userCar) : null, p));
         }
-        return new PeerModelComparisonResponse(items, peers.allVariants(), peers.allVariantsWinter(),
-                driveConsumptionService.modelWinterConsumption(userCar, user.getId()));
+        BigDecimal driveWinter = driveConsumptionService.peerDrive(new DriveConsumptionService.PeerQuery(userCar.getModel(), null,
+                DriveConsumptionService.Period.ALL, DriveConsumptionService.Season.WINTER, user.getId())).consumptionKwhPer100km();
+        return new PeerModelComparisonResponse(items, peers.allVariants(), peers.allVariantsWinter(), driveWinter);
     }
 
     /** Fremde Seite des Variantenvergleichs: je Variante des Modells die Peer-Metriken, dazu alle Varianten zusammen. */
@@ -1024,7 +791,7 @@ public class EvLogStatisticsService {
             allPeerCars.addAll(peerCars);
             PeerMetrics peers = peerCars.isEmpty()
                     ? new PeerMetrics(null, null, 0)
-                    : new PeerMetrics(calculateCommunityAvgConsumption(peerCars, false).value(),
+                    : new PeerMetrics(community.calculateCommunityAvgConsumption(peerCars, false).value(),
                             calculateAvgCostPerKwhForCars(peerCars), peerCars.size());
             variants.add(new VariantPeers(spec.getId(),
                     spec.getVariantName() + " (" + spec.getBatteryCapacityKwh() + "kWh)",
@@ -1042,11 +809,11 @@ public class EvLogStatisticsService {
 
         BigDecimal userConsumption = null;
         if (!statsLogs.isEmpty()) {
-            List<PlausibleEntry> entries = getPlausibleEntriesForCar(userCar, userLogs, statsLogs);
+            List<CommunityConsumptionService.PlausibleEntry> entries = community.getPlausibleEntriesForCar(userCar, userLogs, statsLogs);
             if (!entries.isEmpty()) {
                 BigDecimal weighted = BigDecimal.ZERO;
                 int totalDist = 0;
-                for (PlausibleEntry e : entries) {
+                for (CommunityConsumptionService.PlausibleEntry e : entries) {
                     weighted = weighted.add(e.consumptionKwhPer100km().multiply(BigDecimal.valueOf(e.distanceKm())));
                     totalDist += e.distanceKm();
                 }
@@ -1085,7 +852,7 @@ public class EvLogStatisticsService {
                 .distinct()
                 .count();
         if (winterCars < MIN_PEER_WINTER_CARS) return null;
-        SeasonalConsumptionResult seasonal = calculateSeasonalConsumption(peerCars, false);
+        SeasonalConsumptionResult seasonal = community.calculateSeasonalConsumption(peerCars, false);
         return seasonal.winterLogCount() >= MIN_PEER_WINTER_LOGS ? seasonal.winterConsumptionKwhPer100km() : null;
     }
 
@@ -1093,7 +860,7 @@ public class EvLogStatisticsService {
     private PeerMetrics allVariantsMetrics(List<Car> peerCars) {
         if (peerCars.isEmpty()) return new PeerMetrics(null, null, 0);
         return new PeerMetrics(
-                calculateCommunityAvgConsumption(peerCars, false).value(),
+                community.calculateCommunityAvgConsumption(peerCars, false).value(),
                 calculateAvgCostPerKwhForCars(peerCars),
                 peerCars.size());
     }

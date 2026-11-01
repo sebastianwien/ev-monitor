@@ -1,11 +1,13 @@
 package com.evmonitor.application;
 
+import com.evmonitor.application.range.ModelRangeConsumption;
+
 import java.math.BigDecimal;
 import java.util.List;
 
 /**
  * Public aggregated statistics for a specific car model.
- * Only includes data from real (non-seed) users — anonymized and aggregated.
+ * Only includes data from real (non-seed) users - anonymized and aggregated.
  */
 public record PublicModelStatsResponse(
         String brand,
@@ -35,8 +37,22 @@ public record PublicModelStatsResponse(
         List<YearEntry> yearDistribution,
         List<RouteTypeEntry> routeTypeDistribution,
         /** Consumption per route type, null without any classified trip. Nullable for Blue/Green. */
-        RouteTypeConsumption routeTypeConsumption
+        RouteTypeConsumption routeTypeConsumption,
+        /**
+         * Consumption behind every range figure of the page and the figure the page shows as "Verbrauch"
+         * (RangeConsumptionPolicy, public: other drivers' trips, else their charges, else WLTP × fleet factor).
+         * Nullable for Blue/Green.
+         */
+        ModelRangeConsumption range
 ) {
+    /**
+     * Range figures of one battery, on the range window (100 to 10 %) and the model's range consumption;
+     * the page shows them as they are. driverRangeMin/MaxKm: thirstiest and most frugal driver, only when
+     * the range rests on the drivers' charges (PEER_CHARGES) and lies within the spread, null otherwise.
+     */
+    public record VariantRange(Integer rangeKm, Integer summerRangeKm, Integer winterRangeKm,
+                               Integer driverRangeMinKm, Integer driverRangeMaxKm) {}
+
     public record WltpVariant(
             BigDecimal batteryCapacityKwh,
             String variantName,
@@ -52,7 +68,9 @@ public record PublicModelStatsResponse(
             Integer realConsumptionTripCount,
             Integer estimatedConsumptionCount,
             String realConsumptionRangeSource,
-            SeasonalDistribution seasonalDistribution
+            SeasonalDistribution seasonalDistribution,
+            /** Nullable for Blue/Green. */
+            VariantRange range
     ) {}
 
     public record EpaVariant(
@@ -69,7 +87,9 @@ public record PublicModelStatsResponse(
             Integer realConsumptionTripCount,
             Integer estimatedConsumptionCount,
             String realConsumptionRangeSource,
-            SeasonalDistribution seasonalDistribution
+            SeasonalDistribution seasonalDistribution,
+            /** Nullable for Blue/Green. */
+            VariantRange range
     ) {}
 
     public record YearEntry(int year, int carCount) {}

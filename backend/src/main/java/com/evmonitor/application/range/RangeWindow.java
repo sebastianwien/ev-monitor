@@ -1,14 +1,16 @@
 package com.evmonitor.application.range;
 
+import com.evmonitor.domain.RangeMath;
+
 import java.math.BigDecimal;
 
 /**
- * What "range" means on the public pages: the distance from 100 to 10 % of the net battery.
- * Model list, model page, personal range result and embed tile all use this share.
+ * The range window of the public pages (100 to 10 % of the net battery) for the trip planner and the
+ * personal calculator. The value and the range formula are owned by {@link RangeMath}.
  */
 public final class RangeWindow {
 
-    public static final BigDecimal SHARE = new BigDecimal("0.9");
+    public static final BigDecimal SHARE = RangeMath.SHARE;
 
     private RangeWindow() {}
 }
