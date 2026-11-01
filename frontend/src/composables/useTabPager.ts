@@ -58,6 +58,13 @@ export function useTabPager(
     startX = x
     startY = e.touches[0].clientY
     active = true
+    // Fällt der berührte Knoten während des Wischs aus dem DOM (Monatswechsel), blubbert touchend
+    // nicht mehr bis zum Pager hoch und die Seite bliebe verschoben stehen. Am Knoten selbst kommt es an.
+    const node = e.target
+    if (node instanceof EventTarget && node !== target.value) {
+      node.addEventListener('touchend', onEnd, { passive: true, once: true })
+      node.addEventListener('touchcancel', onEnd, { passive: true, once: true })
+    }
     decided = false
     horizontal = false
   }
