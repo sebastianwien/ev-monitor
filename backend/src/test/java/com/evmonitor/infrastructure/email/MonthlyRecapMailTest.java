@@ -1,6 +1,10 @@
 package com.evmonitor.infrastructure.email;
 
 import com.evmonitor.application.recap.MonthlyRecap;
+import com.evmonitor.application.recap.RecapHighlights;
+import com.evmonitor.application.recap.RecapHighlights.PeerConsumption;
+import com.evmonitor.application.recap.RecapHighlights.Place;
+import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.application.recap.MonthlyRecap.PricelessHint;
 import org.junit.jupiter.api.Test;
@@ -8,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,7 +35,7 @@ class MonthlyRecapMailTest {
         assertThat(mail.html())
                 .contains("Dein August mit dem Model 3")
                 .contains("1.766 km, 903 km mehr als im Juli.")
-                .contains("Gespart gegenüber einem Benziner")
+                .contains("Gespart gegenüber einem Verbrenner")
                 .contains("128,91 €")
                 .contains("Strom <b>147,37 €</b>")
                 .contains("rund 276 €")
@@ -167,12 +172,12 @@ class MonthlyRecapMailTest {
     @Test
     void footnote_namesTheLitresAndTheClassOfTheCar() {
         Recap r = ihle();
-        assertThat(render(r).html()).contains("7,6 l/100 km für einen Benziner der Klasse Mittelklasse bei ");
+        assertThat(render(r).html()).contains("7,6 l/100 km Benzin für einen Verbrenner der Klasse Mittelklasse bei ");
 
         r.locale = "en";
         r.liters = "8.4";
         r.category = VehicleCategory.SUV;
-        assertThat(render(r).html()).contains("8.4 l/100 km for a petrol car in the SUV class at ");
+        assertThat(render(r).html()).contains("8.4 l/100 km of petrol for a combustion car in the SUV class at ");
     }
 
     @Test
@@ -183,8 +188,40 @@ class MonthlyRecapMailTest {
         assertThat(render(r).html()).contains("&lt;b&gt;x&lt;/b&gt;").doesNotContain("<b>x</b>");
     }
 
+    @Test
+    void highlights_rankLineInGerman_podiumPlacesJoined() {
+        RecapHighlights h = new RecapHighlights(List.of(
+                new Place(LeaderboardCategory.MONTHLY_DISTANCE, 2), new Place(LeaderboardCategory.MONTHLY_KWH, 3)), null);
+
+        String html = render(ihle(), h).html();
+
+        assertThat(html).contains("Platz 2 bei Längste Strecke · Platz 3 bei Meiste kWh.").doesNotContain("andere Fahrer deines Modells");
+    }
+
+    @Test
+    void highlights_peerLineInEnglish_withOneDecimalAndTheMonth() {
+        Recap r = ihle();
+        r.locale = "en";
+        RecapHighlights h = new RecapHighlights(List.of(new Place(LeaderboardCategory.MONTHLY_POWER_CHARGER, 7)),
+                new PeerConsumption(new BigDecimal("15.24"), new BigDecimal("16.8")));
+
+        String html = render(r, h).html();
+
+        assertThat(html).contains("Rank 7 in Fastest Charger.")
+                .contains("You: 15.2 kWh/100 km, other drivers of your model in August: 16.8.");
+    }
+
+    @Test
+    void highlights_none_leavesNoEmptyParagraph() {
+        assertThat(render(ihle(), RecapHighlights.NONE).html()).doesNotContain("Platz ").doesNotContain("deines Modells").doesNotContain("{{rankLine}}");
+    }
+
     private MonthlyRecapMail.Rendered render(Recap r) {
-        return MonthlyRecapMail.render(r.build(), UNSUBSCRIBE, PRICE_URL);
+        return render(r, RecapHighlights.NONE);
+    }
+
+    private MonthlyRecapMail.Rendered render(Recap r, RecapHighlights highlights) {
+        return MonthlyRecapMail.render(r.build(), highlights, UNSUBSCRIBE, PRICE_URL);
     }
 
     /** Veränderbarer Baukasten, damit jeder Test nur sein Feld setzt. */
