@@ -11,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.sql.Date;
 import java.time.LocalDate;
@@ -29,8 +28,6 @@ class SeoSyncServiceTest extends AbstractIntegrationTest {
     private static final LocalDate DAY = LocalDate.of(2026, 10, 14);
     private static final String HOST = "https://example.test";
 
-    @MockitoBean
-    private GscClient gscClient;
 
     @Autowired
     private SeoSyncService service;

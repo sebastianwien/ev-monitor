@@ -10,7 +10,6 @@ import com.evmonitor.domain.User;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
@@ -30,13 +29,10 @@ import static org.mockito.Mockito.when;
 /**
  * Integration tests for LiveController.
  *
- * LiveChargingService (the connectors-service proxy) is MockBean'd to isolate
+ * LiveChargingService (the connectors-service proxy) is mocked in the base class and stubbed here to isolate
  * the controller logic (auth/ownership/tier gate) from the actual HTTP call.
  */
 class LiveControllerTest extends AbstractIntegrationTest {
-
-    @MockBean
-    private LiveChargingService liveChargingService;
 
     private User liveUser;
     private User tier1User;

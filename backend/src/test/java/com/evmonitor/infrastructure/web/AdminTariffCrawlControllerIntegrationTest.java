@@ -1,6 +1,5 @@
 package com.evmonitor.infrastructure.web;
 
-import com.evmonitor.application.tariff.crawl.TariffCrawlScheduler;
 import com.evmonitor.domain.ChargingProviderTariff;
 import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.domain.ChargingType;
@@ -18,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -40,7 +38,6 @@ class AdminTariffCrawlControllerIntegrationTest extends AbstractIntegrationTest 
 
     private static final String URL = "/api/admin/charging-tariffs/crawl";
 
-    @MockitoBean TariffCrawlScheduler scheduler;
 
     @Autowired JpaEmpRepository emps;
     @Autowired JpaTariffSourceRepository sources;
@@ -145,7 +142,7 @@ class AdminTariffCrawlControllerIntegrationTest extends AbstractIntegrationTest 
 
     @Test
     void run_startsInTheBackground_orSaysThatOneIsRunning() {
-        when(scheduler.tryStartManual()).thenReturn(true, false);
+        when(tariffCrawlScheduler.tryStartManual()).thenReturn(true, false);
 
         assertThat(send(HttpMethod.POST, URL + "/run", null).getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
         assertThat(send(HttpMethod.POST, URL + "/run", null).getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
