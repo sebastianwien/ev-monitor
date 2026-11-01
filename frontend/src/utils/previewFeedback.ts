@@ -13,7 +13,7 @@ export interface PreviewFeedbackInput {
 
 export function previewFeedbackMailto(input: PreviewFeedbackInput): string {
   const { to, path, width, dark, userAgent, texts } = input
-  const subject = `${texts.subject}: ${path.split('?')[0]}`
+  const subject = `${texts.subject}: ${path.split(/[?#]/)[0]}`
   const body = [
     texts.prompt,
     '',

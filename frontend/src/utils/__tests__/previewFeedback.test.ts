@@ -22,6 +22,11 @@ describe('previewFeedbackMailto', () => {
     expect(body).toContain('Mozilla/5.0 (iPhone)')
   })
 
+  it('lässt Hash aus dem Betreff', () => {
+    const h = previewFeedbackMailto({ to: 'a@b.c', path: '/logs#x', width: 1, dark: false, userAgent: 'u', texts })
+    expect(new URLSearchParams(h.split('?')[1]).get('subject')).toBe('Preview-Feedback: /logs')
+  })
+
   it('kodiert Leerzeichen als %20, nicht als +', () => {
     expect(href).not.toContain('+')
     expect(href).toContain('%20')
