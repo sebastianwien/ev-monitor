@@ -1,6 +1,7 @@
 import type { RankedModel } from '../composables/useModelRanking'
 import type { WltpVariant } from '../api/publicModelService'
-import { rangeKm } from './modelStory'
+import { roundRange } from './modelStory'
+import { shownConsumption } from './modelConsumption'
 import { consumptionDeltaPercent } from './unitConversions'
 
 /**
@@ -53,15 +54,15 @@ export function variantsWithTrips(variants: WltpVariant[]): WltpVariant[] {
 
 /**
  * A ranked model on one chosen battery, by the model page's rule: consumption stays the drivers'
- * mean, range and winter range follow the battery (rangeKm), WLTP and battery the variant. The
+ * mean, range and winter range are the variant's API figures (RangeMath), WLTP and battery the variant. The
  * motorway ladder, commute and trip were worked out by the server on the largest battery, so a
  * smaller battery drops them; the monthly cost does not depend on the battery and stays.
  */
 export function applyVariant(item: RankedModel, variant: WltpVariant): RankedModel {
   const kwh = variant.batteryCapacityKwh
   const m = item.model
-  const range = rangeKm(kwh, m.avgConsumptionKwhPer100km)
-  const winterRange = rangeKm(kwh, m.winterConsumptionKwhPer100km ?? null)
+  const range = roundRange(variant.range?.rangeKm)
+  const winterRange = roundRange(variant.range?.winterRangeKm)
   const wltp = variant.wltpConsumptionKwhPer100km ?? item.wltpKwhPer100km
   const largest = m.maxNetCapacityKwh == null || kwh >= m.maxNetCapacityKwh - 0.5
   return {
@@ -76,7 +77,7 @@ export function applyVariant(item: RankedModel, variant: WltpVariant): RankedMod
       winterRangeMaxKm: winterRange,
     },
     wltpKwhPer100km: wltp,
-    wltpDeviationPct: wltp != null && wltp > 0 && m.avgConsumptionKwhPer100km != null ? consumptionDeltaPercent(m.avgConsumptionKwhPer100km, wltp) : null,
+    wltpDeviationPct: wltp != null && wltp > 0 && shownConsumption(m) != null ? consumptionDeltaPercent(shownConsumption(m)!, wltp) : null,
     ladder: largest ? item.ladder : null,
     needs: largest || !item.needs ? item.needs : { ...item.needs, commute: null, trip: null },
   }

@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts">
-import type { SeasonalDistribution } from '../../api/publicModelService'
+import type { SeasonalDistribution, VariantRange } from '../../api/publicModelService'
 
 /** Normalized variant - same shape regardless of WLTP or EPA source */
 export interface ActiveVariant {
@@ -46,13 +46,15 @@ export interface ActiveVariant {
   estimatedConsumptionCount: number | null
   realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
   seasonalDistribution: SeasonalDistribution | null
+  /** Reichweiten dieser Batterie vom Backend; null bei älterem Backend. */
+  range: VariantRange | null
 }
 </script>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { rangeKm } from '../../utils/modelStory'
+import { roundRange } from '../../utils/modelStory'
 
 defineProps<{ variants: ActiveVariant[]; ratingLabel: string }>()
 const { t } = useI18n()
@@ -71,11 +73,10 @@ function officialConsumption(v: ActiveVariant): string | null {
   return v.officialConsumptionKwhPer100km ? formatConsumption(v.officialConsumptionKwhPer100km) : null
 }
 
-/** Same rule as the data sheet: 90 % of the net battery, rounded to 10 km; both seasons or nothing */
+/** The API's seasonal ranges of this battery (RangeMath, 100 to 10 %), rounded to 10 km; both seasons or nothing */
 function seasonRange(v: ActiveVariant): string | null {
-  const s = v.seasonalDistribution
-  const summer = rangeKm(v.batteryCapacityKwh, s?.summerConsumptionKwhPer100km ?? null)
-  const winter = rangeKm(v.batteryCapacityKwh, s?.winterConsumptionKwhPer100km ?? null)
+  const summer = roundRange(v.range?.summerRangeKm)
+  const winter = roundRange(v.range?.winterRangeKm)
   if (summer == null || winter == null) return null
   return `${formatDistance(summer, { showUnit: false })} / ${formatDistance(winter)}`
 }

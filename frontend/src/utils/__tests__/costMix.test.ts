@@ -2,8 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   COST_DEFAULTS, HOME_SHARE_WHEN_HOME, COMBUSTION_MARKETS, COMBUSTION_LITERS_BY_CLASS, COMBUSTION_LITERS_FALLBACK,
   effectiveHomeShare, mixedPricePerKwh, combustionLiters, combustionCostPer100km, savingsPer100km, savingsPerYear,
-  combustionAllowed, isCostAssumptions, type CostAssumptions,
-} from '../costMix'
+  combustionAllowed, isCostAssumptions, type CostAssumptions, plugKwhPer100km } from '../costMix'
 
 const base: CostAssumptions = {
   ...COST_DEFAULTS,
@@ -91,5 +90,15 @@ describe('costMix', () => {
     expect(isCostAssumptions({ ...base, litersPer100km: null })).toBe(true)
     expect(isCostAssumptions({ ...base, homePricePerKwh: 'x' })).toBe(false)
     expect(isCostAssumptions(null)).toBe(false)
+  })
+})
+
+describe('plugKwhPer100km', () => {
+  it('adds the charging losses of where the buyer charges, mixed like the price', () => {
+    const e = { home: 0.95, public: 0.9 }
+    expect(plugKwhPer100km(19, 1, e)).toBeCloseTo(20.0, 6)
+    expect(plugKwhPer100km(19, 0, e)).toBeCloseTo(21.111, 3)
+    expect(plugKwhPer100km(19, 0.5, e)).toBeCloseTo(20.556, 3)
+    expect(plugKwhPer100km(null, 1, e)).toBeNull()
   })
 })

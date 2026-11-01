@@ -281,6 +281,7 @@
 </template>
 
 <script setup lang="ts">
+import { shownConsumption } from '../utils/modelConsumption'
 import { computed, onMounted, ref, toRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
@@ -489,7 +490,7 @@ const shownCount = computed(() => collapsed.value ? LIST_PREVIEW : ranked.value.
 // Axis from all models (not the filtered list), so it stays put while filtering.
 const axis = computed(() => buildLadderAxis(
   models.value.flatMap(m => [
-    m.avgConsumptionKwhPer100km, m.avgWltpConsumptionKwhPer100km, m.minWltpConsumptionKwhPer100km,
+    shownConsumption(m), m.avgWltpConsumptionKwhPer100km, m.minWltpConsumptionKwhPer100km,
     m.maxWltpConsumptionKwhPer100km, m.minRealConsumptionKwhPer100km, m.maxRealConsumptionKwhPer100km,
   ]),
   unitSystem.value.consumptionUnit,

@@ -3,7 +3,8 @@
  * (four tiles: range, consumption, charging, cost) and the evidence behind it (range by season,
  * consumption by route type). Each tile is rated FULL (measured), PARTIAL (the model has logs but
  * not this figure) or NONE (spec only). Pure: all values come from the public stats response, no
- * consumption formula of its own beyond range = net battery × 0.9 / consumption.
+ * consumption formula of its own; the measured ranges come from the API (RangeMath, 100 to 10 %),
+ * only the prospectus figure is put on the same window here.
  */
 
 import { AC_CHARGING_EFFICIENCY, DC_CHARGING_EFFICIENCY } from './consumptionPreview'
@@ -25,9 +26,12 @@ export interface StoryInput {
   wltpKwhPer100km: number | null
   wltpRangeKm: number | null
   avgKwhPer100km: number | null
-  /** the most frugal and the thirstiest driver of the model (story context), for the spread in the hero */
-  minKwhPer100km?: number | null
-  maxKwhPer100km?: number | null
+  /**
+   * Ranges of the chosen battery from the API (RangeMath on the model's range consumption: other drivers'
+   * trips, else the estimate), all on 100 to 10 %; driverMin/Max: thirstiest to most frugal driver, only
+   * when the basis is charges. Null without a measured range.
+   */
+  range: { realKm: number | null; summerKm: number | null; winterKm: number | null; driverMinKm: number | null; driverMaxKm: number | null } | null
   /** typedMean: mean of all route-typed trips, the base the highway value is compared with (same period) */
   routeType: { highway: number | null; city: number | null; combined: number | null; highwayCars: number; highwayLogs?: number; cityLogs: number; combinedLogs: number; typedMean?: number | null } | null
   /** null when either season has too few logs */
@@ -113,7 +117,8 @@ export interface ModelStory {
   evidence: ModelEvidence
 }
 
-const RANGE_SHARE = 0.9
+/** The window every range of the page sits on (100 to 10 %); applied here only to the prospectus figure */
+const WINDOW_SHARE = 0.9
 const STOP_SHARE = 0.7
 /** A normal charge, overnight at the wallbox: 20 to 80 % */
 const NORMAL_SHARE = 0.6
@@ -137,24 +142,23 @@ export function fastChargePrice(d: Pick<StoryInput, 'fastAdHocPricePerKwh' | 'dc
 
 /** WLTP counts 100 to 0 %, the drivers 100 to 10 %: the comparison puts the prospectus on the same window. */
 export function prospectKm(wltpKm: number | null): number | null {
-  return wltpKm ? Math.round(wltpKm * RANGE_SHARE / 10) * 10 : null
+  return wltpKm ? Math.round(wltpKm * WINDOW_SHARE / 10) * 10 : null
 }
 
-/** Range on 90 % of the net battery, rounded to 10 km like the hero figure. */
-export function rangeKm(netKwh: number | null, kwhPer100km: number | null): number | null {
-  if (!netKwh || !kwhPer100km) return null
-  return Math.round(netKwh * RANGE_SHARE / kwhPer100km * 10) * 10
+/** The API figure rounded to 10 km like the hero; null without one. */
+export function roundRange(km: number | null | undefined): number | null {
+  return km == null ? null : Math.round(km / 10) * 10
 }
 
 export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
   const hasLogs = d.logCount > 0 && d.avgKwhPer100km != null
   const level: StoryLevel = hasLogs ? 'FULL' : 'NONE'
-  const realRangeKm = rangeKm(d.netBatteryKwh, d.avgKwhPer100km)
+  const realRangeKm = hasLogs ? roundRange(d.range?.realKm) : null
   const prospectRangeKm = prospectKm(d.wltpRangeKm)
-  const thirstiest = hasLogs ? rangeKm(d.netBatteryKwh, d.maxKwhPer100km ?? null) : null
-  const frugal = hasLogs ? rangeKm(d.netBatteryKwh, d.minKwhPer100km ?? null) : null
-  const summerRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.summer) : null
-  const winterRangeKm = d.seasonal ? rangeKm(d.netBatteryKwh, d.seasonal.winter) : null
+  const thirstiest = hasLogs ? roundRange(d.range?.driverMinKm) : null
+  const frugal = hasLogs ? roundRange(d.range?.driverMaxKm) : null
+  const summerRangeKm = hasLogs ? roundRange(d.range?.summerKm) : null
+  const winterRangeKm = hasLogs ? roundRange(d.range?.winterKm) : null
   const p = { model: d.modelName, brand: d.brandName, cars: f.formatNumber(d.carCount), drivers: f.formatNumber(d.driverCount) }
 
   const heroSentence = !hasLogs || realRangeKm == null

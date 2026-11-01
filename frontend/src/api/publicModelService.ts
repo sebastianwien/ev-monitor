@@ -38,6 +38,35 @@ export interface WltpVariant {
     estimatedConsumptionCount: number | null
     realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
     seasonalDistribution: SeasonalDistribution | null
+    /** Reichweiten dieser Batterie vom Backend (Fenster 100 auf 10 %); fehlt bei älterem Backend. */
+    range?: VariantRange | null
+}
+
+/** km je Variante auf der Reichweiten-Basis des Modells; Fahrerspanne nur, wenn die Basis Ladungen sind. */
+export interface VariantRange {
+    rangeKm: number | null
+    summerRangeKm: number | null
+    winterRangeKm: number | null
+    driverRangeMinKm: number | null
+    driverRangeMaxKm: number | null
+}
+
+/**
+ * Stufe der Reichweiten-Basis auf den öffentlichen Seiten, zugleich der angezeigte Verbrauch: Fahrten
+ * anderer Fahrer, sonst ihre Ladungen, ohne jede Ladung WLTP mal Flottenfaktor.
+ */
+export interface ModelRangeBasis {
+    consumptionKwhPer100km: number
+    source: 'PEER_DRIVE' | 'PEER_CHARGES' | 'WLTP_ESTIMATE'
+    scope: 'VARIANT' | 'MODEL' | null
+    /** Fahrer hinter einem PEER_DRIVE-Wert, sonst 0 */
+    users: number
+}
+
+export interface ModelRangeConsumption {
+    overall: ModelRangeBasis | null
+    summer: ModelRangeBasis | null
+    winter: ModelRangeBasis | null
 }
 
 export interface EpaVariant {
@@ -55,6 +84,7 @@ export interface EpaVariant {
     estimatedConsumptionCount: number | null
     realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
     seasonalDistribution: SeasonalDistribution | null
+    range?: VariantRange | null
 }
 
 export interface SeasonalDistribution {
@@ -115,6 +145,8 @@ export interface PublicModelStats {
     yearDistribution: YearEntry[]
     routeTypeDistribution: RouteTypeEntry[]
     routeTypeConsumption: RouteTypeConsumption | null
+    /** Verbrauch hinter allen Reichweiten der Seite und die angezeigte Zahl; fehlt bei älterem Backend. */
+    range?: ModelRangeConsumption | null
 }
 
 export function getModelStats(brand: string, model: string): Promise<PublicModelStats | null> {
@@ -186,6 +218,10 @@ export interface TopModelPreview {
     winterRangeMaxKm?: number | null
     /** Fast-charge power on a short stop from a low SoC (75th percentile of short DC sessions), null below 8 sessions */
     fastChargePowerKw?: number | null
+    /** The shown consumption and the range basis (RangeConsumptionPolicy) with its source; see utils/modelConsumption.ts */
+    rangeConsumptionKwhPer100km?: number | null
+    rangeConsumptionSource?: 'PEER_DRIVE' | 'PEER_CHARGES' | 'WLTP_ESTIMATE' | null
+    rangeConsumptionDrivers?: number | null
 }
 
 /** A model with a WLTP spec but no community logs yet (spec values only). */
@@ -223,6 +259,9 @@ export interface ChargingReferencePrices {
     combustionLitersPer100km?: number | null
     /** fast charging without a subscription in Germany: mean contract-free DC price of the big networks */
     fastAdHocPricePerKwh?: number | null
+    /** battery kWh per plug kWh at home (AC) and on the road (DC); optional for an older backend */
+    homeChargingEfficiency?: number | null
+    publicChargingEfficiency?: number | null
 }
 
 /** Normalized community reference prices (home vs public) for the model comparison slider. */

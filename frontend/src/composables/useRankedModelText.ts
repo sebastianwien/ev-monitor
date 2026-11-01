@@ -4,6 +4,7 @@ import { useLocaleFormat } from './useLocaleFormat'
 import { convertCostPerDistance } from '../utils/unitConversions'
 import type { RankedModel } from './useModelRanking'
 import type { FuelKind } from '../utils/costMix'
+import { shownConsumption } from '../utils/modelConsumption'
 import { chargeRhythmText, type RhythmFormat } from '../utils/chargeRhythm'
 
 /** One tile of "Für dich": the answer and its fine print */
@@ -81,14 +82,14 @@ export function useRankedModelText(item: () => RankedModel, longestTripKm: () =>
   }
   /** Deviation as the reader sees it: in mi/kWh more is better, so the sign flips. */
   const displayWltpDeviation = computed(() => {
-    const real = m.value.avgConsumptionKwhPer100km
+    const real = shownConsumption(m.value)
     const wltp = item().wltpKwhPer100km
     if (real == null || wltp == null || real <= 0 || wltp <= 0) return null
     return unitSystem.value.consumptionInverse ? ((wltp - real) / real) * 100 : item().wltpDeviationPct
   })
 
   // ── The row's cells: consumption, cost per 100 km, range ─────────────────
-  const realText = computed(() => formatConsumption(m.value.avgConsumptionKwhPer100km, { showUnit: false }))
+  const realText = computed(() => formatConsumption(shownConsumption(m.value), { showUnit: false }))
   const wltpText = computed(() => formatConsumption(item().wltpKwhPer100km, { showUnit: false }))
   /** "5,93 €": per 100 km of the market's unit, the column head names the distance */
   const electricityCost = computed(() => item().costPer100kmEur != null

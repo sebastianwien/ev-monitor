@@ -67,6 +67,8 @@ const variant = (o: Partial<WltpVariant>): WltpVariant => ({
   wltpConsumptionKwhPer100km: 15.5, wltpConsumptionMinKwhPer100km: null, wltpConsumptionMaxKwhPer100km: null,
   realConsumptionKwhPer100km: null, realConsumptionMinKwhPer100km: null, realConsumptionMaxKwhPer100km: null,
   realConsumptionTripCount: null, estimatedConsumptionCount: null, realConsumptionRangeSource: null, seasonalDistribution: null,
+  // the API's ranges of this battery (RangeMath): 58 kWh on 19.2 → 272, winter 22.7 → 230
+  range: { rangeKm: 272, summerRangeKm: null, winterRangeKm: 230, driverRangeMinKm: null, driverRangeMaxKm: null },
   ...o,
 })
 
@@ -93,7 +95,7 @@ describe('applyVariant', () => {
     const r = applyVariant(item, variant({ batteryCapacityKwh: 58, wltpConsumptionKwhPer100km: 15.0 }))
     expect(r.model.minNetCapacityKwh).toBe(58)
     expect(r.model.maxNetCapacityKwh).toBe(58)
-    // 58 kWh × 0,9 ÷ 19,2 × 100, rounded to 10 km like the model page
+    // the variant's API range (272), rounded to 10 km like the model page
     expect(r.model.typicalRangeMinKm).toBe(270)
     expect(r.model.typicalRangeMaxKm).toBe(270)
     expect(r.model.winterRangeMaxKm).toBe(230)

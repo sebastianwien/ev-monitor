@@ -82,6 +82,21 @@ export function mixedPricePerKwh(a: Pick<CostAssumptions, 'homePricePerKwh' | 'p
   return homeShare * a.homePricePerKwh + (1 - homeShare) * a.publicPricePerKwh
 }
 
+/** Battery kWh per plug kWh at home (AC) and on the road (DC), from the backend's PlausibilityProperties via /charging-prices. */
+export interface ChargingEfficiency { home: number; public: number }
+/** The backend's defaults (application.yml), used until the API answers or on an older backend */
+export const CHARGING_EFFICIENCY_FALLBACK: ChargingEfficiency = { home: 0.95, public: 0.95 }
+
+/**
+ * kWh paid for per 100 km: the drivers' battery-side consumption plus the charging losses, mixed by the
+ * same home share as the price. Multiply by mixedPricePerKwh for the cost per 100 km, as the backend
+ * calculator does for the monthly cost.
+ */
+export function plugKwhPer100km(batteryKwhPer100km: number | null, homeShare: number, e: ChargingEfficiency): number | null {
+  if (batteryKwhPer100km == null) return null
+  return batteryKwhPer100km * (homeShare / e.home + (1 - homeShare) / e.public)
+}
+
 type CombustionInput = Pick<CostAssumptions, 'litersPer100km' | 'fuel' | 'fuelPricePerLiter'>
 
 export function combustionCostPer100km(a: CombustionInput, category: string | null | undefined): number | null {

@@ -62,6 +62,7 @@
                 <p v-if="story.prospectRangeKm != null && story.realRangeKm != null && storyInput.wltpRangeKm" class="max-w-[46ch] text-[15px] leading-relaxed text-gray-700 md:col-start-1 md:row-start-2 md:self-start md:text-[17px] dark:text-gray-300" data-testid="hero-basis">
                   <!-- the battery window only from md up; on the phone the gauge right above says it -->
                   <span class="hidden md:inline">{{ t('model.page.hero_basis') + ' ' }}</span>
+                  <template v-if="rangeSource">{{ rangeSource + ' ' }}</template>
                   <template v-if="story.driverRangeKm">{{ t('model.page.hero_spread', { min: formatDistance(story.driverRangeKm.minKm, { showUnit: false }), max: formatDistance(story.driverRangeKm.maxKm) }) + ' ' }}</template>
                   {{ t('model.page.hero_depends') }}
                 </p>
@@ -203,15 +204,18 @@
             <p>
               {{ t('model.seo_intro', { model: stats.modelDisplayName }) }}
               <template v-if="bestOfficialRange"> {{ t('model.seo_wltp_range', { range: formatDistance(bestOfficialRange), ratingLabel }) }}</template>.
-              <template v-if="stats.avgConsumptionKwhPer100km">
-                <template v-if="consumptionDataQuality === 'good'">
-                  {{ t('model.seo_consumption_good', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), sessions: formatNumber(stats.logCount), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
+              <template v-if="shownConsumption">
+                <template v-if="consumptionFromTrips">
+                  {{ t('model.seo_consumption_drive', { consumption: formatConsumption(shownConsumption), drivers: formatNumber(consumptionDrivers) }) }}
+                </template>
+                <template v-else-if="consumptionDataQuality === 'good'">
+                  {{ t('model.seo_consumption_good', { consumption: formatConsumption(shownConsumption), sessions: formatNumber(stats.logCount), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
                 </template>
                 <template v-else-if="consumptionDataQuality === 'low'">
-                  {{ t('model.seo_consumption_low', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
+                  {{ t('model.seo_consumption_low', { consumption: formatConsumption(shownConsumption), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
                 </template>
                 <template v-else>
-                  {{ t('model.seo_consumption_sparse', { consumption: formatConsumption(stats.avgConsumptionKwhPer100km), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
+                  {{ t('model.seo_consumption_sparse', { consumption: formatConsumption(shownConsumption), count: formatNumber(Math.min(consumptionDataCount, stats.logCount)) }) }}
                 </template>
               </template>
               <template v-else>
@@ -231,7 +235,7 @@
               <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_wltp_title', { ratingLabel }) }}</h3>
               <p>
                 {{ t('model.seo_wltp_intro', { ratingLabel }) }}
-                <template v-if="stats.avgConsumptionKwhPer100km && worstOfficialConsumption">
+                <template v-if="shownConsumption && worstOfficialConsumption">
                   {{ t('model.seo_wltp_delta', { delta: wltpDeltaPercent, ratingLabel }) }}
                 </template>
               </p>
@@ -318,7 +322,7 @@ import ModelEvidence from '../components/models/ModelEvidence.vue'
 import ModelVariantsList, { type ActiveVariant } from '../components/models/ModelVariantsList.vue'
 import ProfileQuestions from '../components/models/ProfileQuestions.vue'
 import { useProfileSliders, type ProfileValues } from '../composables/useProfileSliders'
-import { buildModelStory, fastChargePrice, fastStop, keepUnits, prospectKm, rangeKm, type StoryInput } from '../utils/modelStory'
+import { buildModelStory, fastChargePrice, fastStop, keepUnits, prospectKm, roundRange, type StoryInput } from '../utils/modelStory'
 import type { PersonalRangeInputs } from '../api/personalRangeService'
 import { analytics } from '../services/analytics'
 import { useDrivingProfile, highwayPercent, PROFILE_KEYS, type ProfileKey } from '../composables/useDrivingProfile'
@@ -437,6 +441,7 @@ const activeVariants = computed<ActiveVariant[]>(() => {
       estimatedConsumptionCount: v.estimatedConsumptionCount,
       realConsumptionRangeSource: v.realConsumptionRangeSource,
       seasonalDistribution: v.seasonalDistribution,
+      range: v.range ?? null,
     }))
   }
   return stats.value.wltpVariants.map(v => ({
@@ -455,6 +460,7 @@ const activeVariants = computed<ActiveVariant[]>(() => {
     estimatedConsumptionCount: v.estimatedConsumptionCount,
     realConsumptionRangeSource: v.realConsumptionRangeSource,
     seasonalDistribution: v.seasonalDistribution,
+    range: v.range ?? null,
   }))
 })
 
@@ -484,9 +490,9 @@ const petrolComparison = computed(() => currentMarket.value === 'de' && petrolPr
     }
   : null)
 
-/** One card per battery in the picker: the same range rule as the hero (net battery × 0,9 ÷ model mean) */
+/** One card per battery in the picker: the API's range of that battery, the same figure as the hero */
 const variantOptions = computed((): VariantOption[] => activeVariants.value.map((v, i) => {
-  const real = rangeKm(v.batteryCapacityKwh, stats.value?.avgConsumptionKwhPer100km ?? null)
+  const real = shownConsumption.value ? roundRange(v.range?.rangeKm) : null
   const wltp = real != null ? prospectKm(v.officialRangeKm)! : v.officialRangeKm
   return {
     key: `${i}-${v.displayLabel ?? v.batteryCapacityKwh}`,
@@ -521,9 +527,9 @@ const storyInput = computed((): StoryInput => {
     netBatteryKwh: v?.batteryCapacityKwh ?? null,
     wltpKwhPer100km: v?.officialConsumptionKwhPer100km ?? worstOfficialConsumption.value,
     wltpRangeKm: v?.officialRangeKm ?? bestOfficialRange.value,
-    avgKwhPer100km: st.avgConsumptionKwhPer100km,
-    minKwhPer100km: storyContext.value?.minRealKwhPer100km ?? v?.realConsumptionMinKwhPer100km ?? null,
-    maxKwhPer100km: storyContext.value?.maxRealKwhPer100km ?? v?.realConsumptionMaxKwhPer100km ?? null,
+    avgKwhPer100km: shownConsumption.value,
+    range: v?.range ? { realKm: v.range.rangeKm, summerKm: v.range.summerRangeKm, winterKm: v.range.winterRangeKm,
+      driverMinKm: v.range.driverRangeMinKm, driverMaxKm: v.range.driverRangeMaxKm } : null,
     routeType: rt ? { highway: rt.highwayKwhPer100km, city: rt.cityKwhPer100km, combined: rt.combinedKwhPer100km,
       highwayCars: rt.highwayCarCount, highwayLogs: rt.highwayLogCount, cityLogs: rt.cityLogCount, combinedLogs: rt.combinedLogCount, typedMean: rt.typedMeanKwhPer100km ?? null } : null,
     seasonal: seasonOk ? { summer: season.summerConsumptionKwhPer100km!, winter: season.winterConsumptionKwhPer100km!,
@@ -533,6 +539,23 @@ const storyInput = computed((): StoryInput => {
     fastAdHocPricePerKwh: fastAdHocForMarket.value,
     fleetWinterFactor: fleetWinterFactor.value,
   }
+})
+
+/**
+ * The consumption the whole page shows and the range rests on (RangeConsumptionPolicy, public: other drivers'
+ * trips, else their charges, else WLTP × fleet factor); the charge figure on an older backend.
+ */
+const shownConsumption = computed(() => stats.value?.range?.overall?.consumptionKwhPer100km ?? stats.value?.avgConsumptionKwhPer100km ?? null)
+const consumptionFromTrips = computed(() => stats.value?.range?.overall?.source === 'PEER_DRIVE')
+const consumptionDrivers = computed(() => stats.value?.range?.overall?.users ?? 0)
+
+/** For the connoisseur: where the shown consumption and the drivers' range come from. */
+const rangeSource = computed(() => {
+  const basis = stats.value?.range?.overall
+  if (!basis) return null
+  if (basis.source === 'PEER_DRIVE') return t('model.page.range_source_trips')
+  if (basis.source === 'PEER_CHARGES') return t('model.page.range_source_charges')
+  return t('model.page.range_source_estimate')
 })
 
 /** First sentence on its own line: "Der Prospekt sagt 434 km." then "48 Fahrer sagen 280 km." */
@@ -630,8 +653,8 @@ const bestOfficialRange = computed(() => {
 })
 
 const wltpDeltaPercent = computed(() => {
-  if (!stats.value?.avgConsumptionKwhPer100km || !worstOfficialConsumption.value) return null
-  const real = stats.value.avgConsumptionKwhPer100km
+  if (!shownConsumption.value || !worstOfficialConsumption.value) return null
+  const real = shownConsumption.value
   const official = worstOfficialConsumption.value
   // For mi/kWh: positive = more efficient (more miles per kWh = better)
   // For kWh/100km: negative = more efficient (less energy = better)
@@ -657,14 +680,13 @@ const consumptionDataCount = computed(() => {
 // ── SEO-Title-Werte: modell-level & deterministisch (unabhaengig vom Varianten-Switcher) ──
 // Verbrauch = Modell-Schnitt (immer befuellt, sobald Community-Daten existieren). Bewusst
 // NICHT displayConsumption: das ist variantenabhaengig und bei Multi-Varianten oft null.
-const metaConsumption = computed(() => stats.value?.avgConsumptionKwhPer100km ?? null)
+const metaConsumption = computed(() => shownConsumption.value)
 
-// Real-world-Reichweite je Variante nach derselben Regel wie der Hero (Akku x 0,9 / Modell-Schnitt),
-// als Min/Max-Span ueber alle Varianten.
+// Real-world-Reichweite je Variante aus der API (dieselbe Zahl wie der Hero), als Min/Max-Span ueber alle Varianten.
 const metaRealRangeLabel = computed(() => {
-  const avg = metaConsumption.value
-  if (!avg || !activeVariants.value.length) return null
-  const ranges = activeVariants.value.map(v => rangeKm(v.batteryCapacityKwh, avg)!)
+  if (!metaConsumption.value) return null
+  const ranges = activeVariants.value.map(v => roundRange(v.range?.rangeKm)).filter((r): r is number => r != null)
+  if (!ranges.length) return null
   const unit = distanceUnitLabel()
   const minStr = formatDistance(Math.min(...ranges), { showUnit: false })
   const maxStr = formatDistance(Math.max(...ranges), { showUnit: false })
@@ -688,19 +710,21 @@ const faqItems = computed(() => {
   const name = stats.value.modelDisplayName
   const items: { question: string; answer: string }[] = []
 
-  if (stats.value.avgConsumptionKwhPer100km) {
+  if (shownConsumption.value) {
     const n = consumptionDataCount.value
     const quality = consumptionDataQuality.value
-    const dataNote = quality === 'good'
-      ? t('model.faq_consumption_data_good', { n })
-      : quality === 'low'
-        ? t('model.faq_consumption_data_low', { n })
-        : t('model.faq_consumption_data_sparse', { n })
+    const dataNote = consumptionFromTrips.value
+      ? t('model.faq_consumption_data_drive', { n: consumptionDrivers.value })
+      : quality === 'good'
+        ? t('model.faq_consumption_data_good', { n })
+        : quality === 'low'
+          ? t('model.faq_consumption_data_low', { n })
+          : t('model.faq_consumption_data_sparse', { n })
     items.push({
       question: t('model.faq_q_consumption', { model: name }),
       answer: t('model.faq_a_consumption', {
         model: name,
-        consumption: formatConsumption(stats.value.avgConsumptionKwhPer100km),
+        consumption: formatConsumption(shownConsumption.value),
         dataNote,
         wltp: worstOfficialConsumption.value ? formatConsumption(worstOfficialConsumption.value) : '-',
         ratingLabel: ratingLabel.value
@@ -715,7 +739,7 @@ const faqItems = computed(() => {
         model: name,
         wltpRange: formatDistance(storyInput.value.wltpRangeKm),
         battery: selectedVariant.value.batteryCapacityKwh,
-        consumption: formatConsumption(stats.value.avgConsumptionKwhPer100km),
+        consumption: formatConsumption(shownConsumption.value!),
         realRange: formatDistance(story.value.realRangeKm),
         ratingLabel: ratingLabel.value
       })
@@ -737,8 +761,8 @@ const faqItems = computed(() => {
     })
   }
 
-  if (worstOfficialConsumption.value && stats.value.avgConsumptionKwhPer100km && consumptionDataCount.value >= 25) {
-    const real = stats.value.avgConsumptionKwhPer100km
+  if (worstOfficialConsumption.value && shownConsumption.value && (consumptionFromTrips.value || consumptionDataCount.value >= 25)) {
+    const real = shownConsumption.value
     const official = worstOfficialConsumption.value
     // Compute diff and pct in display unit space
     const realDisplay = convertConsumption(real)

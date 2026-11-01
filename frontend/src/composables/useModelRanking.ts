@@ -8,9 +8,11 @@ import {
 } from '../utils/needsCheck'
 import { needsToInputs } from '../utils/drivingProfile'
 import {
-  COST_DEFAULTS, PRICE_MAX, effectiveHomeShare, mixedPricePerKwh, combustionLiters, savingsPer100km, savingsPerYear, isCostAssumptions,
+  COST_DEFAULTS, PRICE_MAX, CHARGING_EFFICIENCY_FALLBACK, effectiveHomeShare, mixedPricePerKwh, plugKwhPer100km, combustionLiters, savingsPer100km, savingsPerYear, isCostAssumptions,
+  type ChargingEfficiency,
   type CostAssumptions,
 } from '../utils/costMix'
+import { chargeConsumption, measuredConsumption } from '../utils/modelConsumption'
 
 export type RankingSort = 'efficient' | 'range' | 'wltp' | 'winter' | 'data'
 
@@ -77,7 +79,7 @@ function wltpReference(m: TopModelPreview): number | null {
 
 function wltpDeviation(m: TopModelPreview): number | null {
   const wltp = wltpReference(m)
-  const real = m.avgConsumptionKwhPer100km
+  const real = measuredConsumption(m)
   return wltp != null && wltp > 0 && real != null ? consumptionDeltaPercent(real, wltp) : null
 }
 
@@ -97,7 +99,7 @@ function matchesSearch(m: Pick<TopModelPreview, 'brandDisplayName' | 'modelDispl
 
 // Sort value per mode; null always sorts last. Ascending unless listed in DESCENDING.
 const SORT_VALUE: Record<RankingSort, (r: Omit<RankedModel, 'rank'>) => number | null> = {
-  efficient: r => r.model.avgConsumptionKwhPer100km,
+  efficient: r => measuredConsumption(r.model),
   // What the range column shows: typical range of the largest battery, real range as fallback
   range: r => r.model.typicalRangeMaxKm ?? r.model.realRangeKm,
   wltp: r => (r.wltpDeviationPct != null ? Math.abs(r.wltpDeviationPct) : null),
@@ -216,6 +218,8 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
 
   const storedCost = readStoredCost()
   const cost = ref<CostAssumptions>(storedCost?.cost ?? { ...COST_DEFAULTS })
+  /** Charging losses between plug and battery, not a user assumption: from the backend, with its defaults until it answers */
+  const efficiency = ref<ChargingEfficiency>({ ...CHARGING_EFFICIENCY_FALLBACK })
   watch(cost, v => {
     try { localStorage.setItem(COST_STORAGE_KEY, JSON.stringify(v)) } catch { /* private mode */ }
   }, { deep: true })
@@ -230,6 +234,9 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
    */
   function applyReferencePrices(p: ChargingReferencePrices | null | undefined, germanMarket: boolean) {
     if (!p) return
+    if (p.homeChargingEfficiency && p.publicChargingEfficiency) {
+      efficiency.value = { home: p.homeChargingEfficiency, public: p.publicChargingEfficiency }
+    }
     const apiFuel = germanMarket && p.petrolPricePerLiter != null && p.petrolPricePerLiter > 0 ? round2(p.petrolPricePerLiter) : null
     if (storedCost?.seeded) {
       if (cost.value.fuelPricePerLiter === null && apiFuel !== null) cost.value = { ...cost.value, fuelPricePerLiter: apiFuel }
@@ -265,7 +272,9 @@ export function useModelRanking(models: Ref<TopModelPreview[]>, modelsWithoutDat
   const combustion = computed(() => combustionMarket.value ? cost.value : { ...cost.value, fuelPricePerLiter: null })
 
   const enriched = computed(() => models.value.map(m => {
-    const costPer100kmEur = m.avgConsumptionKwhPer100km != null ? m.avgConsumptionKwhPer100km * price.value : null
+    // What the buyer pays: battery-side charge consumption plus the losses of where they charge, times the mixed price
+    const plug = plugKwhPer100km(chargeConsumption(m), homeShare.value, efficiency.value)
+    const costPer100kmEur = plug != null ? plug * price.value : null
     const savingsPer100kmEur = costPer100kmEur != null ? savingsPer100km(costPer100kmEur, combustion.value, m.category) : null
     const entry = entries.value.get(`${m.brand}/${m.model}`)
     const assessment = entry ? assessEntry(entry, needs.value) : null

@@ -235,20 +235,21 @@ describe('useModelRanking', () => {
       r.cost.value = { ...r.cost.value, homePricePerKwh: 0.3, publicPricePerKwh: 0.6, fuelPricePerLiter: 1.8 }
       // no answer yet on home charging counts as home → the home price alone, like the answers
       expect(r.price.value).toBeCloseTo(0.3, 6)
-      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(6.0, 5)
-      // SEDAN petrol 7.6 l × 1.8 = 13.68 → 7.68 cheaper; no yearly figure before the commute is answered
+      // 20 kWh at the battery are 20 / 0.95 = 21.05 kWh at the plug (home charging), × 0.3 €
+      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(6.316, 2)
+      // SEDAN petrol 7.6 l × 1.8 = 13.68 minus 6.316 → 7.364 cheaper; no yearly figure before the commute is answered
       expect(r.ranked.value[0].combustionLitersPer100km).toBe(7.6)
-      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(7.68, 5)
+      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(13.68 - 20 / 0.95 * 0.3, 5)
       expect(r.ranked.value[0].savingsPerYearEur).toBeNull()
-      // the commute rule: 40 km × 3 days × 46 weeks = 5,520 km → 7.68 × 55.2 = 423.9
+      // the commute rule: 40 km × 3 days × 46 weeks = 5,520 km → 7.364 × 55.2
       r.needs.value = { ...r.needs.value, dailyKm: 40, commuteDays: 3 }
-      expect(r.ranked.value[0].savingsPerYearEur).toBeCloseTo(423.936, 3)
+      expect(r.ranked.value[0].savingsPerYearEur).toBeCloseTo((13.68 - 20 / 0.95 * 0.3) * 55.2, 3)
       // diesel and a typed litre value change every row
       r.cost.value = { ...r.cost.value, fuel: 'diesel' }
       expect(r.ranked.value[0].combustionLitersPer100km).toBe(6.0)
       r.cost.value = { ...r.cost.value, litersPer100km: 9 }
       expect(r.ranked.value[0].combustionLitersPer100km).toBe(9)
-      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(9 * 1.8 - 6.0, 5)
+      expect(r.ranked.value[0].savingsPer100kmEur).toBeCloseTo(9 * 1.8 - 20 / 0.95 * 0.3, 5)
       await nextTick()
       expect(JSON.parse(localStorage.getItem(COST_STORAGE_KEY) ?? '{}').homePricePerKwh).toBe(0.3)
 
@@ -384,12 +385,13 @@ describe('useModelRanking', () => {
       r.needs.value = { ...r.needs.value, homeCharging: false }
       await settle()
       expect(rankingCall).toHaveBeenLastCalledWith(expect.objectContaining({ homeCharging: false, pricePerKwh: 0.429 }))
-      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(18 * 0.429, 5)
+      // on the road: 18 kWh at the battery are 18 / 0.95 at the plug (DC efficiency), × 0.429 €
+      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(18 / 0.95 * 0.429, 5)
 
       r.ownPrice.value = 0.35
       await settle()
       expect(rankingCall).toHaveBeenLastCalledWith(expect.objectContaining({ pricePerKwh: 0.35 }))
-      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(18 * 0.35, 5)
+      expect(r.ranked.value[0].costPer100kmEur).toBeCloseTo(18 / 0.95 * 0.35, 5)
     })
 
     it('starts empty: no answer, no personal figure, but the stop ladder as model data', async () => {

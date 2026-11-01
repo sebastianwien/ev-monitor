@@ -117,7 +117,8 @@ import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { officialModelThumbUrl } from '../config/modelImages'
 import { combustionAllowed } from '../utils/costMix'
 import { buildLadderAxis, barLength } from '../utils/ladderScale'
-import { rangeKm, prospectKm } from '../utils/modelStory'
+import { roundRange, prospectKm } from '../utils/modelStory'
+import { shownConsumption } from '../utils/modelConsumption'
 import { applyVariant, betterMarks, compareSummary, variantsWithTrips } from '../utils/compareModels'
 
 const { t, locale } = useI18n()
@@ -211,7 +212,7 @@ const variantOptions = computed<VariantOption[][]>(() => rankedItems.value.map((
     prospect: '',
   }
   return [all, ...variantChoices.value[i].map((v, vi) => {
-    const real = rangeKm(v.batteryCapacityKwh, r.model.avgConsumptionKwhPer100km)
+    const real = shownConsumption(r.model) != null ? roundRange(v.range?.rangeKm) : null
     const wltp = real != null ? prospectKm(v.wltpRangeKm)! : v.wltpRangeKm
     return {
       key: `${vi}-${v.displayLabel ?? v.batteryCapacityKwh}`,
@@ -248,7 +249,7 @@ const heading = computed(() => {
 })
 const summaryText = computed(() => {
   const s = compareSummary(items.value.map(i => ({
-    name: shortName(i), consumption: i.model.avgConsumptionKwhPer100km, winterKm: i.model.winterRangeMaxKm ?? null,
+    name: shortName(i), consumption: shownConsumption(i.model), winterKm: i.model.winterRangeMaxKm ?? null,
   })))
   // with two models the other one is obvious, with three it is named
   const than = items.value.length > 2
@@ -288,7 +289,7 @@ const forYouRows = computed<CompareRow[]>(() => {
 // The list's bar scale over all models, so a bar here is as long as in the list
 const axis = computed(() => buildLadderAxis(
   models.value.flatMap(m => [
-    m.avgConsumptionKwhPer100km, m.avgWltpConsumptionKwhPer100km, m.minWltpConsumptionKwhPer100km,
+    shownConsumption(m), m.avgWltpConsumptionKwhPer100km, m.minWltpConsumptionKwhPer100km,
     m.maxWltpConsumptionKwhPer100km, m.minRealConsumptionKwhPer100km, m.maxRealConsumptionKwhPer100km,
   ]),
   unitSystem.value.consumptionUnit,
@@ -297,7 +298,7 @@ const axis = computed(() => buildLadderAxis(
 const round = (v: number | null | undefined, step: number) => v != null ? Math.round(v / step) * step : null
 /** Marked figures, compared as shown (rounded): lower consumption and cost, more range */
 const marks = computed(() => ({
-  consumption: betterMarks(items.value.map(r => round(r.model.avgConsumptionKwhPer100km, 0.1)), true),
+  consumption: betterMarks(items.value.map(r => round(shownConsumption(r.model), 0.1)), true),
   cost: betterMarks(items.value.map(r => round(r.costPer100kmEur, 0.01)), true),
   range: betterMarks(items.value.map(r => round(r.model.typicalRangeMaxKm ?? r.model.realRangeKm, 10)), false),
 }))
@@ -314,7 +315,7 @@ const measuredRows = computed<CompareRow[]>(() => {
         sub: [`${t('models_ranking.columns.wltp')} ${x[i].wltpText.value}`],
         better: marks.value.consumption[i],
         bar: {
-          real: barLength(item.model.avgConsumptionKwhPer100km, axis.value),
+          real: barLength(shownConsumption(item.model), axis.value),
           wltp: barLength(item.wltpKwhPer100km, axis.value),
           // in kWh space: above WLTP orange, below green, as in the list
           tone: (item.wltpDeviationPct ?? 0) > 0 ? 'bg-orange-500 dark:bg-orange-400' : 'bg-green-600 dark:bg-green-500',

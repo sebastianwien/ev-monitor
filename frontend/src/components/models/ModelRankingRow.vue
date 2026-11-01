@@ -112,6 +112,7 @@
 </template>
 
 <script setup lang="ts">
+import { shownConsumption } from '../../utils/modelConsumption'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { CheckIcon, ChevronDownIcon, InformationCircleIcon, MagnifyingGlassPlusIcon, PlusIcon } from '@heroicons/vue/24/outline'
@@ -181,7 +182,7 @@ function zoom() {
 }
 
 // ── Consumption ────────────────────────────────────────────────────────────
-const realWidth = computed(() => barLength(m.value.avgConsumptionKwhPer100km, props.axis))
+const realWidth = computed(() => barLength(shownConsumption(m.value), props.axis))
 const wltpWidth = computed(() => barLength(props.item.wltpKwhPer100km, props.axis))
 // Colour in kWh space: above WLTP is worse (orange), below is better (green)
 const barTone = computed(() => (props.item.wltpDeviationPct ?? 0) > 0 ? 'bg-orange-500 dark:bg-orange-400' : 'bg-green-600 dark:bg-green-500')

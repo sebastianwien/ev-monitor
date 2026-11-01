@@ -23,7 +23,9 @@ const fmt: StoryFormatters = {
 const full: StoryInput = {
   modelName: 'Volkswagen ID.3', brandName: 'Volkswagen', logCount: 6230, carCount: 51, driverCount: 50,
   netBatteryKwh: 58, wltpKwhPer100km: 15.3, wltpRangeKm: 434,
-  avgKwhPer100km: 19.1, minKwhPer100km: 16.6, maxKwhPer100km: 19.9,
+  avgKwhPer100km: 19.1,
+  // from the API (RangeMath on 58 kWh, 100 to 10 %): 273 on 19.1, seasons 297 / 231, drivers 262 (19.9) to 314 (16.6)
+  range: { realKm: 273, summerKm: 297, winterKm: 231, driverMinKm: 262, driverMaxKm: 314 },
   routeType: { highway: 18.9, city: 16.2, combined: 17.1, highwayCars: 16, highwayLogs: 121, cityLogs: 119, combinedLogs: 800, typedMean: 17.6 },
   seasonal: { summer: 17.6, winter: 22.6, summerLogs: 1630, winterLogs: 891 },
   fastChargePowerKw: 85,
@@ -32,7 +34,7 @@ const full: StoryInput = {
 }
 
 const specOnly: StoryInput = {
-  ...full, logCount: 0, carCount: 0, driverCount: 0, avgKwhPer100km: null, minKwhPer100km: null, maxKwhPer100km: null,
+  ...full, logCount: 0, carCount: 0, driverCount: 0, avgKwhPer100km: null, range: null,
   routeType: null, seasonal: null, fastChargePowerKw: null,
   acPricePerKwh: null, dcPricePerKwh: null, avgPricePerKwh: null,
 }
@@ -55,7 +57,7 @@ describe('buildModelStory', () => {
     const s = buildModelStory(full, fmt)
 
     expect(s.level).toBe('FULL')
-    // 58 × 0.9 × 100 / 19.1 = 273 → 270
+    // the API's 273 km rounded to 10 like every figure of the hero
     expect(s.realRangeKm).toBe(270)
     expect(s.summerRangeKm).toBe(300)
     expect(s.winterRangeKm).toBe(230)
@@ -64,10 +66,10 @@ describe('buildModelStory', () => {
     expect(s.heroSentence).toBe('Der Prospekt sagt 390 km. 50 Fahrer sagen 270 km.')
   })
 
-  it('the drivers spread from the thirstiest to the most frugal driver, on the same battery window', () => {
-    // 58 × 0.9 × 100 / 19.9 = 262 → 260; / 16.6 = 314 → 310
+  it('the drivers spread from the thirstiest to the most frugal driver, as the API gives it', () => {
+    // 262 → 260; 314 → 310
     expect(buildModelStory(full, fmt).driverRangeKm).toEqual({ minKm: 260, maxKm: 310 })
-    expect(buildModelStory({ ...full, minKwhPer100km: null }, fmt).driverRangeKm).toBeNull()
+    expect(buildModelStory({ ...full, range: { ...full.range!, driverMaxKm: null } }, fmt).driverRangeKm).toBeNull()
     expect(buildModelStory(specOnly, fmt).driverRangeKm).toBeNull()
   })
 
@@ -127,7 +129,7 @@ describe('buildModelStory', () => {
   })
 
   it('a missing season: range evidence shows the year average and names the fleet surcharge', () => {
-    const s = buildModelStory({ ...full, seasonal: null, fastChargePowerKw: null }, fmt)
+    const s = buildModelStory({ ...full, seasonal: null, range: { ...full.range!, summerKm: null, winterKm: null }, fastChargePowerKw: null }, fmt)
 
     expect(fact(s, 'range').note).toBe('Prospekt 390 km')
     expect(s.evidence.range!.bars.map(b => b.key)).toEqual(['wltp', 'year'])
