@@ -192,10 +192,23 @@ const swipeLabels = computed(() => ({
   prev: offset.value - 1 >= story.minOffset.value ? neighborLabel(-1) : null,
   next: offset.value < 0 ? neighborLabel(1) : null,
 }))
+// Wort einmal je Geste vermessen: bei 100 px Schrift die Länge messen, dann so skalieren, dass es von der
+// Oberkante der Box bis knapp über die untere Navigation reicht.
+const swipeText = ref<HTMLElement | null>(null)
+const swipeFit = ref({ top: 0, px: 100 })
+const BOTTOM_NAV_PX = 96
 const swipeLabel = computed(() => dragX.value > 0 ? swipeLabels.value.prev : swipeLabels.value.next)
 const { dragX, dragging, threshold: swipeThreshold } = useMonthSwipe(heroBox,
   () => ({ prev: swipeLabels.value.prev != null, next: swipeLabels.value.next != null, passNext: offset.value === 0 }),
   side => selectMonth(offset.value + (side === 'prev' ? -1 : 1)))
+watch(() => dragX.value !== 0, async on => {
+  if (!on) return
+  const top = Math.max(16, heroBox.value?.getBoundingClientRect().top ?? 16)
+  swipeFit.value = { top, px: 100 }
+  await nextTick()
+  const len = swipeText.value?.getBoundingClientRect().height ?? 0
+  if (len > 0) swipeFit.value = { top, px: Math.floor(100 * (window.innerHeight - top - BOTTOM_NAV_PX) / len) }
+})
 
 const openTile = ref<TileId | null>(null)
 const openMap = ref(false)
@@ -401,13 +414,13 @@ onUnmounted(() => unregisterReload?.())
            Stelle am Rand und über die volle Höhe; ab der Schwelle grün. Im laufenden Monat führt der Wisch nach links wie überall direkt zu den Logs.
            touch-pan-y: waagerecht gehört der App, sonst bricht der Browser die Geste ab -->
       <div class="relative overflow-hidden md:overflow-visible">
-      <!-- Streifen über die ganze Bildschirmhöhe (fixed), der Zielmonat gedreht wie ein Buchrücken und so groß,
-           dass das Wort die Höhe füllt; der Streifen gibt ihn mit dem Finger frei -->
+      <!-- Streifen über die ganze Bildschirmhöhe (fixed), der Zielmonat gedreht wie ein Buchrücken: beginnt oben an der Box,
+           füllt die Höhe bis zur Navigation und hängt an der Kante der Box, wandert also mit dem Finger mit -->
       <div v-if="dragX !== 0" class="fixed inset-y-0 overflow-hidden bg-gray-100 dark:bg-gray-800" :class="dragX > 0 ? 'left-0' : 'right-0'"
         :style="{ width: `${Math.abs(dragX)}px` }" aria-hidden="true" data-testid="story-swipe-strip">
-        <span class="absolute top-1/2 -translate-y-1/2 whitespace-nowrap font-black uppercase leading-none [writing-mode:vertical-rl] transition-colors"
-          :class="[dragX > 0 ? 'left-0' : 'right-0', Math.abs(dragX) >= swipeThreshold ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-gray-500']"
-          :style="{ fontSize: `calc(88svh / ${Math.max(3, (swipeLabel ?? '').length) * 0.72})` }">{{ swipeLabel }}</span>
+        <span ref="swipeText" class="absolute whitespace-nowrap font-black uppercase leading-none [writing-mode:vertical-rl] transition-colors"
+          :class="[dragX > 0 ? 'right-0' : 'left-0', Math.abs(dragX) >= swipeThreshold ? 'text-green-700 dark:text-green-400' : 'text-gray-400 dark:text-gray-500']"
+          :style="{ top: `${swipeFit.top}px`, fontSize: `${swipeFit.px}px` }">{{ swipeLabel }}</span>
       </div>
       <section ref="heroBox" class="relative grid touch-pan-y grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box"
         :class="dragging ? '' : 'transition-transform duration-200 ease-out'" :style="dragX ? { transform: `translateX(${dragX}px)` } : undefined">
