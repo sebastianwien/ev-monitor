@@ -103,7 +103,7 @@ function unknown() {
 
         <!-- Kopfkarte wie im Lade-Wizard: Karte randlos, nach unten in den Sheet-Hintergrund verlaufend -->
         <div v-if="area" data-testid="site-question-map" class="relative -mx-4 -mb-6 h-36 overflow-hidden" aria-hidden="true">
-          <PlaceMinimap :key="current.id" :lat="area.lat" :lon="area.lon" :area="area" :zoom="16" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />
+          <PlaceMinimap :key="current.id" :lat="area.lat" :lon="area.lon" :area="area" :zoom="15" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />
           <div class="absolute inset-x-0 bottom-0 z-[500] h-16 bg-gradient-to-t from-white to-transparent dark:from-gray-900" />
         </div>
 
