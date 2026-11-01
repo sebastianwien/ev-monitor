@@ -57,14 +57,18 @@ function open() {
     :aria-label="view.action?.label ?? view.eyebrow" :role="view.action ? 'button' : undefined" :tabindex="view.action ? 0 : undefined"
     @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
     <div class="grid gap-1">
-      <p class="text-[12px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ view.eyebrow }}</p>
-      <p class="text-pretty text-[22px] font-bold leading-tight tracking-tight text-gray-900 tabular-nums md:text-[26px] dark:text-gray-50">{{ keepUnits(view.sentence) }}</p>
+      <div class="flex items-center justify-between gap-2">
+        <p class="text-[12px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ view.eyebrow }}</p>
+        <!-- Monatswähler; Klicks dort öffnen nicht die Karte -->
+        <div @click.stop @keydown.stop><slot /></div>
+      </div>
+      <p class="text-pretty text-[28px] font-bold leading-[1.15] tracking-tight text-gray-900 tabular-nums md:text-[32px] dark:text-gray-50">{{ keepUnits(view.sentence) }}</p>
       <p v-if="view.sub" class="text-pretty text-[15px] text-gray-700 tabular-nums dark:text-gray-200"><BoldNumbers :text="keepUnits(view.sub)" /></p>
     </div>
 
     <ul class="grid divide-x divide-gray-200 rounded-xl bg-white py-3 edge-card dark:divide-white/15 dark:bg-gray-700/50" :class="['grid-cols-1', 'grid-cols-2', 'grid-cols-3', 'grid-cols-4'][kpis.length - 1]">
       <li v-for="k in kpis" :key="k.id" data-testid="recap-fact" class="grid gap-0.5 px-2 text-center">
-        <strong class="whitespace-nowrap text-[18px] font-bold text-gray-900 tabular-nums dark:text-gray-50">{{ keepUnits(k.value) }}</strong>
+        <strong class="whitespace-nowrap text-[20px] font-bold text-gray-900 tabular-nums dark:text-gray-50">{{ keepUnits(k.value) }}</strong>
         <span class="text-[12px] text-gray-600 dark:text-gray-300">{{ k.label }}</span>
       </li>
     </ul>

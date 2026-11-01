@@ -80,10 +80,13 @@ describe('StoryNewsCard', () => {
     expect(events).toEqual([['act', 'prev_month']])
   })
 
-  it('Rückblick ohne Platz in den Top 10: Euro-Vergleich als Zusatzzeile, teurer ist eine Auskunft', () => {
+  it('Rückblick ohne Platz in den Top 10: Euro-Vergleich nur, wenn günstiger als andere', () => {
     const host = mount({ ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: null, places: [], peer: { kind: 'cost', diffEur: 12.4 } })
     const details = [...host.querySelectorAll('[data-testid="story-news-details"] li')].map(text)
-    expect(details).toEqual(['12 € mehr für Strom als andere Fahrer deines Modells im September.'])
+    expect(details).toEqual([])
+    app?.unmount(); document.body.innerHTML = ''
+    const cheaper = mount({ ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: null, places: [], peer: { kind: 'cost', diffEur: -12.4 } })
+    expect([...cheaper.querySelectorAll('[data-testid="story-news-details"] li')].map(text)).toHaveLength(1)
   })
 
   it('Meilenstein mit Supporter-Bitte: leiser Link zum Pack mit Herkunft, ohne Bitte keiner', () => {

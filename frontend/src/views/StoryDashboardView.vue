@@ -136,6 +136,8 @@ const showFeed = computed(() => !!monthStats.value && !error.value && (hasCharge
 const recapHero = computed<Moment | null>(() =>
   !(loading.value && !monthStats.value) && !error.value && !hasCharges.value && heroMode.value === 'month' && month.value.offset === 0
     ? story.monthRecap.value : null)
+/** Rückblick als Kopf: dann sitzt der Monatswähler in seiner Kopfzeile statt als eigene Zeile darüber. */
+const recapOnTop = computed(() => !!recapHero.value && !hasCharges.value && heroMode.value === 'month' && !error.value && !(loading.value && !monthStats.value))
 const newsCards = computed(() => recapHero.value ? story.cards.value.filter(c => c.moment.kind !== 'month_change') : story.cards.value)
 /** Winter-Ausblick im leeren laufenden Monat; steht die Frost-Karte offen, sagt sie dasselbe. */
 const outlook = computed(() => {
@@ -399,7 +401,7 @@ onUnmounted(() => unregisterReload?.())
         </header>
         <div ref="monthMain" class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7" :class="switching ? monthWaiting : ''">
           <!-- Monatspfeile neben dem Monatssatz; ohne ihn (leer, Laden, Fehler, Live) als eigene Zeile mit Monat -->
-          <div v-if="!monthHero && !liveHero" class="flex justify-end">
+          <div v-if="!monthHero && !liveHero && !recapOnTop" class="flex justify-end">
             <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
           </div>
 
@@ -425,8 +427,10 @@ onUnmounted(() => unregisterReload?.())
             <button type="button" class="ml-2 min-h-[44px] font-semibold underline" @click="story.reload()">{{ t('story.retry') }}</button>
           </div>
 
-          <div v-else-if="!hasCharges && heroMode === 'month'" class="grid gap-4 py-2">
-            <StoryRecapHero v-if="recapHero" :moment="recapHero" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapHero!, id)" />
+          <div v-else-if="!hasCharges && heroMode === 'month'" class="grid gap-4" :class="recapOnTop ? '' : 'py-2'">
+            <StoryRecapHero v-if="recapHero" :moment="recapHero" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapHero!, id)">
+              <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
+            </StoryRecapHero>
             <p v-else class="text-center text-[17px] font-bold text-balance text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
             <div v-if="outlook" data-testid="story-winter-outlook" class="grid gap-0.5">
               <p class="text-[12px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ t('story.outlook_eyebrow', { month: monthLabel(month) }) }}</p>

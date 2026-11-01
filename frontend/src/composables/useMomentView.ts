@@ -89,9 +89,9 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
         if (m.places.length) details.push({ id: 'rank', text: m.places.map(place).join(' · ') })
         if (m.peer?.kind === 'consumption') {
           details.push({ id: 'peer', text: t('story.moment_month_peer', { mine: `${formatDecimal(m.peer.mine, 1)} kWh/100 km`, peers: formatDecimal(m.peer.peers, 1), month }) })
-        } else if (m.peer?.kind === 'cost') {
-          // Teurer als andere ist eine Auskunft, kein Fehler: gleicher Ton wie "Diesen Monat".
-          details.push({ id: 'cost', text: t(m.peer.diffEur < 0 ? 'story.moment_month_peer_cheaper' : 'story.moment_month_peer_pricier', { eur: eur(Math.abs(m.peer.diffEur)), month }) })
+        } else if (m.peer?.kind === 'cost' && m.peer.diffEur < 0) {
+          // Nur der günstigere Monat: "teurer als andere" ohne Weg zum Günstigeren hilft niemandem.
+          details.push({ id: 'cost', text: t('story.moment_month_peer_cheaper', { eur: eur(Math.abs(m.peer.diffEur)), month }) })
         }
         return {
           eyebrow: t('story.moment_month_eyebrow'),
