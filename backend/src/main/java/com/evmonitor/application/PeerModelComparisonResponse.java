@@ -10,11 +10,15 @@ import java.util.UUID;
  *                         null, wenn das Auto keine Spec hat
  * @param allVariantsWinterConsumptionKwhPer100km Winterverbrauch (November bis Februar, alle Jahre) derselben
  *                         Autos; null unter 10 Winterladungen oder ohne Spec
+ * @param allVariantsDriveWinterConsumptionKwhPer100km Fahrverbrauch im Winter (November bis Februar, alle Jahre)
+ *                         anderer Fahrer des Modells aus ihren Fahrten ({@link DriveConsumptionService}); null unter
+ *                         5 Nutzern oder ohne Spec
  */
 public record PeerModelComparisonResponse(
         List<PeerModelComparisonItem> modelComparisons,
         PeerMetrics allVariants,
-        BigDecimal allVariantsWinterConsumptionKwhPer100km
+        BigDecimal allVariantsWinterConsumptionKwhPer100km,
+        BigDecimal allVariantsDriveWinterConsumptionKwhPer100km
 ) {}
 
 record PeerModelComparisonItem(

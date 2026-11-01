@@ -67,6 +67,22 @@ public interface EvTripRepository extends JpaRepository<EvTrip, UUID> {
             @Param("carId") UUID carId,
             @Param("to") OffsetDateTime to);
 
+    /**
+     * Fahrverbrauch: abgeschlossene, nicht gelöschte Fahrten ab {@code minKm} aus {@code sources}, die in
+     * [from, to) begonnen haben. Ohne Route und Rohdaten, auch für alle Autos eines Modells.
+     */
+    @Query("SELECT new com.evmonitor.domain.DriveTripSample(t.carId, t.userId, t.dataSource, t.tripStartedAt, "
+            + "t.distanceKm, t.estimatedConsumedKwh, t.socStart, t.socEnd) FROM EvTrip t "
+            + "WHERE t.carId IN :carIds AND t.deletedAt IS NULL AND t.status = 'COMPLETED' "
+            + "AND t.dataSource IN :sources AND t.distanceKm >= :minKm "
+            + "AND t.tripStartedAt >= :from AND t.tripStartedAt < :to")
+    List<DriveTripSample> findDriveSamples(
+            @Param("carIds") java.util.Collection<UUID> carIds,
+            @Param("sources") java.util.Collection<String> sources,
+            @Param("minKm") BigDecimal minKm,
+            @Param("from") OffsetDateTime from,
+            @Param("to") OffsetDateTime to);
+
     /** Feed-Fenster: Fahrten, die innerhalb [from, to] begonnen haben (wie die Tag/Woche-Buckets im Feed), neueste zuerst. */
     @Query("SELECT t FROM EvTrip t WHERE t.userId = :userId AND t.carId = :carId "
             + "AND t.deletedAt IS NULL AND t.tripStartedAt >= :from AND t.tripStartedAt <= :to "
