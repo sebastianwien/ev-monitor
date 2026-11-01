@@ -5,6 +5,7 @@ import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowPathIcon, ArrowRightIcon, ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
 import { useCarContext } from '../composables/useCarContext'
+import { useMonthSwipe } from '../composables/useMonthSwipe'
 import { useDashboardStory, type StoryMonth, type StoryCarContext } from '../composables/useDashboardStory'
 import { useStoryOptIn } from '../composables/useStoryOptIn'
 import { useChargingLive } from '../composables/useChargingLive'
@@ -183,16 +184,17 @@ watch(monthStats, () => {
       { duration: narrow.value ? 220 : 340, easing: 'cubic-bezier(0.22, 0.68, 0.24, 1)' })
   }
 }, { flush: 'post' })
-let swipeX: number | null = null
-function onPointerDown(e: PointerEvent) { swipeX = e.clientX }
-function onPointerUp(e: PointerEvent) {
-  if (swipeX == null) return
-  const dx = e.clientX - swipeX
-  swipeX = null
-  if (Math.abs(dx) < 60) return
-  const next = dx < 0 ? offset.value + 1 : offset.value - 1
-  if (next <= 0 && next >= story.minOffset.value) selectMonth(next)
-}
+// Wisch auf der Box: sie geht mit dem Finger mit, daneben steht senkrecht das Ziel. Nach rechts der Vormonat,
+// nach links der nächste Monat, im laufenden Monat die Logs (gleiche Geste wie das Monatsblättern).
+const heroBox = ref<HTMLElement | null>(null)
+const neighborLabel = (d: number) => new Date(month.value.year, month.value.month - 1 + d, 1).toLocaleDateString(locale.value, { month: 'long' })
+const swipeLabels = computed(() => ({
+  prev: offset.value - 1 >= story.minOffset.value ? neighborLabel(-1) : null,
+  next: offset.value < 0 ? neighborLabel(1) : t('nav.bottom.logs'),
+}))
+const { dragX, dragging, threshold: swipeThreshold } = useMonthSwipe(heroBox,
+  () => ({ prev: swipeLabels.value.prev != null, next: true }),
+  side => side === 'prev' ? selectMonth(offset.value - 1) : offset.value < 0 ? selectMonth(offset.value + 1) : router.push('/logs'))
 
 const openTile = ref<TileId | null>(null)
 const openMap = ref(false)
@@ -394,10 +396,17 @@ onUnmounted(() => unregisterReload?.())
     <main class="mx-auto grid max-w-6xl grid-cols-1 gap-4 pb-6 md:px-6 md:pb-12">
       <!-- Eine Box: oben Auto und Monat, darunter ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts eine stehende Spalte:
            Neuigkeiten und Feed, oder das Detail der gewählten Kachel. -->
-      <!-- Wischen blättert die Monate; erst im laufenden Monat nimmt der Tab-Pager den Wisch nach links (zu den Logs).
-           touch-pan-y: waagerecht gehört der App, sonst bricht der Browser die Geste mit pointercancel ab -->
-      <section class="grid touch-pan-y grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box"
-        :data-no-swipe="offset < 0 ? '' : undefined" @pointerdown="onPointerDown" @pointerup="onPointerUp">
+      <!-- Wischen blättert die Monate, im laufenden Monat führt der Wisch nach links zu den Logs. Die Box geht mit,
+           dahinter steht senkrecht das Ziel; ab der Schwelle grün. data-no-swipe: der Tab-Pager greift hier nicht.
+           touch-pan-y: waagerecht gehört der App, sonst bricht der Browser die Geste ab -->
+      <div class="relative overflow-hidden md:overflow-visible">
+      <div v-if="dragX !== 0" class="absolute inset-y-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800" :class="dragX > 0 ? 'left-0' : 'right-0'"
+        :style="{ width: `${Math.abs(dragX)}px` }" aria-hidden="true" data-testid="story-swipe-strip">
+        <span class="whitespace-nowrap text-[13px] font-bold uppercase tracking-[0.2em] [writing-mode:vertical-rl] transition-colors"
+          :class="Math.abs(dragX) >= swipeThreshold ? 'text-green-700 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'">{{ dragX > 0 ? swipeLabels.prev : swipeLabels.next }}</span>
+      </div>
+      <section ref="heroBox" class="relative grid touch-pan-y grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box" data-no-swipe
+        :class="dragging ? '' : 'transition-transform duration-200 ease-out'" :style="dragX ? { transform: `translateX(${dragX}px)` } : undefined">
         <!-- Auto über beiden Spalten, nur bei mehreren Autos: mit einem gibt es nichts zu wählen -->
         <header v-if="cars.length > 1" class="flex items-center lg:col-span-12">
           <CarSwitch v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
@@ -515,6 +524,7 @@ onUnmounted(() => unregisterReload?.())
           </div>
         </div>
       </section>
+      </div>
 
       <div class="flex flex-wrap items-center gap-x-6 px-4 md:px-0">
         <a v-if="previewHost" :href="mainAppUrl" class="inline-flex min-h-[44px] items-center gap-2 text-sm font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100" data-testid="story-main-app">
