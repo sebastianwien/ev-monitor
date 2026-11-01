@@ -74,7 +74,8 @@ public class ChargingSiteService {
         return repository.findRecentlyUsedByUser(userId, RECENT_LIMIT);
     }
 
-    /** {@link ChargingSiteMatcher#siteKey} aller Standorte, an denen der Nutzer schon geladen hat. */    public Set<String> usedSiteKeys(UUID userId) {
+    /** {@link ChargingSiteMatcher#siteKey} aller Standorte, an denen der Nutzer schon geladen hat. */
+    public Set<String> usedSiteKeys(UUID userId) {
         return repository.findRecentlyUsedByUser(userId, USED_SITES_LIMIT).stream()
                 .map(u -> ChargingSiteMatcher.siteKey(u.site().geohash(), u.site().name()))
                 .collect(Collectors.toSet());

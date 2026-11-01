@@ -61,9 +61,9 @@ class ChargingSiteAssignmentTest extends AbstractIntegrationTest {
 
     @Test
     void ladungInDerNachbarzelleBekommtSäuleOrtUndPreisAusDerHistorie() {
-        EvLog anchor = ingest(acCharge(LocalDateTime.of(2026, 10, 26, 19, 28), SITE_CELL)
-                .publicCharging(true).kwhCharged(new BigDecimal("43.92"))
-                .costEur(new BigDecimal("12.74")).pricePerKwh(new BigDecimal("0.29")).build());
+        EvLog anchor = ingest(acCharge(LocalDateTime.of(2026, 10, 20, 18, 0), SITE_CELL)
+                .publicCharging(true).kwhCharged(new BigDecimal("40.00"))
+                .costEur(new BigDecimal("11.60")).pricePerKwh(new BigDecimal("0.29")).build());
 
         EvLog live = ingest(acCharge(LocalDateTime.of(2026, 10, 30, 20, 0), NEIGHBOUR_CELL)
                 .publicCharging(true).kwhCharged(new BigDecimal("46.18"))
