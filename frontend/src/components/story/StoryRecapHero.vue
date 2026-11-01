@@ -53,14 +53,14 @@ function open() {
 </script>
 
 <template>
-  <article class="grid cursor-pointer gap-4 rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-green-600" data-testid="story-recap-hero"
-    :aria-label="view.action?.label ?? view.eyebrow" :role="view.action ? 'button' : undefined" :tabindex="view.action ? 0 : undefined"
-    @click="open" @keydown.enter.prevent="open" @keydown.space.prevent="open">
+  <!-- Tippen auf die Karte öffnet den Vormonat; Tastatur und Screenreader nutzen den eigenen Knopf -->
+  <article class="grid cursor-pointer gap-4" data-testid="story-recap-hero" :aria-label="view.eyebrow" @click="open">
+    <button v-if="view.action" type="button" class="sr-only focus:not-sr-only focus:justify-self-start focus:text-[15px] focus:font-semibold focus:text-green-700 dark:focus:text-green-400" @click.stop="open">{{ view.action.label }}</button>
     <div class="grid gap-1">
       <div class="flex items-center justify-between gap-2">
         <p class="text-[16px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ view.eyebrow }}</p>
         <!-- Monatswähler; Klicks dort öffnen nicht die Karte -->
-        <div @click.stop @keydown.stop><slot /></div>
+        <div @click.stop><slot /></div>
       </div>
       <p class="text-pretty text-[24px] font-bold leading-[1.15] tracking-tight text-gray-900 tabular-nums md:text-[28px] dark:text-gray-50">{{ keepUnits(view.sentence) }}</p>
       <p v-if="view.sub" class="text-pretty text-[15px] text-gray-700 tabular-nums dark:text-gray-200"><BoldNumbers :text="keepUnits(view.sub)" /></p>

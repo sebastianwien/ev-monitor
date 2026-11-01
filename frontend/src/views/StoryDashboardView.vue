@@ -137,7 +137,7 @@ const recapHero = computed<Moment | null>(() =>
   !(loading.value && !monthStats.value) && !error.value && !hasCharges.value && heroMode.value === 'month' && month.value.offset === 0
     ? story.monthRecap.value : null)
 /** Rückblick als Kopf: dann sitzt der Monatswähler in seiner Kopfzeile statt als eigene Zeile darüber. */
-const recapOnTop = computed(() => !!recapHero.value && !hasCharges.value && heroMode.value === 'month' && !error.value && !(loading.value && !monthStats.value))
+const recapOnTop = computed(() => !!recapHero.value)
 const newsCards = computed(() => recapHero.value ? story.cards.value.filter(c => c.moment.kind !== 'month_change') : story.cards.value)
 /** Winter-Ausblick im leeren laufenden Monat; steht die Frost-Karte offen, sagt sie dasselbe. */
 const outlook = computed(() => {

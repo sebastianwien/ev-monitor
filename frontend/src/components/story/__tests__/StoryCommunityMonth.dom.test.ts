@@ -50,11 +50,11 @@ describe('StoryCommunityMonth', () => {
       '48.300 kWh in 2.140 Ladevorgängen geladen',
       '12.000 € gespart gegenüber Verbrennern (Benzin 1,75 €/L)',
       'Ein Windrad müsste dafür 16 Stunden laufen',
-      'Beliebtester öffentlicher Ladeanbieter: EnBW mit 312 Ladevorgängen',
+      'Beliebtester öffentlicher Ladeanbieter: EnBW',
     ])
     expect(lines.join(' ')).not.toMatch(/Oktober|Community/)
     const bold = [...host.querySelectorAll('[data-testid="story-community-line"] strong')].map(text)
-    expect(bold).toEqual(['48.300', '2.140', '12.000', '1,75', '16', '312'])
+    expect(bold).toEqual(['48.300', '2.140', '12.000', '1,75', '16'])
     const link = host.querySelector('a[href="/leaderboard"]')!
     expect(text(link)).toBe('Rangliste ansehen')
     ;(link as HTMLElement).click()

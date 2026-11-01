@@ -42,9 +42,10 @@ describe('StoryRecapHero', () => {
   it('führt beim Tippen auf die ganze Karte zum Vormonat und bietet kein Teilen an', () => {
     const events: unknown[][] = []
     const host = mount(recap(facts), events)
-    expect(host.querySelector('button')).toBeNull()
     ;(host.querySelector('[data-testid="story-recap-hero"]') as HTMLElement).click()
     expect(events).toEqual([['act', 'prev_month']])
+    ;(host.querySelector('button') as HTMLElement).click()
+    expect(events).toEqual([['act', 'prev_month'], ['act', 'prev_month']])
     expect(text(host)).not.toMatch(/teilen/i)
   })
 
@@ -53,6 +54,11 @@ describe('StoryRecapHero', () => {
     expect(all(host, 'recap-fact')).toEqual(['6 € Gespart', '11,91 € pro 100 km', '9 Ladungen'])
     expect(host.querySelector('[data-testid="recap-split"]')).toBeNull()
     expect(host.querySelector('[data-testid="recap-co2"]')).toBeNull()
+  })
+
+  it('ohne Ersparnis und ohne Strecke keine leeren Kacheln', () => {
+    const host = mount({ ...recap(facts), savingEur: null, km: 0 } as Moment)
+    expect(all(host, 'recap-fact')).toEqual(['96 kWh Geladen', '9 Ladungen'])
   })
 
   it('lässt Kosten weg, wo der Preis fehlt', () => {
