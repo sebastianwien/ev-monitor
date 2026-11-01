@@ -41,8 +41,13 @@ public class DriveConsumptionService {
 
     private static final OffsetDateTime ALL_FROM = Instant.EPOCH.atOffset(ZoneOffset.UTC);
     private static final OffsetDateTime ALL_TO = OffsetDateTime.parse("9999-12-31T23:59:59Z");
-    private static final Predicate<OffsetDateTime> SUMMER = t -> t.getMonthValue() >= 5 && t.getMonthValue() <= 8;
-    private static final Predicate<OffsetDateTime> WINTER = t -> t.getMonthValue() >= 11 || t.getMonthValue() <= 2;
+    /** Saisons in UTC wie die Monatswerte und die Ladungen, unabhängig vom Offset, den die DB liefert. */
+    private static final Predicate<OffsetDateTime> SUMMER = t -> { int m = utcMonth(t); return m >= 5 && m <= 8; };
+    private static final Predicate<OffsetDateTime> WINTER = t -> { int m = utcMonth(t); return m >= 11 || m <= 2; };
+
+    private static int utcMonth(OffsetDateTime t) {
+        return t.withOffsetSameInstant(ZoneOffset.UTC).getMonthValue();
+    }
 
     private final EvTripRepository tripRepository;
     private final CarRepository carRepository;

@@ -248,4 +248,19 @@ class DriveConsumptionServiceTest extends AbstractServiceTest {
                 new DriveStatistics.MonthDrive("2026-08", new BigDecimal("18.00")),
                 new DriveStatistics.MonthDrive("2026-10", new BigDecimal("22.00"))), s.driveMonths());
     }
+
+    @Test
+    void saison_inUtcWieDieMonatswerte() {
+        User u = user();
+        Car c = car(u, CarBrand.CarModel.MODEL_3);
+        // 01.05. 00:30 in Berlin ist der 30.04. in UTC: kein Sommer, wie in driveMonths ("2026-04")
+        OffsetDateTime at = OffsetDateTime.parse("2026-05-01T00:30:00+02:00");
+        tripRepository.save(trip(c, "TESLA_LIVE", LocalDate.of(2026, 5, 1), 150).tripStartedAt(at).tripEndedAt(at.plusHours(2))
+                .estimatedConsumedKwh(new BigDecimal("27")).build());
+
+        DriveStatistics s = stats(c, u, LocalDate.of(2026, 4, 1), LocalDate.of(2026, 5, 31), null);
+
+        assertNull(s.driveSummerConsumptionKwhPer100km());
+        assertEquals("2026-04", s.driveMonths().get(0).month());
+    }
 }
