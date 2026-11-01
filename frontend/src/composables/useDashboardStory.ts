@@ -10,17 +10,19 @@ import type { StatisticsData } from './useDashboardStats'
 import {
   buildStoryTiles, buildStoryFeed, buildDayCoverage, monthWindow, PETROL_EUR_PER_L_DE, petrolLitersPer100km,
   type StoryTile, type StoryFeedItem, type DayCoverage,
+  peerCostDiffEur,
 } from './storyModel'
 import { buildEnergyFlow, buildRange, costLayers, monthCosts, rangeConsumption, type MonthCosts } from './storyEnergy'
 import {
   temperatureEffect, modelPeers, dataQuality, countPricelessInMonth, pricelessInMonth, ranksFromStandings,
-  type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth, standbyChange, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource } from './storyInsights'
+  type TripForTemperature, type RankEntry, type LeaderboardStanding, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth, standbyChange, type StandbyPricing, type StoryLatest, type LatestLogSource, type LatestTripSource, peerConsumptionFromTicker } from './storyInsights'
 import type { TripForSummary } from '../utils/tripMonthSummary'
 import type { OdometerGap } from './storyDay'
 import {
-  detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery, detectRankClosing,
+  detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
   detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickCards,
   type Moment, type MomentLog, type MomentTrip, type MomentPoint, type ScoredMoment,
+  recapPlaces, type PeerLine,
 } from './storyMoments'
 import { useMomentSeen } from './useMomentSeen'
 import { benchmarkPairs, operatorGap, toPlaceRows, type ChargingPlace, type PlaceRow } from './storyPlaces'
@@ -126,6 +128,20 @@ async function fetchCharges(carId: string, start: string, end: string): Promise<
 }
 
 type RankResponse = { category: string; ownEntry: RankEntry | null } | null
+
+/** Verbrauch gegen die Fahrer des Modells im Vormonat, aus dem persönlichen Ticker (gleicher Monat, ab 3 andere Nutzer). */
+async function fetchPreviousPeer(carId: string): Promise<{ mine: number; peers: number } | null> {
+  const prev = new Date()
+  prev.setDate(1)
+  prev.setMonth(prev.getMonth() - 1)
+  const month = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}`
+  try {
+    const r = await api.get<Array<{ messageKey?: string; params?: Record<string, string> }>>('/ticker/me', { params: { month } })
+    return peerConsumptionFromTicker(Array.isArray(r.data) ? r.data : [], carId)
+  } catch {
+    return null
+  }
+}
 
 /** Eigene Plätze aller Kategorien in einem Aufruf; die Top-10-Listen nennen den eigenen Platz nur ab Platz 11. */
 async function fetchRanks(monthsBack: number): Promise<RankResponse[]> {
@@ -252,6 +268,7 @@ interface CarBundle {
   latestTrip: LatestTripSource | null
   /** Endstand des Vormonats je Kategorie, Basis der Ranglisten-Abschlusskarte. */
   previousRanks: RankResponse[]
+  previousPeer: { mine: number; peers: number } | null
   /** Wetter-Ausblick am Heimladeort, nur im Oktober geholt (Herbst-Prognose). */
   weather: WeatherOutlookResponse | null
 }
@@ -287,7 +304,7 @@ function peerWinterConsumption(p: PeerModelComparisonResponse | null): number | 
 
 async function fetchCarBundle(carId: string): Promise<CarBundle> {
   const tripsFrom = daysAgo(RECENT_DAYS - 1).toISOString()
-  const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime, prevRanks, weather] = await Promise.allSettled([
+  const [savings, models, priceless, soh, fuel, lastLogs, lastTrip, recent, momentTrips, lifetime, prevRanks, weather, prevPeer] = await Promise.allSettled([
     chargingSavingsService.get(),
     peerModelComparisonService.getPeerModelComparison(carId),
     api.get<MomentLog[]>(`/logs/priceless?carId=${carId}&includeUnknown=true`),
@@ -300,6 +317,7 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
     api.get<StatisticsData>(`/logs/statistics?carId=${carId}&groupBy=DAY`),
     fetchRanks(1),
     wantsWeatherOutlook(new Date()) ? weatherService.getOutlook() : Promise.resolve(null),
+    fetchPreviousPeer(carId),
   ])
   const prices = fuel.status === 'fulfilled' ? fuel.value : null
   return {
@@ -323,6 +341,7 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
     // Fahrten liefert das Backend nur Berechtigten, ein Fehler heisst dann einfach: keine Fahrt.
     latestTrip: lastTrip.status === 'fulfilled' && Array.isArray(lastTrip.value.data) ? lastTrip.value.data[0] ?? null : null,
     previousRanks: prevRanks.status === 'fulfilled' ? prevRanks.value : [],
+    previousPeer: prevPeer.status === 'fulfilled' ? prevPeer.value : null,
   }
 }
 
@@ -351,6 +370,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const gaps = ref<OdometerGap[]>([])
   const charges = ref<StandbyPricing['charges']>([])
   const previousRanks = ref<RankResponse[]>([])
+  const previousPeer = ref<{ mine: number; peers: number } | null>(null)
   const places = ref<ChargingPlace[]>([])
   const placeBenchmarks = ref<Record<string, ChargingBenchmark | null>>({})
   const placeRows = computed<PlaceRow[]>(() => toPlaceRows(places.value, placeBenchmarks.value))
@@ -457,6 +477,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     recentTrips.value = b.recentTrips
     lifetimeSeries.value = b.lifetimeSeries
     previousRanks.value = b.previousRanks
+    previousPeer.value = b.previousPeer
     latest.value = buildLatest(b.recentLogs[0] ?? null, pickLatestTrip(b.latestTrip, b.recentTrips),
       { consumptionKwh100: b.recentStats ? rangeConsumption(b.recentStats) : null,
         effectiveCapacityKwh: ctx().effectiveBatteryCapacityKwh })
@@ -603,6 +624,15 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
    * Monat, nur Rueckblick und Ranglisten-Abschluss gehoeren zum laufenden Monat. "Gerade geladen"
    * ist keine Karte, das zeigt die Zuletzt-Karte; Live steht oben auf der Seite.
    */
+  /** Modellvergleich für den Rückblick: Verbrauch im selben Monat, sonst der Preis in Euro über den ganzen Vormonat. */
+  function previousPeerLine(prev: StatisticsData | null, prevMonth: Date): PeerLine | null {
+    if (previousPeer.value) return { kind: 'consumption', ...previousPeer.value }
+    if (!prev) return null
+    const daysInMonth = new Date(prevMonth.getFullYear(), prevMonth.getMonth() + 1, 0).getDate()
+    const diffEur = peerCostDiffEur(prev, daysInMonth, pricelessInPreviousMonth.value, peers.value)
+    return diffEur != null ? { kind: 'cost', diffEur } : null
+  }
+
   const cards = computed<ScoredMoment[]>(() => {
     const c = ctx()
     const now = Date.now()
@@ -626,9 +656,12 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
         } : null,
         petrolEurPerLitre: petrol.value.eurPerLitre,
         petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory),
+        // Plätze des Vormonats (Treppchen alle, sonst der beste bis 10) und Modellvergleich: Verbrauch im
+        // selben Monat, sonst der Preis in Euro nach derselben Regel wie "Diesen Monat".
+        places: recapPlaces(previousRanks.value),
+        peer: previousPeerLine(prev, prevMonth),
       }),
       detectBattery({ history: sohHistory.value, now }),
-      running ? detectRankClosing({ ranks: previousRanks.value, now }) : null,
       detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
       withSupport(detectMilestone({ series: lifetimeSeries.value, now, petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory) }), c.supporterAsk),
       detectGap({ logs: pricelessLogs.value, now, skipLogId: today }),

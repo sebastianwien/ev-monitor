@@ -63,8 +63,10 @@ public class PersonalTickerService {
                         && pb.peerAvgConsumptionKwhPer100km() != null
                         && !pb.peerConsumptionLifetime()
                         && pb.uniquePeerUsers() >= MIN_PEER_USERS)
+                // carId: der Vergleich gilt für das Top-Auto des Monats; die Story zeigt ihn nur für genau dieses Auto.
                 .map(pb -> TickerItemDTO.personal("my_consumption", Map.of(
                         "month", month,
+                        "carId", summary.carId().toString(),
                         "mine", oneDecimal(pb.userPeriodConsumptionKwhPer100km()),
                         "peers", oneDecimal(pb.peerAvgConsumptionKwhPer100km()))));
     }

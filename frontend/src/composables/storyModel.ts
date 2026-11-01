@@ -202,6 +202,22 @@ const TILE_ORDER: TileId[] = ['range', 'charging', 'trips', 'co2', 'battery', 'f
 /** Vergleiche gegen andere Fahrer erst ab so vielen Fahrern, darunter entfallen Satz und Kachel. */
 export const MIN_PEERS = 5
 
+/**
+ * Preisvergleich in Euro: was die Fahrer des Modells (alle Varianten) für dieselbe Strommenge
+ * gezahlt hätten, mit ihrem Preis je kWh. Nur mit genug Autos, Ladungen und Tagen und ohne
+ * Ladungen ohne Preis, sonst stimmt die Summe nicht. Negativ heißt günstiger; null unter 1 €.
+ * Gleiche Regel für "Diesen Monat" und den Monatsrückblick.
+ */
+export function peerCostDiffEur(
+  m: { totalKwhCharged: number; energyCostEur: number; totalCharges: number },
+  elapsedDays: number, priceless: number, mp: ModelPeers | null,
+): number | null {
+  if (!mp || mp.cars < MIN_PEERS || !(m.totalKwhCharged > 0) || !(m.energyCostEur > 0) || m.totalCharges < MIN_SOLID_CHARGES
+      || elapsedDays < MIN_COMPARE_DAYS || priceless !== 0) return null
+  const diff = m.energyCostEur - m.totalKwhCharged * mp.theirs.costPerKwh
+  return Math.abs(diff) >= MIN_COST_DIFF_EUR ? diff : null
+}
+
 export function petrolCostEur(distanceKm: number | null, eurPerLitre: number, litersPer100km: number): number | null {
   if (distanceKm == null || distanceKm <= 0) return null
   return (distanceKm / 100) * litersPer100km * eurPerLitre
@@ -519,21 +535,17 @@ export function buildStoryFeed(input: StoryInput, opts: { omit?: FeedId[]; max?:
   // Preisvergleich in Euro: was die Fahrer des Modells (alle Varianten) fuer dieselbe Strommenge
   // gezahlt haetten, mit ihrem Preis je kWh. Nur ohne Ladungen ohne Preis, sonst stimmt die Summe nicht.
   const mp = input.modelPeers
-  if (mp && mp.cars >= MIN_PEERS && m.totalKwhCharged > 0 && m.energyCostEur > 0 && m.totalCharges >= MIN_SOLID_CHARGES
-      && input.elapsedDays >= MIN_COMPARE_DAYS && (input.quality?.priceless ?? 0) === 0) {
-    const theirsEur = m.totalKwhCharged * mp.theirs.costPerKwh
-    const diff = m.energyCostEur - theirsEur
-    if (Math.abs(diff) >= MIN_COST_DIFF_EUR) {
-      items.push({
-        id: 'peer_cost_eur',
-        question: 3,
-        // Zeilen mit Vergleichsbasis stehen vor den einfachen Saetzen (teuerste Ladung, Trends).
-        relevance: 60 + Math.min(30, Math.abs(diff)),
-        // Teurer als andere ist eine Auskunft fuer die Planung, kein Fehler: nie Amber.
-        sentiment: diff < 0 ? 'good' : 'neutral',
-        params: { diffEur: diff, mineEur: m.energyCostEur, theirsEur, cars: mp.cars },
-      })
-    }
+  const diff = peerCostDiffEur(m, input.elapsedDays, input.quality?.priceless ?? 0, mp)
+  if (mp && diff != null) {
+    items.push({
+      id: 'peer_cost_eur',
+      question: 3,
+      // Zeilen mit Vergleichsbasis stehen vor den einfachen Saetzen (teuerste Ladung, Trends).
+      relevance: 60 + Math.min(30, Math.abs(diff)),
+      // Teurer als andere ist eine Auskunft fuer die Planung, kein Fehler: nie Amber.
+      sentiment: diff < 0 ? 'good' : 'neutral',
+      params: { diffEur: diff, mineEur: m.energyCostEur, theirsEur: m.energyCostEur - diff, cars: mp.cars },
+    })
   }
 
   // Teurer Betreiber: hier spart ein Kartenwechsel wirklich Geld. Nach der Ersparnis, vor Trends.

@@ -255,6 +255,19 @@ export interface LeaderboardStanding {
  * Die eigenen Plätze aus standings/me in die Form der Rang-Auswertung. Die Liste je Kategorie
  * nennt den eigenen Platz nur ab Platz 11 (davor steht er in den Top 10), standings/me immer.
  */
+/**
+ * Eigener Verbrauch gegen die Fahrer desselben Modells im selben Monat, aus dem persönlichen
+ * Ticker (`my_consumption`, Backend rechnet ab 3 andere Nutzer). Null ohne Eintrag oder Zahlen.
+ */
+export function peerConsumptionFromTicker(items: Array<{ messageKey?: string; params?: Record<string, string> }>, carId: string): { mine: number; peers: number } | null {
+  const p = items.find(i => i.messageKey === 'my_consumption')?.params
+  // Der Ticker rechnet für das Top-Auto des Monats; für ein anderes Auto gibt es keine Zeile.
+  if (!p || p.carId !== carId) return null
+  const mine = Number(p.mine)
+  const peers = Number(p.peers)
+  return Number.isFinite(mine) && Number.isFinite(peers) && mine > 0 && peers > 0 ? { mine, peers } : null
+}
+
 export function ranksFromStandings(standings: LeaderboardStanding[]): Array<{ category: string; ownEntry: RankEntry | null }> {
   return standings.map(s => ({
     category: s.category,

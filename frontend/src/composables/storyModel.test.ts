@@ -4,6 +4,7 @@ import {
   buildStoryFeed,
   buildDayCoverage,
   petrolCostEur,
+  peerCostDiffEur,
   petrolLitersPer100km,
   heroLine,
   co2Comparison,
@@ -710,5 +711,29 @@ describe('Fahrten-Kachel und Abgleich mit den Ladungen', () => {
 
   it('ohne Antriebsverbrauch keine Kachel', () => {
     expect(buildStoryTiles(input({ tripMonth: { ...tripMonth, driveKwhPer100km: null } })).map(t => t.id)).not.toContain('trips')
+  })
+})
+
+describe('peerCostDiffEur: Euro-Vergleich mit den Fahrern des Modells, gleiche Regel für Insight und Rückblick', () => {
+  const mp = {
+    cars: 50, deltaPercent: 0, reason: 'price' as const,
+    theirs: { costPerKwh: 0.36, consumption: 17.9, costPer100km: 6.44 },
+    mine: { costPerKwh: 0.3, consumption: 17.9, costPer100km: 5.37 },
+    variants: [],
+  }
+  const m = { totalKwhCharged: 100, energyCostEur: 30, totalCharges: 5 }
+
+  it('negativ, wenn du günstiger lädst: 30 € statt 36 € für 100 kWh', () => {
+    expect(peerCostDiffEur(m, 31, 0, mp)).toBeCloseTo(-6)
+    expect(peerCostDiffEur({ ...m, energyCostEur: 40 }, 31, 0, mp)).toBeCloseTo(4)
+  })
+
+  it('null unter 5 Autos, unter 3 Ladungen, unter 14 Tagen, mit Ladungen ohne Preis, ohne Peers oder unter 1 € Unterschied', () => {
+    expect(peerCostDiffEur(m, 31, 0, { ...mp, cars: 4 })).toBeNull()
+    expect(peerCostDiffEur({ ...m, totalCharges: 2 }, 31, 0, mp)).toBeNull()
+    expect(peerCostDiffEur(m, 13, 0, mp)).toBeNull()
+    expect(peerCostDiffEur(m, 31, 1, mp)).toBeNull()
+    expect(peerCostDiffEur(m, 31, 0, null)).toBeNull()
+    expect(peerCostDiffEur({ ...m, energyCostEur: 36.5 }, 31, 0, mp)).toBeNull()
   })
 })

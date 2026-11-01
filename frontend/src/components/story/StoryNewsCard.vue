@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { XMarkIcon, ShareIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
+import { XMarkIcon, ShareIcon, ChevronRightIcon, TrophyIcon, BoltIcon, BanknotesIcon } from '@heroicons/vue/24/outline'
 import WeatherIcon from '../icons/WeatherIcon.vue'
 import type { Moment } from '../../composables/storyMoments'
 import { useMomentView, type MomentAction } from '../../composables/useMomentView'
@@ -61,6 +61,13 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
       </ul>
     </section>
     <p v-if="view.sub" class="text-pretty text-[14px] text-gray-600 tabular-nums dark:text-gray-300">{{ keepUnits(view.sub) }}</p>
+    <!-- Monatsrückblick: Platz und Modellvergleich als Zeilen mit Symbol, Pokal für den Platz, Blitz für den Verbrauch, Scheine für Euro -->
+    <ul v-if="view.details?.length" class="grid gap-1.5" data-testid="story-news-details">
+      <li v-for="d in view.details" :key="d.id" class="flex items-start gap-2 text-pretty text-[15px] font-semibold text-gray-900 tabular-nums dark:text-gray-50">
+        <component :is="d.id === 'rank' ? TrophyIcon : d.id === 'cost' ? BanknotesIcon : BoltIcon" class="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+        <span>{{ keepUnits(d.text) }}</span>
+      </li>
+    </ul>
     <div v-if="primary || view.secondary || view.dismiss || $slots.more" class="mt-1 grid gap-1" :class="primary && !primaryIsView ? '' : 'justify-items-start'">
       <!-- Link-Aktion und "more" (Stapel: alle Neuigkeiten) teilen sich eine Zeile: more links, Link rechts -->
       <div v-if="primary" :class="primaryIsView && $slots.more ? 'flex w-full flex-row-reverse items-center justify-between gap-4' : 'contents'">

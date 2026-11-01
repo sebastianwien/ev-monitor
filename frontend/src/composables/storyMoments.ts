@@ -15,7 +15,7 @@ export const HOUR = 3_600_000
 export const DAY = 24 * HOUR
 
 export type MomentKind =
-  | 'expensive' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'rank' | 'silence' | 'gap' | 'milestone'
+  | 'expensive' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'silence' | 'gap' | 'milestone'
 
 interface MomentBase {
   /** Zustand plus Ereignis-ID: Schluessel fuer "gesehen" und "weggeklickt". */
@@ -34,9 +34,11 @@ export type MomentData =
   | { kind: 'expensive'; logId: string; cpoName: string; pricePerKwh: number; medianPricePerKwh: number; cardFromPricePerKwh: number | null }
   | { kind: 'long_trip'; km: number; stops: number; costEur: number | null; /** Ziel der letzten Fahrt, für die Wetterprognose */ endGeohash?: string | null }
   | { kind: 'first_frost'; tempC: number; winterKm: number; summerKm: number }
-  | { kind: 'month_change'; year: number; month: number; km: number | null; eur: number | null; charges: number; /** Was ein Verbrenner mehr gekostet hätte, nur wenn er teurer war */ savingEur: number | null }
+  | { kind: 'month_change'; year: number; month: number; km: number | null; eur: number | null; charges: number;
+      /** Was ein Verbrenner mehr gekostet hätte, nur wenn er teurer war */ savingEur: number | null
+      /** Plätze des Vormonats: Treppchen alle, sonst der beste bis 10 */ places: RankPlace[]
+      /** Vergleich mit den Fahrern des Modells im Vormonat */ peer: PeerLine | null }
   | { kind: 'battery'; sohPercent: number; estimated: boolean; previousSohPercent: number | null; previousAt: number | null }
-  | { kind: 'rank'; year: number; month: number; places: RankPlace[] }
   | { kind: 'silence'; days: number; kwh: number | null; autoSync: boolean }
   | { kind: 'gap'; logId: string; count: number; kwh: number | null; since: number }
   | { kind: 'milestone'; metric: MilestoneMetric; value: number; charges: number; km: number; co2Kg: number | null; /** Bitte ums Supporter-Pack mitzeigen */ support?: boolean }
@@ -45,6 +47,8 @@ export type Moment = MomentBase & MomentData
 
 /** Ein Treppchenplatz im abgeschlossenen Monat. */
 export interface RankPlace { category: string; rank: number; value: number; unit: string }
+/** Verbrauch gegen Fahrer des Modells im selben Monat, sonst der Preis in Euro über die Monatsmenge. */
+export type PeerLine = { kind: 'consumption'; mine: number; peers: number } | { kind: 'cost'; diffEur: number }
 
 export interface MomentSeen {
   /** Schluessel -> erstmals als Karte gezeigt (ms), nur fuer das Zaehlen und das Konfetti. */
@@ -102,7 +106,9 @@ const FORECAST_MIN_KM = 200
 const FROST_MS = 3 * DAY
 const BATTERY_MS = 3 * DAY
 const BATTERY_COMPARE_MIN_MS = 90 * DAY
-const RANK_MAX = 3
+const RANK_PODIUM = 3
+/** Die Top-10-Listen sind öffentlich, darüber hinaus sagt ein Platz allein wenig. */
+const RANK_TOP = 10
 const SILENCE_MS = 14 * DAY
 /** Juenger gehoert die Ladung zu "gerade geladen", aelter ist sie kein Moment mehr. */
 const GAP_MIN_MS = JUST_CHARGED_MS
@@ -216,6 +222,8 @@ export function detectMonthChange(input: {
   petrolEurPerLitre: number
   /** Benziner der Fahrzeugklasse, l/100 km */
   petrolLitersPer100km: number
+  places: RankPlace[]
+  peer: PeerLine | null
 }): Moment | null {
   const p = input.previous
   const d = new Date(input.now)
@@ -230,6 +238,7 @@ export function detectMonthChange(input: {
     // Im Folgemonat beim ersten Oeffnen, egal an welchem Tag, bis erledigt.
     ...base(`month_change:${p.year}-${p.month}`, new Date(d.getFullYear(), d.getMonth(), 1).getTime(), Infinity, false, true),
     kind: 'month_change', year: p.year, month: p.month, km: line.km, eur: line.eur, charges: p.charges, savingEur,
+    places: input.places, peer: input.peer,
   }
 }
 
@@ -255,24 +264,19 @@ export function detectBattery(input: {
   }
 }
 
-/** Rang hat keinen Ereigniszeitpunkt: er gilt ab jetzt, "gesehen" verhindert die Wiederholung. */
 /**
- * Ranglisten-Abschluss: alle Treppchenplaetze des Vormonats in einer Karte, im Folgemonat beim
- * ersten Oeffnen, egal an welchem Tag, bis erledigt. Im laufenden Monat gibt es keine Rang-Karte.
+ * Plätze für den Monatsrückblick: Treppchenplätze alle (nach Platz sortiert), sonst nur der beste
+ * Platz, wenn er in den Top 10 liegt. Die Plätze kommen aus standings/me des Vormonats.
  */
-export function detectRankClosing(input: { ranks: Array<{ category: string; ownEntry: RankEntry | null } | null>; now: number }): Moment | null {
-  const places: RankPlace[] = []
-  for (const r of input.ranks) {
-    if (r?.ownEntry && r.ownEntry.rank <= RANK_MAX) places.push({ category: r.category, rank: r.ownEntry.rank, value: r.ownEntry.value, unit: r.ownEntry.unit })
+export function recapPlaces(ranks: Array<{ category: string; ownEntry: RankEntry | null } | null>): RankPlace[] {
+  const all: RankPlace[] = []
+  for (const r of ranks) {
+    if (r?.ownEntry) all.push({ category: r.category, rank: r.ownEntry.rank, value: r.ownEntry.value, unit: r.ownEntry.unit })
   }
-  if (places.length === 0) return null
-  places.sort((a, b) => a.rank - b.rank)
-  const d = new Date(input.now)
-  const prev = new Date(d.getFullYear(), d.getMonth() - 1, 1)
-  return {
-    ...base(`rank:${prev.getFullYear()}-${prev.getMonth() + 1}`, new Date(d.getFullYear(), d.getMonth(), 1).getTime(), Infinity, false, true),
-    kind: 'rank', year: prev.getFullYear(), month: prev.getMonth() + 1, places,
-  }
+  all.sort((a, b) => a.rank - b.rank)
+  const podium = all.filter(p => p.rank <= RANK_PODIUM)
+  if (podium.length) return podium
+  return all.length && all[0].rank <= RANK_TOP ? [all[0]] : []
 }
 
 /** Nur fuer Hand-Erfasser: kommt die letzte Ladung aus einer Verbindung, heisst Stille "nicht geladen". */
@@ -369,7 +373,7 @@ export function detectMilestone(input: { series: MomentPoint[]; now: number; pet
 }
 
 const BASE: Record<MomentKind, number> = {
-  expensive: 85, long_trip: 80, first_frost: 75, month_change: 70, milestone: 65, battery: 60, rank: 55, silence: 50, gap: 40,
+  expensive: 85, long_trip: 80, first_frost: 75, month_change: 70, milestone: 65, battery: 60, silence: 50, gap: 40,
 }
 const ACTION_BONUS = 20
 

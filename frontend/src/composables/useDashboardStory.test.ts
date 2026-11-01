@@ -144,17 +144,18 @@ describe('useDashboardStory - Karten von unten', () => {
     ])
   })
 
-  it('Rueckblick, Ranglisten-Abschluss (Vormonat, nur Treppchen) und Akku als Karten, beste zuerst; keine Karte fuer die frische Ladung', async () => {
+  it('Rueckblick (mit Treppchenplatz des Vormonats) und Akku als Karten, beste zuerst; keine Karte fuer die frische Ladung', async () => {
     const story = useDashboardStory(ref<string | null>('car-1'), ctx)
     await flush()
     const kinds = story.cards.value.map(c => c.moment.kind)
-    // Akku verfällt über 3 Tage, der Abschluss nicht: ihre Reihenfolge hängt am Tag.
     expect(kinds[0]).toBe('month_change')
-    expect([...kinds].sort()).toEqual(['battery', 'month_change', 'rank'])
+    expect([...kinds].sort()).toEqual(['battery', 'month_change'])
     expect(kinds).not.toContain('just_charged')
-    const rank = story.cards.value.find(c => c.moment.kind === 'rank')!.moment
-    expect(rank.kind === 'rank' && rank.places).toEqual([{ category: 'MONTHLY_DISTANCE', rank: 2, value: 900, unit: 'km' }])
+    const review = story.cards.value.find(c => c.moment.kind === 'month_change')!.moment
+    expect(review.kind === 'month_change' && review.places).toEqual([{ category: 'MONTHLY_DISTANCE', rank: 2, value: 900, unit: 'km' }])
     expect(getMock.mock.calls.some(([url, cfg]) => String(url).includes('/standings/me') && cfg?.params?.monthsBack === 1)).toBe(true)
+    // Modellvergleich des Vormonats aus dem persönlichen Ticker, mit dem Monat als Parameter
+    expect(getMock.mock.calls.some(([url, cfg]) => String(url).includes('/ticker/me') && /^\d{4}-\d{2}$/.test(String(cfg?.params?.month)))).toBe(true)
   })
 
   it('im Vormonat entfallen Rueckblick und Abschluss, die anderen Karten bleiben', async () => {

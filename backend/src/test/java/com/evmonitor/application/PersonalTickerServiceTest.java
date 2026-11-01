@@ -88,7 +88,8 @@ class PersonalTickerServiceTest {
         List<TickerItemDTO> items = service.getItems(userId, previous);
 
         assertThat(byKey(items, "my_month").params()).containsEntry("month", String.valueOf(previous.getMonthValue()));
-        assertThat(byKey(items, "my_consumption").params()).containsEntry("mine", "15.2").containsEntry("peers", "16.8");
+        assertThat(byKey(items, "my_consumption").params())
+                .containsEntry("mine", "15.2").containsEntry("peers", "16.8").containsEntry("carId", carId.toString());
         verify(leaderboardService).getMyBestStanding(userId, previous);
     }
 

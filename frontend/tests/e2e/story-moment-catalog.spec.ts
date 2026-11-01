@@ -17,7 +17,7 @@ interface Case {
   data: () => StoryData
   check: (page: Page) => Promise<void>
   /** Rückblick oder Ranglisten-Abschluss des Vormonats sehen wollen (sonst gelten sie als erledigt). */
-  keep?: Array<'month_change' | 'rank'>
+  keep?: Array<'month_change'>
 }
 
 const card = (page: Page, kind: string) => page.getByTestId(`story-news-${kind}`);
@@ -163,15 +163,19 @@ const CASES: Case[] = [
     },
   },
   {
-    name: 'rangliste',
-    keep: ['rank'],
-    data: () => ({ ...calmMonth(), ranks: { MONTHLY_DISTANCE: { rank: 2, value: 1234, unit: 'km' }, MONTHLY_KWH: { rank: 3, value: 310, unit: 'kWh' }, MONTHLY_CHARGES: { rank: 7, value: 9, unit: '' } } }),
+    name: 'monatsrueckblick-platz',
+    keep: ['month_change'],
+    data: () => ({
+      ...calmMonth(),
+      previousStats: stats({ totalDistanceKm: 512, energyCostEur: 61, totalCostEur: 61, totalCharges: 11, totalKwhCharged: 95 }),
+      ranks: { MONTHLY_DISTANCE: { rank: 2, value: 1234, unit: 'km' }, MONTHLY_KWH: { rank: 3, value: 310, unit: 'kWh' }, MONTHLY_CHARGES: { rank: 7, value: 9, unit: '' } },
+    }),
     check: async (page) => {
-      // Abschluss des Vormonats: alle Treppchenplätze in einer Karte, Platz 7 fehlt.
-      await expect(sentence(page, 'rank')).toContainText('Im September auf dem Treppchen.');
-      await expect(card(page, 'rank')).toContainText(/Platz 2 bei .+ · Platz 3 bei /);
-      await expect(card(page, 'rank')).not.toContainText('Platz 7');
-      await expect(card(page, 'rank').getByRole('link', { name: 'Rangliste ansehen' })).toHaveAttribute('href', '/leaderboard');
+      // Plätze des Vormonats in der Rückblick-Karte: alle Treppchenplätze, Platz 7 fehlt; der Vormonat eine Seite zurück.
+      const review = card(page, 'month_change');
+      await expect(review).toContainText(/Platz 2 bei .+ · Platz 3 bei /);
+      await expect(review).not.toContainText('Platz 7');
+      await expect(review.getByRole('button', { name: 'September ansehen' })).toBeVisible();
     },
   },
   {

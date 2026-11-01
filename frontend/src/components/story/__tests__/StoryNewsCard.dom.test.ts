@@ -54,17 +54,34 @@ describe('StoryNewsCard', () => {
   })
 
   it('Rückblick: Satz des Vormonats, Ersparnis gegenüber dem Verbrenner darunter, "Rückblick teilen" als Knopf', () => {
-    const host = mount({ ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: 6.4 })
+    const host = mount({ ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: 6.4, places: [], peer: null })
     expect(text(host)).toContain('September: 512 km für 61 €.')
+    expect(host.querySelector('[data-testid="story-news-details"]')).toBeNull()
     expect(text(host)).toContain('Gegenüber einem Verbrenner: 6 € gespart.')
     expect(text(host.querySelector('button.bg-green-600'))).toBe('Rückblick teilen')
   })
 
-  it('Ranglisten-Abschluss: alle Treppchenplätze, Link zur Rangliste', () => {
-    const host = mount({ ...base, kind: 'rank', key: 'r', year: 2026, month: 9, places: [{ category: 'MONTHLY_DISTANCE', rank: 1, value: 1234, unit: 'km' }, { category: 'MONTHLY_KWH', rank: 3, value: 310, unit: 'kWh' }] })
-    expect(text(host)).toContain('Im September auf dem Treppchen.')
-    expect(text(host)).toMatch(/Platz 1 bei .+ · Platz 3 bei .+/)
-    expect(host.querySelector('a.text-green-700')!.getAttribute('href')).toBe('/leaderboard')
+  it('Rückblick mit Plätzen und Modellvergleich: Zusatzzeilen mit Symbol, "September ansehen" als leiser Knopf', () => {
+    const events: unknown[][] = []
+    const host = mount({
+      ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: 6.4,
+      places: [{ category: 'MONTHLY_DISTANCE', rank: 1, value: 1234, unit: 'km' }, { category: 'MONTHLY_KWH', rank: 3, value: 310, unit: 'kWh' }],
+      peer: { kind: 'consumption', mine: 15.2, peers: 16.8 },
+    }, events)
+    const details = [...host.querySelectorAll('[data-testid="story-news-details"] li')].map(text)
+    expect(details).toHaveLength(2)
+    expect(details[0]).toMatch(/^Platz 1 bei .+ · Platz 3 bei .+/)
+    expect(details[1]).toBe('Du: 15,2 kWh/100 km, andere Fahrer deines Modells im September: 16,8.')
+    expect(host.querySelectorAll('[data-testid="story-news-details"] svg')).toHaveLength(2)
+    const view = [...host.querySelectorAll('button')].find(b => text(b) === 'September ansehen')!
+    view.click()
+    expect(events).toEqual([['act', 'prev_month']])
+  })
+
+  it('Rückblick ohne Platz in den Top 10: Euro-Vergleich als Zusatzzeile, teurer ist eine Auskunft', () => {
+    const host = mount({ ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: null, places: [], peer: { kind: 'cost', diffEur: 12.4 } })
+    const details = [...host.querySelectorAll('[data-testid="story-news-details"] li')].map(text)
+    expect(details).toEqual(['12 € mehr für Strom als andere Fahrer deines Modells im September.'])
   })
 
   it('Meilenstein mit Supporter-Bitte: leiser Link zum Pack mit Herkunft, ohne Bitte keiner', () => {

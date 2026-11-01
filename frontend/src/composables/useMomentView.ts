@@ -2,7 +2,7 @@ import { computed, ref, watch, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from './useLocaleFormat'
 import { heroLine } from './storyModel'
-import { DAY, type Moment } from './storyMoments'
+import { DAY, type Moment, type RankPlace } from './storyMoments'
 import { CAT_LABEL } from './useTickerItems'
 import { fetchDestinationForecast, type DayForecast, type WeatherKind } from '../utils/destinationForecast'
 
@@ -19,6 +19,8 @@ export interface MomentView {
   action?: MomentAction
   secondary?: MomentAction
   dismiss?: boolean
+  /** Zusatzzeilen mit Symbol im Monatsrückblick: Platz in der Rangliste und Vergleich mit dem Modell. */
+  details?: Array<{ id: 'rank' | 'peer' | 'cost'; text: string }>
   /** Wetter am Ziel einer langen Fahrt: Satz für Screenreader, Kacheln fürs Auge. */
   forecast?: { sentence: string; days: Array<{ label: string; range: string; kind: WeatherKind; state: string }> }
 }
@@ -82,11 +84,23 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
       case 'month_change': {
         const line = heroLine({ distanceKm: m.km, energyCostEur: m.eur, charges: m.charges })
         const month = cap(new Date(m.year, m.month - 1, 1).toLocaleDateString(locale.value, { month: 'long' }))
+        const place = (p: RankPlace) => t('story.moment_rank_place', { rank: p.rank, category: t(`leaderboard.cat_${CAT_LABEL[p.category] ?? 'kwh'}`) })
+        const details: NonNullable<MomentView['details']> = []
+        if (m.places.length) details.push({ id: 'rank', text: m.places.map(place).join(' · ') })
+        if (m.peer?.kind === 'consumption') {
+          details.push({ id: 'peer', text: t('story.moment_month_peer', { mine: `${formatDecimal(m.peer.mine, 1)} kWh/100 km`, peers: formatDecimal(m.peer.peers, 1), month }) })
+        } else if (m.peer?.kind === 'cost') {
+          // Teurer als andere ist eine Auskunft, kein Fehler: gleicher Ton wie "Diesen Monat".
+          details.push({ id: 'cost', text: t(m.peer.diffEur < 0 ? 'story.moment_month_peer_cheaper' : 'story.moment_month_peer_pricier', { eur: eur(Math.abs(m.peer.diffEur)), month }) })
+        }
         return {
           eyebrow: t('story.moment_month_eyebrow'),
           sentence: t(`story.hero_${line.kind}`, { month, km: line.km != null ? km(line.km) : '', eur: line.eur != null ? eur(line.eur) : '', n: m.charges }, m.charges),
           sub: m.savingEur != null ? t('story.moment_month_saving', { eur: eur(m.savingEur) }) : undefined,
+          details: details.length ? details : undefined,
           action: { id: 'share', label: t('story.moment_action_share_review') },
+          // Der Vormonat steht mit allen Kacheln und Insights eine Seite zurück.
+          secondary: { id: 'prev_month', label: t('story.moment_month_view', { month }) },
         }
       }
       case 'battery': {
@@ -102,16 +116,6 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
           ].filter(Boolean).join(' '),
           badge: m.estimated ? t('story.moment_battery_estimated') : undefined,
           action: { id: 'battery', label: t('story.moment_action_battery') },
-        }
-      }
-      case 'rank': {
-        const month = new Date(m.year, m.month - 1, 1).toLocaleDateString(locale.value, { month: 'long' })
-        const place = (p: typeof m.places[number]) => t('story.moment_rank_place', { rank: p.rank, category: t(`leaderboard.cat_${CAT_LABEL[p.category] ?? 'kwh'}`) })
-        return {
-          eyebrow: t('story.moment_rank_eyebrow'),
-          sentence: t('story.moment_rank_close', { month, n: m.places.length }, m.places.length),
-          sub: m.places.map(place).join(' · '),
-          action: { id: 'rank', label: t('story.moment_action_rank'), to: '/leaderboard' },
         }
       }
       case 'silence':

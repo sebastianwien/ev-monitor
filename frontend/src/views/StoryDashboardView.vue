@@ -268,6 +268,8 @@ function onNewsAct(m: Moment, id: string) {
     if (m.kind === 'month_change') dismiss(m.key, Date.now(), 365 * DAY)
   }
   else if (id === 'winter') openSheet('range')
+  // Rückblick: der Vormonat steht mit allen Kacheln und Insights eine Seite zurück, die Karte bleibt offen.
+  else if (id === 'prev_month') selectMonth(offset.value - 1)
   else if (id === 'prices') openPrices.value = true
   else if (id === 'price_unknown' && m.kind === 'gap') story.markPriceUnknown(m.logId)
   else if (id === 'battery') {
@@ -278,12 +280,13 @@ function onNewsAct(m: Moment, id: string) {
 }
 function onNewsDismiss(m: Moment) {
   analytics.track('story_moment_dismissed', { moment: m.kind })
-  dismiss(m.key, Date.now(), (m.kind === 'month_change' || m.kind === 'rank' ? 365 : 30) * DAY)
+  dismiss(m.key, Date.now(), (m.kind === 'month_change' ? 365 : 30) * DAY)
 }
 /** Text zum Teilen: Satz und Unterzeile der Karte. */
 function newsText(m: Moment): { title: string; text: string } {
   const v = useMomentView({ moment: m, carId: selectedCarId.value, carName: carName.value }).value
-  return { title: v.eyebrow, text: [v.sentence, v.sub].filter(Boolean).join(' ') }
+  // Der Platz geht mit auf die Reise, der Modellvergleich nicht (zu viel für einen geteilten Satz).
+  return { title: v.eyebrow, text: [v.sentence, v.sub, v.details?.find(d => d.id === 'rank')?.text].filter(Boolean).join(' ') }
 }
 function openSheet(id: TileId) {
   haptic()

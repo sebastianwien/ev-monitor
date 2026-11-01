@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   standbyChange,
-  temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, ranksFromStandings, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth,
+  temperatureEffect, scatterYScale, modelPeers, dataQuality, countPricelessInMonth, ranksFromStandings, peerConsumptionFromTicker, buildLatest, pickLatestTrip, sohIsEstimated, buildTripMonth,
   COLD_MAX_C, MILD_MIN_C, MIN_TRIPS_PER_SIDE,
 } from './storyInsights'
 import type { PeerModelComparisonItem } from '../api/peerModelComparisonService'
@@ -166,6 +166,26 @@ describe('ranksFromStandings', () => {
   it('ohne Platzierung in allen Kategorien gibt es keinen Eintrag', () => {
     expect(ranksFromStandings([standings[2]])[0].ownEntry).toBeNull()
     expect(ranksFromStandings([])).toEqual([])
+  })
+})
+
+describe('peerConsumptionFromTicker', () => {
+  const items: Array<{ messageKey?: string; params?: Record<string, string> }> = [
+    { messageKey: 'my_month', params: { kwh: '120' } },
+    { messageKey: 'my_consumption', params: { month: '10', carId: 'car-1', mine: '15.2', peers: '16.8' } },
+  ]
+
+  it('liest eigenen und Peer-Verbrauch aus dem persönlichen Ticker-Eintrag, nur für genau dieses Auto', () => {
+    expect(peerConsumptionFromTicker(items, 'car-1')).toEqual({ mine: 15.2, peers: 16.8 })
+    // Der Ticker rechnet für das Top-Auto des Monats: ein anderes gewähltes Auto bekommt keine Zeile.
+    expect(peerConsumptionFromTicker(items, 'car-2')).toBeNull()
+  })
+
+  it('null ohne Eintrag, ohne Zahlen oder bei 0', () => {
+    expect(peerConsumptionFromTicker([{ messageKey: 'my_month', params: {} }], 'car-1')).toBeNull()
+    expect(peerConsumptionFromTicker([{ messageKey: 'my_consumption', params: { carId: 'car-1', mine: 'abc', peers: '16.8' } }], 'car-1')).toBeNull()
+    expect(peerConsumptionFromTicker([{ messageKey: 'my_consumption', params: { carId: 'car-1', mine: '0', peers: '16.8' } }], 'car-1')).toBeNull()
+    expect(peerConsumptionFromTicker([], 'car-1')).toBeNull()
   })
 })
 

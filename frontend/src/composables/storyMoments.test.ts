@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
-  detectRankClosing, detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate,
+  recapPlaces, detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate,
   momentScore, pickCards, HOUR, DAY, type MomentSeen, type Moment,
 } from './storyMoments'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
@@ -84,27 +84,34 @@ describe('detectMonthChange', () => {
 
   it('im Folgemonat an jedem Tag, mit Vormonat und Ersparnis gegenüber dem Verbrenner, bis erledigt', () => {
     const now = new Date(2026, 9, 3, 9).getTime()
-    const m = detectMonthChange({ now, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })
+    const m = detectMonthChange({ now, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5, places: [], peer: null })
     // Verbrenner 279 km x 7,5 l x 2 € = 41,85 €, Strom 33 €: 8,85 € gespart
     expect(m).toMatchObject({ kind: 'month_change', key: 'month_change:2026-9', km: 279, eur: 33, savingEur: 279 / 100 * 7.5 * 2 - 33, dismissible: true, lifetimeMs: Infinity })
     expect(m?.at).toBe(new Date(2026, 9, 1).getTime())
-    expect(detectMonthChange({ now: NOW, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ key: 'month_change:2026-9' })
+    expect(detectMonthChange({ now: NOW, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5, places: [], peer: null })).toMatchObject({ key: 'month_change:2026-9' })
   })
 
   it('nennt keine Ersparnis, wenn dem Vormonat Preise fehlen', () => {
     const now = new Date(2026, 9, 3, 9).getTime()
-    expect(detectMonthChange({ now, previous: { ...previous, priceless: 2 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ savingEur: null })
+    expect(detectMonthChange({ now, previous: { ...previous, priceless: 2 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5, places: [], peer: null })).toMatchObject({ savingEur: null })
   })
 
   it('nennt keine Ersparnis, wenn der Verbrenner nicht teurer gewesen wäre oder sie auf 0 € rundet', () => {
     const now = new Date(2026, 9, 3, 9).getTime()
-    expect(detectMonthChange({ now, previous: { ...previous, energyCostEur: 50 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ savingEur: null })
+    expect(detectMonthChange({ now, previous: { ...previous, energyCostEur: 50 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5, places: [], peer: null })).toMatchObject({ savingEur: null })
     // Verbrenner 41,85 €, Strom 41,50 €: 0,35 € stünden als "0 € gespart" da
-    expect(detectMonthChange({ now, previous: { ...previous, energyCostEur: 41.5 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toMatchObject({ savingEur: null })
+    expect(detectMonthChange({ now, previous: { ...previous, energyCostEur: 41.5 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5, places: [], peer: null })).toMatchObject({ savingEur: null })
+  })
+
+  it('nimmt Plätze und Modellvergleich des Vormonats mit in die Karte', () => {
+    const now = new Date(2026, 9, 3, 9).getTime()
+    const places = [{ category: 'MONTHLY_DISTANCE', rank: 7, value: 900, unit: 'km' }]
+    const peer = { kind: 'consumption' as const, mine: 15.2, peers: 16.8 }
+    expect(detectMonthChange({ now, previous, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5, places, peer })).toMatchObject({ places, peer })
   })
 
   it('schweigt ohne Ladungen im Vormonat', () => {
-    expect(detectMonthChange({ now: new Date(2026, 9, 2).getTime(), previous: { ...previous, charges: 0 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5 })).toBeNull()
+    expect(detectMonthChange({ now: new Date(2026, 9, 2).getTime(), previous: { ...previous, charges: 0 }, petrolEurPerLitre: 2, petrolLitersPer100km: 7.5, places: [], peer: null })).toBeNull()
   })
 })
 
@@ -125,24 +132,23 @@ describe('detectBattery', () => {
   })
 })
 
-describe('detectRankClosing und detectSilence', () => {
-  it('Abschluss des Vormonats: alle Treppchenplätze in einer Karte, nach Platz sortiert, bis erledigt', () => {
-    const ranks = [
-      { category: 'MONTHLY_KWH', ownEntry: { rank: 3, value: 310, unit: 'kWh' } },
-      null,
-      { category: 'MONTHLY_DISTANCE', ownEntry: { rank: 1, value: 1234, unit: 'km' } },
-      { category: 'MONTHLY_CHARGES', ownEntry: { rank: 4, value: 12, unit: '' } },
-      { category: 'MONTHLY_NIGHT_OWL', ownEntry: null },
-    ]
-    const m = detectRankClosing({ ranks, now: NOW })!
-    expect(m).toMatchObject({ kind: 'rank', key: 'rank:2026-9', year: 2026, month: 9, dismissible: true, lifetimeMs: Infinity })
-    expect(m.kind === 'rank' && m.places).toEqual([
-      { category: 'MONTHLY_DISTANCE', rank: 1, value: 1234, unit: 'km' },
-      { category: 'MONTHLY_KWH', rank: 3, value: 310, unit: 'kWh' },
+describe('recapPlaces und detectSilence', () => {
+  const entry = (category: string, rank: number | null, value = 1) => ({ category, ownEntry: rank != null ? { rank, value, unit: '' } : null })
+
+  it('Treppchen: alle Treppchenplätze nach Platz sortiert, Platz 4 und schlechter nicht', () => {
+    const places = recapPlaces([entry('MONTHLY_KWH', 3, 310), null, entry('MONTHLY_DISTANCE', 1, 1234), entry('MONTHLY_CHARGES', 4), entry('MONTHLY_NIGHT_OWL', null)])
+    expect(places).toEqual([
+      { category: 'MONTHLY_DISTANCE', rank: 1, value: 1234, unit: '' },
+      { category: 'MONTHLY_KWH', rank: 3, value: 310, unit: '' },
     ])
-    expect(m.at).toBe(new Date(2026, 9, 1).getTime())
-    expect(detectRankClosing({ ranks: [{ category: 'MONTHLY_KWH', ownEntry: { rank: 4, value: 1, unit: 'kWh' } }], now: NOW })).toBeNull()
-    expect(detectRankClosing({ ranks: [], now: NOW })).toBeNull()
+  })
+
+  it('ohne Treppchen nur der beste Platz, und nur in den Top 10', () => {
+    expect(recapPlaces([entry('MONTHLY_KWH', 9), entry('MONTHLY_DISTANCE', 7)]).map(p => `${p.category}:${p.rank}`)).toEqual(['MONTHLY_DISTANCE:7'])
+    expect(recapPlaces([entry('MONTHLY_KWH', 10)]).map(p => p.rank)).toEqual([10])
+    expect(recapPlaces([entry('MONTHLY_KWH', 11), entry('MONTHLY_DISTANCE', 40)])).toEqual([])
+    expect(recapPlaces([entry('MONTHLY_KWH', null)])).toEqual([])
+    expect(recapPlaces([])).toEqual([])
   })
 
   it('Stille nach 14 Tagen ohne Ladung, nur bei manuell erfassten Ladungen', () => {
