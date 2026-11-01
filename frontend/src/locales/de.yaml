@@ -4810,3 +4810,9 @@ site_question:
   done_title: "Eine Ladung hat ihre Säule | {count} Ladungen haben ihre Säule"
   done_text: "Neue Ladungen an diesen Säulen ordne ich ab jetzt selbst zu."
   done: "Fertig"
+previewFeedback:
+  button: "Feedback"
+  subject: "Preview-Feedback"
+  prompt: "Was ist dir aufgefallen?"
+  screenshot: "Wenn du magst, häng einen Screenshot an. Das hilft mir sehr."
+  keep: "nicht löschen"

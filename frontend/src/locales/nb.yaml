@@ -4646,3 +4646,9 @@ site_question:
   done_title: "Én lading har fått ladestasjon | {count} ladinger har fått ladestasjon"
   done_text: "Nye ladinger ved disse stasjonene tilordner jeg selv fra nå av."
   done: "Ferdig"
+previewFeedback:
+  button: "Tilbakemelding"
+  subject: "Preview-tilbakemelding"
+  prompt: "Hva la du merke til?"
+  screenshot: "Legg gjerne ved et skjermbilde. Det hjelper meg mye."
+  keep: "ikke slett"

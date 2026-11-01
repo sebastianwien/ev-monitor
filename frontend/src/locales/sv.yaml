@@ -4646,3 +4646,9 @@ site_question:
   done_title: "En laddning har fått laddstation | {count} laddningar har fått laddstation"
   done_text: "Nya laddningar vid de här stationerna tilldelar jag själv från och med nu."
   done: "Klar"
+previewFeedback:
+  button: "Feedback"
+  subject: "Preview-feedback"
+  prompt: "Vad lade du märke till?"
+  screenshot: "Bifoga gärna en skärmdump. Det hjälper mig mycket."
+  keep: "radera inte"

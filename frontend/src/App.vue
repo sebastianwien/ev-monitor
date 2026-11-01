@@ -12,6 +12,8 @@ import { useWallboxStore } from './stores/wallbox'
 import { useCarStore } from './stores/car'
 import SpritMonitorImport from './components/imports/SpritMonitorImport.vue'
 import SupportPopover from './components/settings/SupportPopover.vue'
+import PreviewFeedbackButton from './components/shared/PreviewFeedbackButton.vue'
+import { isPreviewHost } from './utils/previewHost'
 import LeaderboardTicker from './components/shared/LeaderboardTicker.vue'
 import { useIsMobile } from './composables/useIsMobile'
 import { useHead } from '@unhead/vue'
@@ -62,6 +64,7 @@ const { isDark } = storeToRefs(themeStore)
 useStatusBarTheme(isDark)
 const { tickerHasItems, tickerCollapsed } = useTickerState()
 const route = useRoute()
+const previewFeedback = isPreviewHost()
 // Sicherheitsnetz gegen Kannibalisierung: nur DE-Seiten dürfen in den Google-Index. Views mit
 // eigenem useHead (Modellseiten, Landing) setzen robots selbst und überschreiben diesen Eintrag.
 useHead({ meta: [{ name: 'robots', content: () => robotsForPath(route.path) }] })
@@ -626,6 +629,8 @@ const handleBottomLogout = () => {
     <FeedbackToast />
     <LogUndoToast />
     <DemoWelcomeModal v-if="authStore.isDemoAccount" />
+    <!-- Vorschau: Tester schicken Feedback als vorausgefüllte Mail -->
+    <PreviewFeedbackButton v-if="previewFeedback && authStore.isAuthenticated() && !captureOpen && !mobileFullscreen" />
   </div>
 </template>
 

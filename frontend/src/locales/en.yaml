@@ -4804,3 +4804,9 @@ site_question:
   done_title: "One charge has its charging station | {count} charges have their charging station"
   done_text: "From now on, I'll assign new charges at these stations myself."
   done: "Done"
+previewFeedback:
+  button: "Feedback"
+  subject: "Preview feedback"
+  prompt: "What did you notice?"
+  screenshot: "If you can, please attach a screenshot. It helps me a lot."
+  keep: "please keep"
