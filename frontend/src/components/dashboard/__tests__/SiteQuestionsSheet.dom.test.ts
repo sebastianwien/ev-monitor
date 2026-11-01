@@ -30,6 +30,7 @@ function mount(props: { questions: SiteQuestion[]; onAnswered?: () => void; onCl
 
 const flush = async () => { for (let i = 0; i < 6; i++) { await nextTick(); await Promise.resolve() } }
 const text = () => document.body.textContent ?? ''
+const progress = () => document.querySelector('[role="progressbar"]')?.getAttribute('aria-label')
 const tiles = () => [...document.querySelectorAll<HTMLButtonElement>('[data-testid="site-question-candidate"]')]
 
 describe('SiteQuestionsSheet', () => {
@@ -44,7 +45,7 @@ describe('SiteQuestionsSheet', () => {
     mount({ questions })
     await flush()
 
-    expect(text()).toContain('1 von 2')
+    expect(progress()).toBe('1 von 2')
     expect(text()).toContain("Welche Säule war's?")
     expect(tiles().map((t) => t.textContent)).toEqual([expect.stringContaining('Discounter'), expect.stringContaining('Supermarkt')])
   })
@@ -69,7 +70,7 @@ describe('SiteQuestionsSheet', () => {
 
     expect(api.post).toHaveBeenCalledWith('/charging-sites/questions/q1/answer', { name: 'Supermarkt' })
     expect(onAnswered).toHaveBeenCalled()
-    expect(text()).toContain('2 von 2')
+    expect(progress()).toBe('2 von 2')
     expect(tiles()[0].textContent).toContain('Raststätte')
   })
 
@@ -106,7 +107,7 @@ describe('SiteQuestionsSheet', () => {
     tiles()[0].click()
     await flush()
 
-    expect(text()).toContain('1 von 2')
+    expect(progress()).toBe('1 von 2')
     expect(document.querySelector('[data-testid="site-question-error"]')).not.toBeNull()
   })
 })

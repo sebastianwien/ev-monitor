@@ -86,29 +86,33 @@ function unknown() {
 <template>
   <BottomSheet ref="sheet" edge :label="t('site_question.title')" testid="site-questions-sheet" @close="emit('close')">
     <template #default="{ close }">
-      <div v-if="current" class="flex-1 overflow-y-auto px-4 pb-5 pt-3">
-        <div class="flex items-center justify-between">
-          <span class="text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">
-            {{ t('site_question.step', { n: step + 1, total: questions.length }) }}
-          </span>
-          <button type="button" :aria-label="t('common.close')" @click="close"
-            class="-mr-2 grid h-11 w-11 place-items-center text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-            <XMarkIcon class="h-5 w-5" aria-hidden="true" />
-          </button>
-        </div>
-        <div v-if="questions.length > 1" class="mb-4 flex gap-1" aria-hidden="true">
-          <span v-for="(_, i) in questions" :key="i" class="h-1.5 flex-1 rounded-full"
-            :class="i <= step ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-200 dark:bg-gray-700'" />
-        </div>
-
-        <!-- Kopfkarte wie im Lade-Wizard: Karte randlos, nach unten in den Sheet-Hintergrund verlaufend -->
-        <div v-if="area" data-testid="site-question-map" class="relative -mx-4 -mb-6 h-36 overflow-hidden" aria-hidden="true">
-          <PlaceMinimap :key="current.id" :lat="area.lat" :lon="area.lon" :area="area" :zoom="14" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />
-          <div class="absolute inset-x-0 bottom-0 z-[500] h-16 bg-gradient-to-t from-white to-transparent dark:from-gray-900" />
+      <div v-if="current" class="relative flex-1 overflow-y-auto px-4 pb-5">
+        <!-- Griff, Titel und Schließen liegen wie im Lade-Wizard oben; mit Ort schweben sie auf der Karte -->
+        <div :class="['z-[600]', area ? 'absolute inset-x-0 top-0 bg-gradient-to-b from-white via-white/80 to-transparent px-4 pb-6 dark:from-gray-800 dark:via-gray-800/80' : '-mx-4 px-4']">
+          <div class="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-200 sm:hidden dark:bg-gray-700" aria-hidden="true" />
+          <div class="mt-1 flex items-center">
+            <div class="-ml-2 w-11 shrink-0" />
+            <h2 class="min-w-0 flex-1 truncate px-2 text-center text-[17px] font-bold text-gray-900 dark:text-gray-50">{{ t('site_question.title') }}</h2>
+            <button type="button" :aria-label="t('common.close')" @click="close"
+              class="-mr-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
+              <XMarkIcon class="h-5 w-5" aria-hidden="true" />
+            </button>
+          </div>
+          <div v-if="questions.length > 1" class="mt-2 flex gap-1" role="progressbar" :aria-valuenow="step + 1" aria-valuemin="1" :aria-valuemax="questions.length"
+            :aria-label="t('site_question.step', { n: step + 1, total: questions.length })">
+            <i v-for="(_, i) in questions" :key="i" class="h-1 flex-1 rounded-full"
+              :class="i <= step ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-200 dark:bg-gray-700'" />
+          </div>
         </div>
 
-        <h2 class="relative z-[501] text-xl font-bold leading-tight text-gray-900 dark:text-gray-50">{{ t('site_question.title') }}</h2>
-        <p class="mt-1 text-sm text-gray-600 dark:text-gray-300">{{ context }}</p>
+        <!-- Karte bis an die Oberkante, die Unterzeile steht im Verlauf nach unten -->
+        <div v-if="area" data-testid="site-question-map" class="relative -mx-4 h-60 overflow-hidden">
+          <PlaceMinimap :key="current.id" aria-hidden="true" :lat="area.lat" :lon="area.lon" :area="area" :zoom="14" :class="['absolute inset-x-0 top-1/2 -translate-y-1/2', MINIMAP_MAX_CLASS]" />
+          <div class="absolute inset-x-0 bottom-0 z-[500] bg-gradient-to-t from-white via-white/70 to-transparent px-4 pb-1 pt-12 dark:from-gray-800 dark:via-gray-800/70">
+            <p class="text-sm text-gray-700 dark:text-gray-200">{{ context }}</p>
+          </div>
+        </div>
+        <p v-else class="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">{{ context }}</p>
 
         <div class="mt-4 space-y-3">
           <StationTile v-for="c in current.candidates" :key="c.name" data-testid="site-question-candidate"

@@ -18,6 +18,8 @@ const props = defineProps<{
   saving?: boolean
   /** Im Erfassen-Sheet: füllt das Panel statt den Viewport, Safe-Area und Tastatur übernimmt das Sheet. */
   embedded?: boolean
+  /** Prüfseite mit Karte: der Kopf schwebt auf der Karte, die bis an die Oberkante reicht */
+  overMap?: boolean
 }>()
 const emit = defineEmits<{ back: []; next: []; blocked: []; cancel: [] }>()
 /** Unvollständig bleibt der Button fokussierbar (aria-disabled statt disabled): ein Druck sagt, was fehlt. */
@@ -39,9 +41,11 @@ watch(() => props.step, () => scroller.value?.scrollTo({ top: 0 }))
   <!-- Mobile: fest auf den Viewport gespannt - Kopf und Footer bleiben stehen, nur der Inhalt
        dazwischen scrollt. Die Seite selbst kann nicht mehr scrollen, der Balken laeuft nie raus. -->
   <!-- Deutlicher Fokusring für alles im Wizard, grün wie überall in der App-CI -->
-  <div :style="frameStyle" :class="['[&_:focus-visible]:outline-2 [&_:focus-visible]:outline-offset-2 [&_:focus-visible]:outline-green-600 flex flex-col bg-white dark:bg-gray-900',
+  <div :style="frameStyle" :class="['relative [&_:focus-visible]:outline-2 [&_:focus-visible]:outline-offset-2 [&_:focus-visible]:outline-green-600 flex flex-col bg-white dark:bg-gray-900',
     embedded ? 'flex-1 min-h-0' : 'fixed inset-0 z-50 pt-[env(safe-area-inset-top)] md:static md:pt-0 md:min-h-0']">
-    <header class="px-4 pt-4 pb-3 md:px-6">
+    <!-- Im Sheet liegt der Griff darüber (absolut), deshalb mobil mehr Luft oben -->
+    <header :class="['px-4 pb-3 md:px-6', embedded ? 'pt-7 sm:pt-4' : 'pt-4',
+      overMap && 'absolute inset-x-0 top-0 z-[600] pb-8 bg-gradient-to-b from-white via-white/80 to-transparent dark:from-gray-900 dark:via-gray-900/80']">
       <div class="flex items-center justify-between">
         <button v-if="step > 1" type="button" :aria-label="t('common.back')" @click="emit('back')"
           class="-ml-2 grid h-11 w-11 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">

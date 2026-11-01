@@ -51,8 +51,9 @@ const onBarTouchEnd = (e: TouchEvent) => {
     :minimizable="canMinimize" :minimized="minimized"
     @minimize="emit('update:minimized', true)" @close="emit('close')">
     <!-- Ein Hintergrund wie der Wizard, auch unter Griff und Safe-Area -->
-    <div class="flex min-h-0 flex-1 flex-col bg-white dark:bg-gray-900">
-      <div class="mx-auto mt-2 h-1.5 w-10 shrink-0 rounded-full bg-gray-200 sm:hidden dark:bg-gray-700" aria-hidden="true" />
+    <div class="relative flex min-h-0 flex-1 flex-col bg-white dark:bg-gray-900">
+      <!-- Griff absolut: auf der Prüfseite liegt er mit dem Kopf auf der Karte -->
+      <div class="pointer-events-none absolute left-1/2 top-2 z-[700] h-1.5 w-10 -translate-x-1/2 rounded-full bg-gray-200 sm:hidden dark:bg-gray-700" aria-hidden="true" />
       <LogWizard ref="wizard" embedded :car-id="carId" :initial-logged-at="initialLoggedAt"
         @success="emit('saved'); close()" @cancel="close" />
     </div>

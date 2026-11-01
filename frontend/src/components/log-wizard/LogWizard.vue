@@ -539,6 +539,7 @@ watch(() => [numbersContext.value.lat, numbersContext.value.lon, numbersContext.
     </div>
 
     <WizardShell v-else-if="hasCars" :embedded="embedded" :step="step" :question="t(questions[step])" :hint="hint"
+      :over-map="step === LAST_STEP && numbersContext.lat != null && numbersContext.lon != null"
       :can-proceed="proceedAllowed && !!selectedCarId" :saving="saving"
       :primary-label="step === LAST_STEP ? t('common.save') : t('common.next')" :primary-watt="step === LAST_STEP ? wattOnSave : 0"
       @back="back" @next="next" @blocked="onBlocked" @cancel="emit('cancel')">
