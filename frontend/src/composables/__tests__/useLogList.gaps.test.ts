@@ -22,11 +22,13 @@ import { useLogList } from '../useLogList'
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; pending.length = 0 })
 
+const carId = ref<string | null>('c1')
 function mountList() {
   let list!: ReturnType<typeof useLogList>
+  carId.value = 'c1'
   app = createApp(defineComponent({
     setup() {
-      list = useLogList(ref<string | null>('c1'), ref([]), ref(null))
+      list = useLogList(carId, ref([]), ref(null))
       return () => h('div')
     },
   }))
@@ -50,6 +52,26 @@ describe('useLogList Strecke ohne Aufzeichnung', () => {
     pending[0].resolve({ data: [gap('2026-10-09T08:00:00Z')] })
     await flush()
 
+    expect(list.gaps.value.map(g => g.to)).toEqual(['2026-10-02T08:00:00Z'])
+  })
+
+  it('Autowechsel: die Antwort des alten Autos kommt nicht in die Liste', async () => {
+    const list = mountList()
+    await list.deleteTripEntry('t1')          // Anfrage für c1 läuft
+    carId.value = 'c2'
+    await flush()
+    pending[0].resolve({ data: [gap('2026-10-09T08:00:00Z')] })
+    await flush()
+    expect(list.gaps.value).toEqual([])
+  })
+
+  it('Autowechsel und sofort laden: die Antwort des neuen Autos bleibt', async () => {
+    const list = mountList()
+    carId.value = 'c2'
+    void list.fetchLogs()                     // im selben Moment, vor dem Reset-Watcher
+    await flush()
+    pending[pending.length - 1].resolve({ data: [gap('2026-10-02T08:00:00Z')] })
+    await flush()
     expect(list.gaps.value.map(g => g.to)).toEqual(['2026-10-02T08:00:00Z'])
   })
 })

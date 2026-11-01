@@ -64,11 +64,11 @@ const round = (v: number, digits: number): number => {
 }
 
 /**
- * Standby = Summe der Energieabfaelle waehrend das Auto zwischen zwei Fahrten steht.
- * Verglichen wird der Energiezaehler am Ende einer Fahrt mit dem Beginn der naechsten. Stieg der km-Stand
- * dazwischen, ist das Auto ohne Aufzeichnung gefahren: dieser Abstand zaehlt nicht.
- * Voraussetzung des Aufrufers: im Zeitraum liegt keine Ladung (sonst springt der Zaehler hoch).
- * Trips muessen aufsteigend nach Startzeit sortiert sein.
+ * Standby = Summe der Energieabfälle, während das Auto zwischen zwei Fahrten steht.
+ * Verglichen wird der Energiezähler am Ende einer Fahrt mit dem Beginn der nächsten. Stieg der km-Stand
+ * dazwischen, ist das Auto ohne Aufzeichnung gefahren: dieser Abstand zählt nicht.
+ * Voraussetzung des Aufrufers: im Zeitraum liegt keine Ladung (sonst springt der Zähler hoch).
+ * Trips müssen aufsteigend nach Startzeit sortiert sein.
  */
 function standbyBetweenTrips(sortedAsc: TripForSummary[]): number | null {
   let total = 0

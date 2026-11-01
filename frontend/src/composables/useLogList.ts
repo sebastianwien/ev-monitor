@@ -232,15 +232,18 @@ export function useLogList(
   /** Bis morgen: das Ende einer Lücke ist der Start einer Fahrt und liegt nie nach jetzt */
   const gapsQuery = () => `/trips/gaps?carId=${selectedCarId.value}${feedWindow.queryParams.value}&to=${new Date(Date.now() + 86_400_000).toISOString()}`
   /**
-   * Nur die zuletzt gestartete Anfrage schreibt: sonst überschreibt nach einem Auto- oder Zeitraumwechsel
-   * eine ältere Antwort die Lücken des neuen. Fehler werden zu leer, ohne Lücken bleibt das Logbuch wie bisher.
+   * Nur die zuletzt gestartete Anfrage für das gewählte Auto schreibt: sonst überschreibt nach einem Zeitraum-
+   * oder Autowechsel eine ältere Antwort die Lücken des neuen. Fehler werden zu leer, ohne Lücken bleibt das
+   * Logbuch wie bisher.
    */
   let gapsSeq = 0
   const requestGaps = () => {
     const mine = ++gapsSeq
+    const carId = selectedCarId.value
+    const current = () => mine === gapsSeq && carId === selectedCarId.value
     return api.get(gapsQuery()).then(
-      res => { if (mine === gapsSeq) gaps.value = Array.isArray(res.data) ? res.data : [] },
-      () => { if (mine === gapsSeq) gaps.value = [] },
+      res => { if (current()) gaps.value = Array.isArray(res.data) ? res.data : [] },
+      () => { if (current()) gaps.value = [] },
     )
   }
   const fetchGaps = async () => {
@@ -526,7 +529,6 @@ export function useLogList(
     logs.value = []
     trips.value = []
     gaps.value = []
-    gapsSeq++
     latestLog.value = null
     latestTrip.value = null
     expandedGroups.value = new Set()

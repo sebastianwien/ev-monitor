@@ -420,7 +420,8 @@ function standbyOf(trips: TripForMonth[], visible: boolean, pricing: StandbyPric
   }
 }
 const iso = (d: string | Date | null) => (d instanceof Date ? d.toISOString() : d ?? '')
-const kwhOf = (v: number | string | null | undefined) => (v == null ? null : typeof v === 'string' ? parseFloat(v) : v)
+/** Zahl aus der API, als number oder String (kWh, km) */
+const numOf = (v: number | string | null | undefined) => (v == null ? null : typeof v === 'string' ? parseFloat(v) : v)
 
 /**
  * Abfall des Energiezählers zwischen Ende einer Fahrt und Beginn der nächsten; ein Anstieg heißt geladen und zählt nicht.
@@ -430,9 +431,9 @@ function standbyGapsOf(trips: TripForMonth[], pricing: StandbyPricing | undefine
   const sorted = [...trips].sort((a, b) => new Date(a.tripStartedAt ?? 0).getTime() - new Date(b.tripStartedAt ?? 0).getTime())
   const gaps: StandbyGap[] = []
   for (let i = 0; i < sorted.length - 1; i++) {
-    const end = kwhOf(sorted[i].energyRemainingEndKwh), next = kwhOf(sorted[i + 1].energyRemainingStartKwh)
+    const end = numOf(sorted[i].energyRemainingEndKwh), next = numOf(sorted[i + 1].energyRemainingStartKwh)
     if (end == null || next == null || !(end - next > 0)) continue
-    if (odometerMoved(kwhOf(sorted[i].odometerEndKm), kwhOf(sorted[i + 1].odometerStartKm))) continue
+    if (odometerMoved(numOf(sorted[i].odometerEndKm), numOf(sorted[i + 1].odometerStartKm))) continue
     const kwh = Math.round((end - next) * 100) / 100
     const from = iso(sorted[i].tripEndedAt)
     const price = priceBefore(from, pricing)
