@@ -1,7 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.domain.*;
-import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
 import com.evmonitor.testutil.AbstractIntegrationTest;
@@ -10,7 +9,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.http.*;
 
 import java.math.BigDecimal;
@@ -42,8 +40,6 @@ class InternalEvLogControllerTest extends AbstractIntegrationTest {
     @Autowired
     private JpaUserChargingProviderRepository chargingProviderRepository;
 
-    @SpyBean
-    private TemperatureEnricher temperatureEnricher;
 
     private User testUser;
     private Car testCar;

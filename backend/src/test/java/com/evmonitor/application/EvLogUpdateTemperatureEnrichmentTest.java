@@ -6,11 +6,9 @@ import com.evmonitor.domain.ChargingSiteRepository;
 import com.evmonitor.domain.ChargingSiteSource;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.EvLog;
-import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,8 +29,6 @@ class EvLogUpdateTemperatureEnrichmentTest extends AbstractIntegrationTest {
     @Autowired
     private ChargingSiteRepository chargingSiteRepository;
 
-    @MockitoBean
-    private TemperatureEnricher temperatureEnricher;
 
     @Test
     void updateLogAwardingCoins_withNewLocation_triggersEnrichment() {
