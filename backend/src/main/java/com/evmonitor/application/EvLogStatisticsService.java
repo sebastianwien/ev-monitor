@@ -46,6 +46,7 @@ public class EvLogStatisticsService {
     private final FixedCostService fixedCostService;
     private final LocationPricing locationPricing;
     private final CacheManager cacheManager;
+    private final DriveConsumptionService driveConsumptionService;
 
     public static final String PEER_SIDE_CACHE = "peerBenchmarkPeers";
 
@@ -155,7 +156,9 @@ public class EvLogStatisticsService {
             BigDecimal distanceFromTrips = (startDate != null || endDate != null)
                     ? computeOdometerDeltaDistance(carId, startDate, endDate)
                     : null;
-            return createEmptyStatisticsWithFixedCostAndDistance(fixedCosts, distanceFromTrips);
+            return createEmptyStatisticsWithFixedCostAndDistance(fixedCosts, distanceFromTrips)
+                    .withDrive(driveConsumptionService.forStatistics(car, user,
+                            new DriveConsumptionService.Period(startDate, endDate), null));
         }
 
         // Compute per-log consumption once - used for both chart data and overall average
@@ -312,7 +315,8 @@ public class EvLogStatisticsService {
                 peerBenchmark,
                 efficiencySplit,
                 mostExpensiveLog != null ? mostExpensiveLog.getId() : null
-        );
+        ).withDrive(driveConsumptionService.forStatistics(car, user,
+                new DriveConsumptionService.Period(startDate, endDate), avgConsumptionKwhPer100km));
     }
 
     private EvLogStatisticsResponse createEmptyStatisticsWithFixedCost(FixedCostTotals fixedCosts) {
@@ -963,7 +967,7 @@ public class EvLogStatisticsService {
 
     public PeerModelComparisonResponse getPeerModelComparison(Car userCar, User user) {
         if (userCar.getVehicleSpecificationId() == null) {
-            return new PeerModelComparisonResponse(List.of(), null, null);
+            return new PeerModelComparisonResponse(List.of(), null, null, null);
         }
 
         VehicleSpecification userSpec = vehicleSpecificationRepository.findById(userCar.getVehicleSpecificationId())
@@ -979,7 +983,8 @@ public class EvLogStatisticsService {
             items.add(new PeerModelComparisonItem(variant.specId(), variant.displayName(), isUserSpec,
                     variant.netBatteryCapacityKwh(), isUserSpec ? userMetrics(userCar) : null, p));
         }
-        return new PeerModelComparisonResponse(items, peers.allVariants(), peers.allVariantsWinter());
+        return new PeerModelComparisonResponse(items, peers.allVariants(), peers.allVariantsWinter(),
+                driveConsumptionService.modelWinterConsumption(userCar, user.getId()));
     }
 
     /** Fremde Seite des Variantenvergleichs: je Variante des Modells die Peer-Metriken, dazu alle Varianten zusammen. */
