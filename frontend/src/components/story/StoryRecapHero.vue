@@ -55,7 +55,7 @@ const link = 'inline-flex min-h-11 items-center gap-0.5 text-[15px] font-semibol
       <p v-if="view.sub" class="text-pretty text-[15px] text-gray-700 tabular-nums dark:text-gray-200"><BoldNumbers :text="keepUnits(view.sub)" /></p>
     </div>
 
-    <ul class="grid divide-x divide-gray-200 rounded-xl bg-white py-3 edge-card dark:divide-white/15 dark:bg-gray-700/50" :class="kpis.length === 3 ? 'grid-cols-3' : 'grid-cols-2'">
+    <ul class="grid divide-x divide-gray-200 rounded-xl bg-white py-3 edge-card dark:divide-white/15 dark:bg-gray-700/50" :class="['grid-cols-1', 'grid-cols-2', 'grid-cols-3'][kpis.length - 1]">
       <li v-for="k in kpis" :key="k.id" data-testid="recap-fact" class="grid gap-0.5 px-2 text-center">
         <strong class="whitespace-nowrap text-[18px] font-bold text-gray-900 tabular-nums dark:text-gray-50">{{ keepUnits(k.value) }}</strong>
         <span class="text-[12px] text-gray-600 dark:text-gray-300">{{ k.label }}</span>
