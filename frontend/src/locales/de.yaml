@@ -4608,6 +4608,7 @@ story:
   weather_wind: "Sehr windig"
   moment_frost_eyebrow: "Es wird kalt"
   moment_frost: "{when} {temp}. Im Winter kommst du mit einer Akkuladung etwa {winter} weit, im Sommer {summer}."
+  community_month_title: "Die Community im {month}"
   moment_month_eyebrow: "Monatsrückblick"
   moment_battery_eyebrow: "Akku neu gemessen"
   moment_battery_eyebrow_estimated: "Akku neu geschätzt"

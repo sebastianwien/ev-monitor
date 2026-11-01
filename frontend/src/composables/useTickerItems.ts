@@ -1,7 +1,11 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { TrophyIcon, BoltIcon, SparklesIcon, BanknotesIcon, UserIcon } from '@heroicons/vue/24/outline'
 import apiClient from '../api/axios'
 import { useLocaleFormat } from './useLocaleFormat'
+
+/** Icon je Eintragsart, im Ticker und in der Monats-Zusammenfassung dasselbe. */
+export const VARIANT_ICON = { leader: TrophyIcon, eco: SparklesIcon, money: BanknotesIcon, energy: BoltIcon, personal: UserIcon } as const
 
 /**
  * Raw ticker item as delivered by the backend. LEADER/STAT/PERSONAL items carry an i18n
@@ -72,6 +76,22 @@ export async function loadTickerRaw(get: TickerGet, withUserItems: boolean): Pro
         get('/ticker/me'),
     ])
     return mixPersonal(interleave(settledData(community), settledData(today), 3, 4), settledData(personal))
+}
+
+/** Nur die Community-Liste eines Monats ("YYYY-MM"), für die Zusammenfassung im Monatsrückblick. */
+export async function loadCommunityMonthRaw(get: TickerGet, month: string): Promise<RawTickerItem[]> {
+    return settledData((await Promise.allSettled([get(`/public/leaderboard/ticker?month=${month}`)]))[0])
+}
+
+/** Reihenfolge der Zusammenfassung: erst die Summe, dann Ersparnis, Anbieter, der Rest nach Aussagekraft. */
+const SUMMARY_ORDER = ['stat_base', 'savings_vs_fuel', 'top_provider', 'home_quota', 'co2_saved', 'charge_time', 'households', 'solar', 'wind']
+
+/** Höchstens drei Community-Statistiken, ohne Führende und persönliche Einträge (das Backend mischt). */
+export function pickCommunitySummary<T extends { type: RawTickerItem['type']; key?: string }>(items: T[], max = 3): T[] {
+    return items
+        .filter(i => i.type === 'STAT' && i.key && SUMMARY_ORDER.includes(i.key))
+        .sort((a, b) => SUMMARY_ORDER.indexOf(a.key!) - SUMMARY_ORDER.indexOf(b.key!))
+        .slice(0, max)
 }
 
 // Backend category enum name -> i18n key suffix (reused leaderboard.cat_* labels)
@@ -178,5 +198,10 @@ export function useTickerItems() {
         raw.value = await loadTickerRaw(url => apiClient.get<RawTickerItem[]>(url), options.withUserItems ?? false)
     }
 
-    return { items, fetchTicker }
+    /** Community-Zusammenfassung eines Monats ("YYYY-MM"), für den Monatsrückblick. */
+    async function fetchCommunityMonth(month: string): Promise<void> {
+        raw.value = await loadCommunityMonthRaw(url => apiClient.get<RawTickerItem[]>(url), month)
+    }
+
+    return { items, fetchTicker, fetchCommunityMonth }
 }

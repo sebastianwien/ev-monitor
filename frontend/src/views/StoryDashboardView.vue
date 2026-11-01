@@ -26,6 +26,7 @@ import { DAY, type Moment } from '../composables/storyMoments'
 import { useMomentSeen } from '../composables/useMomentSeen'
 import StoryNewsStack from '../components/story/StoryNewsStack.vue'
 import StoryNewsList from '../components/story/StoryNewsList.vue'
+import StoryCommunityMonth from '../components/story/StoryCommunityMonth.vue'
 import StoryHero from '../components/story/StoryHero.vue'
 import StoryLatestCards from '../components/story/StoryLatestCards.vue'
 import StoryLiveHero from '../components/story/StoryLiveHero.vue'
@@ -127,6 +128,11 @@ const narrow = useIsMobile('(max-width: 1023px)')
 const sheetIds = computed(() => tiles.value.map(x => x.id))
 // Steht, sobald ein Monat da ist, und bleibt beim Monatswechsel stehen (der neue kommt mit seinen Daten)
 const showFeed = computed(() => !!monthStats.value && !error.value && (hasCharges.value || liveActive.value))
+/** Vormonat aus der offenen Rückblick-Karte: der Community-Block hängt an ihr und verschwindet mit ihr. */
+const communityMonth = computed(() => {
+  const m = story.cards.value.find(c => c.moment.kind === 'month_change')?.moment
+  return m?.kind === 'month_change' && month.value.offset === 0 ? { year: m.year, month: m.month } : null
+})
 /** Steht der Monatssatz (StoryHero)? Dann sitzen die Monatspfeile in ihm, sonst als eigene Zeile darüber. */
 const monthHero = computed(() => !(loading.value && !monthStats.value) && !error.value && hasCharges.value && heroMode.value === 'month')
 /** Steht der Live-Hero? Dann sitzen die Monatspfeile in seiner Kopfzeile. */
@@ -447,6 +453,10 @@ onUnmounted(() => unregisterReload?.())
               @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" @prices="openFeedPrices" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" :selected="paneTile?.id ?? null" @open="openSheet" />
           </template>
+          <StoryCommunityMonth
+            v-if="communityMonth && !error"
+            :year="communityMonth.year" :month="communityMonth.month"
+            @rank="analytics.track('story_community_month_rank')" />
         </div>
         <!-- Steht beim Scrollen unter dem Kopf; eigene Scrollhöhe, Rand für Kante und Fokusring -->
         <div

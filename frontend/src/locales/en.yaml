@@ -4602,6 +4602,7 @@ story:
   weather_wind: "Very windy"
   moment_frost_eyebrow: "Getting cold"
   moment_frost: "{when} {temp}. In winter a full battery takes you about {winter}, in summer {summer}."
+  community_month_title: "The community in {month}"
   moment_month_eyebrow: "Month in review"
   moment_battery_eyebrow: "Battery measured"
   moment_battery_eyebrow_estimated: "Battery re-estimated"

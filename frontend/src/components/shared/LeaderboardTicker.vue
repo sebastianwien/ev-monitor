@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TrophyIcon, BoltIcon, SparklesIcon, BanknotesIcon, ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon, ChevronRightIcon, UserIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon, ChevronRightIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
 import { useTickerState, setTickerHasItems } from '../../composables/useTickerState'
 import { analytics } from '../../services/analytics'
-import { useTickerItems } from '../../composables/useTickerItems'
+import { useTickerItems, VARIANT_ICON } from '../../composables/useTickerItems'
 import { useTickerRotation, dwellMs } from '../../composables/useTickerRotation'
 
 /**
@@ -111,7 +111,6 @@ const onTouchEnd = (e: TouchEvent) => {
 const direction = ref<'fwd' | 'back'>('fwd')
 watch(index, (n, o) => { direction.value = (n === 0 && o === count.value - 1) || n > o ? 'fwd' : 'back' })
 
-const VARIANT_ICON = { leader: TrophyIcon, eco: SparklesIcon, money: BanknotesIcon, energy: BoltIcon, personal: UserIcon } as const
 const TYPE_STYLE_DOCKED = {
   LEADER: { chip: 'bg-amber-100 text-amber-700 ring-amber-300 dark:bg-amber-400/15 dark:text-amber-300 dark:ring-amber-300/30', text: 'text-gray-900 dark:text-gray-100' },
   STAT: { chip: 'bg-white text-green-700 ring-green-300 dark:bg-green-400/15 dark:text-green-300 dark:ring-green-300/30', text: 'text-gray-900 dark:text-gray-100' },

@@ -4444,6 +4444,7 @@ story:
   weather_wind: "Svært vindfullt"
   moment_frost_eyebrow: "Det blir kaldt"
   moment_frost: "{when} {temp}. Om vinteren kommer du omtrent {winter} på et fullt batteri, om sommeren {summer}."
+  community_month_title: "Fellesskapet i {month}"
   moment_month_eyebrow: "Månedsoversikt"
   moment_battery_eyebrow: "Batteriet målt"
   moment_battery_eyebrow_estimated: "Batteriet anslått på nytt"
