@@ -16,6 +16,7 @@ import org.mockito.quality.Strictness;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
 
@@ -239,7 +240,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getTotalCostEur(any(), any())).thenReturn(new BigDecimal("150.00"));
         when(fuelPriceService.getAvgFuelPrice()).thenReturn(1.80);
 
-        var items = leaderboardService.getTicker();
+        var items = leaderboardService.getTicker(YearMonth.now());
 
         assertThat(items).anyMatch(i -> "STAT".equals(i.type()) && "stat_base".equals(i.messageKey()));
     }
@@ -259,12 +260,28 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
         when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
 
-        var items = leaderboardService.getTicker();
+        var items = leaderboardService.getTicker(YearMonth.now());
 
         assertThat(items).anyMatch(i -> "LEADER".equals(i.type())
                 && "leader".equals(i.messageKey())
                 && "MONTHLY_KWH".equals(i.params().get("category"))
                 && i.params().get("name").contains("anna"));
+    }
+
+    @Test
+    void getTicker_previousMonth_coversTheWholeMonthAndNamesIt() {
+        stubAllRankingsEmpty();
+        when(queryRepository.getTotalKwhThisMonth(any(), any())).thenReturn(BigDecimal.ZERO);
+        when(queryRepository.getChargeCountStats(any(), any())).thenReturn(new ChargeCountStats(0, 0));
+        YearMonth previous = YearMonth.now().minusMonths(1);
+
+        var items = leaderboardService.getTicker(previous);
+
+        var base = items.stream().filter(i -> "stat_base".equals(i.messageKey())).findFirst().orElseThrow();
+        assertThat(base.params()).containsEntry("month", String.valueOf(previous.getMonthValue()));
+        verify(queryRepository).getTotalKwhThisMonth(
+                eq(previous.atDay(1).atStartOfDay()),
+                eq(previous.plusMonths(1).atDay(1).atStartOfDay()));
     }
 
     // ---- Month-end rewards ----
@@ -352,7 +369,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(0L);
         when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
 
-        var items = leaderboardService.getTicker();
+        var items = leaderboardService.getTicker(YearMonth.now());
 
         assertThat(items).anyMatch(i -> "STAT".equals(i.type())
                 && "home_quota".equals(i.messageKey())
@@ -367,7 +384,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getTotalChargeDurationMinutes(any(), any())).thenReturn(0L);
         when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
 
-        var items = leaderboardService.getTicker();
+        var items = leaderboardService.getTicker(YearMonth.now());
 
         assertThat(items).noneMatch(i -> "home_quota".equals(i.messageKey()));
     }
@@ -383,7 +400,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
         when(queryRepository.getTopPublicProvider(any(), any())).thenReturn(new TopProviderResult("EnBW mobility+", 15L));
 
-        var items = leaderboardService.getTicker();
+        var items = leaderboardService.getTicker(YearMonth.now());
 
         assertThat(items).anyMatch(i -> "STAT".equals(i.type())
                 && "top_provider".equals(i.messageKey())
@@ -400,7 +417,7 @@ class LeaderboardServiceIntegrationTest {
         when(queryRepository.getTotalCostEur(any(), any())).thenReturn(BigDecimal.ZERO);
         when(queryRepository.getTopPublicProvider(any(), any())).thenReturn(null);
 
-        var items = leaderboardService.getTicker();
+        var items = leaderboardService.getTicker(YearMonth.now());
 
         assertThat(items).noneMatch(i -> "top_provider".equals(i.messageKey()));
     }
