@@ -53,7 +53,10 @@ public record EvLogStatisticsResponse(
 
         // Reichweite je Zeitraum (current, summer, winter) nach den vier Stufen der RangeConsumptionPolicy
         // (RangeEstimateService); null ohne Berechnung.
-        RangeEstimateService.RangeStatistics range
+        RangeEstimateService.RangeStatistics range,
+
+        // CO₂ gegen einen Benziner der Fahrzeugklasse (Co2Calculator); null ohne vollständigen Tacho-Abschnitt.
+        Co2Statistics co2
 ) {
     /** Ohne Fahrverbrauch; {@link #withDrive} ergänzt ihn. */
     public EvLogStatisticsResponse(BigDecimal totalKwhCharged, BigDecimal energyCostEur, BigDecimal fixedCostEur,
@@ -66,7 +69,7 @@ public record EvLogStatisticsResponse(
         this(totalKwhCharged, energyCostEur, fixedCostEur, fixedIncomeEur, totalCostEur, avgCostPerKwh, cheapestChargeEur,
                 mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges, totalDistanceKm, avgConsumptionKwhPer100km,
                 estimatedConsumptionCount, summerConsumptionKwhPer100km, winterConsumptionKwhPer100km, chargesOverTime,
-                chargingTypeSplit, locationSplit, peerBenchmark, chargingEfficiencySplit, mostExpensiveChargeLogId, null, null);
+                chargingTypeSplit, locationSplit, peerBenchmark, chargingEfficiencySplit, mostExpensiveChargeLogId, null, null, null);
     }
 
     public EvLogStatisticsResponse withDrive(DriveStatistics drive) {
@@ -74,7 +77,7 @@ public record EvLogStatisticsResponse(
                 avgCostPerKwh, cheapestChargeEur, mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges,
                 totalDistanceKm, avgConsumptionKwhPer100km, estimatedConsumptionCount, summerConsumptionKwhPer100km,
                 winterConsumptionKwhPer100km, chargesOverTime, chargingTypeSplit, locationSplit, peerBenchmark,
-                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range);
+                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range, co2);
     }
 
     public EvLogStatisticsResponse withRange(RangeEstimateService.RangeStatistics range) {
@@ -82,7 +85,15 @@ public record EvLogStatisticsResponse(
                 avgCostPerKwh, cheapestChargeEur, mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges,
                 totalDistanceKm, avgConsumptionKwhPer100km, estimatedConsumptionCount, summerConsumptionKwhPer100km,
                 winterConsumptionKwhPer100km, chargesOverTime, chargingTypeSplit, locationSplit, peerBenchmark,
-                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range);
+                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range, co2);
+    }
+
+    public EvLogStatisticsResponse withCo2(Co2Statistics co2) {
+        return new EvLogStatisticsResponse(totalKwhCharged, energyCostEur, fixedCostEur, fixedIncomeEur, totalCostEur,
+                avgCostPerKwh, cheapestChargeEur, mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges,
+                totalDistanceKm, avgConsumptionKwhPer100km, estimatedConsumptionCount, summerConsumptionKwhPer100km,
+                winterConsumptionKwhPer100km, chargesOverTime, chargingTypeSplit, locationSplit, peerBenchmark,
+                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range, co2);
     }
 
     public record ChargeDataPoint(
@@ -91,8 +102,39 @@ public record EvLogStatisticsResponse(
             BigDecimal kwhCharged,             // grid-side kWh; falls back to kwh_at_vehicle/efficiency for telemetry-only logs
             BigDecimal distanceKm,             // 0 if logs exist but no plausible distance (e.g. home-only charging)
             BigDecimal consumptionKwhPer100km, // null if distance is 0 or no odometer data
-            int charges                        // logs in this period
+            int charges,                       // logs in this period
+            BigDecimal co2SavedKg              // CO₂ der Tacho-Abschnitte, die in dieser Periode schließen; null ohne
     ) {}
+
+    /**
+     * CO₂-Bilanz des Zeitraums aus den Tacho-Abschnitten (Co2Calculator), vorzeichenrichtig.
+     *
+     * @param savedKg              Benziner minus Strom, negativ bei mehr CO₂ als der Benziner
+     * @param petrolKg             CO₂ eines Benziners der Fahrzeugklasse auf distanceKm
+     * @param electricityKg        CO₂ des geladenen Netzstroms
+     * @param distanceKm           Strecke der Rechnung (nur vollständige Abschnitte)
+     * @param petrolLiters         Liter, die dieser Benziner getankt hätte
+     * @param petrolLitersPer100km Realverbrauch des Benziners der Klasse
+     */
+    public record Co2Statistics(
+            BigDecimal savedKg,
+            BigDecimal petrolKg,
+            BigDecimal electricityKg,
+            int distanceKm,
+            BigDecimal petrolLiters,
+            BigDecimal petrolLitersPer100km
+    ) {
+        /** Null ohne Bilanz. */
+        public static Co2Statistics of(com.evmonitor.domain.Co2Balance b, BigDecimal petrolLitersPer100km) {
+            if (b == null) return null;
+            return new Co2Statistics(kg(b.savedKg()), kg(b.petrolKg()), kg(b.electricityKg()), b.distanceKm(),
+                    kg(b.petrolLiters()), petrolLitersPer100km);
+        }
+
+        static BigDecimal kg(double value) {
+            return BigDecimal.valueOf(value).setScale(2, java.math.RoundingMode.HALF_UP);
+        }
+    }
 
     /**
      * Peer comparison for the user's own stats in the selected period vs. anonymized community lifetime avg.

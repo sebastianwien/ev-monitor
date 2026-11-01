@@ -51,6 +51,7 @@ public class EvLogStatisticsService {
     private final RangeEstimateService rangeEstimateService;
     /** Modellrechnungen (Community-Schnitt, Saisons, Streckentypen), auch Basis der Modellseiten. */
     private final CommunityConsumptionService community;
+    private final Co2Service co2Service;
 
     public static final String PEER_SIDE_CACHE = "peerBenchmarkPeers";
 
@@ -234,15 +235,24 @@ public class EvLogStatisticsService {
                 .average()
                 .orElse(0.0);
 
+        // CO₂ je Tacho-Abschnitt über die ganze Historie (Abschnitte reichen über die Zeitraumgrenze),
+        // gezählt im Zeitraum der schließenden Ladung
+        Map<UUID, EvLog> logById = allLogsForCar.stream()
+                .collect(Collectors.toMap(EvLog::getId, l -> l));
+        VehicleCategory category = car.getModel().getCategory();
+        Map<UUID, Co2Segment> co2ByClosingLog = co2Service.segments(category, allLogsForCar).stream()
+                .filter(s -> logById.get(s.closingLogId()).isLoggedWithin(startDate, endDate))
+                .collect(Collectors.toMap(Co2Segment::closingLogId, s -> s));
+        EvLogStatisticsResponse.Co2Statistics co2 = EvLogStatisticsResponse.Co2Statistics.of(
+                Co2Balance.of(co2ByClosingLog.values()), category.getPetrolLitersPer100Km());
+
         // Charge over time data (grouped and sorted by time)
         List<EvLogStatisticsResponse.ChargeDataPoint> chargesOverTime =
-                groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", consumptionByLog);
+                groupChargesByPeriod(logs, groupBy != null ? groupBy : "MONTH", consumptionByLog, co2ByClosingLog);
 
         // Total distance and avg consumption - SoC-based from pre-computed consumptionByLog
         // Bug-fix: iterate consumptionByLog.entrySet() with isLoggedWithin filter so time-filtered
         // views don't include consumption data from outside the selected period.
-        Map<UUID, EvLog> logById = allLogsForCar.stream()
-                .collect(Collectors.toMap(EvLog::getId, l -> l));
         BigDecimal totalWeighted = BigDecimal.ZERO;
         int totalDist = 0;        // all logs with consumption data, for avg consumption calculation
         int totalDistAll = 0;     // all logs with distance, for display
@@ -324,7 +334,7 @@ public class EvLogStatisticsService {
                 efficiencySplit,
                 mostExpensiveLog != null ? mostExpensiveLog.getId() : null
         );
-        return withDriveAndRange(response, car, user, new DriveConsumptionService.Period(startDate, endDate),
+        return withDriveAndRange(response.withCo2(co2), car, user, new DriveConsumptionService.Period(startDate, endDate),
                 new RangeEstimateService.OwnCharges(avgConsumptionKwhPer100km,
                         seasonal.summerConsumptionKwhPer100km(), seasonal.winterConsumptionKwhPer100km()));
     }
@@ -559,7 +569,8 @@ public class EvLogStatisticsService {
      * consistent with the overall statistics calculation.
      */
     private List<EvLogStatisticsResponse.ChargeDataPoint> groupChargesByPeriod(
-            List<EvLog> logs, String groupBy, Map<UUID, ConsumptionResult> consumptionByLog) {
+            List<EvLog> logs, String groupBy, Map<UUID, ConsumptionResult> consumptionByLog,
+            Map<UUID, Co2Segment> co2ByClosingLog) {
 
         Map<String, List<EvLog>> groupedLogs = new java.util.LinkedHashMap<>();
         for (EvLog log : logs) {
@@ -608,9 +619,16 @@ public class EvLogStatisticsService {
                     BigDecimal periodDistance = BigDecimal.valueOf(periodDist);
                     BigDecimal periodConsumption = ConsumptionMath.weightedAverage(periodWeighted, periodDist);
 
+                    List<Co2Segment> periodCo2 = periodLogs.stream()
+                            .map(l -> co2ByClosingLog.get(l.getId()))
+                            .filter(Objects::nonNull)
+                            .toList();
+                    BigDecimal co2SavedKg = periodCo2.isEmpty() ? null
+                            : EvLogStatisticsResponse.Co2Statistics.kg(periodCo2.stream().mapToDouble(Co2Segment::savedKg).sum());
+
                     LocalDateTime periodTimestamp = periodLogs.get(0).getLoggedAt();
                     return new EvLogStatisticsResponse.ChargeDataPoint(
-                            periodTimestamp, totalCost, totalKwh, periodDistance, periodConsumption, periodLogs.size()
+                            periodTimestamp, totalCost, totalKwh, periodDistance, periodConsumption, periodLogs.size(), co2SavedKg
                     );
                 })
                 .toList();

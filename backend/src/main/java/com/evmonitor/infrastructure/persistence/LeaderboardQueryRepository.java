@@ -283,6 +283,34 @@ public class LeaderboardQueryRepository {
 
     // ---- Community totals for ticker ----
 
+    /**
+     * Autos mit mindestens einer Ladung im Fenster, mit ihrem Modell (für die Fahrzeugklasse der
+     * CO₂-Rechnung). Gleiche Filter wie die übrigen Community-Zahlen.
+     */
+    public java.util.Map<UUID, CarBrand.CarModel> getCarModelsWithChargesBetween(LocalDateTime start, LocalDateTime endExclusive) {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = em.createNativeQuery("""
+                SELECT DISTINCT c.id, c.model
+                FROM ev_log e
+                JOIN car c ON c.id = e.car_id AND c.deleted_at IS NULL
+                WHERE e.deleted_at IS NULL AND e.include_in_statistics = true
+                  AND e.logged_at >= :start
+                  AND e.logged_at < :end
+                """)
+                .setParameter("start", start)
+                .setParameter("end", endExclusive)
+                .getResultList();
+        java.util.Map<UUID, CarBrand.CarModel> result = new java.util.HashMap<>();
+        for (Object[] r : rows) {
+            try {
+                result.put(toUuid(r[0]), CarBrand.CarModel.valueOf((String) r[1]));
+            } catch (IllegalArgumentException unknownModel) {
+                // Modell aus einer neueren Version: ohne Klasse keine CO₂-Rechnung für dieses Auto
+            }
+        }
+        return result;
+    }
+
     public BigDecimal getTotalKwhThisMonth(LocalDateTime start, LocalDateTime endExclusive) {
         Object result = em.createNativeQuery("""
                 SELECT COALESCE(SUM(COALESCE(e.kwh_at_vehicle, e.kwh_charged)), 0)

@@ -1,6 +1,8 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.Co2Balance;
 import com.evmonitor.domain.CoinType;
+import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
@@ -26,6 +28,7 @@ public class LeaderboardService {
     private final LeaderboardRankingProvider rankingProvider;
     private final CoinLogService coinLogService;
     private final FuelPriceService fuelPriceService;
+    private final Co2Service co2Service;
 
     @Cacheable(value = "leaderboard", key = "'board:' + #category.name() + ':' + #requestingUserId")
     public LeaderboardResponseDTO getLeaderboard(LeaderboardCategory category, UUID requestingUserId) {
@@ -235,13 +238,14 @@ public class LeaderboardService {
         )));
 
         if (kwhDouble > 0) {
-            // Annahmen: 20 kWh/100km (EV-Durchschnitt), 380g CO2/kWh (dt. Strommix), 160g CO2/km (Verbrenner-Durchschnitt)
-            double distanceKm = kwhDouble / 20.0 * 100.0;
-            double iceCo2Kg = distanceKm * 0.160;
-            double evCo2Kg = kwhDouble * 0.380;
-            double savedCo2Kg = iceCo2Kg - evCo2Kg;
+            // Dieselbe Rechnung wie die persönliche CO₂-Bilanz, Summe über alle Autos des Monats
+            Map<UUID, VehicleCategory> categoryByCar = new HashMap<>();
+            queryRepository.getCarModelsWithChargesBetween(startOfMonth, endOfToday)
+                    .forEach((carId, model) -> categoryByCar.put(carId, model.getCategory()));
+            Co2Balance co2 = co2Service.community(categoryByCar, startOfMonth, endOfToday);
 
-            if (savedCo2Kg > 0) {
+            if (co2 != null && co2.savedKg() > 0) {
+                double savedCo2Kg = co2.savedKg();
                 boolean tonnes = savedCo2Kg >= 1000;
                 items.add(TickerItemDTO.stat("co2_saved", "eco", Map.of(
                         "month", month,
@@ -273,7 +277,9 @@ public class LeaderboardService {
                         "unit", hours ? "hours" : "minutes")));
             }
 
-            // Ersparnis vs. Benzin/Diesel (Verbrenner-Durchschnitt aus FuelPriceService)
+            // Ersparnis vs. Benzin/Diesel (Verbrenner-Durchschnitt aus FuelPriceService),
+            // Strecke geschätzt mit 20 kWh/100 km (eigener Rechenweg für Euro, nicht für CO₂)
+            double distanceKm = kwhDouble / 20.0 * 100.0;
             double avgFuelPrice = fuelPriceService.getAvgFuelPrice();
             double fuelCost = distanceKm / 100.0 * FuelPriceService.COMBUSTION_LITERS_PER_100_KM.doubleValue() * avgFuelPrice;
             double evCost = totalCostEur.doubleValue();
