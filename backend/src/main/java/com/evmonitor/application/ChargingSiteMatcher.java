@@ -46,8 +46,7 @@ public final class ChargingSiteMatcher {
                               List<NearbyStation> nearby, Set<String> usedSiteKeys) {
         List<NearbyStation> candidates = nearby.stream()
                 .filter(s -> s.distanceMeters() <= MAX_DISTANCE_METERS)
-                .filter(s -> offers(s, chargingType))
-                .filter(s -> delivers(s, chargingType, maxPowerKw))
+                .filter(s -> fits(s, chargingType, maxPowerKw))
                 .sorted(Comparator.comparingInt(NearbyStation::distanceMeters))
                 .toList();
 
@@ -70,6 +69,11 @@ public final class ChargingSiteMatcher {
     /** Gleicher Schlüssel wie der Standort selbst: Zelle plus Name ohne Groß-/Kleinschreibung. */
     public static String siteKey(String geohash, String name) {
         return geohash + "|" + ChargingSite.nameKey(name);
+    }
+
+    /** Ob die Säule diese Ladeart bietet und die gemessene Leistung hergibt. */
+    public static boolean fits(NearbyStation s, ChargingType chargingType, BigDecimal maxPowerKw) {
+        return offers(s, chargingType) && delivers(s, chargingType, maxPowerKw);
     }
 
     /** Eine Säule ohne Angabe für diese Ladeart bietet sie nur dann nicht, wenn sie die andere hat. */

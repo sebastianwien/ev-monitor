@@ -47,7 +47,9 @@ public class PostgresChargingSiteRepositoryImpl implements ChargingSiteRepositor
         e.setPayment(r.payment());
         e.setOpeningHours(r.openingHours());
         e.setCreatedAt(site.createdAt());
-        return toDomain(jpa.save(e));
+        // Sofort schreiben: die Säulen-Zuordnung setzt danach per gezieltem Update den Fremdschlüssel
+        // der Ladung, und das Update allein löst kein Flush der neuen Säule aus.
+        return toDomain(jpa.saveAndFlush(e));
     }
 
     @Override

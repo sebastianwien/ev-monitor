@@ -1,16 +1,12 @@
 package com.evmonitor.application;
 
-import com.evmonitor.domain.ChargingSite;
-import com.evmonitor.domain.ChargingSiteAttachment;
 import com.evmonitor.domain.DataSource;
 import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.EvLogRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionDefinition;
-import org.springframework.transaction.support.TransactionTemplate;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,9 +15,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Ordnet automatisch eingegangene Ladungen ihrer Register-Säule zu, wenn das eindeutig ist
- * (Regel: {@link ChargingSiteMatcher}). Von der Säule kommen Ort, Betreiber und "öffentlich";
- * Preis und Karte danach aus {@link LocationPricing}, das jetzt die Historie an der Säule findet,
- * statt an einer Zellgrenze leer auszugehen.
+ * (Regel: {@link ChargingSiteMatcher}, Schreiben: {@link ChargingSiteAttacher}). Bleiben mehrere
+ * Säulen offen, fragt die App den Nutzer ({@link ChargingSiteQuestionService}).
  *
  * Läuft nach dem Commit im Hintergrund: der Registerabruf ist ein Fremddienst, und ein Import
  * soll weder auf ihn warten noch an ihm scheitern. Was der Nutzer oder die Quelle schon gesagt
@@ -29,6 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class ChargingSiteAssignment {
 
     /** Ab 7 Stellen (~150 m) ist eine Ladung öffentlich verortet; darunter liegt sie zu grob für eine Säule. */
@@ -44,21 +40,8 @@ public class ChargingSiteAssignment {
     private final EvLogRepository evLogRepository;
     private final NearbyCpoService nearbyCpoService;
     private final ChargingSiteService chargingSiteService;
-    private final LocationPricing locationPricing;
-    private final TransactionTemplate transaction;
-
-    public ChargingSiteAssignment(EvLogRepository evLogRepository, NearbyCpoService nearbyCpoService,
-                                  ChargingSiteService chargingSiteService, LocationPricing locationPricing,
-                                  PlatformTransactionManager transactionManager) {
-        this.evLogRepository = evLogRepository;
-        this.nearbyCpoService = nearbyCpoService;
-        this.chargingSiteService = chargingSiteService;
-        this.locationPricing = locationPricing;
-        // Immer eine eigene Transaktion: aus afterCommit heraus hängt die abgeschlossene noch am
-        // Thread, und was dort hineingeschrieben wird, committet niemand mehr.
-        this.transaction = new TransactionTemplate(transactionManager);
-        this.transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
-    }
+    private final ChargingSiteAttacher attacher;
+    private final ChargingSiteQuestionService questions;
 
     /**
      * Für die Ladungen eines Ingest-Aufrufs, nacheinander - so fragt auch ein großer Import das
@@ -94,24 +77,14 @@ public class ChargingSiteAssignment {
         Optional<List<NearbyStation>> nearby = nearbyCpoService.findNearbyStations(evLog.getGeohash());
         if (nearby.isEmpty()) return false;
 
-        NearbyStation station = ChargingSiteMatcher.pick(evLog.getChargingType(), evLog.getMaxChargingPowerKw(),
-                nearby.get(), chargingSiteService.usedSiteKeys(owner)).station();
-        if (station == null) return false;
-
-        return Boolean.TRUE.equals(transaction.execute(status -> attach(evLog, owner, station)));
-    }
-
-    /**
-     * Preis wie bei einer neuen Ladung an dieser Säule, geschrieben als gezieltes Update: parallel
-     * nachgetragene Werte (Temperatur) und alles, was die Ladung schon hat, bleiben stehen.
-     */
-    private boolean attach(EvLog evLog, UUID owner, NearbyStation station) {
-        ChargingSite site = chargingSiteService.siteFor(station);
-        EvLog priced = locationPricing.enrich(evLog.toBuilder()
-                .chargingSiteId(site.id()).geohash(site.geohash()).publicCharging(true).build(), owner);
-        return evLogRepository.attachChargingSite(new ChargingSiteAttachment(evLog.getId(), evLog.getGeohash(), site.id(),
-                site.geohash(), site.cpoNameForLog(), priced.getCostEur(), priced.getPricePerKwh(),
-                priced.getChargingProviderId()));
+        ChargingSiteMatcher.Result match = ChargingSiteMatcher.pick(evLog.getChargingType(),
+                evLog.getMaxChargingPowerKw(), nearby.get(), chargingSiteService.usedSiteKeys(owner));
+        if (match.station() == null) {
+            // Mehrere Säulen kommen in Frage: der Nutzer weiß es. Ohne Säule im Register gibt es nichts zu fragen.
+            if (match.candidates().size() > 1) questions.ask(owner, evLog, match.candidates());
+            return false;
+        }
+        return attacher.attach(evLog, owner, match.station());
     }
 
     /** Private Ladungen, Wallboxen und vom Nutzer gewählte Säulen bleiben, wie sie sind. */
