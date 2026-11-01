@@ -394,7 +394,9 @@ onUnmounted(() => unregisterReload?.())
     <main class="mx-auto grid max-w-6xl grid-cols-1 gap-4 pb-6 md:px-6 md:pb-12">
       <!-- Eine Box: oben Auto und Monat, darunter ab lg zwei Spalten 7/5, links Hero bis Kacheln, rechts eine stehende Spalte:
            Neuigkeiten und Feed, oder das Detail der gewählten Kachel. -->
-      <section class="grid grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box">
+      <!-- Wischen blättert die Monate; erst im laufenden Monat nimmt der Tab-Pager den Wisch nach links (zu den Logs) -->
+      <section class="grid grid-cols-1 gap-4 bg-white px-4 py-4 md:rounded-3xl md:p-6 md:edge-box lg:grid-cols-12 lg:gap-x-8 lg:gap-y-5 dark:bg-gray-900" data-testid="story-hero-box"
+        :data-no-swipe="offset < 0 ? '' : undefined" @pointerdown="onPointerDown" @pointerup="onPointerUp">
         <!-- Auto über beiden Spalten, nur bei mehreren Autos: mit einem gibt es nichts zu wählen -->
         <header v-if="cars.length > 1" class="flex items-center lg:col-span-12">
           <CarSwitch v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
@@ -454,7 +456,7 @@ onUnmounted(() => unregisterReload?.())
           </div>
 
           <template v-else>
-            <div @pointerdown="onPointerDown" @pointerup="onPointerUp">
+            <div>
               <Transition name="story-hero" mode="out-in">
                 <StoryLiveHero v-if="heroMode === 'live' && live" key="live" :live="live">
                   <template #nav>
