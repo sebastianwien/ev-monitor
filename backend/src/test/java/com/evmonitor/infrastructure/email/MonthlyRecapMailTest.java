@@ -36,7 +36,8 @@ class MonthlyRecapMailTest {
         assertThat(mail.html())
                 .contains("August: 1.766\u00a0km für 147\u00a0€.")
                 .contains("Gegenüber einem Verbrenner hast du <b class=\"save\" style=\"color: #15803d;\">129\u00a0€</b> gespart.*")
-                .contains("Ganzen August ansehen")
+                .contains("Ich habe dir deinen August in der App zusammengestellt, mit allem, was in diese Mail nicht gepasst hat.")
+                .contains("Meinen August ansehen")
                 .contains("href=\"" + STORY_URL + "\"")
                 .contains("* Vergleich mit einem Benziner der Mittelklasse: 7,6 l/100 km, Benzin 2,24 €/l laut Tankerkönig.")
                 .contains("Diese Mail kommt einmal im Monat.")
@@ -99,7 +100,7 @@ class MonthlyRecapMailTest {
 
         String html = render(r).html();
 
-        assertThat(html).doesNotContain("gespart").doesNotContain("Tankerkönig").contains("1.766\u00a0km").contains("Ganzen August ansehen");
+        assertThat(html).doesNotContain("gespart").doesNotContain("Tankerkönig").contains("1.766\u00a0km").contains("Meinen August ansehen");
     }
 
     @Test
@@ -161,7 +162,8 @@ class MonthlyRecapMailTest {
         assertThat(mail.html()).contains("August: 1,766\u00a0km for €147.")
                 .contains("you saved <b class=\"save\" style=\"color: #15803d;\">€129</b>.*")
                 .contains("* Compared with a petrol mid-size: 7.6 l/100 km, petrol at ")
-                .contains("See all of August");
+                .contains("I've put your August together in the app, with everything that didn't fit into this mail.")
+                .contains("See my August");
 
         r.previousKm = "863";
         assertThat(render(r).html()).contains("<b>903\u00a0km</b> more than in July.");
