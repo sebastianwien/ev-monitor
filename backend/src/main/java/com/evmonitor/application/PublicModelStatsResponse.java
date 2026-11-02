@@ -49,9 +49,18 @@ public record PublicModelStatsResponse(
      * Range figures of one battery, on the range window (100 to 10 %) and the model's range consumption;
      * the page shows them as they are. driverRangeMin/MaxKm: thirstiest and most frugal driver, only when
      * the range rests on the drivers' charges (PEER_CHARGES) and lies within the spread, null otherwise.
+     * prospectRangeKm: the official range (WLTP or EPA) on the same window, rounded to 10 km like the
+     * page's prospectus figure; null without an official range. Nullable for Blue/Green.
      */
     public record VariantRange(Integer rangeKm, Integer summerRangeKm, Integer winterRangeKm,
-                               Integer driverRangeMinKm, Integer driverRangeMaxKm) {}
+                               Integer driverRangeMinKm, Integer driverRangeMaxKm, Integer prospectRangeKm) {}
+
+    /**
+     * Charging facts of one battery: kWh at the charger for a fast-charging stop 10 → 80 % (FastChargeStop),
+     * its minutes at the model's measured fast-charge power (null without one), kWh at the wallbox for a
+     * home charge 20 → 80 % (HomeCharge). The page multiplies the kWh by a price, nothing else.
+     */
+    public record VariantCharging(BigDecimal fastStopPlugKwh, Integer fastStopMinutes, BigDecimal homeChargePlugKwh) {}
 
     public record WltpVariant(
             BigDecimal batteryCapacityKwh,
@@ -70,7 +79,9 @@ public record PublicModelStatsResponse(
             String realConsumptionRangeSource,
             SeasonalDistribution seasonalDistribution,
             /** Nullable for Blue/Green. */
-            VariantRange range
+            VariantRange range,
+            /** Nullable for Blue/Green. */
+            VariantCharging charging
     ) {}
 
     public record EpaVariant(
@@ -89,7 +100,9 @@ public record PublicModelStatsResponse(
             String realConsumptionRangeSource,
             SeasonalDistribution seasonalDistribution,
             /** Nullable for Blue/Green. */
-            VariantRange range
+            VariantRange range,
+            /** Nullable for Blue/Green. */
+            VariantCharging charging
     ) {}
 
     public record YearEntry(int year, int carCount) {}

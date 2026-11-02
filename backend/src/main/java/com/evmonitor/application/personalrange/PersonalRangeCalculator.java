@@ -3,6 +3,7 @@ package com.evmonitor.application.personalrange;
 import com.evmonitor.application.community.WltpFleetFactors;
 import com.evmonitor.application.charging.FastChargePower;
 import com.evmonitor.application.charging.FastChargeStop;
+import com.evmonitor.application.charging.HomeCharge;
 import com.evmonitor.application.charging.LongTripPlan;
 import com.evmonitor.application.range.RangeWindow;
 
@@ -35,8 +36,6 @@ final class PersonalRangeCalculator {
     private static final BigDecimal RANGE_SHARE = RangeWindow.SHARE;
     /** Charging away from home without a home charger: a fast-charging stop's share. */
     private static final BigDecimal STOP_SHARE = FastChargeStop.SHARE;
-    /** Home charging from 20 to 80 %. */
-    private static final BigDecimal HOME_CHARGE_SHARE = new BigDecimal("0.6");
     /** Highway measurement counts from this many cars (half weight) and fully from FULL_HIGHWAY_CARS. */
     static final int MIN_HIGHWAY_CARS = 5;
     static final int FULL_HIGHWAY_CARS = 15;
@@ -90,7 +89,7 @@ final class PersonalRangeCalculator {
         double weeklyKm = in.annualKm() != null ? in.annualKm() / 52.0 : commuteKmPerWeek;
         double monthlyKm = monthlyKm(in);
         double weeklyKwh = weeklyKm * mixedKwhPerKm;
-        double kwhPerCharge = net.multiply(in.homeCharging() ? HOME_CHARGE_SHARE : STOP_SHARE).doubleValue();
+        double kwhPerCharge = net.multiply(in.homeCharging() ? HomeCharge.SHARE : STOP_SHARE).doubleValue();
         BigDecimal chargesPerWeek = halfCharges(weeklyKwh / kwhPerCharge);
         // The commute on the reader's commute days, per season: how often they plug in in summer and in
         // winter. Not rounded, the page turns small values into "every 10 days".
@@ -112,7 +111,8 @@ final class PersonalRangeCalculator {
                 chargesWinter,
                 monthlyCost,
                 dataLevel(assumptions),
-                List.copyOf(assumptions));
+                List.copyOf(assumptions),
+                FastChargeStop.plugKwh(net, b.publicChargingEfficiency()));
     }
 
     /** The ranking row of a model: the model page result plus the stop ladder on the same highway consumption. */

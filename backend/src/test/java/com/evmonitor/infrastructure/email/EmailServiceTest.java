@@ -76,7 +76,7 @@ class EmailServiceTest {
                 new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
                 PersonalRangeResponse.DataLevel.MEASURED,
                 List.of(new PersonalRangeResponse.Assumption(
-                        "PRICE", true, new BigDecimal("0.30"), 100)));
+                        "PRICE", true, new BigDecimal("0.30"), 100)), null);
 
         emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Tesla Model 3", "/modelle/Tesla/Model_3",
                 new EmailService.PersonalRangeMailContent(inputs, result));
@@ -103,7 +103,7 @@ class EmailServiceTest {
                 new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 87,
                 PersonalRangeResponse.DataLevel.MEASURED,
                 List.of(new PersonalRangeResponse.Assumption(
-                        "OWN_PRICE", true, new BigDecimal("0.45"), 100)));
+                        "OWN_PRICE", true, new BigDecimal("0.45"), 100)), null);
 
         emailService.sendPersonalRangeResultEmail("user@example.com", "en", "Tesla Model 3", "/modelle/Tesla/Model_3",
                 new EmailService.PersonalRangeMailContent(inputs, result));
@@ -121,7 +121,7 @@ class EmailServiceTest {
         emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Tesla Model 3", "/modelle/Tesla/Model_3",
                 new EmailService.PersonalRangeMailContent(inputs, new PersonalRangeResponse(310, 360, 0, 0, 135,
                         new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
-                        PersonalRangeResponse.DataLevel.MEASURED, List.of())));
+                        PersonalRangeResponse.DataLevel.MEASURED, List.of(), null)));
         assertThat(firstText(none.getContent())).contains("2 h 15 min").contains("ohne Ladestopp · Ø 110 km/h");
 
         MimeMessage two = createRealMimeMessage();
@@ -129,7 +129,7 @@ class EmailServiceTest {
         emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Tesla Model 3", "/modelle/Tesla/Model_3",
                 new EmailService.PersonalRangeMailContent(inputs, new PersonalRangeResponse(310, 360, 2, 50, 485,
                         new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
-                        PersonalRangeResponse.DataLevel.MEASURED, List.of())));
+                        PersonalRangeResponse.DataLevel.MEASURED, List.of(), null)));
         assertThat(firstText(two.getContent())).contains("8 h 5 min").contains("inkl. 2 Ladestopps, zusammen grob 50 min");
 
         // without a reliable charging power there is no travel time: the mail names the stops instead
@@ -138,7 +138,7 @@ class EmailServiceTest {
         emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Renault Zoe", "/modelle/Renault/Zoe",
                 new EmailService.PersonalRangeMailContent(inputs, new PersonalRangeResponse(310, 360, 2, null, null,
                         new BigDecimal("1.5"), new BigDecimal("1.0"), new BigDecimal("1.5"), 58,
-                        PersonalRangeResponse.DataLevel.MEASURED, List.of())));
+                        PersonalRangeResponse.DataLevel.MEASURED, List.of(), null)));
         assertThat(firstText(stopsOnly.getContent())).contains("Unterwegs auf 250 km").contains("2 Ladestopps")
                 .doesNotContain("grob").doesNotContain("Ladeleistung geschätzt").doesNotContain("null");
     }
@@ -150,7 +150,7 @@ class EmailServiceTest {
         var inputs = new PersonalRangeRequest(40, 30, true, 500, null, null, 30_000, 3);
         var result = new PersonalRangeResponse(310, 360, 1, 35, 380, new BigDecimal("2.5"), new BigDecimal("0.67"), new BigDecimal("1.5"), 146,
                 PersonalRangeResponse.DataLevel.MEASURED,
-                List.of(new PersonalRangeResponse.Assumption("PRICE", true, new BigDecimal("0.30"), 100)));
+                List.of(new PersonalRangeResponse.Assumption("PRICE", true, new BigDecimal("0.30"), 100)), null);
 
         emailService.sendPersonalRangeResultEmail("user@example.com", "de", "Tesla Model 3", "/modelle/Tesla/Model_3",
                 new EmailService.PersonalRangeMailContent(inputs, result));

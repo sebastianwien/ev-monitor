@@ -117,6 +117,14 @@ class PublicModelServiceRangeIntegrationTest extends AbstractIntegrationTest {
         PublicModelStatsResponse.VariantRange v = s.wltpVariants().get(0).range();
         assertEquals(346, v.rangeKm()); // 100 × 0,9 × 100 / 26 = 346,2
         assertEquals(302, v.winterRangeKm());
+        assertEquals(360, v.prospectRangeKm()); // WLTP 400 × 0,9
+
+        // Lade-Fakten der Variante: 100 × 0,7 an der Säule, 100 × 0,6 an der Wallbox, je durch den
+        // Wirkungsgrad aus der Konfiguration (Testprofil 1,0); keine Minuten ohne gemessene Schnellladeleistung
+        PublicModelStatsResponse.VariantCharging charging = s.wltpVariants().get(0).charging();
+        assertEquals(0, new BigDecimal("70").compareTo(charging.fastStopPlugKwh()));
+        assertEquals(0, new BigDecimal("60").compareTo(charging.homeChargePlugKwh()));
+        assertNull(charging.fastStopMinutes());
 
         TopModelResponse top = publicModelService.getTopModels(false).stream()
                 .filter(r -> r.model().equals(model.name())).findFirst().orElseThrow();
