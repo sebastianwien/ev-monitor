@@ -292,7 +292,7 @@ class EmailServiceTest {
         emailService.sendMonthlyRecapEmail(recap(), RecapHighlights.NONE);
 
         verify(mailSender).send(mimeMessage);
-        assertThat(mimeMessage.getSubject()).isEqualTo("Dein August mit dem Model 3");
+        assertThat(mimeMessage.getSubject()).isEqualTo("Wie war dein August mit dem Model 3?");
         assertThat(mimeMessage.getHeader("List-Unsubscribe", null))
                 .isEqualTo("<http://localhost:5173/api/unsubscribe?token=jwt-token>");
         assertThat(mimeMessage.getHeader("List-Unsubscribe-Post", null)).isEqualTo("List-Unsubscribe=One-Click");

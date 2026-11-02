@@ -23,52 +23,57 @@ class MonthlyRecapMailTest {
     private static final String PRICE_URL = "https://ev-monitor.net/logs?car=c1&nachtragen=preis";
     private static final String STORY_URL = "https://ev-monitor.net/story?utm_campaign=monthly-recap";
 
-    /** Ihle, August 2026: 147,37 € Strom, 276,28 € Benzin, 1.766 km, Juli 863 km. */
+    /** Ihle, August 2026: 147,37 € Strom, 276,28 € Benzin, 1.766 km, Juli 1.700 km (kaum Änderung). */
     private Recap ihle() {
         return new Recap();
     }
 
     @Test
-    void german_monthAsStory_wholeEuros_noBarsNoGreeting() {
+    void german_isANudge_heroOneHookAndTheButton() {
         MonthlyRecapMail.Rendered mail = render(ihle());
 
-        assertThat(mail.subject()).isEqualTo("Dein August mit dem Model 3");
+        assertThat(mail.subject()).isEqualTo("Wie war dein August mit dem Model 3?");
         assertThat(mail.html())
                 .contains("August: 1.766\u00a0km für 147\u00a0€.")
-                .contains("Im August bist du <b>1.766\u00a0km</b> gefahren, <b>903 km</b> mehr als im Juli.")
-                .contains("Geladen hast du <b>351,4 kWh</b> in <b>12</b> Ladungen, <b>10</b> davon am Schnelllader.")
-                .contains("Ein Verbrenner hätte für dieselbe Strecke rund <b>276 €</b> gekostet, du hast also ")
-                .contains("129 €</b> gespart.*")
-                .contains("16,8")
-                .contains("8,34 €")
-                .contains("2,24 €/l")
+                .contains("Gegenüber einem Verbrenner hast du <b class=\"save\" style=\"color: #15803d;\">129\u00a0€</b> gespart.*")
                 .contains("Ganzen August ansehen")
+                .contains("href=\"" + STORY_URL + "\"")
+                .contains("* Vergleich mit einem Benziner der Mittelklasse: 7,6 l/100 km, Benzin 2,24 €/l laut Tankerkönig.")
+                .contains("Diese Mail kommt einmal im Monat.")
                 .contains(UNSUBSCRIBE)
                 .doesNotContain("Hallo")
-                .doesNotContain("128,91")
-                .doesNotContain("width=\"53%\"")
-                .doesNotContain("text-transform: uppercase")
-                .doesNotContain("mindestens drei Ladungen")
+                .doesNotContain("kWh")
+                .doesNotContain("Schnelllader")
+                .doesNotContain("pro 100 km")
                 .doesNotContain("{{")
                 .doesNotContain("<!--if:")
-                .doesNotContain("daheim")
                 .doesNotContain("Preis nachtragen");
     }
 
     @Test
-    void smallChangeToPreviousMonth_isNotWorthASentence() {
-        Recap r = ihle();
-        r.previousKm = "1700";
-
-        assertThat(render(r).html()).contains("August: 1.766\u00a0km für 147\u00a0€.").doesNotContain("als im Juli");
+    void preheader_answersTheQuestionWithTheHero() {
+        assertThat(render(ihle()).html()).contains(">August: 1.766\u00a0km für 147\u00a0€.</div>");
     }
 
     @Test
-    void savingsBelowHalfAEuro_wouldRoundToZero_soNoSavingsSentence() {
+    void rankBeatsEverything_bestPlaceOnly() {
+        RecapHighlights h = new RecapHighlights(List.of(
+                new Place(LeaderboardCategory.MONTHLY_KWH, 3), new Place(LeaderboardCategory.MONTHLY_DISTANCE, 2)), null);
         Recap r = ihle();
-        r.cost = "275.90";
+        r.previousKm = "863";
 
-        assertThat(render(r).html()).doesNotContain("gespart").doesNotContain("Tankerkönig");
+        String html = render(r, h).html();
+
+        assertThat(html).contains("Platz <b>2</b> bei Längste Strecke im August.")
+                .doesNotContain("Meiste kWh").doesNotContain("als im Juli").doesNotContain("gespart").doesNotContain("Tankerkönig");
+    }
+
+    @Test
+    void notableDistanceChange_beatsSavings() {
+        Recap r = ihle();
+        r.previousKm = "863";
+
+        assertThat(render(r).html()).contains("<b>903\u00a0km</b> mehr gefahren als im Juli.").doesNotContain("gespart");
     }
 
     @Test
@@ -76,34 +81,41 @@ class MonthlyRecapMailTest {
         Recap r = ihle();
         r.previousKm = "2500";
 
-        assertThat(render(r).html()).contains("<b>734 km</b> weniger als im Juli.");
+        assertThat(render(r).html()).contains("<b>734\u00a0km</b> weniger gefahren als im Juli.");
     }
 
     @Test
-    void electricityMoreExpensiveThanPetrol_showsNoSavingsAndNoBigEuroAmount() {
+    void changeBelowAQuarter_isNoNews_savingsTakeOver() {
+        Recap r = ihle();
+        r.previousKm = "1450";
+
+        assertThat(render(r).html()).doesNotContain("als im Juli").contains("gespart");
+    }
+
+    @Test
+    void electricityMoreExpensiveThanPetrol_noHookAtAll() {
         Recap r = ihle();
         r.cost = "300.00";
 
         String html = render(r).html();
 
-        assertThat(html).doesNotContain("gespart").doesNotContain("Benzin").doesNotContain("Tankerkönig");
-        assertThat(html).contains("1.766\u00a0km");
+        assertThat(html).doesNotContain("gespart").doesNotContain("Tankerkönig").contains("1.766\u00a0km").contains("Ganzen August ansehen");
     }
 
     @Test
-    void withoutDistance_headerNamesTheCharges_andTotalCostIsATile() {
+    void savingsBelowHalfAEuro_wouldRoundToZero_soNoSavingsSentence() {
+        Recap r = ihle();
+        r.cost = "275.90";
+
+        assertThat(render(r).html()).doesNotContain("gespart");
+    }
+
+    @Test
+    void withoutDistance_heroNamesTheCharges() {
         Recap r = ihle();
         r.km = null;
 
-        String html = render(r).html();
-
-        assertThat(html)
-                .contains("August: 147\u00a0€ für 12 Ladungen.")
-                .contains("Geladen hast du <b>351,4 kWh</b>")
-                .doesNotContain("bist du")
-                .contains("147,37")
-                .doesNotContain("gespart")
-                .doesNotContain("pro 100 km</p>");
+        assertThat(render(r).html()).contains("August: 147\u00a0€ für 12 Ladungen.").doesNotContain("gespart");
     }
 
     @Test
@@ -127,47 +139,34 @@ class MonthlyRecapMailTest {
     }
 
     @Test
-    void noPriceAtAll_showsChargesAndHint() {
+    void noPriceAtAll_showsHint() {
         Recap r = ihle();
         r.cost = null;
         r.hint = new PricelessHint(12, LocalDateTime.of(2026, 8, 1, 9, 0), new BigDecimal("30"));
 
         assertThat(render(r).html())
+                .contains("August: 1.766\u00a0km, 12 Ladungen.")
                 .contains("Bei keiner Ladung ist ein Preis eingetragen")
-                .contains("Preise nachtragen")
                 .doesNotContain("gespart");
     }
 
     @Test
-    void homeShare_andOnlyAc_formTheDetailLine() {
-        Recap r = ihle();
-        r.ac = 12;
-        r.dc = 0;
-        r.home = 75;
-
-        assertThat(render(r).html()).contains("Davon <b>75 %</b> daheim.").doesNotContain("Schnelllader");
-    }
-
-    @Test
-    void allDc_saysAll() {
-        Recap r = ihle();
-        r.ac = 0;
-        r.dc = 12;
-
-        assertThat(render(r).html()).contains("in <b>12</b> Ladungen, alle am Schnelllader.");
-    }
-
-    @Test
-    void english_subjectNumbersAndComparison() {
+    void english_questionSubjectAndHook() {
         Recap r = ihle();
         r.locale = "en-GB";
 
         MonthlyRecapMail.Rendered mail = render(r);
 
-        assertThat(mail.subject()).isEqualTo("Your August with the Model 3");
-        assertThat(mail.html()).contains("so you saved <b style=\"color: #15803d;\">€129</b>.*").contains("August: 1,766\u00a0km for €147.")
-                .contains("In August you drove <b>1,766\u00a0km</b>, <b>903 km</b> more than in July.")
-                .contains("See all of August").doesNotContain("Hi Ihle");
+        assertThat(mail.subject()).isEqualTo("How was your August with the Model 3?");
+        assertThat(mail.html()).contains("August: 1,766\u00a0km for €147.")
+                .contains("you saved <b class=\"save\" style=\"color: #15803d;\">€129</b>.*")
+                .contains("* Compared with a petrol mid-size: 7.6 l/100 km, petrol at ")
+                .contains("See all of August");
+
+        r.previousKm = "863";
+        assertThat(render(r).html()).contains("<b>903\u00a0km</b> more than in July.");
+        assertThat(render(r, new RecapHighlights(List.of(new Place(LeaderboardCategory.MONTHLY_POWER_CHARGER, 1)), null)).html())
+                .contains("Rank <b>1</b> in Fastest Charger in August.");
     }
 
     @Test
@@ -175,32 +174,17 @@ class MonthlyRecapMailTest {
         for (String locale : new String[]{"nb", "sv-SE"}) {
             Recap r = ihle();
             r.locale = locale;
-            assertThat(render(r).subject()).startsWith("Your");
+            assertThat(render(r).subject()).startsWith("How");
         }
         for (String locale : new String[]{null, "de-AT"}) {
             Recap r = ihle();
             r.locale = locale;
-            assertThat(render(r).subject()).startsWith("Dein");
+            assertThat(render(r).subject()).startsWith("Wie");
         }
     }
 
     @Test
-    void footnote_namesTheLitresAndTheClassOfTheCar() {
-        Recap r = ihle();
-        assertThat(render(r).html()).contains("* Vergleich mit einem Benziner der Mittelklasse: 7,6 l/100 km, Benzin ");
-
-        r.locale = "en";
-        r.liters = "8.4";
-        r.category = VehicleCategory.SUV;
-        assertThat(render(r).html()).contains("* Compared with a petrol SUV: 8.4 l/100 km, petrol at ");
-    }
-
-    @Test
-    void hero_followsTheStory_andFeedsThePreheader() {
-        Recap noCost = ihle();
-        noCost.cost = null;
-        assertThat(render(noCost).html()).contains("August: 1.766\u00a0km, 12 Ladungen.").doesNotContain("für 147");
-
+    void hero_variantsWithoutCost() {
         Recap bare = ihle();
         bare.cost = null;
         bare.km = null;
@@ -209,43 +193,12 @@ class MonthlyRecapMailTest {
         // Unter 0,50 € stünde "0 €" im Hero: dann die Variante ohne Preise.
         Recap cents = ihle();
         cents.cost = "0.30";
-        assertThat(render(cents).html()).contains("August: 1.766 km, 12 Ladungen.").doesNotContain("0 €");
-
-        Recap en = ihle();
-        en.locale = "en";
-        assertThat(render(en).html()).contains("August: 1,766 km for €147. €129 saved compared to a combustion car.</div>");
-
-        String html = render(ihle()).html();
-        assertThat(html).contains("August: 1.766\u00a0km für 147\u00a0€. Gegenüber einem Verbrenner 129 € gespart.</div>");
-        assertThat(html).contains("<meta name=\"color-scheme\" content=\"light dark\">");
+        assertThat(render(cents).html()).contains("August: 1.766\u00a0km, 12 Ladungen.").doesNotContain("0\u00a0€");
     }
 
     @Test
-    void highlights_rankLineInGerman_podiumPlacesJoined() {
-        RecapHighlights h = new RecapHighlights(List.of(
-                new Place(LeaderboardCategory.MONTHLY_DISTANCE, 2), new Place(LeaderboardCategory.MONTHLY_KWH, 3)), null);
-
-        String html = render(ihle(), h).html();
-
-        assertThat(html).contains("Platz 2 bei Längste Strecke · Platz 3 bei Meiste kWh.").doesNotContain("andere Fahrer deines Modells");
-    }
-
-    @Test
-    void highlights_peerLineInEnglish_withOneDecimalAndTheMonth() {
-        Recap r = ihle();
-        r.locale = "en";
-        RecapHighlights h = new RecapHighlights(List.of(new Place(LeaderboardCategory.MONTHLY_POWER_CHARGER, 7)),
-                new PeerConsumption(new BigDecimal("15.24"), new BigDecimal("16.8")));
-
-        String html = render(r, h).html();
-
-        assertThat(html).contains("Rank 7 in Fastest Charger.")
-                .contains("You: <b>15.2 kWh/100 km</b>, other drivers of your model in August: <b>16.8</b>.");
-    }
-
-    @Test
-    void highlights_none_leavesNoEmptyParagraph() {
-        assertThat(render(ihle(), RecapHighlights.NONE).html()).doesNotContain("Platz ").doesNotContain("deines Modells").doesNotContain("{{rankLine}}");
+    void darkModeMakesTheSavingsGreenReadable() {
+        assertThat(render(ihle()).html()).contains(".save { color: #4ade80 !important; }");
     }
 
     private MonthlyRecapMail.Rendered render(Recap r) {
@@ -262,7 +215,7 @@ class MonthlyRecapMailTest {
         String username = "Ihle";
         String cost = "147.37";
         String km = "1766";
-        String previousKm = "863";
+        String previousKm = "1700";
         int ac = 2;
         int dc = 10;
         Integer home = null;
