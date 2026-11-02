@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildYearCostSeries, firstCostIndex, summarizeCosts, groupFixedCostsByCategory, chartCap, rankCategories, fitSegments, barScale, legendKeys, costPer100km, yearOfSavedCost } from '../carCostSummary'
+import { buildYearCostSeries, firstCostIndex, summarizeCosts, groupFixedCostsByCategory, chartCap, rankCategories, fitSegments, barScale, legendKeys, costPer100km, yearOfSavedCost, latestCostYear } from '../carCostSummary'
 import type { FixedCost, FixedCostCategory, FixedCostRecurrence } from '../../api/fixedCostService'
 import type { ChargeDataPoint } from '../../composables/useDashboardStats'
 
@@ -255,20 +255,39 @@ describe('costPer100km (dieselbe Vollkosten-Rechnung wie das Dashboard)', () => 
   })
 })
 
-// Regression 02.11.2026: Ein Nutzer legte zwoelfmal "Reifenwechsel" vom 06.05.2025 an. Gespeichert
-// wurde jedes Mal, die Karte zeigte aber 2026 und damit nichts Neues - es sah aus, als ginge es nicht.
+// Regression 02.11.2026: Ein Eintrag aus einem Vorjahr wurde gespeichert, die Karte zeigte aber das
+// laufende Jahr und damit nichts Neues - es sah aus, als liesse sich kein zweiter Eintrag anlegen.
 describe('yearOfSavedCost', () => {
   it('springt ins Jahr einer einmaligen Zahlung aus einem anderen Jahr', () => {
-    expect(yearOfSavedCost(fc({ amount: 84.8, category: 'TIRES', recurrence: 'ONE_TIME', date: '2025-05-06' }), 2026)).toBe(2025)
+    expect(yearOfSavedCost(fc({ amount: 100, category: 'TIRES', recurrence: 'ONE_TIME', date: '2025-05-01' }), 2026)).toBe(2025)
   })
 
   it('bleibt im angezeigten Jahr, wenn der Eintrag dort zahlt', () => {
-    expect(yearOfSavedCost(fc({ amount: 96.3, recurrence: 'ONE_TIME', date: '2026-10-30' }), 2026)).toBe(2026)
+    expect(yearOfSavedCost(fc({ amount: 100, recurrence: 'ONE_TIME', date: '2026-10-01' }), 2026)).toBe(2026)
     // laufender Vertrag seit Vorjahr zahlt auch im angezeigten Jahr
-    expect(yearOfSavedCost(fc({ amount: 271.47, recurrence: 'MONTHLY', startDate: '2025-09-01' }), 2026)).toBe(2026)
+    expect(yearOfSavedCost(fc({ amount: 200, recurrence: 'MONTHLY', startDate: '2025-09-01' }), 2026)).toBe(2026)
   })
 
   it('springt zum Start eines Vertrags, der im angezeigten Jahr nicht zahlt', () => {
     expect(yearOfSavedCost(fc({ amount: 500, recurrence: 'YEARLY', startDate: '2023-03-01', endDate: '2024-12-31' }), 2026)).toBe(2023)
+  })
+
+  it('springt auch in ein kuenftiges Jahr', () => {
+    expect(yearOfSavedCost(fc({ amount: 300, recurrence: 'ONE_TIME', date: '2027-01-15' }), 2026)).toBe(2027)
+  })
+})
+
+// Bis zu diesem Jahr laesst sich blaettern: sonst waere ein geplanter Eintrag fuers naechste Jahr unerreichbar.
+describe('latestCostYear', () => {
+  it('ist das laufende Jahr ohne kuenftige Eintraege', () => {
+    expect(latestCostYear([], 2026)).toBe(2026)
+    expect(latestCostYear([fc({ amount: 100, recurrence: 'ONE_TIME', date: '2025-05-01' })], 2026)).toBe(2026)
+  })
+
+  it('reicht bis zum spaetesten Zahlungs- oder Startjahr', () => {
+    expect(latestCostYear([
+      fc({ amount: 300, recurrence: 'ONE_TIME', date: '2027-01-15' }),
+      fc({ amount: 200, recurrence: 'YEARLY', startDate: '2028-02-01' }),
+    ], 2026)).toBe(2028)
   })
 })

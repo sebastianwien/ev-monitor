@@ -3,7 +3,7 @@ import api from '../api/axios'
 import { fixedCostService, type FixedCost } from '../api/fixedCostService'
 import type { StatisticsData } from './useDashboardStats'
 import type { FixedCostMode } from './useFixedCostCalc'
-import { buildYearCostSeries, firstCostIndex, rankCategories, type DistanceStats } from '../utils/carCostSummary'
+import { buildYearCostSeries, firstCostIndex, latestCostYear, rankCategories, type DistanceStats } from '../utils/carCostSummary'
 import { readLocal, writeLocal } from '../utils/safeStorage'
 
 // Gemeinsame Schluessel fuer Dashboard-Kostenverlauf und Fahrzeugseite.
@@ -104,6 +104,9 @@ export function useYearCosts(carId: () => string | null, registrationDate: () =>
     return Math.min(...years.filter(Number.isFinite))
   })
 
+  /** Spaetestes waehlbares Jahr, damit geplante Eintraege erreichbar bleiben. */
+  const maxYear = computed(() => latestCostYear(items.value, thisYear))
+
   const shownPoints = computed(() => (hidden.value.has(ENERGY) ? [] : points.value))
   const shownItems = computed(() => items.value.filter(fc => !hidden.value.has(fc.category)))
   // Monate vor den ersten Kosten des Jahres fallen weg: da gab es das Auto noch nicht. Bestimmt
@@ -121,5 +124,5 @@ export function useYearCosts(carId: () => string | null, registrationDate: () =>
   /** Kostenkategorien nach Jahressumme (umgelegt, ungefiltert): Farbstufen bleiben bei Schaltern stabil. */
   const ranked = computed(() => rankCategories(inRange(buildYearCostSeries(points.value, items.value, 'pro_rata', dataYear.value))))
 
-  return { ranked, thisYear, year, dataYear, minYear, points, distance, items, loading, error, load, spread, hidden, setShown, series, allSeries, proRataSeries }
+  return { ranked, thisYear, year, dataYear, minYear, maxYear, points, distance, items, loading, error, load, spread, hidden, setShown, series, allSeries, proRataSeries }
 }

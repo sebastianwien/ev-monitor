@@ -30,7 +30,7 @@ const props = defineProps<{ carId: string; registrationDate: string | null }>()
 const { t } = useI18n()
 const { formatCurrency, isImperial } = useLocaleFormat()
 
-const { ranked, thisYear, year, minYear, points, distance, items, loading, error, load, hidden, setShown, spread, series, proRataSeries } =
+const { ranked, thisYear, year, minYear, maxYear, points, distance, items, loading, error, load, hidden, setShown, spread, series, proRataSeries } =
   useYearCosts(() => props.carId, () => props.registrationDate)
 const openGroups = ref<Set<string>>(new Set())
 const monthsOpen = ref(false)
@@ -81,7 +81,7 @@ function itemDate(fc: FixedCost): string {
 /** Nach dem Speichern ins Jahr des Eintrags, sonst sieht ein Eintrag aus einem anderen Jahr aus wie nicht gespeichert. */
 async function onSaved(fc: FixedCost) {
   sheet.value = null
-  year.value = Math.min(yearOfSavedCost(fc, year.value), thisYear)
+  year.value = yearOfSavedCost(fc, year.value)
   await load()
 }
 
@@ -112,7 +112,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-xl tex
           <ChevronLeftIcon class="h-5 w-5" aria-hidden="true" />
         </button>
         <span class="min-w-[3rem] text-center text-sm font-semibold tabular-nums text-gray-900 dark:text-gray-100" aria-live="polite" data-testid="car-cost-year">{{ year }}</span>
-        <button type="button" :class="navBtn" :disabled="year >= thisYear" :aria-label="t('cars.costs.year_next')" data-testid="car-cost-year-next" @click="year++">
+        <button type="button" :class="navBtn" :disabled="year >= maxYear" :aria-label="t('cars.costs.year_next')" data-testid="car-cost-year-next" @click="year++">
           <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
         </button>
       </div>

@@ -23,7 +23,7 @@ const props = defineProps<{ carId: string | null; registrationDate: string | nul
 const { t } = useI18n()
 const { isDark } = storeToRefs(useThemeStore())
 
-const { ranked, thisYear, year, dataYear, minYear, items, loading, error, spread, hidden, setShown, series, allSeries } =
+const { ranked, year, dataYear, minYear, maxYear, items, loading, error, spread, hidden, setShown, series, allSeries } =
   useYearCosts(() => props.carId, () => props.registrationDate)
 
 const colorOf = (key: string) => costColor(key, ranked.value, isDark.value, ENERGY)
@@ -46,7 +46,7 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-sm tex
       <h3 class="px-1 text-base font-semibold text-gray-800 dark:text-gray-100">
         {{ t('cost_history.title') }} <span class="tabular-nums" aria-live="polite">{{ year }}</span>
       </h3>
-      <button type="button" :class="navBtn" :disabled="year >= thisYear" :aria-label="t('cars.costs.year_next')" @click="year++">
+      <button type="button" :class="navBtn" :disabled="year >= maxYear" :aria-label="t('cars.costs.year_next')" @click="year++">
         <ChevronRightIcon class="h-5 w-5" aria-hidden="true" />
       </button>
     </div>

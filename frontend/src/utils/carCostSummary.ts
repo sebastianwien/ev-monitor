@@ -121,6 +121,12 @@ export function yearOfSavedCost(fc: FixedCost, shownYear: number): number {
   return Number.isFinite(y) ? y : shownYear
 }
 
+/** Spaetestes waehlbares Jahr: laufendes Jahr oder das Jahr eines geplanten Eintrags. */
+export function latestCostYear(items: FixedCost[], thisYear: number): number {
+  const years = items.map(fc => Number((fc.date ?? fc.startDate ?? '').slice(0, 4))).filter(Number.isFinite)
+  return Math.max(thisYear, ...years)
+}
+
 function sortKey(fc: FixedCost): string {
   return fc.date ?? fc.startDate ?? fc.createdAt
 }

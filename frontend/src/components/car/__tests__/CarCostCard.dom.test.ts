@@ -13,7 +13,7 @@ vi.mock('../../../composables/useYearCosts', () => {
     return {
         ENERGY: 'ENERGY',
         useYearCosts: () => ({
-            ranked: ref(['INSURANCE']), thisYear: 2026, year: ref(2026), dataYear: ref(2026), minYear: computed(() => 2026),
+            ranked: ref(['INSURANCE']), thisYear: 2026, year: ref(2026), dataYear: ref(2026), minYear: computed(() => 2026), maxYear: computed(() => 2026),
             points: ref([]), distance: ref(null), items: ref([]), loading: ref(false), error: ref(false), load: vi.fn(),
             spread: ref(false), hidden: ref(new Set()), setShown: vi.fn(),
             series: computed(() => series), allSeries: computed(() => series), proRataSeries: computed(() => series),
