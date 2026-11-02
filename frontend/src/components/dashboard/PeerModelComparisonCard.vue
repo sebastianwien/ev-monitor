@@ -88,9 +88,7 @@ function getPeerMetricValue(item: PeerModelComparisonItem, category: string): nu
         ? item.peerMetrics.avgCostPerKwh * item.peerMetrics.avgConsumptionKwhPer100km
         : null
     case 'range':
-      return item.netBatteryCapacityKwh != null && item.peerMetrics.avgConsumptionKwhPer100km != null && item.peerMetrics.avgConsumptionKwhPer100km > 0
-        ? (item.netBatteryCapacityKwh * 0.8 / item.peerMetrics.avgConsumptionKwhPer100km) * 100
-        : null
+      return item.peerRangeKm ?? null
     default:
       return null
   }
@@ -108,9 +106,7 @@ function getUserMetricValue(item: PeerModelComparisonItem, category: string): nu
         ? item.userMetrics.costPerKwh * item.userMetrics.consumptionKwhPer100km
         : null
     case 'range':
-      return item.netBatteryCapacityKwh != null && item.userMetrics.consumptionKwhPer100km != null && item.userMetrics.consumptionKwhPer100km > 0
-        ? (item.netBatteryCapacityKwh * 0.8 / item.userMetrics.consumptionKwhPer100km) * 100
-        : null
+      return item.userRangeKm ?? null
     default:
       return null
   }

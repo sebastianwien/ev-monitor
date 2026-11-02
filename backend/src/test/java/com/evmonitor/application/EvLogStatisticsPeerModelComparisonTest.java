@@ -21,8 +21,13 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
     // --- helpers ---
 
     private VehicleSpecification saveSpec(String brand, String model, String variantName, BigDecimal batteryKwh) {
+        return saveSpec(brand, model, variantName, batteryKwh, null);
+    }
+
+    private VehicleSpecification saveSpec(String brand, String model, String variantName, BigDecimal batteryKwh,
+                                          BigDecimal netKwh) {
         VehicleSpecification spec = VehicleSpecification.createNew(
-                brand, model, batteryKwh, null,
+                brand, model, batteryKwh, netKwh,
                 new BigDecimal("490"), new BigDecimal("15.4"),
                 VehicleSpecification.WltpType.COMBINED,
                 VehicleSpecification.RatingSource.WLTP, variantName);
@@ -119,7 +124,7 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
     @Test
     void getPeerModelComparison_returnsAllSpecsOfSameModel_groupedBySpecId() {
         // Setup: User hat Model 3 2024 LR (75kWh)
-        VehicleSpecification userSpec = saveSpec("Tesla", "Model 3", "2024 LR", new BigDecimal("75.0"));
+        VehicleSpecification userSpec = saveSpec("Tesla", "Model 3", "2024 LR", new BigDecimal("75.0"), new BigDecimal("75.0"));
         User user = createUser("test@example.com", "DE");
         Car userCar = createCar(user.getId(), CarBrand.CarModel.MODEL_3, userSpec.getId());
 
@@ -132,7 +137,7 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
         addLog(peerCar1Spec1.getId(), 22.0, 100.0, 6.16);
 
         // Peer 2: andere spec (2025 RWD, 60kWh) → 19 kWh, 100 km → 19 kWh/100km
-        VehicleSpecification otherSpec = saveSpec("Tesla", "Model 3", "2025 RWD", new BigDecimal("60.0"));
+        VehicleSpecification otherSpec = saveSpec("Tesla", "Model 3", "2025 RWD", new BigDecimal("60.0"), new BigDecimal("60.0"));
         User peerUser2 = createUser("peer2@example.com", "DE");
         Car peerCar2Spec2 = createCar(peerUser2.getId(), CarBrand.CarModel.MODEL_3, otherSpec.getId());
         addLog(peerCar2Spec2.getId(), 19.0, 100.0, 5.32);
@@ -158,6 +163,9 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
         assertEquals(new BigDecimal("20.00"), item1.userMetrics().consumptionKwhPer100km().setScale(2, java.math.RoundingMode.HALF_UP));
         assertEquals(new BigDecimal("22.00"), item1.peerMetrics().avgConsumptionKwhPer100km().setScale(2, java.math.RoundingMode.HALF_UP));
         assertEquals(1, item1.peerMetrics().uniqueCars());
+        // Reichweite 100 → 10 % aus RangeMath: Nutzer 75 kWh × 0,9 / 20, andere Fahrer 75 × 0,9 / 22
+        assertEquals(338, item1.userRangeKm());
+        assertEquals(307, item1.peerRangeKm());
 
         // Item 2: Other spec (2025 RWD)
         PeerModelComparisonItem item2 = response.modelComparisons().stream()
@@ -168,6 +176,8 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
         assertNull(item2.userMetrics());
         assertEquals(new BigDecimal("18.50"), item2.peerMetrics().avgConsumptionKwhPer100km().setScale(2, java.math.RoundingMode.HALF_UP));
         assertEquals(2, item2.peerMetrics().uniqueCars());
+        assertNull(item2.userRangeKm());
+        assertEquals(292, item2.peerRangeKm()); // 60 × 0,9 / 18,5
     }
 
     @Test

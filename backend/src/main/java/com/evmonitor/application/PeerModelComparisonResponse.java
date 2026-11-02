@@ -28,7 +28,9 @@ record PeerModelComparisonItem(
         boolean isUserVehicleSpec,
         BigDecimal netBatteryCapacityKwh,
         UserMetrics userMetrics,  // null wenn nicht die user spec
-        PeerMetrics peerMetrics
+        PeerMetrics peerMetrics,
+        Integer userRangeKm,      // RangeMath mit der SoH-Kapazität des Nutzerautos; null ohne userMetrics
+        Integer peerRangeKm       // RangeMath mit der Netto-Kapazität der Variante
 ) {}
 
 record UserMetrics(

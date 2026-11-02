@@ -7,6 +7,9 @@ export interface PeerModelComparisonItem {
   netBatteryCapacityKwh: number | null
   userMetrics: UserMetrics | null
   peerMetrics: PeerMetrics
+  /** Reichweite 100 → 10 % aus dem Backend (RangeMath), null ohne Daten */
+  userRangeKm?: number | null
+  peerRangeKm?: number | null
 }
 
 export interface UserMetrics {

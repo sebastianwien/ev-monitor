@@ -952,7 +952,7 @@ dashboard:
   peer_drivers: "Fahrer"
   peer_charges: "Ladungen"
   peer_consumption: "Verbrauch"
-  peer_range: "Reichweite (90→10%)"
+  peer_range: "Reichweite (100→10%)"
   peer_cost: "Kosten"
   peer_cost_label: "Stromkosten"
   peer_cost_per_distance: "Fahrtkosten"

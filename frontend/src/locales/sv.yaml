@@ -909,7 +909,7 @@ dashboard:
   peer_drivers: förare
   peer_charges: "laddningar"
   peer_consumption: Förbrukning
-  peer_range: Räckvidd (90→10%)
+  peer_range: Räckvidd (100→10%)
   peer_cost: Kostnad
   peer_cost_label: Energikostnad
   peer_cost_per_distance: Körkostnad
