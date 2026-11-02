@@ -5,37 +5,24 @@ import com.evmonitor.domain.User;
 import com.evmonitor.domain.WaitlistFeature;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import com.evmonitor.testutil.TestDataBuilder;
+import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class WaitlistControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private WaitlistService waitlistService;
+class WaitlistControllerTest extends AbstractIntegrationTest {
 
     private static final UUID USER_ID = UUID.randomUUID();
 
@@ -59,8 +46,7 @@ class WaitlistControllerTest {
 
     @Test
     void status_returnsServiceResult() throws Exception {
-        when(waitlistService.status(eq(USER_ID), eq(WaitlistFeature.XPENG_AUTOSYNC)))
-                .thenReturn(new WaitlistService.WaitlistStatus(true, LocalDateTime.of(2026, 9, 1, 10, 0)));
+        doReturn(new WaitlistService.WaitlistStatus(true, LocalDateTime.of(2026, 9, 1, 10, 0))).when(waitlistService).status(eq(USER_ID), eq(WaitlistFeature.XPENG_AUTOSYNC));
 
         mockMvc.perform(get("/api/waitlist/XPENG_AUTOSYNC").with(authentication(auth())))
                 .andExpect(status().isOk())
@@ -69,8 +55,7 @@ class WaitlistControllerTest {
 
     @Test
     void join_returnsOnWaitlist() throws Exception {
-        when(waitlistService.join(eq(USER_ID), eq(WaitlistFeature.XPENG_AUTOSYNC)))
-                .thenReturn(new WaitlistService.WaitlistStatus(true, LocalDateTime.of(2026, 9, 4, 12, 0)));
+        doReturn(new WaitlistService.WaitlistStatus(true, LocalDateTime.of(2026, 9, 4, 12, 0))).when(waitlistService).join(eq(USER_ID), eq(WaitlistFeature.XPENG_AUTOSYNC));
 
         mockMvc.perform(post("/api/waitlist/XPENG_AUTOSYNC").with(authentication(auth())))
                 .andExpect(status().isOk())

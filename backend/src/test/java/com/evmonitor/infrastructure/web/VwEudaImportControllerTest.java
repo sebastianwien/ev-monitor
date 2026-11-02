@@ -8,39 +8,27 @@ import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.User;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import com.evmonitor.testutil.TestDataBuilder;
+import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class VwEudaImportControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private VwEudaImportService importService;
+class VwEudaImportControllerTest extends AbstractIntegrationTest {
 
     private static final UUID USER_ID = UUID.randomUUID();
     private static final UUID CAR_ID = UUID.randomUUID();
@@ -90,8 +78,7 @@ class VwEudaImportControllerTest {
     void preview_unzippedExport_isAccepted() throws Exception {
         // Regression: entpackte VW-Exporte sind zweistellig MB gross (real gesehen: 24 und 46 MB).
         // Solange wir .json akzeptieren, darf so ein Upload nicht am Groessenlimit scheitern.
-        when(importService.preview(any(), any(), any(), any()))
-                .thenReturn(new VwEudaPreviewResult("WVWZZZ-ID7", List.of()));
+        doReturn(new VwEudaPreviewResult("WVWZZZ-ID7", List.of())).when(vwEudaImportService).preview(any(), any(), any(), any());
 
         MockMultipartFile file = new MockMultipartFile("file", "export.json",
                 "application/json", new byte[6 * 1024 * 1024]);
@@ -131,8 +118,7 @@ class VwEudaImportControllerTest {
                 java.time.OffsetDateTime.parse("2025-11-15T13:23:02Z"),
                 java.time.OffsetDateTime.parse("2025-11-15T15:18:15Z"),
                 115, 74, 100, "AC", 10.0, 17.5, 1951, 7.0);
-        when(importService.preview(any(), any(), any(), any()))
-                .thenReturn(new VwEudaPreviewResult("WVWZZZ-ID7", List.of(session)));
+        doReturn(new VwEudaPreviewResult("WVWZZZ-ID7", List.of(session))).when(vwEudaImportService).preview(any(), any(), any(), any());
 
         mockMvc.perform(multipart("/api/import/eu-data-act/preview")
                         .file(validJsonFile())
@@ -147,8 +133,7 @@ class VwEudaImportControllerTest {
 
     @Test
     void preview_serviceThrowsIllegalArgument_returns400() throws Exception {
-        when(importService.preview(any(), any(), any(), any()))
-                .thenThrow(new IllegalArgumentException("Keine Ladevorgänge gefunden"));
+        doThrow(new IllegalArgumentException("Keine Ladevorgänge gefunden")).when(vwEudaImportService).preview(any(), any(), any(), any());
 
         mockMvc.perform(multipart("/api/import/eu-data-act/preview")
                         .file(validJsonFile())
@@ -162,8 +147,7 @@ class VwEudaImportControllerTest {
 
     @Test
     void import_returnsResultFromService() throws Exception {
-        when(importService.importData(eq(USER_ID), eq(CAR_ID), any(), any()))
-                .thenReturn(ImportApiResult.withoutIds(3, 1, 0));
+        doReturn(ImportApiResult.withoutIds(3, 1, 0)).when(vwEudaImportService).importData(eq(USER_ID), eq(CAR_ID), any(), any());
 
         mockMvc.perform(multipart("/api/import/eu-data-act/import")
                         .file(validJsonFile())
@@ -176,8 +160,7 @@ class VwEudaImportControllerTest {
 
     @Test
     void import_ownershipViolation_returns403() throws Exception {
-        when(importService.importData(eq(USER_ID), eq(CAR_ID), any(), any()))
-                .thenThrow(new SecurityException("Dieses Fahrzeug gehört dir nicht"));
+        doThrow(new SecurityException("Dieses Fahrzeug gehört dir nicht")).when(vwEudaImportService).importData(eq(USER_ID), eq(CAR_ID), any(), any());
 
         mockMvc.perform(multipart("/api/import/eu-data-act/import")
                         .file(validJsonFile())
