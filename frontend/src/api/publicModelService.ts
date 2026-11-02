@@ -38,6 +38,10 @@ export interface WltpVariant {
     estimatedConsumptionCount: number | null
     realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
     seasonalDistribution: SeasonalDistribution | null
+    /** Prospektzahl dieser Batterie vom Backend; fehlt bei älterem Backend. */
+    range?: VariantProspect | null
+    /** Lade-Fakten dieser Batterie vom Backend; fehlt bei älterem Backend. */
+    charging?: VariantChargingFacts | null
 }
 
 export interface EpaVariant {
@@ -55,6 +59,25 @@ export interface EpaVariant {
     estimatedConsumptionCount: number | null
     realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
     seasonalDistribution: SeasonalDistribution | null
+    /** Prospektzahl dieser Batterie vom Backend; fehlt bei älterem Backend. */
+    range?: VariantProspect | null
+    /** Lade-Fakten dieser Batterie vom Backend; fehlt bei älterem Backend. */
+    charging?: VariantChargingFacts | null
+}
+
+/** Aus der Reichweite der Batterie (Backend) nur die Prospektzahl: WLTP/EPA auf 100 auf 10 %, auf 10 km gerundet. */
+export interface VariantProspect {
+    prospectRangeKm?: number | null
+}
+
+/** Lade-Fakten einer Batterie vom Backend (FastChargeStop, HomeCharge); die Seite rechnet nur kWh mal Preis. */
+export interface VariantChargingFacts {
+    /** kWh an der Säule für einen Schnellladestopp 10 auf 80 % */
+    fastStopPlugKwh: number | null
+    /** Minuten dieses Stopps bei der gemessenen Schnellladeleistung, auf 5 gerundet; null ohne Messung */
+    fastStopMinutes: number | null
+    /** kWh an der Wallbox für eine Heimladung 20 auf 80 % */
+    homeChargePlugKwh: number | null
 }
 
 export interface SeasonalDistribution {

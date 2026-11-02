@@ -52,6 +52,8 @@ export interface PersonalRangeResult {
   monthlyCostEur: number
   dataLevel: PersonalRangeDataLevel
   assumptions: PersonalRangeAssumption[]
+  /** kWh at the charger for one fast-charging stop 10 to 80 % (FastChargeStop); missing on an older backend */
+  fastStopPlugKwh?: number | null
 }
 
 /**

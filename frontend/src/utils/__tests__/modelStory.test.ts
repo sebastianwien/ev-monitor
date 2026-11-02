@@ -23,10 +23,14 @@ const fmt: StoryFormatters = {
 const full: StoryInput = {
   modelName: 'Volkswagen ID.3', brandName: 'Volkswagen', logCount: 6230, carCount: 51, driverCount: 50,
   netBatteryKwh: 58, wltpKwhPer100km: 15.3, wltpRangeKm: 434,
+  // from the API: 434 × 0.9 = 391 → 390 (the prospectus on the drivers' window)
+  prospectRangeKm: 390,
   avgKwhPer100km: 19.1, minKwhPer100km: 16.6, maxKwhPer100km: 19.9,
   routeType: { highway: 18.9, city: 16.2, combined: 17.1, highwayCars: 16, highwayLogs: 121, cityLogs: 119, combinedLogs: 800, typedMean: 17.6 },
   seasonal: { summer: 17.6, winter: 22.6, summerLogs: 1630, winterLogs: 891 },
   fastChargePowerKw: 85,
+  // from the API (FastChargeStop, HomeCharge on 58 kWh): 58 × 0.7 / 0.95, 30 min at 85 kW, 58 × 0.6 / 0.90
+  charging: { fastStopPlugKwh: 42.74, fastStopMinutes: 30, homeChargePlugKwh: 38.67 },
   acPricePerKwh: 0.35, dcPricePerKwh: 0.427, avgPricePerKwh: 0.372,
   fleetWinterFactor: { factor: 1.28, models: 29 },
 }
@@ -34,6 +38,7 @@ const full: StoryInput = {
 const specOnly: StoryInput = {
   ...full, logCount: 0, carCount: 0, driverCount: 0, avgKwhPer100km: null, minKwhPer100km: null, maxKwhPer100km: null,
   routeType: null, seasonal: null, fastChargePowerKw: null,
+  charging: { fastStopPlugKwh: 42.74, fastStopMinutes: null, homeChargePlugKwh: 38.67 },
   acPricePerKwh: null, dcPricePerKwh: null, avgPricePerKwh: null,
 }
 
@@ -127,7 +132,7 @@ describe('buildModelStory', () => {
   })
 
   it('a missing season: range evidence shows the year average and names the fleet surcharge', () => {
-    const s = buildModelStory({ ...full, seasonal: null, fastChargePowerKw: null }, fmt)
+    const s = buildModelStory({ ...full, seasonal: null, fastChargePowerKw: null, charging: { ...full.charging!, fastStopMinutes: null } }, fmt)
 
     expect(fact(s, 'range').note).toBe('Prospekt 390 km')
     expect(s.evidence.range!.bars.map(b => b.key)).toEqual(['wltp', 'year'])
@@ -150,7 +155,7 @@ describe('buildModelStory', () => {
   })
 
   it('without WLTP the hero and the consumption tile drop the prospectus comparison', () => {
-    const s = buildModelStory({ ...full, wltpKwhPer100km: null, wltpRangeKm: null }, fmt)
+    const s = buildModelStory({ ...full, wltpKwhPer100km: null, wltpRangeKm: null, prospectRangeKm: null }, fmt)
 
     expect(s.heroSentence).toBe('50 Fahrer sagen 270 km.')
     expect(fact(s, 'consumption').note).toBe('aus 6230 Ladevorgängen')
@@ -174,6 +179,20 @@ describe('buildModelStory', () => {
     const s = buildModelStory({ ...full, acPricePerKwh: null }, fmt)
     expect(fact(s, 'cost')).toMatchObject({ value: '18 €', unit: 'Schnelllader', note: '' })
     expect(fact(s, 'cost').extra).toBeUndefined()
+  })
+
+  it('charging facts: takes the API figures and only multiplies the kWh by the price', () => {
+    // figures no rule of the page would give: proof the story does not recompute them
+    const s = buildModelStory({ ...full, charging: { fastStopPlugKwh: 50, fastStopMinutes: 45, homeChargePlugKwh: 20 } }, fmt)
+    expect(fact(s, 'charging')).toMatchObject({ value: '45', unit: 'min' })
+    // 20 × 0.35 = 7 €, 50 × 0.427 = 21.35 → 21 €
+    expect(fact(s, 'cost')).toMatchObject({ value: '7 €', extra: { value: '21 €' } })
+  })
+
+  it('charging facts missing (older backend): the tiles show no figure instead of a wrong one', () => {
+    const s = buildModelStory({ ...full, charging: null, prospectRangeKm: null }, fmt)
+    expect(fact(s, 'charging').value).toBeNull()
+    expect(fact(s, 'cost').value).toBeNull()
   })
 
   it('a consumption below the prospectus says so', () => {

@@ -318,7 +318,7 @@ import ModelEvidence from '../components/models/ModelEvidence.vue'
 import ModelVariantsList, { type ActiveVariant } from '../components/models/ModelVariantsList.vue'
 import ProfileQuestions from '../components/models/ProfileQuestions.vue'
 import { useProfileSliders, type ProfileValues } from '../composables/useProfileSliders'
-import { buildModelStory, fastChargePrice, fastStop, keepUnits, prospectKm, rangeKm, type StoryInput } from '../utils/modelStory'
+import { buildModelStory, fastChargePrice, fastStop, keepUnits, rangeKm, type StoryInput } from '../utils/modelStory'
 import type { PersonalRangeInputs } from '../api/personalRangeService'
 import { analytics } from '../services/analytics'
 import { useDrivingProfile, highwayPercent, PROFILE_KEYS, type ProfileKey } from '../composables/useDrivingProfile'
@@ -437,6 +437,8 @@ const activeVariants = computed<ActiveVariant[]>(() => {
       estimatedConsumptionCount: v.estimatedConsumptionCount,
       realConsumptionRangeSource: v.realConsumptionRangeSource,
       seasonalDistribution: v.seasonalDistribution,
+      range: v.range ?? null,
+      charging: v.charging ?? null,
     }))
   }
   return stats.value.wltpVariants.map(v => ({
@@ -455,6 +457,8 @@ const activeVariants = computed<ActiveVariant[]>(() => {
     estimatedConsumptionCount: v.estimatedConsumptionCount,
     realConsumptionRangeSource: v.realConsumptionRangeSource,
     seasonalDistribution: v.seasonalDistribution,
+    range: v.range ?? null,
+    charging: v.charging ?? null,
   }))
 })
 
@@ -487,13 +491,13 @@ const petrolComparison = computed(() => currentMarket.value === 'de' && petrolPr
 /** One card per battery in the picker: the same range rule as the hero (net battery × 0,9 ÷ model mean) */
 const variantOptions = computed((): VariantOption[] => activeVariants.value.map((v, i) => {
   const real = rangeKm(v.batteryCapacityKwh, stats.value?.avgConsumptionKwhPer100km ?? null)
-  const wltp = real != null ? prospectKm(v.officialRangeKm)! : v.officialRangeKm
+  const wltp = real != null ? v.range?.prospectRangeKm ?? null : v.officialRangeKm
   return {
     key: `${i}-${v.displayLabel ?? v.batteryCapacityKwh}`,
     label: v.displayLabel || v.variantName || `${formatNumber(v.batteryCapacityKwh)} kWh`,
     battery: `${formatNumber(v.batteryCapacityKwh)} kWh`,
     range: real != null ? formatDistance(real) : null,
-    prospect: t('model.page.variant_prospect', { range: formatDistance(wltp) }),
+    prospect: wltp != null ? t('model.page.variant_prospect', { range: formatDistance(wltp) }) : '',
   }
 }))
 
@@ -521,6 +525,7 @@ const storyInput = computed((): StoryInput => {
     netBatteryKwh: v?.batteryCapacityKwh ?? null,
     wltpKwhPer100km: v?.officialConsumptionKwhPer100km ?? worstOfficialConsumption.value,
     wltpRangeKm: v?.officialRangeKm ?? bestOfficialRange.value,
+    prospectRangeKm: v?.range?.prospectRangeKm ?? null,
     avgKwhPer100km: st.avgConsumptionKwhPer100km,
     minKwhPer100km: storyContext.value?.minRealKwhPer100km ?? v?.realConsumptionMinKwhPer100km ?? null,
     maxKwhPer100km: storyContext.value?.maxRealKwhPer100km ?? v?.realConsumptionMaxKwhPer100km ?? null,
@@ -529,6 +534,7 @@ const storyInput = computed((): StoryInput => {
     seasonal: seasonOk ? { summer: season.summerConsumptionKwhPer100km!, winter: season.winterConsumptionKwhPer100km!,
       summerLogs: season.summerLogCount, winterLogs: season.winterLogCount } : null,
     fastChargePowerKw: storyContext.value?.fastChargePowerKw ?? null,
+    charging: v?.charging ?? null,
     acPricePerKwh: st.acAvgCostPerKwh, dcPricePerKwh: st.dcAvgCostPerKwh, avgPricePerKwh: st.avgCostPerKwh,
     fastAdHocPricePerKwh: fastAdHocForMarket.value,
     fleetWinterFactor: fleetWinterFactor.value,
@@ -544,7 +550,7 @@ const heroLines = computed(() => {
 
 /** Fast-charging stop 10 to 80 %; the cost tile, SEO text and FAQ show the same figure at the same price */
 const stopPrice = computed(() => stats.value ? fastChargePrice(storyInput.value) : null)
-const stopCost = computed(() => fastStop(selectedVariant.value?.batteryCapacityKwh ?? null, stopPrice.value))
+const stopCost = computed(() => fastStop(selectedVariant.value?.charging?.fastStopPlugKwh, stopPrice.value))
 
 const story = computed(() => buildModelStory(storyInput.value, {
   t: (key, params) => t(key, params ?? {}),

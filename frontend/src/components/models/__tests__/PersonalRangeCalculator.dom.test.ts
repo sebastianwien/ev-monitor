@@ -279,12 +279,21 @@ describe('PersonalRangeCalculator', () => {
   })
 
   it('the holiday trip names what its charging stops cost, at the price without a subscription', async () => {
+    // the stop's kWh at the charger from the API (FastChargeStop: 59 × 0.7 / 0.95 = 43.47)
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { ...RESULT, longTripStops: 2, fastStopPlugKwh: 43.47 } } as never)
+    const { host } = mount(true, { logCount: 6796, carCount: 35, fastPricePerKwh: 0.65 }, 0, { netBatteryKwh: 59 })
+    await flush()
+
+    // 2 stops × 43.47 kWh × 0.65 = 56.5 € → 57 €
+    expect(host.querySelector('[data-testid="answer-stops"]')!.textContent).toMatch(/57\s€/)
+  })
+
+  it('the holiday trip names no stop cost when the backend sends no stop kWh', async () => {
     vi.mocked(api.post).mockResolvedValueOnce({ data: { ...RESULT, longTripStops: 2 } } as never)
     const { host } = mount(true, { logCount: 6796, carCount: 35, fastPricePerKwh: 0.65 }, 0, { netBatteryKwh: 59 })
     await flush()
 
-    // 2 stops × 59 × 0.7 / 0.95 = 43.5 kWh × 0.65 = 56.5 € → 57 €
-    expect(host.querySelector('[data-testid="answer-stops"]')!.textContent).toMatch(/57\s€/)
+    expect(host.querySelector('[data-testid="answer-stops"]')!.textContent).not.toMatch(/€/)
   })
 
   it('cost: no petrol comparison without a fuel price (outside Germany)', async () => {

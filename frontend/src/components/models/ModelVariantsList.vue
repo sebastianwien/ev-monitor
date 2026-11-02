@@ -27,7 +27,7 @@
 </template>
 
 <script lang="ts">
-import type { SeasonalDistribution } from '../../api/publicModelService'
+import type { SeasonalDistribution, VariantChargingFacts, VariantProspect } from '../../api/publicModelService'
 
 /** Normalized variant - same shape regardless of WLTP or EPA source */
 export interface ActiveVariant {
@@ -46,6 +46,10 @@ export interface ActiveVariant {
   estimatedConsumptionCount: number | null
   realConsumptionRangeSource: 'PER_DRIVER' | 'PER_TRIP' | null
   seasonalDistribution: SeasonalDistribution | null
+  /** Prospektzahl dieser Batterie vom Backend; null bei älterem Backend. */
+  range: VariantProspect | null
+  /** Lade-Fakten dieser Batterie vom Backend; null bei älterem Backend. */
+  charging: VariantChargingFacts | null
 }
 </script>
 
