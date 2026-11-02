@@ -125,7 +125,9 @@ const NORMAL_SHARE = 0.6
 
 /** Non-breaking space between a number and its unit, so a headline never wraps before "km." */
 export function keepUnits(text: string): string {
-  return text.replace(/(\d) (?=(?:km|mi|kWh|kW|min|ct)\b|[%€])/g, '$1\u00a0')
+  return text
+    .replace(/(\d) (?=(?:km|mi|kWh|kW|min|ct|kg|kr)\b|[%€])/g, '$1\u00a0')
+    .replace(/\bkg (CO₂|CO2)/g, 'kg\u00a0$1')
 }
 
 /** A fast-charging stop from 10 to 80 % as billed at the charger: 70 % of the net battery through DC losses. */

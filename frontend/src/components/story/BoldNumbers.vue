@@ -2,9 +2,9 @@
 import { computed } from 'vue'
 import { numberParts } from '../../utils/numberParts'
 
-/** Ein fertiger Satz mit fett gesetzten Zahlen. */
-const props = defineProps<{ text: string }>()
-const parts = computed(() => numberParts(props.text))
+/** Ein fertiger Satz mit fett gesetzten Zahlen; mit `units` auch ihre Einheit ("45 kg CO₂", "7 €"). */
+const props = defineProps<{ text: string; units?: boolean }>()
+const parts = computed(() => numberParts(props.text, { units: props.units }))
 </script>
 
 <template>

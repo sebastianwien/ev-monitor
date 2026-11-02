@@ -19,6 +19,14 @@ describe('numberParts', () => {
     expect(numberParts(text).map(p => p.text).join('')).toBe(text)
   })
 
+  it('setzt auf Wunsch die Einheit mit fett, auch "kg CO₂"', () => {
+    const withUnits = (text: string) => numberParts(text, { units: true }).filter(p => p.number).map(p => p.text)
+    expect(withUnits('hast du 45\u00a0kg\u00a0CO₂ und 7\u00a0€ gespart')).toEqual(['45\u00a0kg\u00a0CO₂', '7\u00a0€'])
+    expect(withUnits('you saved 45\u00a0kg of CO₂ and 7\u00a0€')).toEqual(['45\u00a0kg', '7\u00a0€'])
+    expect(withUnits('spart 45\u00a0kg\u00a0CO₂ og 70\u00a0kr')).toEqual(['45\u00a0kg\u00a0CO₂', '70\u00a0kr'])
+    expect(bold('hast du 45\u00a0kg\u00a0CO₂ gespart')).toEqual(['45'])
+  })
+
   it('liefert ohne Zahl ein einziges Textstück', () => {
     expect(numberParts('Ohne Zahl')).toEqual([{ text: 'Ohne Zahl', number: false }])
   })

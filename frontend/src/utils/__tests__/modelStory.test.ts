@@ -50,6 +50,12 @@ describe('keepUnits', () => {
   it('leaves words after a number alone', () => {
     expect(keepUnits('48 Fahrer sagen')).toBe('48 Fahrer sagen')
   })
+
+  it('keeps "kg CO₂" together with its number', () => {
+    expect(keepUnits('hast du 102 kg CO₂ und 59 € gespart')).toBe('hast du 102\u00a0kg\u00a0CO₂ und 59\u00a0€ gespart')
+    expect(keepUnits('you saved 45 kg of CO₂')).toBe('you saved 45\u00a0kg of CO₂')
+    expect(keepUnits('har du spart 70 kr')).toBe('har du spart 70\u00a0kr')
+  })
 })
 
 describe('buildModelStory', () => {
