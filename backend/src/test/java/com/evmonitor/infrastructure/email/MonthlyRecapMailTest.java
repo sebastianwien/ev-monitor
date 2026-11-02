@@ -36,7 +36,7 @@ class MonthlyRecapMailTest {
         assertThat(mail.html())
                 .contains("August: 1.766\u00a0km für 147\u00a0€.")
                 .contains("Gegenüber einem Verbrenner hast du <b class=\"save\" style=\"color: #15803d;\">129\u00a0€</b> gespart.*")
-                .contains("Ich habe dir deinen August in der App zusammengestellt, mit allem, was in diese Mail nicht gepasst hat.")
+                .contains("Alles Weitere zu deinem August habe ich dir in der App zusammengestellt.")
                 .contains("Meinen August ansehen")
                 .contains("href=\"" + STORY_URL + "\"")
                 .contains("* Vergleich mit einem Benziner der Mittelklasse: 7,6 l/100 km, Benzin 2,24 €/l laut Tankerkönig.")
@@ -49,6 +49,20 @@ class MonthlyRecapMailTest {
                 .doesNotContain("{{")
                 .doesNotContain("<!--if:")
                 .doesNotContain("Preis nachtragen");
+    }
+
+    @Test
+    void inviteFollowsTheHookDirectly_buttonRightBelow() {
+        String html = render(ihle()).html();
+        int hook = html.indexOf("gespart.*");
+        int invite = html.indexOf("Alles Weitere zu deinem August");
+        int button = html.indexOf("Meinen August ansehen");
+        int bye = html.indexOf("Bis nächsten Monat");
+
+        assertThat(hook).isPositive().isLessThan(invite);
+        assertThat(invite).isLessThan(button);
+        assertThat(button).isLessThan(bye);
+        assertThat(html.substring(hook, invite)).doesNotContain("<div");
     }
 
     @Test
@@ -162,7 +176,7 @@ class MonthlyRecapMailTest {
         assertThat(mail.html()).contains("August: 1,766\u00a0km for €147.")
                 .contains("you saved <b class=\"save\" style=\"color: #15803d;\">€129</b>.*")
                 .contains("* Compared with a petrol mid-size: 7.6 l/100 km, petrol at ")
-                .contains("I've put your August together in the app, with everything that didn't fit into this mail.")
+                .contains("Everything else about your August is waiting for you in the app.")
                 .contains("See my August");
 
         r.previousKm = "863";

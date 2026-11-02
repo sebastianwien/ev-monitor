@@ -41,9 +41,11 @@
       <!--if:hookMore--><p class="txt" style="margin: 14px 0 0; font-size: 17px; line-height: 1.5; font-variant-numeric: tabular-nums; color: #111827;"><b>{{kmDiff}}</b> more than in {{prevMonth}}.</p><!--end:hookMore-->
       <!--if:hookLess--><p class="txt" style="margin: 14px 0 0; font-size: 17px; line-height: 1.5; font-variant-numeric: tabular-nums; color: #111827;"><b>{{kmDiff}}</b> less than in {{prevMonth}}.</p><!--end:hookLess-->
       <!--if:savings--><p class="txt" style="margin: 14px 0 0; font-size: 17px; line-height: 1.5; font-variant-numeric: tabular-nums; color: #111827;">Compared to a combustion car, you saved <b class="save" style="color: #15803d;">{{savings}}</b>.*</p><!--end:savings-->
+      <p class="txt" style="margin: 8px 0 0; font-size: 17px; line-height: 1.5; color: #111827;">Everything else about your {{month}} is waiting for you in the app.</p>
+      <a href="{{storyUrl}}" style="display: inline-block; margin-top: 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 15px; line-height: 20px; padding: 12px 18px; border: 2px solid #6b7280; border-radius: 8px; box-shadow: 2px 2px 0 #6b7280;">See my {{month}}</a>
     </div>
 
-    <div style="padding: 12px 16px 20px;">
+    <div style="padding: 4px 16px 20px;">
       <!--if:hintOne-->
       <div style="margin: 24px 0 0; padding: 14px 16px; border: 2px solid #fcd34d; border-radius: 12px; background-color: #fffbeb;">
         <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #78350f;">One session has no price: {{hintAt}}<!--if:hintKwh-->, {{hintKwh}}<!--end:hintKwh-->. With the price, the numbers above are exact.</p>
@@ -62,9 +64,6 @@
         <a href="{{priceUrl}}" style="display: inline-block; margin-top: 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 15px; line-height: 20px; padding: 12px 18px; border: 2px solid #6b7280; border-radius: 8px; box-shadow: 2px 2px 0 #6b7280;">Add prices</a>
       </div>
       <!--end:hintAll-->
-
-      <p class="txt" style="margin: 12px 0 0; font-size: 15px; line-height: 1.6; color: #111827;">I've put your {{month}} together in the app, with everything that didn't fit into this mail.</p>
-      <a href="{{storyUrl}}" style="display: inline-block; margin-top: 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 15px; line-height: 20px; padding: 12px 18px; border: 2px solid #6b7280; border-radius: 8px; box-shadow: 2px 2px 0 #6b7280;">See my {{month}}</a>
 
       <p class="txt" style="margin: 26px 0 0; font-size: 15px; line-height: 1.6;">See you next month<br>Sebastian</p>
     </div>
