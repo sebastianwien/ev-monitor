@@ -108,6 +108,9 @@ const LONG_TRIP_KM = 250
 /** Zielwetter nur, wenn das Ziel so weit (Luftlinie) vom Start liegt: Hin und zurück endet zu Hause. */
 const FORECAST_MIN_KM = 200
 const FROST_MS = 3 * DAY
+/** Mindestabstand Sommer zu Winter: weniger ist keine Aussage und kann auf Zehner abgerundet (RANGE_STEP) zweimal dieselbe Zahl ergeben. */
+const MIN_SEASON_GAP_KM = 10
+const winterShorter = (winter: { km: number }, summer: { km: number }) => summer.km - winter.km >= MIN_SEASON_GAP_KM
 const BATTERY_MS = 3 * DAY
 const BATTERY_COMPARE_MIN_MS = 90 * DAY
 const RANK_PODIUM = 3
@@ -203,7 +206,7 @@ export function detectFirstFrost(input: {
 }): Moment | null {
   const winter = input.range?.winter
   const summer = input.range?.summer
-  if (!winter || !summer || winter.km >= summer.km) return null
+  if (!winter || !summer || !winterShorter(winter, summer)) return null
   const cold = input.trips
     .map(t => ({ end: ms(tripTimestamp(t)), temp: t.outsideTempCelsius }))
     .filter((x): x is { end: number; temp: number } =>
@@ -237,7 +240,7 @@ const OUTLOOK_MONTHS = [11, 12, 1, 2]
 
 /**
  * Ausblick im leeren Wintermonat (November bis Februar, dieselben Monate wie die Winterwerte im
- * Backend): Reichweite mit einer Akkuladung im Winter gegen den Sommer. Nur wenn der Winter kürzer ist.
+ * Backend): Reichweite mit einer Akkuladung im Winter gegen den Sommer. Nur wenn der Winter mindestens 10 km kürzer ist.
  */
 export function winterOutlook(
   range: { winter: { km: number } | null; summer: { km: number } | null } | null,
@@ -246,7 +249,7 @@ export function winterOutlook(
   if (!OUTLOOK_MONTHS.includes(month)) return null
   const winter = range?.winter
   const summer = range?.summer
-  if (!winter || !summer || winter.km >= summer.km) return null
+  if (!winter || !summer || !winterShorter(winter, summer)) return null
   return { winterKm: winter.km, summerKm: summer.km }
 }
 

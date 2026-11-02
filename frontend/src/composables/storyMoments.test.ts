@@ -77,6 +77,11 @@ describe('detectFirstFrost', () => {
     expect(detectFirstFrost({ trips: [{ ...cold, outsideTempCelsius: 5 }], now: NOW, range })).toBeNull()
     expect(detectFirstFrost({ trips: [{ ...cold, tripEndedAt: iso(NOW - 4 * DAY) }], now: NOW, range })).toBeNull()
   })
+
+  it('schweigt, wenn der Winter weniger als 10 km kürzer ist', () => {
+    expect(detectFirstFrost({ trips: [cold], now: NOW, range: { winter: { km: 271 }, summer: { km: 279 } } })).toBeNull()
+    expect(detectFirstFrost({ trips: [cold], now: NOW, range: { winter: { km: 269 }, summer: { km: 279 } } })).not.toBeNull()
+  })
 })
 
 describe('detectMonthChange', () => {
@@ -360,11 +365,13 @@ describe('winterOutlook', () => {
     for (const month of [3, 4, 5, 8, 9, 10]) expect(winterOutlook(range, month)).toBeNull()
   })
 
-  it('schweigt ohne beide Werte oder wenn der Winter nicht kürzer ist', () => {
+  it('schweigt ohne beide Werte oder wenn der Winter nicht mindestens 10 km kürzer ist', () => {
     expect(winterOutlook(null, 11)).toBeNull()
     expect(winterOutlook({ winter: null, summer: { km: 380 } }, 11)).toBeNull()
     expect(winterOutlook({ winter: { km: 310 }, summer: null }, 11)).toBeNull()
     expect(winterOutlook({ winter: { km: 400 }, summer: { km: 380 } }, 11)).toBeNull()
+    expect(winterOutlook({ winter: { km: 271 }, summer: { km: 279 } }, 11)).toBeNull()
+    expect(winterOutlook({ winter: { km: 269 }, summer: { km: 279 } }, 11)).toEqual({ winterKm: 269, summerKm: 279 })
   })
 })
 
