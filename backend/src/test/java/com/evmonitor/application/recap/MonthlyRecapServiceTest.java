@@ -58,7 +58,7 @@ class MonthlyRecapServiceTest {
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(carRepository.findById(car.getId())).thenReturn(Optional.of(car));
         when(evLogRepository.findAllByCarId(car.getId())).thenReturn(logs);
-        when(fuelPriceService.getBenzinPrice()).thenReturn(1.75);
+        when(fuelPriceService.getBenzinPrice(YearMonth.of(2026, 8))).thenReturn(1.75);
     }
 
     @Test
