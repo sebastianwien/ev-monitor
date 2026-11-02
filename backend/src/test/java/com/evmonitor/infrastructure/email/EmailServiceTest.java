@@ -320,7 +320,7 @@ class EmailServiceTest {
         MonthlyRecap r = recap();
         MonthlyRecap withHint = new MonthlyRecap(
                 r.userId(), r.carId(), r.email(), r.username(), r.locale(), r.month(), r.carName(), r.charges(),
-                r.acCharges(), r.dcCharges(), r.kwh(), r.costEur(), r.distanceKm(), r.gridKwh(),
+                r.acCharges(), r.dcCharges(), r.kwh(), r.costEur(), r.distanceKm(), r.consumptionKwhPer100km(),
                 r.homeSharePercent(), r.fuelCostEur(), r.fuelPricePerLiter(), r.fuelLitersPer100Km(), r.carCategory(),
                 new MonthlyRecap.PricelessHint(2, LocalDateTime.of(2026, 8, 3, 9, 0), null),
                 null);

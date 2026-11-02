@@ -39,9 +39,7 @@ class MonthlyRecapMailTest {
                 .contains("Geladen hast du <b>351,4 kWh</b> in <b>12</b> Ladungen, <b>10</b> davon am Schnelllader.")
                 .contains("Ein Verbrenner hätte für dieselbe Strecke rund <b>276 €</b> gekostet, du hast also ")
                 .contains("129 €</b> gespart.*")
-                .contains("19,9")
-                .contains("kWh pro 100 km, ab Säule")
-                .contains("Die Werte pro 100 km sind, was du im August geladen und bezahlt hast, geteilt durch die gefahrene Strecke.")
+                .contains("16,8")
                 .contains("8,34 €")
                 .contains("2,24 €/l")
                 .contains("Ganzen August ansehen")
@@ -71,22 +69,6 @@ class MonthlyRecapMailTest {
         r.cost = "275.90";
 
         assertThat(render(r).html()).doesNotContain("gespart").doesNotContain("Tankerkönig");
-    }
-
-    @Test
-    void storyNamesTheGridKwh_soItMatchesTheTileAndTheCost() {
-        Recap r = ihle();
-        r.gridKwh = "360";
-
-        assertThat(render(r).html()).contains("Geladen hast du <b>360 kWh</b>").contains("20,4");
-    }
-
-    @Test
-    void withoutGridKwh_storyFallsBackToChargedKwh_andTheKwhTileIsGone() {
-        Recap r = ihle();
-        r.gridKwh = null;
-
-        assertThat(render(r).html()).contains("Geladen hast du <b>351,4 kWh</b>").doesNotContain("ab Säule");
     }
 
     @Test
@@ -286,7 +268,6 @@ class MonthlyRecapMailTest {
         Integer home = null;
         PricelessHint hint = null;
         String liters = "7.6";
-        String gridKwh = "351.43";
         VehicleCategory category = VehicleCategory.SEDAN;
 
         MonthlyRecap build() {
@@ -296,7 +277,7 @@ class MonthlyRecapMailTest {
             return new MonthlyRecap(UUID.randomUUID(), UUID.randomUUID(), "ihle@example.com", username, locale,
                     YearMonth.of(2026, 8), "Model 3", 12, ac, dc, new BigDecimal("351.43"),
                     cost == null ? null : new BigDecimal(cost), distance,
-                    gridKwh == null ? null : new BigDecimal(gridKwh), home, fuelCost, fuelPrice,
+                    distance == null ? null : new BigDecimal("16.81"), home, fuelCost, fuelPrice,
                     new BigDecimal(liters), category, hint,
                     previousKm == null ? null : new BigDecimal(previousKm));
         }

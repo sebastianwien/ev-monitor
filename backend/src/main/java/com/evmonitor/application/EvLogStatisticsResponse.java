@@ -56,11 +56,7 @@ public record EvLogStatisticsResponse(
         RangeEstimateService.RangeStatistics range,
 
         // CO₂ gegen einen Benziner der Fahrzeugklasse (Co2Calculator); null ohne vollständigen Tacho-Abschnitt.
-        Co2Statistics co2,
-
-        // Netzseitige kWh (gridSideKwhEstimate): kwhCharged an der Säule, sonst kwhAtVehicle durch Ladewirkungsgrad.
-        // Dieselbe Basis wie avgCostPerKwh, passt also zu dem, was bezahlt wurde.
-        BigDecimal gridKwhCharged
+        Co2Statistics co2
 ) {
     /** Ohne Fahrverbrauch; {@link #withDrive} ergänzt ihn. */
     public EvLogStatisticsResponse(BigDecimal totalKwhCharged, BigDecimal energyCostEur, BigDecimal fixedCostEur,
@@ -69,12 +65,11 @@ public record EvLogStatisticsResponse(
             BigDecimal totalDistanceKm, BigDecimal avgConsumptionKwhPer100km, Integer estimatedConsumptionCount,
             BigDecimal summerConsumptionKwhPer100km, BigDecimal winterConsumptionKwhPer100km,
             List<ChargeDataPoint> chargesOverTime, ChargingTypeSplit chargingTypeSplit, LocationSplit locationSplit,
-            PeerBenchmark peerBenchmark, ChargingEfficiencySplit chargingEfficiencySplit, UUID mostExpensiveChargeLogId,
-            BigDecimal gridKwhCharged) {
+            PeerBenchmark peerBenchmark, ChargingEfficiencySplit chargingEfficiencySplit, UUID mostExpensiveChargeLogId) {
         this(totalKwhCharged, energyCostEur, fixedCostEur, fixedIncomeEur, totalCostEur, avgCostPerKwh, cheapestChargeEur,
                 mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges, totalDistanceKm, avgConsumptionKwhPer100km,
                 estimatedConsumptionCount, summerConsumptionKwhPer100km, winterConsumptionKwhPer100km, chargesOverTime,
-                chargingTypeSplit, locationSplit, peerBenchmark, chargingEfficiencySplit, mostExpensiveChargeLogId, null, null, null, gridKwhCharged);
+                chargingTypeSplit, locationSplit, peerBenchmark, chargingEfficiencySplit, mostExpensiveChargeLogId, null, null, null);
     }
 
     public EvLogStatisticsResponse withDrive(DriveStatistics drive) {
@@ -82,7 +77,7 @@ public record EvLogStatisticsResponse(
                 avgCostPerKwh, cheapestChargeEur, mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges,
                 totalDistanceKm, avgConsumptionKwhPer100km, estimatedConsumptionCount, summerConsumptionKwhPer100km,
                 winterConsumptionKwhPer100km, chargesOverTime, chargingTypeSplit, locationSplit, peerBenchmark,
-                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range, co2, gridKwhCharged);
+                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range, co2);
     }
 
     public EvLogStatisticsResponse withRange(RangeEstimateService.RangeStatistics range) {
@@ -90,7 +85,7 @@ public record EvLogStatisticsResponse(
                 avgCostPerKwh, cheapestChargeEur, mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges,
                 totalDistanceKm, avgConsumptionKwhPer100km, estimatedConsumptionCount, summerConsumptionKwhPer100km,
                 winterConsumptionKwhPer100km, chargesOverTime, chargingTypeSplit, locationSplit, peerBenchmark,
-                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range, co2, gridKwhCharged);
+                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range, co2);
     }
 
     public EvLogStatisticsResponse withCo2(Co2Statistics co2) {
@@ -98,7 +93,7 @@ public record EvLogStatisticsResponse(
                 avgCostPerKwh, cheapestChargeEur, mostExpensiveChargeEur, avgChargeDurationMinutes, totalCharges,
                 totalDistanceKm, avgConsumptionKwhPer100km, estimatedConsumptionCount, summerConsumptionKwhPer100km,
                 winterConsumptionKwhPer100km, chargesOverTime, chargingTypeSplit, locationSplit, peerBenchmark,
-                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range, co2, gridKwhCharged);
+                chargingEfficiencySplit, mostExpensiveChargeLogId, drive, range, co2);
     }
 
     public record ChargeDataPoint(

@@ -66,7 +66,7 @@ class MonthlyRecapServiceTest {
         addLog(ChargingType.AC, "8.00", 1);
         addLog(ChargingType.DC, "20.00", 2);
         addLog(ChargingType.DC, "21.74", 3);
-        stats("147.3", "49.74", "863", "150.2", null);
+        stats("147.3", "49.74", "863", "17.1", null);
 
         MonthlyRecap recap = service.build(candidate(), AUGUST).orElseThrow();
 
@@ -76,9 +76,7 @@ class MonthlyRecapServiceTest {
         assertThat(recap.kwh()).isEqualByComparingTo("147.3");
         assertThat(recap.costEur()).isEqualByComparingTo("49.74");
         assertThat(recap.distanceKm()).isEqualByComparingTo("863");
-        // Netz-kWh statt gemischter Summe: geladen an der Säule, passend zu dem, was bezahlt wurde.
-        assertThat(recap.gridKwh()).isEqualByComparingTo("150.2");
-        assertThat(recap.grossKwhPer100Km()).isEqualByComparingTo("17.4");
+        assertThat(recap.consumptionKwhPer100km()).isEqualByComparingTo("17.1");
         assertThat(recap.costPer100Km()).isEqualByComparingTo("5.76");
         // 863 km * 7,6 l/100 km (Mittelklasse-Benziner, Model 3) * 1,75 €/l
         assertThat(recap.fuelCostEur()).isEqualByComparingTo("114.78");
@@ -265,18 +263,17 @@ class MonthlyRecapServiceTest {
         EvLogStatisticsResponse response = new EvLogStatisticsResponse(
                 BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO,
                 null, null, null, null, null, new BigDecimal(distance), null,
-                null, null, null, List.of(), null, null, null, null, null, null);
+                null, null, null, List.of(), null, null, null, null, null);
         when(statisticsService.getStatistics(eq(car.getId()), eq(user.getId()), eq(start), eq(end), any())).thenReturn(response);
     }
 
-    private void stats(String kwh, String cost, String distance, String gridKwh, LocationSplit location) {
+    private void stats(String kwh, String cost, String distance, String consumption, LocationSplit location) {
         EvLogStatisticsResponse response = new EvLogStatisticsResponse(
                 new BigDecimal(kwh), new BigDecimal(cost), BigDecimal.ZERO, BigDecimal.ZERO, new BigDecimal(cost),
                 null, null, null, null, null,
                 distance == null ? null : new BigDecimal(distance),
-                null,
-                null, null, null, List.of(), null, location, null, null, null,
-                gridKwh == null ? null : new BigDecimal(gridKwh));
+                consumption == null ? null : new BigDecimal(consumption),
+                null, null, null, List.of(), null, location, null, null, null);
         when(statisticsService.getStatistics(eq(car.getId()), eq(user.getId()),
                 eq(LocalDate.of(2026, 8, 1)), eq(LocalDate.of(2026, 8, 31)), any())).thenReturn(response);
     }

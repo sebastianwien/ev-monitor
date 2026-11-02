@@ -104,7 +104,7 @@ public class MonthlyRecapService {
                 stats.totalKwhCharged(),
                 cost,
                 distance,
-                stats.gridKwhCharged(),
+                stats.avgConsumptionKwhPer100km(),
                 homeSharePercent(stats.locationSplit()),
                 distance == null || cost == null ? null : fuelCost(distance, fuelLiters, fuelPrice).multiply(pricedShare(logs))
                         .setScale(2, RoundingMode.HALF_UP),

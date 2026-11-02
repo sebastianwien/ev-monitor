@@ -48,7 +48,7 @@
           <!--if:consumption-->
           <td class="tile" style="background-color: #ffffff; border: 2px solid #6b7280; border-radius: 12px; padding: 10px 10px 9px; vertical-align: top;">
             <p class="txt num" style="margin: 0; font-size: 26px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums;">{{consumption}}</p>
-            <p class="muted" style="margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #6b7280;">kWh per 100 km, at the charger</p>
+            <p class="muted" style="margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #6b7280;">kWh per 100 km</p>
           </td>
           <!--end:consumption-->
           <!--if:costPer100-->
@@ -91,7 +91,6 @@
     </div>
 
     <div class="hair muted" style="padding: 14px 16px 20px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.5; color: #6b7280;">
-      <!--if:per100-->The per-100-km values are what you charged and paid for in {{month}}, divided by the distance driven. A charge near the end of the month is often used up in the next one, so the values vary from month to month. Over several months this evens out.<br><!--end:per100-->
       <!--if:savings-->*<!--if:partial--> Only sessions with a price, distance pro rata by kWh.<!--end:partial--> Compared with a petrol {{carClass}}: {{fuelLiters}} l/100 km, petrol at {{fuelPrice}}/l in Germany (Tankerkönig).<br><!--end:savings-->
       You get this mail once a month. <a href="{{unsubscribeUrl}}" style="color: #6b7280;">Unsubscribe</a> with one click, no login needed.
     </div>

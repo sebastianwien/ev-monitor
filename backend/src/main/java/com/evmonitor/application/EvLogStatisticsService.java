@@ -332,8 +332,7 @@ public class EvLogStatisticsService {
                 locationSplit,
                 peerBenchmark,
                 efficiencySplit,
-                mostExpensiveLog != null ? mostExpensiveLog.getId() : null,
-                totalKwhForCost
+                mostExpensiveLog != null ? mostExpensiveLog.getId() : null
         );
         return withDriveAndRange(response.withCo2(co2), car, user, new DriveConsumptionService.Period(startDate, endDate),
                 new RangeEstimateService.OwnCharges(avgConsumptionKwhPer100km,
@@ -359,7 +358,7 @@ public class EvLogStatisticsService {
                 BigDecimal.ZERO, BigDecimal.ZERO, fixedCosts.cost(), fixedCosts.income(), fixedCosts.net(),
                 BigDecimal.ZERO,
                 BigDecimal.ZERO, BigDecimal.ZERO, 0, 0,
-                distanceKm, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit, null, BigDecimal.ZERO
+                distanceKm, null, 0, null, null, List.of(), emptyTypeSplit, emptyLocSplit, null, emptyEffSplit, null
         );
     }
 
