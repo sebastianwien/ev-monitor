@@ -2,14 +2,10 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.StripeService;
 import com.stripe.exception.SignatureVerificationException;
+import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
@@ -25,16 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * We verify that the controller correctly dispatches to the service
  * and handles signature errors with the right HTTP status codes.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class StripeWebhookControllerTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private StripeService stripeService;
+class StripeWebhookControllerTest extends AbstractIntegrationTest {
 
     private static final String STRIPE_PAYLOAD = "{\"type\":\"customer.subscription.created\"}";
 

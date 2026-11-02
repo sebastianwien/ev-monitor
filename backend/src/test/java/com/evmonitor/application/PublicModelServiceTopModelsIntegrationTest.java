@@ -47,6 +47,8 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
     @BeforeEach
     void setUp() {
         cacheManager.getCache("topModels").clear();
+        cacheManager.getCache("communityModel").clear();
+        cacheManager.getCache("fleetFactors").clear();
         User user = createAndSaveUser("topmodels-" + System.currentTimeMillis() + "@example.com");
         userId = user.getId();
     }
@@ -251,8 +253,9 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
     }
 
     @Test
-    void getTopModels_singleVariantWithoutWinterLogs_returnsEqualTypicalRangeAndNullWinterRange() {
-        // E_TRON_GT: one spec (net 84.0), logs outside the seasons → typical 84 × 0.9 × 100 / 20 = 378, no winter
+    void getTopModels_singleVariantWithoutWinterLogs_returnsEqualTypicalRangeAndEstimatedWinterRange() {
+        // E_TRON_GT: one spec (net 84.0), logs outside the seasons → typical 84 × 0.9 × 100 / 20 = 378.
+        // Winter without logs: WLTP 20.5 × fleet fallback 1.49 = 30.5 → 84 × 0.9 × 100 / 30.545 = 248 (RangeConsumptionPolicy, Stufe 4)
         saveWltpSpecWithNet(CarBrand.CarModel.E_TRON_GT, new BigDecimal("93.4"), new BigDecimal("84.0"), new BigDecimal("20.5"));
         Car car = createCarWithBattery(CarBrand.CarModel.E_TRON_GT, new BigDecimal("93.4"));
         saveLogsForCarFrom(car.getId(), 50000, 6, new BigDecimal("20.0"), LocalDateTime.of(2025, 10, 1, 12, 0));
@@ -262,8 +265,8 @@ class PublicModelServiceTopModelsIntegrationTest extends AbstractIntegrationTest
         assertNotNull(etron, "E_TRON_GT should appear in top models");
         assertEquals(378, etron.typicalRangeMinKm());
         assertEquals(378, etron.typicalRangeMaxKm());
-        assertNull(etron.winterRangeMinKm(), "no winter trips → winter range must be null");
-        assertNull(etron.winterRangeMaxKm(), "no winter trips → winter range must be null");
+        assertEquals(248, etron.winterRangeMinKm(), "no winter logs → winter range from WLTP × winter factor");
+        assertEquals(248, etron.winterRangeMaxKm());
     }
 
     // --- Helpers ---

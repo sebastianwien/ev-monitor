@@ -117,7 +117,7 @@ landing:
     gdpr_title: GDPR-kompatibel
     gdpr_desc: Ingen spårning, ingen dataförsäljning. Full radering på begäran.
     geohash_title: Geohashing
-    geohash_desc: Platser lagras aldrig exakt - bara ca 600 m noggrannhet.
+    geohash_desc: Inga permanent sparade GPS-koordinater. Privata laddplatser bara med ungefär 600 m noggrannhet.
     servers_title: Tyska servrar
     servers_desc: Driftas på Hetzner Cloud i Nürnberg. Inga uppgifter utanför EU.
   leaderboard:

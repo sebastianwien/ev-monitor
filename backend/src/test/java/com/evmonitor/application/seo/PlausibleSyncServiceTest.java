@@ -14,7 +14,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,8 +29,6 @@ class PlausibleSyncServiceTest extends AbstractIntegrationTest {
     private static final LocalDate D1 = LocalDate.of(2026, 10, 14);
     private static final LocalDate D2 = LocalDate.of(2026, 10, 15);
 
-    @MockitoBean
-    private PlausibleClient client;
 
     @Autowired
     private PlausibleSyncService service;
@@ -56,7 +53,7 @@ class PlausibleSyncServiceTest extends AbstractIntegrationTest {
         originalGoals = properties.getGoals();
         originalWindow = properties.getWindowDays();
         properties.setGoals(List.of("gate_code_verified"));
-        when(client.isEnabled()).thenReturn(true);
+        when(plausibleClient.isEnabled()).thenReturn(true);
     }
 
     @AfterEach
@@ -67,7 +64,7 @@ class PlausibleSyncServiceTest extends AbstractIntegrationTest {
 
     @Test
     void writesNormalizedMergedRowsAndIsIdempotent() {
-        when(client.query(any())).thenAnswer(inv -> answer(inv.getArgument(0)));
+        when(plausibleClient.query(any())).thenAnswer(inv -> answer(inv.getArgument(0)));
 
         service.sync(D1, D2);
         service.sync(D1, D2);
@@ -118,7 +115,7 @@ class PlausibleSyncServiceTest extends AbstractIntegrationTest {
     @Test
     void brokenWindowLeavesOthersAndEndsPartial() {
         properties.setWindowDays(1);
-        when(client.query(any())).thenAnswer(inv -> {
+        when(plausibleClient.query(any())).thenAnswer(inv -> {
             Query q = inv.getArgument(0);
             if (q.from().equals(D2)) throw new PlausibleClientException("HTTP 500");
             return answer(q);

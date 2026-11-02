@@ -31,7 +31,7 @@ public record RouteTypeConsumptionResult(
         return count == 0 ? null : sum.divide(BigDecimal.valueOf(count), 1, RoundingMode.HALF_UP);
     }
 
-    static RouteTypeConsumptionResult empty() {
+    public static RouteTypeConsumptionResult empty() {
         return new RouteTypeConsumptionResult(null, null, null, 0, 0, 0, 0);
     }
 }

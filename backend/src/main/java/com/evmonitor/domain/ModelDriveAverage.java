@@ -8,16 +8,19 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Fahrverbrauch anderer Fahrer desselben Modells, über alle Varianten. Zählt nur Autos, die für sich
- * {@link DriveConsumption#isReliable()} erfüllen, und erst ab {@link #MIN_USERS} verschiedenen Nutzern:
- * ein Schnitt aus wenigen Autos verrät zu viel über Einzelne. Streckengewichtet (Summe kWh durch Summe km).
+ * Fahrverbrauch anderer Fahrer einer Gruppe von Autos (Variante oder Modell). Zählt nur Autos, die für
+ * sich {@link DriveConsumption#isReliable()} erfüllen, und erst ab {@link #MIN_USERS} verschiedenen
+ * anderen Nutzern, der Fragende fällt vorher heraus. Streckengewichtet (Summe kWh durch Summe km).
+ *
+ * <p>Datenschutz-Entscheidung 01.11.2026: zwei andere Fahrer reichen. Bei genau zwei sieht jeder den
+ * Schnitt der beiden anderen, das ist akzeptiert, damit Modelle mit wenigen Fahrern nicht leer bleiben.
  *
  * @param consumptionKwhPer100km null unter der Mindestzahl
  * @param users                  verschiedene Nutzer im Schnitt
  */
 public record ModelDriveAverage(BigDecimal consumptionKwhPer100km, int users) {
 
-    public static final int MIN_USERS = 5;
+    public static final int MIN_USERS = 2;
 
     public static final ModelDriveAverage NONE = new ModelDriveAverage(null, 0);
 

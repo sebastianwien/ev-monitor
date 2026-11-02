@@ -53,6 +53,17 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
         evLogRepository.save(log);
     }
 
+    /** Anker plus eine Sommerladung im Juli des Vorjahres; now() wäre ab November selbst Winter. */
+    private void addSummerLog(UUID carId, double kwhPer100) {
+        LocalDateTime start = LocalDateTime.of(LocalDateTime.now().getYear() - 1, 7, 1, 18, 0);
+        EvLog anchor = EvLog.createNew(carId, new BigDecimal("0.1"), null,
+                1, null, 0, null, null, start, null, null, null, false, null);
+        evLogRepository.save(anchor.toBuilder().includeInStatistics(true).build());
+        EvLog log = EvLog.createNew(carId, BigDecimal.valueOf(kwhPer100), new BigDecimal("6.0"),
+                60, null, 100, null, null, start.plusDays(1), null, null, null, false, null);
+        evLogRepository.save(log.toBuilder().includeInStatistics(true).build());
+    }
+
     /** Anker plus n Winterladungen im Dezember des Vorjahres, je 100 km mit kwhPer100 kWh. */
     private void addWinterLogs(UUID carId, int n, double kwhPer100) {
         LocalDateTime start = LocalDateTime.of(LocalDateTime.now().getYear() - 1, 12, 1, 18, 0);
@@ -99,7 +110,7 @@ class EvLogStatisticsPeerModelComparisonTest extends AbstractServiceTest {
 
         for (int i = 1; i <= 4; i++) addWinterLogs(peerCar(i, spec).getId(), 3, 22.0);
         // fünfter Fahrer nur mit Sommerladung
-        addLog(peerCar(5, spec).getId(), 20.0, 100.0, 6.0);
+        addSummerLog(peerCar(5, spec).getId(), 20.0);
 
         assertNull(evLogStatisticsService.getPeerModelComparison(userCar, user).allVariantsWinterConsumptionKwhPer100km());
     }

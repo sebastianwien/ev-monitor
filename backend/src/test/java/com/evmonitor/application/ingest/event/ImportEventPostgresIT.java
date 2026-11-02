@@ -39,6 +39,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 /**
  * {@code import_event} gegen das echte Schema (V191 per Flyway): Fremdschlüssel, Kontolöschung per
  * CASCADE und die Statistik-Queries, die in H2 nur angenähert laufen. Übersprungen ohne Docker.
+ *
+ * <p>Bewusst nicht auf {@code AbstractPostgresIT}: die Statistik ist eine globale Auswertung und
+ * {@code findAll()} muss leer werden, in der geteilten Datenbank sähe der Test fremde Events.
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Testcontainers(disabledWithoutDocker = true)

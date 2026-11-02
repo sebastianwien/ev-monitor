@@ -1,5 +1,6 @@
 package com.evmonitor.application.personalrange;
 
+import com.evmonitor.application.community.WltpFleetFactors;
 import com.evmonitor.application.charging.FastChargePower;
 import com.evmonitor.application.charging.FastChargeStop;
 import com.evmonitor.application.charging.LongTripPlan;
@@ -18,13 +19,12 @@ import java.util.List;
 final class PersonalRangeCalculator {
 
     /**
-     * Fallbacks when the fleet has too few models for a median (WltpFleetFactors). Summer, winter and
-     * overall match the fleet medians measured on 11.10.2026 (1.13, 1.49, 1.21, rounded up for summer).
+     * Fallbacks when the fleet has too few models for a median, owned by {@link WltpFleetFactors#FALLBACK}.
      * Highway has no WLTP factor: its estimate is the base consumption times the highway ratio.
      */
-    static final BigDecimal SUMMER_FACTOR = new BigDecimal("1.15");
-    static final BigDecimal WINTER_FACTOR = new BigDecimal("1.49");
-    static final BigDecimal OVERALL_FACTOR = new BigDecimal("1.21");
+    static final BigDecimal SUMMER_FACTOR = WltpFleetFactors.FALLBACK.summer();
+    static final BigDecimal WINTER_FACTOR = WltpFleetFactors.FALLBACK.winter();
+    static final BigDecimal OVERALL_FACTOR = WltpFleetFactors.FALLBACK.overall();
     /**
      * Highway against the route-typed mean where a model has too few highway cars: median over the
      * models with enough data, measured on 11.10.2026 (ID.3 +7 %, Model 3 +2 %, Model Y +3 %, EV6 +3 %,

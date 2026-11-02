@@ -146,6 +146,7 @@ class AccountAnonymizationServiceTest extends AbstractServiceTest {
 
         service.anonymizeCarsOf(gone.getId());
         cacheManager.getCache("modelStats").clear();
+        cacheManager.getCache("communityModel").clear();
 
         PublicModelStatsResponse stats = publicModelService.getModelStats("Tesla", "Model 3", false).orElseThrow();
         assertTrue(stats.uniqueCars() >= 2, "anonymisiertes Auto zählt weiter in der Community-Statistik");

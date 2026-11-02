@@ -4,6 +4,7 @@ import com.evmonitor.application.LeaderboardResponseDTO;
 import com.evmonitor.application.LeaderboardService;
 import com.evmonitor.application.MyLeaderboardStandingDTO;
 import com.evmonitor.application.TickerItemDTO;
+import com.evmonitor.application.TickerMonth;
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.security.UserPrincipal;
 import lombok.RequiredArgsConstructor;
@@ -73,11 +74,14 @@ public class LeaderboardController {
     }
 
     /**
-     * GET /api/public/leaderboard/ticker
-     * Returns ticker items: category leaders, community stats, fun facts.
+     * GET /api/public/leaderboard/ticker?month=2026-10
+     * Returns ticker items: category leaders, community stats, fun facts. Without month the current
+     * month up to today; the previous month (complete) feeds the monthly recap. Other months: 400.
      */
     @GetMapping("/ticker")
-    public ResponseEntity<List<TickerItemDTO>> getTicker() {
-        return ResponseEntity.ok(leaderboardService.getTicker());
+    public ResponseEntity<List<TickerItemDTO>> getTicker(@RequestParam(required = false) String month) {
+        return TickerMonth.parse(month, LocalDate.now())
+                .map(m -> ResponseEntity.ok(leaderboardService.getTicker(m)))
+                .orElseGet(() -> ResponseEntity.badRequest().build());
     }
 }

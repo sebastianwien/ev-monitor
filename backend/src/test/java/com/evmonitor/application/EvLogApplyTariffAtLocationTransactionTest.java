@@ -3,13 +3,11 @@ package com.evmonitor.application;
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.domain.EvLog;
-import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.evmonitor.infrastructure.persistence.JpaUserChargingProviderRepository;
 import com.evmonitor.infrastructure.persistence.UserChargingProviderEntity;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -35,8 +33,6 @@ class EvLogApplyTariffAtLocationTransactionTest extends AbstractIntegrationTest 
     @Autowired
     private JpaUserChargingProviderRepository chargingProviderRepository;
 
-    @MockitoBean
-    private TemperatureEnricher temperatureEnricher;
 
     @Test
     void locationBatch_firesAfterCommitEventsOfTheSavedLogs() {

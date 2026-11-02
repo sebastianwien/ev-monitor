@@ -2,7 +2,6 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.VehicleSpecification;
-import com.evmonitor.infrastructure.security.RateLimitService;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,14 +10,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
 
 /** The public range band on the model page: no login, IP limited, only the two range ends. */
 class PublicPersonalRangeControllerTest extends AbstractIntegrationTest {
@@ -28,13 +26,11 @@ class PublicPersonalRangeControllerTest extends AbstractIntegrationTest {
     private static final Map<String, Object> VALID = Map.of(
             "commuteKmPerDay", 40, "highwaySharePercent", 30, "homeCharging", true, "longTripKm", 600);
 
-    @MockitoBean
-    private RateLimitService rateLimitService;
 
     @BeforeEach
     void setUp() {
-        when(rateLimitService.tryConsumePreview(any())).thenReturn(true);
-        when(rateLimitService.tryConsumeRanking(any())).thenReturn(true);
+        doReturn(true).when(rateLimitService).tryConsumePreview(any());
+        doReturn(true).when(rateLimitService).tryConsumeRanking(any());
         if (!vehicleSpecificationRepository.findByCarModelOrderByBatteryCapacityKwhAsc(CarBrand.CarModel.ID_3.name()).isEmpty()) return;
         vehicleSpecificationRepository.save(VehicleSpecification.createNew(
                 "VW", CarBrand.CarModel.ID_3.name(), new BigDecimal("82"), new BigDecimal("77"),
@@ -100,7 +96,7 @@ class PublicPersonalRangeControllerTest extends AbstractIntegrationTest {
 
     @Test
     void rankingHasItsOwnIpLimit() {
-        when(rateLimitService.tryConsumeRanking(any())).thenReturn(false);
+        doReturn(false).when(rateLimitService).tryConsumeRanking(any());
 
         ResponseEntity<String> response = restTemplate.postForEntity(RANKING_URL, json(VALID), String.class);
 
@@ -117,7 +113,7 @@ class PublicPersonalRangeControllerTest extends AbstractIntegrationTest {
 
     @Test
     void exhaustedIpLimitIs429() {
-        when(rateLimitService.tryConsumePreview(any())).thenReturn(false);
+        doReturn(false).when(rateLimitService).tryConsumePreview(any());
 
         ResponseEntity<String> response = restTemplate.postForEntity(URL, json(VALID), String.class);
 

@@ -1,6 +1,8 @@
 package com.evmonitor.application;
 
-import com.evmonitor.application.range.RangeWindow;
+import com.evmonitor.application.range.ModelRangeConsumption;
+import com.evmonitor.domain.RangeBasis;
+import com.evmonitor.domain.RangeMath;
 import com.evmonitor.application.charging.FastChargeStop;
 import com.evmonitor.domain.CarBrand;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,10 +22,8 @@ import java.util.Objects;
 @Service
 public class PublicEmbedService {
 
-    /** Usable share of the net battery for range figures, same as the model page. */
-    private static final BigDecimal USABLE_SHARE = RangeWindow.SHARE;
     /** Same threshold as the seasonal card on the model page. */
-    private static final int MIN_LOGS_PER_SEASON = 10;
+    private static final int MIN_LOGS_PER_SEASON = PublicModelService.MIN_LOGS_PER_SEASON;
     /** A model counts for the "up to x % above WLTP" claim from this many logs, like the ranking's variant gate. */
     private static final int MIN_LOGS_FOR_GAP = 100;
 
@@ -67,21 +67,20 @@ public class PublicEmbedService {
                     platform.logCount(), platform.tripCount(), platform.wltpGapMaxPercent());
         }
 
-        PublicModelStatsResponse.SeasonalDistribution seasonal = representative != null && representative.seasonalDistribution() != null
-                ? representative.seasonalDistribution() : stats.seasonalDistribution();
-        boolean seasonalReliable = reliable(seasonal);
         // Seasonal consumption: model-wide like the average and the log count the tile shows next to it
         PublicModelStatsResponse.SeasonalDistribution modelSeasonal = reliable(stats.seasonalDistribution())
                 ? stats.seasonalDistribution() : null;
         BigDecimal dcPrice = stats.dcAvgCostPerKwh() != null ? stats.dcAvgCostPerKwh() : stats.avgCostPerKwh();
+        // Ranges on the model's range consumption (other drivers' trips, else the estimate), like the page
+        ModelRangeConsumption range = stats.range() != null ? stats.range() : ModelRangeConsumption.NONE;
 
         return new ModelTileResponse(
                 true,
                 stats.modelDisplayName(),
                 consumption.setScale(1, RoundingMode.HALF_UP),
-                rangeKm(netKwh, consumption),
-                seasonalReliable ? rangeKm(netKwh, seasonal.summerConsumptionKwhPer100km()) : null,
-                seasonalReliable ? rangeKm(netKwh, seasonal.winterConsumptionKwhPer100km()) : null,
+                rangeKm(netKwh, range.overall()),
+                rangeKm(netKwh, range.summer()),
+                rangeKm(netKwh, range.winter()),
                 stats.logCount(),
                 stats.uniqueCars(),
                 modelUrl,
@@ -140,11 +139,9 @@ public class PublicEmbedService {
                 + "/" + carModel.getDisplayName().replace(" ", "_");
     }
 
-    /** Net battery × 0.9 / consumption, rounded to 10 km; null if either input is missing. */
-    private static Integer rangeKm(BigDecimal netKwh, BigDecimal consumptionKwhPer100km) {
-        if (netKwh == null || consumptionKwhPer100km == null || consumptionKwhPer100km.signum() <= 0) return null;
-        BigDecimal km = netKwh.multiply(USABLE_SHARE).multiply(BigDecimal.valueOf(100))
-                .divide(consumptionKwhPer100km, 0, RoundingMode.HALF_UP);
-        return km.divide(BigDecimal.TEN, 0, RoundingMode.HALF_UP).intValue() * 10;
+    /** Range of {@link RangeMath} on the basis, rounded to 10 km; null without battery or basis. */
+    private static Integer rangeKm(BigDecimal netKwh, RangeBasis basis) {
+        Integer km = basis == null ? null : RangeMath.rangeKm(netKwh, basis.consumptionKwhPer100km());
+        return km == null ? null : (int) Math.round(km / 10.0) * 10;
     }
 }

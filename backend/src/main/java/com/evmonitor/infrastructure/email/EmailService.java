@@ -5,6 +5,7 @@ import com.evmonitor.application.personalrange.ChargeRhythm;
 import com.evmonitor.application.personalrange.PersonalRangeRequest;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
 import com.evmonitor.application.recap.MonthlyRecap;
+import com.evmonitor.application.recap.RecapHighlights;
 import com.evmonitor.infrastructure.security.JwtService;
 import jakarta.mail.internet.MimeMessage;
 import org.springframework.beans.factory.annotation.Value;
@@ -351,11 +352,11 @@ public class EmailService {
      * Persönliche Monatsmail. Trägt List-Unsubscribe plus List-Unsubscribe-Post (RFC 8058), damit
      * Gmail und Apple Mail einen Abmelden-Knopf zeigen, der ohne Login per POST abmeldet.
      */
-    public void sendMonthlyRecapEmail(MonthlyRecap recap) {
+    public void sendMonthlyRecapEmail(MonthlyRecap recap, RecapHighlights highlights) {
         String unsubscribeUrl = buildUnsubscribeUrl(recap.email());
         // Öffnet auf /logs das Modal "Preise nachtragen" für genau dieses Auto (LogsView, pricelessDeepLink).
         String priceUrl = campaignUrl("/logs", "monthly-recap") + "&car=" + recap.carId() + "&nachtragen=preis";
-        MonthlyRecapMail.Rendered mail = MonthlyRecapMail.render(recap, unsubscribeUrl, priceUrl);
+        MonthlyRecapMail.Rendered mail = MonthlyRecapMail.render(recap, highlights, unsubscribeUrl, priceUrl);
         String senderName = MonthlyRecapMail.isEnglish(recap.locale())
                 ? "Sebastian from ev-monitor"
                 : "Sebastian von ev-monitor";

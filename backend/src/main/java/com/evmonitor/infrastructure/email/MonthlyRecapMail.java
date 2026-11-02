@@ -2,6 +2,8 @@ package com.evmonitor.infrastructure.email;
 
 import com.evmonitor.application.recap.MonthlyRecap;
 import com.evmonitor.application.recap.MonthlyRecap.PricelessHint;
+import com.evmonitor.application.recap.RecapHighlights;
+import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.domain.VehicleCategory;
 
 import java.math.BigDecimal;
@@ -45,7 +47,7 @@ public final class MonthlyRecapMail {
     /**
      * @param priceUrl Einstieg "Preise nachtragen" in der App, steht nur im Hinweis auf fehlende Preise
      */
-    public static Rendered render(MonthlyRecap recap, String unsubscribeUrl, String priceUrl) {
+    public static Rendered render(MonthlyRecap recap, RecapHighlights highlights, String unsubscribeUrl, String priceUrl) {
         boolean en = isEnglish(recap.locale());
         Locale locale = en ? Locale.ENGLISH : Locale.GERMAN;
         String month = monthName(recap.month(), locale);
@@ -64,7 +66,13 @@ public final class MonthlyRecapMail {
         addSavings(recap, en, sections, vars);
         addTiles(recap, en, sections, vars);
         addDetails(recap, en, sections, vars);
+        addHighlights(highlights, en, sections, vars);
         addHint(recap, en, locale, sections, vars);
+        // Vorschautext in der Inbox: der Hero-Satz und, wenn vorhanden, die Ersparnis.
+        String saved = recap.savingsEur() == null ? ""
+                : en ? " " + vars.get("savings") + " saved compared to a combustion car."
+                : " Gegenüber einem Verbrenner " + vars.get("savings") + " gespart.";
+        vars.put("preheader", vars.get("hero") + saved);
 
         String subject = en
                 ? "Your " + month + " with the " + recap.carName()
@@ -72,14 +80,32 @@ public final class MonthlyRecapMail {
         return new Rendered(subject, EmailTemplateRenderer.render(TEMPLATE, en ? "en" : "de", vars, sections));
     }
 
-    /** Unter dem Titel: die Strecke, und der Vormonat nur bei einer Änderung, die man spürt. */
+    /**
+     * Hero wie in der Story: "August: 1.766 km für 147 €.", ohne Strecke "147 € für 12 Ladungen", ohne
+     * Preise "1.766 km, 12 Ladungen", ohne beides nur die Ladungen. Darunter der Vormonat nur bei einer
+     * Änderung, die man spürt.
+     */
     private static void addHeader(MonthlyRecap recap, boolean en, Locale locale, Set<String> sections, Map<String, String> vars) {
-        if (recap.distanceKm() == null) {
-            sections.add("noDistance");
+        String month = vars.get("month");
+        // Geschützte Leerzeichen: Zahl und Einheit bleiben im Hero zusammen (wie keepUnits in der Story).
+        String km = recap.distanceKm() == null ? null : number(recap.distanceKm(), "#,##0", en) + " km";
+        // Unter 0,50 € stünde "0 €" im Hero: dann die Variante ohne Preise.
+        boolean hasCost = recap.costEur() != null && recap.costEur().setScale(0, RoundingMode.HALF_UP).signum() > 0;
+        String cost = hasCost ? money(recap.costEur(), "#,##0", en).replace(" €", " €") : null;
+        String charges = en
+                ? recap.charges() + (recap.charges() == 1 ? " session" : " sessions")
+                : recap.charges() + (recap.charges() == 1 ? " Ladung" : " Ladungen");
+        String forWord = en ? " for " : " für ";
+        String hero;
+        if (km != null && cost != null) hero = month + ": " + km + forWord + cost + ".";
+        else if (cost != null) hero = month + ": " + cost + forWord + charges + ".";
+        else if (km != null) hero = month + ": " + km + ", " + charges + ".";
+        else hero = month + ": " + charges + ".";
+        vars.put("hero", hero);
+        if (km == null) {
             return;
         }
-        sections.add("distance");
-        vars.put("km", number(recap.distanceKm(), "#,##0", en) + " km");
+        vars.put("km", km);
         BigDecimal previous = recap.previousDistanceKm();
         if (previous == null) {
             return;
@@ -88,6 +114,7 @@ public final class MonthlyRecapMail {
         if (diff.abs().compareTo(previous.multiply(MIN_CHANGE_SHARE)) < 0) {
             return;
         }
+        sections.add("kmChange");
         sections.add(diff.signum() > 0 ? "more" : "less");
         vars.put("kmDiff", number(diff.abs(), "#,##0", en) + " km");
         vars.put("prevMonth", monthName(recap.month().minusMonths(1), locale));
@@ -155,6 +182,46 @@ public final class MonthlyRecapMail {
             sections.add("home");
             vars.put("homeShare", recap.homeSharePercent() + (en ? "%" : " %"));
         }
+    }
+
+    /**
+     * Platz in der Rangliste und Modellvergleich, wie in der Rückblick-Karte der Story. Die Plätze
+     * kommen als ein Satz ("Platz 2 bei Längste Strecke · Platz 3 bei Meiste kWh"), der Vergleich
+     * als zwei Zahlen; das Template setzt den Satz dazu.
+     */
+    private static void addHighlights(RecapHighlights highlights, boolean en, Set<String> sections, Map<String, String> vars) {
+        if (highlights == null) return;
+        if (!highlights.places().isEmpty()) {
+            sections.add("highlights");
+            sections.add("rank");
+            StringBuilder line = new StringBuilder();
+            for (RecapHighlights.Place p : highlights.places()) {
+                if (!line.isEmpty()) line.append(" · ");
+                line.append(en ? "Rank " + p.rank() + " in " + englishCategory(p.category())
+                        : "Platz " + p.rank() + " bei " + p.category().getDisplayName());
+            }
+            vars.put("rankLine", line.toString());
+        }
+        if (highlights.peer() != null) {
+            sections.add("highlights");
+            sections.add("peer");
+            vars.put("peerMine", number(highlights.peer().mine(), "0.0", en));
+            vars.put("peerPeers", number(highlights.peer().peers(), "0.0", en));
+        }
+    }
+
+    /** Dieselben Namen wie in der Rangliste der App (leaderboard.cat_* in en.yaml). */
+    private static String englishCategory(LeaderboardCategory category) {
+        return switch (category) {
+            case MONTHLY_KWH -> "Most energy charged";
+            case MONTHLY_CHARGES -> "Charging sessions";
+            case MONTHLY_DISTANCE -> "Longest distance";
+            case MONTHLY_CHEAPEST -> "Cheapest charger";
+            case MONTHLY_NIGHT_OWL -> "Night Owl";
+            case MONTHLY_ICE_CHARGER -> "Ice Charger";
+            case MONTHLY_HEAT_CHARGER -> "Sahara Session";
+            case MONTHLY_POWER_CHARGER -> "Fastest Charger";
+        };
     }
 
     /**

@@ -2,11 +2,9 @@ package com.evmonitor.application.publicapi;
 
 import com.evmonitor.domain.CarBrand;
 import com.evmonitor.domain.DataSource;
-import com.evmonitor.domain.weather.TemperatureEnricher;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.UUID;
@@ -21,8 +19,6 @@ class PublicApiImportTemperatureEnrichmentTest extends AbstractIntegrationTest {
     @Autowired
     private PublicApiImportService importService;
 
-    @MockitoBean
-    private TemperatureEnricher temperatureEnricher;
 
     @Test
     void importWithLocation_triggersEnrichment() {

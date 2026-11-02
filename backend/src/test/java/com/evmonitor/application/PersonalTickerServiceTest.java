@@ -14,6 +14,7 @@ import org.mockito.quality.Strictness;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -48,13 +49,13 @@ class PersonalTickerServiceTest {
     void setUp() {
         when(queryRepository.getTopCarMonthSummary(eq(userId), any(), any())).thenReturn(Optional.empty());
         when(statisticsService.getPeerBenchmark(any(), any(), any(), any())).thenReturn(Optional.empty());
-        when(leaderboardService.getMyBestStanding(userId)).thenReturn(Optional.empty());
+        when(leaderboardService.getMyBestStanding(userId, YearMonth.now())).thenReturn(Optional.empty());
         when(userRepository.isLeaderboardVisible(userId)).thenReturn(true);
     }
 
     @Test
     void userWithoutLogs_getsEmptyList() {
-        assertThat(service.getItems(userId)).isEmpty();
+        assertThat(service.getItems(userId, YearMonth.now())).isEmpty();
         verify(statisticsService, never()).getPeerBenchmark(any(), any(), any(), any());
     }
 
@@ -62,7 +63,7 @@ class PersonalTickerServiceTest {
     void monthSummary_becomesPersonalItem() {
         givenMonth(12, 9, "187.4");
 
-        List<TickerItemDTO> items = service.getItems(userId);
+        List<TickerItemDTO> items = service.getItems(userId, YearMonth.now());
 
         assertThat(items).hasSize(1);
         TickerItemDTO item = items.get(0);
@@ -77,13 +78,29 @@ class PersonalTickerServiceTest {
     }
 
     @Test
+    void previousMonth_coversTheWholeMonth_andNamesIt() {
+        YearMonth previous = YearMonth.now().minusMonths(1);
+        when(queryRepository.getTopCarMonthSummary(eq(userId), eq(previous.atDay(1).atStartOfDay()), eq(previous.plusMonths(1).atDay(1).atStartOfDay())))
+                .thenReturn(Optional.of(new MonthChargeSummary(carId, 7, 5, new BigDecimal("120"))));
+        when(statisticsService.getPeerBenchmark(eq(carId), eq(userId), eq(previous.atDay(1)), eq(previous.atEndOfMonth())))
+                .thenReturn(Optional.of(benchmark("15.2", "16.8", 3, false)));
+
+        List<TickerItemDTO> items = service.getItems(userId, previous);
+
+        assertThat(byKey(items, "my_month").params()).containsEntry("month", String.valueOf(previous.getMonthValue()));
+        assertThat(byKey(items, "my_consumption").params())
+                .containsEntry("mine", "15.2").containsEntry("peers", "16.8").containsEntry("carId", carId.toString());
+        verify(leaderboardService).getMyBestStanding(userId, previous);
+    }
+
+    @Test
     void consumption_shownWithThreePeersFromThisMonth_forOwnTopCarOnly() {
         givenMonth(5, 5, "100");
         LocalDate monthStart = LocalDate.now().withDayOfMonth(1);
         when(statisticsService.getPeerBenchmark(eq(carId), eq(userId), eq(monthStart), any()))
                 .thenReturn(Optional.of(benchmark("16.84", "18.2", 3, false)));
 
-        TickerItemDTO item = byKey(service.getItems(userId), "my_consumption");
+        TickerItemDTO item = byKey(service.getItems(userId, YearMonth.now()), "my_consumption");
 
         assertThat(item.params()).containsEntry("mine", "16.8").containsEntry("peers", "18.2");
     }
@@ -94,7 +111,7 @@ class PersonalTickerServiceTest {
         when(statisticsService.getPeerBenchmark(any(), any(), any(), any()))
                 .thenReturn(Optional.of(benchmark("16.8", "18.2", 2, false)));
 
-        assertThat(keys(service.getItems(userId))).doesNotContain("my_consumption");
+        assertThat(keys(service.getItems(userId, YearMonth.now()))).doesNotContain("my_consumption");
     }
 
     @Test
@@ -103,7 +120,7 @@ class PersonalTickerServiceTest {
         when(statisticsService.getPeerBenchmark(any(), any(), any(), any()))
                 .thenReturn(Optional.of(benchmark("16.8", "18.2", 8, true)));
 
-        assertThat(keys(service.getItems(userId))).doesNotContain("my_consumption");
+        assertThat(keys(service.getItems(userId, YearMonth.now()))).doesNotContain("my_consumption");
     }
 
     @Test
@@ -112,15 +129,15 @@ class PersonalTickerServiceTest {
         when(statisticsService.getPeerBenchmark(any(), any(), any(), any()))
                 .thenReturn(Optional.of(benchmark(null, "18.2", 8, false)));
 
-        assertThat(keys(service.getItems(userId))).doesNotContain("my_consumption");
+        assertThat(keys(service.getItems(userId, YearMonth.now()))).doesNotContain("my_consumption");
     }
 
     @Test
     void rank_namesOwnValueRankAndMonth() {
-        when(leaderboardService.getMyBestStanding(userId)).thenReturn(Optional.of(
+        when(leaderboardService.getMyBestStanding(userId, YearMonth.now())).thenReturn(Optional.of(
                 new MyBestStanding(LeaderboardCategory.MONTHLY_POWER_CHARGER, 46, new BigDecimal("48.3"), new BigDecimal("0.2"))));
 
-        TickerItemDTO item = byKey(service.getItems(userId), "my_standing");
+        TickerItemDTO item = byKey(service.getItems(userId, YearMonth.now()), "my_standing");
 
         assertThat(item.params())
                 .containsEntry("category", "MONTHLY_POWER_CHARGER")
@@ -132,10 +149,10 @@ class PersonalTickerServiceTest {
 
     @Test
     void rank_leaderUsesSameSentence() {
-        when(leaderboardService.getMyBestStanding(userId)).thenReturn(Optional.of(
+        when(leaderboardService.getMyBestStanding(userId, YearMonth.now())).thenReturn(Optional.of(
                 new MyBestStanding(LeaderboardCategory.MONTHLY_CHARGES, 1, new BigDecimal("14"), null)));
 
-        TickerItemDTO item = byKey(service.getItems(userId), "my_standing");
+        TickerItemDTO item = byKey(service.getItems(userId, YearMonth.now()), "my_standing");
 
         assertThat(item.params()).containsEntry("rank", "1").containsEntry("value", "14");
     }
@@ -143,10 +160,10 @@ class PersonalTickerServiceTest {
     @Test
     void rank_hiddenWhenLeaderboardInvisible() {
         when(userRepository.isLeaderboardVisible(userId)).thenReturn(false);
-        when(leaderboardService.getMyBestStanding(userId)).thenReturn(Optional.of(
+        when(leaderboardService.getMyBestStanding(userId, YearMonth.now())).thenReturn(Optional.of(
                 new MyBestStanding(LeaderboardCategory.MONTHLY_KWH, 3, new BigDecimal("210.4"), new BigDecimal("12.5"))));
 
-        assertThat(service.getItems(userId)).isEmpty();
+        assertThat(service.getItems(userId, YearMonth.now())).isEmpty();
     }
 
     // ---- helpers ----

@@ -15,7 +15,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 import java.util.Map;
@@ -29,9 +28,6 @@ import static org.mockito.Mockito.when;
 
 /** Crawl gegen H2 mit gemocktem Crawler: erfundene Domain, erfundene Seiten. */
 class SeoAuditServiceTest extends AbstractIntegrationTest {
-
-    @MockitoBean
-    private SiteCrawler crawler;
 
     @Autowired
     private SeoAuditService service;
@@ -77,15 +73,15 @@ class SeoAuditServiceTest extends AbstractIntegrationTest {
     }
 
     private void site() {
-        when(crawler.sitemapPaths()).thenReturn(List.of("/", "/modelle", "/blog", "/verwaist"));
-        when(crawler.fetch("/")).thenReturn(new Fetched(200, html("/", "<a href=\"/modelle\">m</a><a href=\"/blog\">b</a>")));
-        when(crawler.fetch("/modelle")).thenReturn(new Fetched(200, html("/modelle",
+        when(siteCrawler.sitemapPaths()).thenReturn(List.of("/", "/modelle", "/blog", "/verwaist"));
+        when(siteCrawler.fetch("/")).thenReturn(new Fetched(200, html("/", "<a href=\"/modelle\">m</a><a href=\"/blog\">b</a>")));
+        when(siteCrawler.fetch("/modelle")).thenReturn(new Fetched(200, html("/modelle",
                 "<a href=\"/blog\">b</a><a href=\"/kaputt\">k</a><a href=\"/en/models\">en</a><a href=\"/login\">l</a><a href=\"/duenn\">d</a>")));
-        when(crawler.fetch("/blog")).thenReturn(new Fetched(200, html("/blog", "<a href=\"/\">start</a>")));
-        when(crawler.fetch("/verwaist")).thenReturn(new Fetched(200, html("/verwaist", "")));
-        when(crawler.fetch("/kaputt")).thenReturn(new Fetched(404, ""));
-        when(crawler.fetch("/login")).thenReturn(new Fetched(200, html("/login", "")));
-        when(crawler.fetch("/duenn")).thenReturn(new Fetched(200, html("/duenn", "").replace("<h1>", "<meta name=\"robots\" content=\"noindex\"><h1>")));
+        when(siteCrawler.fetch("/blog")).thenReturn(new Fetched(200, html("/blog", "<a href=\"/\">start</a>")));
+        when(siteCrawler.fetch("/verwaist")).thenReturn(new Fetched(200, html("/verwaist", "")));
+        when(siteCrawler.fetch("/kaputt")).thenReturn(new Fetched(404, ""));
+        when(siteCrawler.fetch("/login")).thenReturn(new Fetched(200, html("/login", "")));
+        when(siteCrawler.fetch("/duenn")).thenReturn(new Fetched(200, html("/duenn", "").replace("<h1>", "<meta name=\"robots\" content=\"noindex\"><h1>")));
     }
 
     private Map<String, AuditRow> rows() {
@@ -102,7 +98,7 @@ class SeoAuditServiceTest extends AbstractIntegrationTest {
         assertThat(result.status()).isEqualTo(SeoSyncRunEntity.STATUS_SUCCESS);
         assertThat(result.pages()).isEqualTo(4);
         assertThat(result.extraUrls()).isEqualTo(3);
-        verify(crawler, never()).fetch("/en/models");
+        verify(siteCrawler, never()).fetch("/en/models");
 
         Map<String, AuditRow> rows = rows();
         assertThat(rows).containsOnlyKeys("/", "/modelle", "/blog", "/verwaist");
@@ -138,14 +134,14 @@ class SeoAuditServiceTest extends AbstractIntegrationTest {
         properties.setMaxExtraUrls(1);
 
         assertThat(service.run().extraUrls()).isEqualTo(1);
-        verify(crawler, never()).fetch("/login");
-        verify(crawler, never()).fetch("/duenn");
+        verify(siteCrawler, never()).fetch("/login");
+        verify(siteCrawler, never()).fetch("/duenn");
     }
 
     @Test
     void unreachablePageMakesRunPartial() {
         site();
-        when(crawler.fetch("/blog")).thenReturn(new Fetched(0, null));
+        when(siteCrawler.fetch("/blog")).thenReturn(new Fetched(0, null));
 
         assertThat(service.run().status()).isEqualTo(SeoSyncRunEntity.STATUS_PARTIAL);
         assertThat(rows().get("/blog").findings()).extracting(Finding::check).containsExactly(Check.STATUS);
@@ -155,10 +151,10 @@ class SeoAuditServiceTest extends AbstractIntegrationTest {
 
     @Test
     void sitemapFailureFailsRunWithoutTouchingRows() {
-        when(crawler.sitemapPaths()).thenThrow(new SiteCrawlerException("Sitemap HTTP 502"));
+        when(siteCrawler.sitemapPaths()).thenThrow(new SiteCrawlerException("Sitemap HTTP 502"));
 
         assertThat(service.run().status()).isEqualTo(SeoSyncRunEntity.STATUS_FAILED);
-        verify(crawler, never()).fetch(anyString());
+        verify(siteCrawler, never()).fetch(anyString());
         assertThat(runs.findAll()).singleElement().extracting(SeoSyncRunEntity::getError).asString().contains("502");
         assertThat(service.view().day()).isNull();
     }

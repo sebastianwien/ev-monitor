@@ -1,18 +1,11 @@
 package com.evmonitor.application;
 
 import com.evmonitor.domain.AppBundle;
-import com.evmonitor.domain.AppBundleRepository;
+import com.evmonitor.testutil.AbstractServiceTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
 /**
  * Regression: die Caching-Annotationen auf {@link AppUpdateService} muessen gegen den
@@ -27,28 +20,18 @@ import static org.mockito.Mockito.when;
  * <p>Hier laeuft der echte Bean durch den Spring-Context (Repository gemockt, keine DB),
  * damit der Caching-Aspekt tatsaechlich greift.
  */
-@SpringBootTest
-@ActiveProfiles("test")
-class AppUpdateServiceCachingTest {
+class AppUpdateServiceCachingTest extends AbstractServiceTest {
 
     @Autowired
     private AppUpdateService service;
 
-    @MockitoBean
-    private AppBundleRepository repository;
-
     @Test
     void publish_evictsCache_withoutMissingCacheError() {
-        when(repository.findByVersion("1.0.99")).thenReturn(Optional.empty());
-        when(repository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
         assertThatNoException().isThrownBy(() -> service.publish("1.0.99", "sum"));
     }
 
     @Test
     void findUpdateFor_resolvesCache_withoutMissingCacheError() {
-        when(repository.findTopByOrderByCreatedAtDesc()).thenReturn(Optional.empty());
-
         assertThatNoException().isThrownBy(() -> service.findUpdateFor("1.0.0"));
     }
 }

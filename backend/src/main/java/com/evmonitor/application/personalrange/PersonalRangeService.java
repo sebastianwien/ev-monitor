@@ -1,11 +1,14 @@
 package com.evmonitor.application.personalrange;
 
+import com.evmonitor.application.community.WltpFleetFactors;
 import com.evmonitor.application.ChargingPriceService;
 import com.evmonitor.application.ChargingReferencePrices;
 import com.evmonitor.application.PlausibilityProperties;
 import com.evmonitor.application.PublicModelService;
 import com.evmonitor.application.PublicModelStatsResponse;
 import com.evmonitor.application.charging.FastChargePowerTable;
+import com.evmonitor.application.range.ModelRangeConsumption;
+import com.evmonitor.domain.RangeBasis;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.UserRepository;
 import com.evmonitor.infrastructure.email.EmailService;
@@ -39,7 +42,7 @@ import java.util.stream.Collectors;
 public class PersonalRangeService {
 
     /** Same threshold as the seasonal card on the model page. */
-    private static final int MIN_LOGS_PER_SEASON = 10;
+    private static final int MIN_LOGS_PER_SEASON = PublicModelService.MIN_LOGS_PER_SEASON;
     private static final BigDecimal NOMINAL_TO_NET = new BigDecimal("0.9");
 
     private final PublicModelService publicModelService;
@@ -163,20 +166,22 @@ public class PersonalRangeService {
         PublicModelStatsResponse.SeasonalDistribution seasonal = stats.seasonalDistribution();
         PublicModelStatsResponse.RouteTypeConsumption route = stats.routeTypeConsumption();
         ChargingReferencePrices reference = context.reference();
+        ModelRangeConsumption range = stats.range() != null ? stats.range() : ModelRangeConsumption.NONE;
 
         return Optional.of(ModelRangeBasis.builder()
                 .netBatteryKwh(net)
                 .netBatteryMeasured(netKnown)
                 .wltpKwhPer100km(wltp)
-                .summerKwhPer100km(seasonal != null && seasonal.summerLogCount() >= MIN_LOGS_PER_SEASON
-                        ? seasonal.summerConsumptionKwhPer100km() : null)
-                .winterKwhPer100km(seasonal != null && seasonal.winterLogCount() >= MIN_LOGS_PER_SEASON
-                        ? seasonal.winterConsumptionKwhPer100km() : null)
+                .summerKwhPer100km(measured(range.summer(), seasonal != null && seasonal.summerLogCount() >= MIN_LOGS_PER_SEASON
+                        ? seasonal.summerConsumptionKwhPer100km() : null))
+                .winterKwhPer100km(measured(range.winter(), seasonal != null && seasonal.winterLogCount() >= MIN_LOGS_PER_SEASON
+                        ? seasonal.winterConsumptionKwhPer100km() : null))
                 .highwayKwhPer100km(route != null ? route.highwayKwhPer100km() : null)
                 .highwayCarCount(route != null ? route.highwayCarCount() : 0)
-                // Model average, the figure the page shows. The city value sits on too few logs and
-                // came out above the highway value for several models.
-                .baseKwhPer100km(stats.avgConsumptionKwhPer100km())
+                // The model's range consumption, the figure behind the page's range (other drivers' trips,
+                // else charges). The city value sits on too few logs and came out above the highway value
+                // for several models.
+                .baseKwhPer100km(measured(range.overall(), stats.avgConsumptionKwhPer100km()))
                 .routeMeanKwhPer100km(route != null ? route.typedMeanKwhPer100km() : null)
                 // Short-stop fast-charge power as in the model ranking, not the session mean
                 // (that one includes the taper and idle time and halves the real figure)
@@ -189,13 +194,18 @@ public class PersonalRangeService {
                 .build());
     }
 
-    /** From the cached top-models list: per model WLTP, overall and seasonal community consumption. */
+    /**
+     * The measured value the calculator works with: the page's range basis when it is a measurement (other
+     * drivers' trips or charges), else the charge figure (null below its log threshold). A WLTP estimate is
+     * left to the calculator itself (pick), which labels the value as estimated.
+     */
+    private static BigDecimal measured(RangeBasis basis, BigDecimal charges) {
+        if (basis != null && basis.source().isMeasured()) return basis.consumptionKwhPer100km();
+        return charges;
+    }
+
     private WltpFleetFactors fleetFactors(boolean isSeedUser) {
-        return WltpFleetFactors.from(publicModelService.getTopModels(isSeedUser).stream()
-                .map(m -> new WltpFleetFactors.Sample(m.carCount() != null ? m.carCount() : 0,
-                        m.avgWltpConsumptionKwhPer100km(), m.avgConsumptionKwhPer100km(),
-                        m.summerConsumptionKwhPer100km(), m.winterConsumptionKwhPer100km()))
-                .toList());
+        return publicModelService.fleetFactors(isSeedUser);
     }
 
     /** Datasheet DC power 10 to 80 % of the battery the calculation uses: the newest row of the largest battery with a value. */

@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class EvLogServiceCommunityConsumptionTest extends AbstractIntegrationTest {
 
     @Autowired
-    private EvLogStatisticsService evLogService;
+    private com.evmonitor.application.community.CommunityConsumptionService evLogService;
 
     private UUID userId;
 

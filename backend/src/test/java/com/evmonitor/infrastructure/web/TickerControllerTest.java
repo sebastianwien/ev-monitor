@@ -42,6 +42,17 @@ class TickerControllerTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void personalTicker_rejectsMonthBeforePreviousMonth() {
+        User user = createAndSaveUser("ticker-month-" + UUID.randomUUID().toString().substring(0, 8) + "@ev-monitor.net");
+        String twoMonthsAgo = java.time.YearMonth.now().minusMonths(2).toString();
+
+        ResponseEntity<String> response = restTemplate.exchange("/api/ticker/me?month=" + twoMonthsAgo, HttpMethod.GET,
+                createAuthRequest(user.getId(), user.getEmail()), String.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
     void tickerShareCharges_canBeSwitchedOff() {
         User user = createAndSaveUser("ticker-share-" + UUID.randomUUID().toString().substring(0, 8) + "@ev-monitor.net");
 

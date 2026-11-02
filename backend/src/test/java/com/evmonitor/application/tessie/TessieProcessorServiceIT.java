@@ -1,6 +1,5 @@
 package com.evmonitor.application.tessie;
 
-import com.evmonitor.testutil.SharedPostgres;
 import ch.hsr.geohash.GeoHash;
 import com.evmonitor.application.EvLogSavedEvent;
 import com.evmonitor.application.SohAutoDetectEvent;
@@ -19,17 +18,12 @@ import com.evmonitor.infrastructure.persistence.ingest.ImportEvent;
 import com.evmonitor.infrastructure.persistence.ingest.ImportEventRepository;
 import com.evmonitor.testutil.TestDataBuilder;
 import org.junit.jupiter.api.BeforeEach;
+import com.evmonitor.testutil.AbstractPostgresIT;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.event.ApplicationEvents;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.event.RecordApplicationEvents;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -59,20 +53,8 @@ import static org.mockito.Mockito.verify;
  *  - ownership check (foreign carId throws)
  *  - idempotent rerun (processed flag prevents double-insert)
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@Testcontainers(disabledWithoutDocker = true)
-@ActiveProfiles("test")
 @RecordApplicationEvents
-class TessieProcessorServiceIT {
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        SharedPostgres.registerMigrated(registry);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.flyway.enabled", () -> "true");
-        registry.add("spring.jpa.hibernate.ddl-auto", () -> "none");
-        registry.add("spring.jpa.properties.hibernate.dialect", () -> "org.hibernate.dialect.PostgreSQLDialect");
-    }
+class TessieProcessorServiceIT extends AbstractPostgresIT {
 
     @Autowired
     private TessieProcessorService processor;
@@ -94,12 +76,6 @@ class TessieProcessorServiceIT {
 
     @Autowired
     private ApplicationEvents events;
-
-    @Autowired
-    private EvLogRepository evLogRepository;
-
-    @MockitoBean
-    private RouteSketcher routeSketcher;
 
     private UUID userId;
     private UUID carId;

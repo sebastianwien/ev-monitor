@@ -1,5 +1,6 @@
 package com.evmonitor.application.personalrange;
 
+import com.evmonitor.application.community.WltpFleetFactors;
 import com.evmonitor.application.charging.FastChargePower;
 import lombok.Builder;
 

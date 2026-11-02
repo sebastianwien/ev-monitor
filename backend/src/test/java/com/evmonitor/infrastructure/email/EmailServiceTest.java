@@ -4,6 +4,7 @@ import com.evmonitor.application.personalrange.PersonalRangeRequest;
 import com.evmonitor.application.personalrange.PersonalRangeRequestFixtures;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
 import com.evmonitor.application.recap.MonthlyRecap;
+import com.evmonitor.application.recap.RecapHighlights;
 import com.evmonitor.domain.VehicleCategory;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -288,7 +289,7 @@ class EmailServiceTest {
         when(jwtService.generateUnsubscribeToken("ihle@example.com")).thenReturn("jwt-token");
         ReflectionTestUtils.setField(emailService, "personalReplyTo", "sebastian@ev-monitor.net");
 
-        emailService.sendMonthlyRecapEmail(recap());
+        emailService.sendMonthlyRecapEmail(recap(), RecapHighlights.NONE);
 
         verify(mailSender).send(mimeMessage);
         assertThat(mimeMessage.getSubject()).isEqualTo("Dein August mit dem Model 3");
@@ -306,7 +307,7 @@ class EmailServiceTest {
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
         when(jwtService.generateUnsubscribeToken(anyString())).thenReturn("jwt-token");
 
-        emailService.sendMonthlyRecapEmail(recap());
+        emailService.sendMonthlyRecapEmail(recap(), RecapHighlights.NONE);
 
         assertThat(mimeMessage.getHeader("Reply-To", null)).isNull();
     }
@@ -324,7 +325,7 @@ class EmailServiceTest {
                 new MonthlyRecap.PricelessHint(2, LocalDateTime.of(2026, 8, 3, 9, 0), null),
                 null);
 
-        assertThat(sendAndGetHtml(() -> emailService.sendMonthlyRecapEmail(withHint)))
+        assertThat(sendAndGetHtml(() -> emailService.sendMonthlyRecapEmail(withHint, RecapHighlights.NONE)))
                 .contains("http://localhost:5173/logs?utm_source=email&amp;utm_medium=lifecycle&amp;utm_campaign=monthly-recap"
                         + "&amp;car=11111111-2222-3333-4444-555555555555&amp;nachtragen=preis");
     }

@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.scheduling;
 
 import com.evmonitor.application.recap.MonthlyRecap;
 import com.evmonitor.application.recap.MonthlyRecapService;
+import com.evmonitor.application.recap.RecapHighlightsService;
 import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.github.GitHubIssueService;
 import com.evmonitor.infrastructure.persistence.MonthlyRecapQueryRepository;
@@ -36,16 +37,19 @@ public class MonthlyRecapJob {
     private final MonthlyRecapService recapService;
     private final EmailService emailService;
     private final GitHubIssueService gitHubIssueService;
+    private final RecapHighlightsService highlightsService;
 
     @Value("${app.monthly-recap.enabled:false}")
     private boolean enabled;
 
     public MonthlyRecapJob(MonthlyRecapQueryRepository repository, MonthlyRecapService recapService,
-                           EmailService emailService, GitHubIssueService gitHubIssueService) {
+                           EmailService emailService, GitHubIssueService gitHubIssueService,
+                           RecapHighlightsService highlightsService) {
         this.repository = repository;
         this.recapService = recapService;
         this.emailService = emailService;
         this.gitHubIssueService = gitHubIssueService;
+        this.highlightsService = highlightsService;
     }
 
     @Scheduled(cron = "${app.monthly-recap.cron:0 0 10 2,3 * *}", zone = "Europe/Berlin")
@@ -75,7 +79,7 @@ public class MonthlyRecapJob {
                     skipped++;
                     continue;
                 }
-                emailService.sendMonthlyRecapEmail(recap.get());
+                emailService.sendMonthlyRecapEmail(recap.get(), highlightsService.highlights(candidate.userId(), candidate.carId(), month));
                 sent++;
             } catch (Exception e) {
                 repository.release(candidate.userId(), monthStart);

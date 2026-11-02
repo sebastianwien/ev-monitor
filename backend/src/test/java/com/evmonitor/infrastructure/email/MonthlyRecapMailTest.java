@@ -1,6 +1,10 @@
 package com.evmonitor.infrastructure.email;
 
 import com.evmonitor.application.recap.MonthlyRecap;
+import com.evmonitor.application.recap.RecapHighlights;
+import com.evmonitor.application.recap.RecapHighlights.PeerConsumption;
+import com.evmonitor.application.recap.RecapHighlights.Place;
+import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.application.recap.MonthlyRecap.PricelessHint;
 import org.junit.jupiter.api.Test;
@@ -8,6 +12,7 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,8 +34,9 @@ class MonthlyRecapMailTest {
         assertThat(mail.subject()).isEqualTo("Dein August mit dem Model 3");
         assertThat(mail.html())
                 .contains("Dein August mit dem Model 3")
-                .contains("1.766 km, 903 km mehr als im Juli.")
-                .contains("Gespart gegenüber einem Benziner")
+                .contains("August: 1.766\u00a0km für 147\u00a0€.")
+                .contains("<b>903 km</b> mehr als im Juli.")
+                .contains("Gespart gegenüber einem Verbrenner")
                 .contains("128,91 €")
                 .contains("Strom <b>147,37 €</b>")
                 .contains("rund 276 €")
@@ -38,7 +44,7 @@ class MonthlyRecapMailTest {
                 .contains("351,4")
                 .contains("16,8")
                 .contains("8,34 €")
-                .contains("10 von 12 Ladungen am Schnelllader.")
+                .contains("<b>10</b> von <b>12</b> Ladungen am Schnelllader.")
                 .contains("2,24 €/l")
                 .contains(UNSUBSCRIBE)
                 .doesNotContain("{{")
@@ -52,7 +58,7 @@ class MonthlyRecapMailTest {
         Recap r = ihle();
         r.previousKm = "1700";
 
-        assertThat(render(r).html()).contains("1.766 km.</p>").doesNotContain("als im Juli");
+        assertThat(render(r).html()).contains("August: 1.766\u00a0km für 147\u00a0€.").doesNotContain("als im Juli");
     }
 
     @Test
@@ -60,7 +66,7 @@ class MonthlyRecapMailTest {
         Recap r = ihle();
         r.previousKm = "2500";
 
-        assertThat(render(r).html()).contains("1.766 km, 734 km weniger als im Juli.");
+        assertThat(render(r).html()).contains("<b>734 km</b> weniger als im Juli.");
     }
 
     @Test
@@ -71,7 +77,7 @@ class MonthlyRecapMailTest {
         String html = render(r).html();
 
         assertThat(html).doesNotContain("Gespart").doesNotContain("Benzin").doesNotContain("Tankerkönig");
-        assertThat(html).contains("1.766 km");
+        assertThat(html).contains("1.766\u00a0km");
     }
 
     @Test
@@ -82,7 +88,7 @@ class MonthlyRecapMailTest {
         String html = render(r).html();
 
         assertThat(html)
-                .contains("12 Ladungen, 351,4 kWh.")
+                .contains("August: 147\u00a0€ für 12 Ladungen.")
                 .contains("147,37")
                 .doesNotContain("Gespart")
                 .doesNotContain("pro 100 km</p>");
@@ -127,7 +133,7 @@ class MonthlyRecapMailTest {
         r.dc = 0;
         r.home = 75;
 
-        assertThat(render(r).html()).contains("75 % daheim geladen.").doesNotContain("Schnelllader");
+        assertThat(render(r).html()).contains("<b>75 %</b> daheim geladen.").doesNotContain("Schnelllader");
     }
 
     @Test
@@ -136,7 +142,7 @@ class MonthlyRecapMailTest {
         r.ac = 0;
         r.dc = 12;
 
-        assertThat(render(r).html()).contains("Alle 12 Ladungen am Schnelllader.");
+        assertThat(render(r).html()).contains("Alle <b>12</b> Ladungen am Schnelllader.");
     }
 
     @Test
@@ -147,7 +153,7 @@ class MonthlyRecapMailTest {
         MonthlyRecapMail.Rendered mail = render(r);
 
         assertThat(mail.subject()).isEqualTo("Your August with the Model 3");
-        assertThat(mail.html()).contains("€128.91").contains("1,766 km, 903 km more than in July.").contains("Hi Ihle,");
+        assertThat(mail.html()).contains("€128.91").contains("August: 1,766\u00a0km for €147.").contains("<b>903 km</b> more than in July.").contains("Hi Ihle,");
     }
 
     @Test
@@ -167,12 +173,12 @@ class MonthlyRecapMailTest {
     @Test
     void footnote_namesTheLitresAndTheClassOfTheCar() {
         Recap r = ihle();
-        assertThat(render(r).html()).contains("7,6 l/100 km für einen Benziner der Klasse Mittelklasse bei ");
+        assertThat(render(r).html()).contains("7,6 l/100 km Benzin für einen Verbrenner der Klasse Mittelklasse bei ");
 
         r.locale = "en";
         r.liters = "8.4";
         r.category = VehicleCategory.SUV;
-        assertThat(render(r).html()).contains("8.4 l/100 km for a petrol car in the SUV class at ");
+        assertThat(render(r).html()).contains("8.4 l/100 km of petrol for a combustion car in the SUV class at ");
     }
 
     @Test
@@ -183,8 +189,65 @@ class MonthlyRecapMailTest {
         assertThat(render(r).html()).contains("&lt;b&gt;x&lt;/b&gt;").doesNotContain("<b>x</b>");
     }
 
+    @Test
+    void hero_followsTheStory_andFeedsThePreheader() {
+        Recap noCost = ihle();
+        noCost.cost = null;
+        assertThat(render(noCost).html()).contains("August: 1.766\u00a0km, 12 Ladungen.").doesNotContain("für 147");
+
+        Recap bare = ihle();
+        bare.cost = null;
+        bare.km = null;
+        assertThat(render(bare).html()).contains("August: 12 Ladungen.");
+
+        // Unter 0,50 € stünde "0 €" im Hero: dann die Variante ohne Preise.
+        Recap cents = ihle();
+        cents.cost = "0.30";
+        assertThat(render(cents).html()).contains("August: 1.766 km, 12 Ladungen.").doesNotContain("0 €");
+
+        Recap en = ihle();
+        en.locale = "en";
+        assertThat(render(en).html()).contains("August: 1,766 km for €147. €128.91 saved compared to a combustion car.</div>");
+
+        String html = render(ihle()).html();
+        assertThat(html).contains("August: 1.766\u00a0km für 147\u00a0€. Gegenüber einem Verbrenner 128,91 € gespart.</div>");
+        assertThat(html).contains("<meta name=\"color-scheme\" content=\"light dark\">");
+    }
+
+    @Test
+    void highlights_rankLineInGerman_podiumPlacesJoined() {
+        RecapHighlights h = new RecapHighlights(List.of(
+                new Place(LeaderboardCategory.MONTHLY_DISTANCE, 2), new Place(LeaderboardCategory.MONTHLY_KWH, 3)), null);
+
+        String html = render(ihle(), h).html();
+
+        assertThat(html).contains("Platz 2 bei Längste Strecke · Platz 3 bei Meiste kWh.").doesNotContain("andere Fahrer deines Modells");
+    }
+
+    @Test
+    void highlights_peerLineInEnglish_withOneDecimalAndTheMonth() {
+        Recap r = ihle();
+        r.locale = "en";
+        RecapHighlights h = new RecapHighlights(List.of(new Place(LeaderboardCategory.MONTHLY_POWER_CHARGER, 7)),
+                new PeerConsumption(new BigDecimal("15.24"), new BigDecimal("16.8")));
+
+        String html = render(r, h).html();
+
+        assertThat(html).contains("Rank 7 in Fastest Charger.")
+                .contains("You: <b>15.2 kWh/100 km</b>, other drivers of your model in August: <b>16.8</b>.");
+    }
+
+    @Test
+    void highlights_none_leavesNoEmptyParagraph() {
+        assertThat(render(ihle(), RecapHighlights.NONE).html()).doesNotContain("Platz ").doesNotContain("deines Modells").doesNotContain("{{rankLine}}");
+    }
+
     private MonthlyRecapMail.Rendered render(Recap r) {
-        return MonthlyRecapMail.render(r.build(), UNSUBSCRIBE, PRICE_URL);
+        return render(r, RecapHighlights.NONE);
+    }
+
+    private MonthlyRecapMail.Rendered render(Recap r, RecapHighlights highlights) {
+        return MonthlyRecapMail.render(r.build(), highlights, UNSUBSCRIBE, PRICE_URL);
     }
 
     /** Veränderbarer Baukasten, damit jeder Test nur sein Feld setzt. */

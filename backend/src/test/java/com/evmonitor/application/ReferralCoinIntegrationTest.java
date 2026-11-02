@@ -4,8 +4,6 @@ import com.evmonitor.domain.*;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import com.evmonitor.infrastructure.email.EmailService;
 
 import java.util.List;
 
@@ -27,7 +25,6 @@ class ReferralCoinIntegrationTest extends AbstractIntegrationTest {
     @Autowired private CoinLogService coinLogService;
     @Autowired private EmailVerificationTokenRepository tokenRepository;
 
-    @MockitoBean private EmailService emailService;
 
     @Test
     void referrer_receives100Coins_whenReferredUserVerifiesEmail() {

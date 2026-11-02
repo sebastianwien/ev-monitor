@@ -23,7 +23,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -50,8 +49,6 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
     private static final LocalDateTime T1 = T0.plusDays(1);
     private static final LocalDateTime OLD_CHECK = LocalDateTime.of(2026, 3, 25, 16, 11);
 
-    @MockitoBean TariffPageFetcher fetcher;
-    @MockitoBean TariffExtractor extractor;
 
     @Autowired TariffCrawlService service;
     @Autowired TariffProposalBook book;
@@ -96,9 +93,9 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
         originalAutoApply = props.isAutoApply();
         props.setAutoApply(true);
         pageText = "Tarif L\nDC: 0,39 €/kWh, Grundgebühr 11,99 €";
-        when(extractor.isAvailable()).thenReturn(true);
-        when(fetcher.fetch(anyString())).thenAnswer(i -> Fetched.ok(200, new PageText(pageText, List.of())));
-        when(extractor.extract(any())).thenAnswer(i -> new TariffExtractor.Extraction(List.copyOf(onPage), List.of(), null));
+        when(tariffExtractor.isAvailable()).thenReturn(true);
+        when(tariffPageFetcher.fetch(anyString())).thenAnswer(i -> Fetched.ok(200, new PageText(pageText, List.of())));
+        when(tariffExtractor.extract(any())).thenAnswer(i -> new TariffExtractor.Extraction(List.copyOf(onPage), List.of(), null));
     }
 
     @AfterEach
@@ -234,11 +231,11 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
         ChargingProviderTariff l = save("L", "0.39", "11.99");
         onPage.add(offer("L", "0.39", "11.99", "DC: 0,39 €/kWh"));
         service.run(false, T0);
-        org.mockito.Mockito.clearInvocations(extractor);
+        org.mockito.Mockito.clearInvocations(tariffExtractor);
 
         service.run(false, T1);
 
-        verify(extractor, never()).extract(any());
+        verify(tariffExtractor, never()).extract(any());
         assertThat(sources.findById(source.getId()).orElseThrow().getLastStatus()).isEqualTo("UNCHANGED");
         assertThat(tariffs.findById(l.getId()).orElseThrow().getLastVerifiedAt()).isEqualTo(T1);
     }
@@ -246,7 +243,7 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
     @Test
     void brokenPage_countsAFailure_andChangesNothing() {
         ChargingProviderTariff l = save("L", "0.39", "11.99");
-        when(fetcher.fetch(anyString())).thenReturn(Fetched.failed(TariffPageFetcher.Outcome.HTTP_ERROR, 404, "HTTP 404"));
+        when(tariffPageFetcher.fetch(anyString())).thenReturn(Fetched.failed(TariffPageFetcher.Outcome.HTTP_ERROR, 404, "HTTP 404"));
 
         service.run(false, T0);
         TariffCrawlService.RunSummary second = service.run(false, T1);
@@ -313,7 +310,7 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
         tierMapping.save(m);
         pageText = "DC: 0,39 €/kWh\nHochpreis: " + network + " und weitere";
         onPage.add(offer("L", "0.39", "11.99", "DC: 0,39 €/kWh"));
-        when(extractor.extract(any())).thenAnswer(i -> new TariffExtractor.Extraction(List.copyOf(onPage),
+        when(tariffExtractor.extract(any())).thenAnswer(i -> new TariffExtractor.Extraction(List.copyOf(onPage),
                 List.of(new TariffExtractor.TierMembers("HIGH", List.of(new TariffExtractor.OperatorName(network, network)))), null));
 
         service.run(false, T0);
@@ -341,13 +338,13 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
 
         book.applyByAdmin(p.getId(), T1);
         assertThat(tariffs.findById(l.getId()).orElseThrow().getLastVerifiedAt()).isEqualTo(T1);
-        verify(extractor, never()).extract(any());
+        verify(tariffExtractor, never()).extract(any());
     }
 
     @Test
     void withoutLanguageModel_extractSourcesAreSkipped_notCountedAsFailure() {
         save("L", "0.39", "11.99");
-        when(extractor.isAvailable()).thenReturn(false);
+        when(tariffExtractor.isAvailable()).thenReturn(false);
 
         service.run(false, T0);
 
@@ -359,7 +356,7 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
     @Test
     void languageModelError_isNoPageFailure_isReportedOnce_andRetriedNextDay() {
         save("L", "0.39", "11.99");
-        when(extractor.extract(any())).thenThrow(new TariffExtractionException("Mistral: REJECTED"));
+        when(tariffExtractor.extract(any())).thenThrow(new TariffExtractionException("Mistral: REJECTED"));
 
         TariffCrawlService.RunSummary run = service.run(true, T0);
 
@@ -375,7 +372,7 @@ class TariffCrawlServiceIntegrationTest extends AbstractIntegrationTest {
     @Test
     void unreachablePage_isRetriedNextDay() {
         save("L", "0.39", "11.99");
-        when(fetcher.fetch(anyString())).thenReturn(Fetched.failed(TariffPageFetcher.Outcome.UNREACHABLE, 0, "Timeout"));
+        when(tariffPageFetcher.fetch(anyString())).thenReturn(Fetched.failed(TariffPageFetcher.Outcome.UNREACHABLE, 0, "Timeout"));
 
         service.run(true, T0);
 

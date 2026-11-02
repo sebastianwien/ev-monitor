@@ -2,24 +2,20 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.AppUpdateService;
 import com.evmonitor.domain.AppBundle;
+import com.evmonitor.testutil.AbstractIntegrationTest;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -35,26 +31,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Beide Endpoints sind oeffentlich (App ruft sie vor dem Login). Der Service ist
  * gemockt; das Bundle-Verzeichnis zeigt auf ein temporaeres Test-Verzeichnis.
  */
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-class AppUpdateControllerTest {
+class AppUpdateControllerTest extends AbstractIntegrationTest {
 
-    @TempDir
-    static Path bundleDir;
+    @Value("${app.bundle-dir}")
+    private Path bundleDir;
 
-    @DynamicPropertySource
-    static void props(DynamicPropertyRegistry registry) {
-        registry.add("app.bundle-dir", () -> bundleDir.toString());
-        registry.add("app.bundle-base-url", () -> "https://test.local/api/app/bundle");
-        registry.add("app.bundle-publish-token", () -> "test-secret");
+    @BeforeEach
+    void createBundleDir() throws IOException {
+        Files.createDirectories(bundleDir);
     }
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
-    private AppUpdateService updateService;
 
     private AppBundle bundle(String version) {
         return AppBundle.builder()
@@ -66,7 +51,7 @@ class AppUpdateControllerTest {
 
     @Test
     void checkUpdate_whenNewerBundleExists_returnsVersionUrlChecksum() throws Exception {
-        when(updateService.findUpdateFor("1.0.4")).thenReturn(Optional.of(bundle("1.0.5")));
+        doReturn(Optional.of(bundle("1.0.5"))).when(appUpdateService).findUpdateFor("1.0.4");
 
         mockMvc.perform(post("/api/app/updates")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -79,7 +64,7 @@ class AppUpdateControllerTest {
 
     @Test
     void checkUpdate_whenUpToDate_returnsEmptyJsonWithoutUrl() throws Exception {
-        when(updateService.findUpdateFor(any())).thenReturn(Optional.empty());
+        doReturn(Optional.empty()).when(appUpdateService).findUpdateFor(any());
 
         mockMvc.perform(post("/api/app/updates")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -92,7 +77,7 @@ class AppUpdateControllerTest {
     @Test
     void downloadBundle_whenVersionKnown_streamsZipBytes() throws Exception {
         Files.write(bundleDir.resolve("1.0.5.zip"), new byte[]{1, 2, 3, 4});
-        when(updateService.findByVersion("1.0.5")).thenReturn(Optional.of(bundle("1.0.5")));
+        doReturn(Optional.of(bundle("1.0.5"))).when(appUpdateService).findByVersion("1.0.5");
 
         mockMvc.perform(get("/api/app/bundle/1.0.5.zip"))
                 .andExpect(status().isOk())
@@ -102,7 +87,7 @@ class AppUpdateControllerTest {
 
     @Test
     void downloadBundle_whenVersionUnknown_returns404() throws Exception {
-        when(updateService.findByVersion("9.9.9")).thenReturn(Optional.empty());
+        doReturn(Optional.empty()).when(appUpdateService).findByVersion("9.9.9");
 
         mockMvc.perform(get("/api/app/bundle/9.9.9.zip"))
                 .andExpect(status().isNotFound());
@@ -116,7 +101,7 @@ class AppUpdateControllerTest {
 
     @Test
     void publishBundle_withValidToken_returns201() throws Exception {
-        when(updateService.publish("1.0.42", "sha256-abc")).thenReturn(bundle("1.0.42"));
+        doReturn(bundle("1.0.42")).when(appUpdateService).publish("1.0.42", "sha256-abc");
 
         mockMvc.perform(post("/api/app/bundles")
                         .header("X-App-Bundle-Token", "test-secret")
@@ -154,8 +139,7 @@ class AppUpdateControllerTest {
 
     @Test
     void publishBundle_whenVersionExists_returns409() throws Exception {
-        when(updateService.publish("1.0.42", "sha256-abc"))
-                .thenThrow(new IllegalStateException("bundle already exists: 1.0.42"));
+        doThrow(new IllegalStateException("bundle already exists: 1.0.42")).when(appUpdateService).publish("1.0.42", "sha256-abc");
 
         mockMvc.perform(post("/api/app/bundles")
                         .header("X-App-Bundle-Token", "test-secret")

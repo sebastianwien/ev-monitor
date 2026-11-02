@@ -22,13 +22,15 @@ class PublicModelServiceGroupingTest {
     @Mock private com.evmonitor.infrastructure.persistence.JpaUserRepository userRepository;
     @Mock private com.evmonitor.domain.CarRepository carRepository;
     @Mock private com.evmonitor.domain.EvTripRepository evTripRepository;
-    @Mock private EvLogStatisticsService evLogStatisticsService;
+    @Mock private com.evmonitor.application.community.CommunityConsumptionService community;
+    @Mock private DriveConsumptionService driveConsumptionService;
 
     private PublicModelService service;
 
     @BeforeEach
     void setUp() {
-        service = new PublicModelService(evLogRepository, vehicleSpecificationRepository, userRepository, carRepository, evTripRepository, evLogStatisticsService);
+        service = new PublicModelService(evLogRepository, vehicleSpecificationRepository, userRepository, carRepository,
+                evTripRepository, community, driveConsumptionService);
     }
 
     @Test
@@ -112,7 +114,7 @@ class PublicModelServiceGroupingTest {
                 BigDecimal.valueOf(75), "variant", "Long Range AWD",
                 BigDecimal.valueOf(602), BigDecimal.valueOf(530),
                 BigDecimal.valueOf(15.5), BigDecimal.valueOf(14.0), BigDecimal.valueOf(17.0),
-                BigDecimal.valueOf(18.0), null, null, 100, null, null, null
+                BigDecimal.valueOf(18.0), null, null, 100, null, null, null, null
         );
         assertEquals(BigDecimal.valueOf(530), variant.wltpRangeMinKm());
         assertEquals(BigDecimal.valueOf(602), variant.wltpRangeKm());
@@ -124,7 +126,7 @@ class PublicModelServiceGroupingTest {
                 BigDecimal.valueOf(75), "variant", "Standard Range",
                 BigDecimal.valueOf(491), null,
                 BigDecimal.valueOf(15.1), null, null,
-                null, null, null, 0, null, null, null
+                null, null, null, 0, null, null, null, null
         );
         assertNull(variant.wltpRangeMinKm());
     }

@@ -13,7 +13,6 @@ import com.evmonitor.domain.rating.ReviewDraft;
 import com.evmonitor.domain.rating.ReviewProof;
 import com.evmonitor.domain.rating.ReviewStatus;
 import com.evmonitor.domain.rating.TotalCostVerdict;
-import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.email.ReviewRejectedMail;
 import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,7 +24,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.List;
 
@@ -38,7 +36,6 @@ class AdminRatingControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Autowired CarRatingRepository ratingRepository;
     @Autowired CarReviewRepository reviewRepository;
-    @MockitoBean EmailService emailService;
 
     private User admin;
     private User driver;

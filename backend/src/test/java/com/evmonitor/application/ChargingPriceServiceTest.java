@@ -29,6 +29,9 @@ class ChargingPriceServiceTest {
     @Mock
     private ChargingProviderTariffRepository tariffRepository;
 
+    @org.mockito.Spy
+    private PlausibilityProperties plausibility = new PlausibilityProperties();
+
     @InjectMocks
     private ChargingPriceService service;
 

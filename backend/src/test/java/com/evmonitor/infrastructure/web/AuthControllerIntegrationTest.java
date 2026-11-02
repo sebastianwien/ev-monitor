@@ -12,7 +12,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,9 +25,6 @@ import static org.mockito.Mockito.doNothing;
  * SECURITY CRITICAL: Full auth flow must work correctly!
  */
 class AuthControllerIntegrationTest extends AbstractIntegrationTest {
-
-    @MockitoBean
-    private EmailService emailService;
 
     private RegisterResponse registerUser(String email, String username, String password) {
         doNothing().when(emailService).sendVerificationEmail(anyString(), anyString(), any());

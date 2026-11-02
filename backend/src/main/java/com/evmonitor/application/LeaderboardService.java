@@ -1,6 +1,8 @@
 package com.evmonitor.application;
 
+import com.evmonitor.domain.Co2Balance;
 import com.evmonitor.domain.CoinType;
+import com.evmonitor.domain.VehicleCategory;
 import com.evmonitor.domain.LeaderboardCategory;
 import com.evmonitor.infrastructure.external.FuelPriceService;
 import com.evmonitor.infrastructure.persistence.LeaderboardQueryRepository;
@@ -13,6 +15,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.YearMonth;
 import java.util.*;
 
 @Service
@@ -25,6 +28,7 @@ public class LeaderboardService {
     private final LeaderboardRankingProvider rankingProvider;
     private final CoinLogService coinLogService;
     private final FuelPriceService fuelPriceService;
+    private final Co2Service co2Service;
 
     @Cacheable(value = "leaderboard", key = "'board:' + #category.name() + ':' + #requestingUserId")
     public LeaderboardResponseDTO getLeaderboard(LeaderboardCategory category, UUID requestingUserId) {
@@ -152,14 +156,15 @@ public class LeaderboardService {
     }
 
     /**
-     * Bester Rang des Nutzers im laufenden Monat über alle Kategorien. Der Rang ist die Position
-     * wie in der Bestenliste, der Abstand zählt zum Eintrag direkt davor (0 bei Gleichstand).
-     * Bei gleichem Rang gewinnt die Kategorie, die in {@link LeaderboardCategory} zuerst steht.
+     * Bester Rang des Nutzers in einem Monat über alle Kategorien (laufender Monat bis heute,
+     * Vormonat komplett). Der Rang ist die Position wie in der Bestenliste, der Abstand zählt zum
+     * Eintrag direkt davor (0 bei Gleichstand). Bei gleichem Rang gewinnt die Kategorie, die in
+     * {@link LeaderboardCategory} zuerst steht.
      */
-    public Optional<MyBestStanding> getMyBestStanding(UUID userId) {
-        LocalDate today = LocalDate.now();
-        LocalDateTime startOfMonth = today.withDayOfMonth(1).atStartOfDay();
-        LocalDateTime endOfToday = today.plusDays(1).atStartOfDay();
+    public Optional<MyBestStanding> getMyBestStanding(UUID userId, YearMonth month) {
+        TickerMonth window = TickerMonth.of(month, LocalDate.now());
+        LocalDateTime startOfMonth = window.start();
+        LocalDateTime endOfToday = window.end();
 
         MyBestStanding best = null;
         for (LeaderboardCategory cat : LeaderboardCategory.values()) {
@@ -183,13 +188,18 @@ public class LeaderboardService {
         return null;
     }
 
-    @Cacheable(value = "leaderboard", key = "'ticker'")
-    public List<TickerItemDTO> getTicker() {
-        LocalDate today = LocalDate.now();
-        LocalDateTime startOfMonth = today.withDayOfMonth(1).atStartOfDay();
-        LocalDateTime endOfToday = today.plusDays(1).atStartOfDay();
+    /**
+     * Community-Ticker für einen Monat: laufender Monat bis heute, Vormonat komplett (Monatsrückblick).
+     * Für alle Nutzer gleich, deshalb je Monat ein Cache-Eintrag. Das heutige Datum steht mit im Key,
+     * damit am Monatsersten kein Eintrag vom Vortag (Fenster "bis gestern") als kompletter Vormonat gilt.
+     */
+    @Cacheable(value = "leaderboard", key = "'ticker:' + #yearMonth + ':' + T(java.time.LocalDate).now()")
+    public List<TickerItemDTO> getTicker(YearMonth yearMonth) {
+        TickerMonth window = TickerMonth.of(yearMonth, LocalDate.now());
+        LocalDateTime startOfMonth = window.start();
+        LocalDateTime endOfToday = window.end();
         // Month is emitted as its 1-12 number; the frontend renders the localised name.
-        String month = String.valueOf(today.getMonthValue());
+        String month = window.monthParam();
 
         List<TickerItemDTO> items = new ArrayList<>();
 
@@ -228,13 +238,14 @@ public class LeaderboardService {
         )));
 
         if (kwhDouble > 0) {
-            // Annahmen: 20 kWh/100km (EV-Durchschnitt), 380g CO2/kWh (dt. Strommix), 160g CO2/km (Verbrenner-Durchschnitt)
-            double distanceKm = kwhDouble / 20.0 * 100.0;
-            double iceCo2Kg = distanceKm * 0.160;
-            double evCo2Kg = kwhDouble * 0.380;
-            double savedCo2Kg = iceCo2Kg - evCo2Kg;
+            // Dieselbe Rechnung wie die persönliche CO₂-Bilanz, Summe über alle Autos des Monats
+            Map<UUID, VehicleCategory> categoryByCar = new HashMap<>();
+            queryRepository.getCarModelsWithChargesBetween(startOfMonth, endOfToday)
+                    .forEach((carId, model) -> categoryByCar.put(carId, model.getCategory()));
+            Co2Balance co2 = co2Service.community(categoryByCar, startOfMonth, endOfToday);
 
-            if (savedCo2Kg > 0) {
+            if (co2 != null && co2.savedKg() > 0) {
+                double savedCo2Kg = co2.savedKg();
                 boolean tonnes = savedCo2Kg >= 1000;
                 items.add(TickerItemDTO.stat("co2_saved", "eco", Map.of(
                         "month", month,
@@ -266,7 +277,9 @@ public class LeaderboardService {
                         "unit", hours ? "hours" : "minutes")));
             }
 
-            // Ersparnis vs. Benzin/Diesel (Verbrenner-Durchschnitt aus FuelPriceService)
+            // Ersparnis vs. Benzin/Diesel (Verbrenner-Durchschnitt aus FuelPriceService),
+            // Strecke geschätzt mit 20 kWh/100 km (eigener Rechenweg für Euro, nicht für CO₂)
+            double distanceKm = kwhDouble / 20.0 * 100.0;
             double avgFuelPrice = fuelPriceService.getAvgFuelPrice();
             double fuelCost = distanceKm / 100.0 * FuelPriceService.COMBUSTION_LITERS_PER_100_KM.doubleValue() * avgFuelPrice;
             double evCost = totalCostEur.doubleValue();

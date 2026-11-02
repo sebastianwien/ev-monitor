@@ -11,7 +11,6 @@ import com.evmonitor.testutil.AbstractIntegrationTest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -39,7 +38,6 @@ class EvLogServiceChargingPlaceTest extends AbstractIntegrationTest {
     @Autowired private EvLogService evLogService;
     @Autowired private IngestGateway gateway;
     @Autowired private JpaUserChargingProviderRepository cardRepository;
-    @MockBean private NearbyCpoService nearbyCpoService;
 
     private UUID userId;
     private UUID carId;
@@ -74,7 +72,8 @@ class EvLogServiceChargingPlaceTest extends AbstractIntegrationTest {
         assertThat(reload(id).getPublicCharging()).isTrue();
         EvLog next = ingestAc(HERE);
         assertThat(next.getPublicCharging()).isTrue();
-        assertThat(next.getGeohash()).isEqualTo(HERE);
+        // 7 Stellen, nicht gekürzt. Die eindeutige Säule 22 m daneben gibt der Ladung danach ihre Zelle.
+        assertThat(next.getGeohash()).hasSize(7);
     }
 
     @Test

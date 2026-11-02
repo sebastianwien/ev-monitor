@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class CoinLogService {
 
     /**
-     * Centralised coin event definitions — single source of truth for all coin awards.
+     * Centralised coin event definitions - single source of truth for all coin awards.
      *
      * Each event carries:
      * - description: the canonical action_description stored in coin_log (also used for first-time checks)
@@ -31,28 +31,28 @@ public class CoinLogService {
      *   count-based caps like referral invites).
      */
     public enum CoinEvent {
-        // Manual charging logs — FIRST/SUBSEQUENT chosen by caller; oneTime handled via caller logic
+        // Manual charging logs - FIRST/SUBSEQUENT chosen by caller; oneTime handled via caller logic
         // New FIRST variants also belong in FIRST_BONUSES, otherwise the catalog never reports them as claimed
         MANUAL_LOG_FIRST            ("Ladevorgang erfasst",                          25, false),
         MANUAL_LOG_SUBSEQUENT       ("Ladevorgang erfasst",                           5, false),
         MANUAL_LOG_FIRST_OCR        ("Ladevorgang erfasst (OCR)",                    27, false),
         MANUAL_LOG_OCR              ("Ladevorgang erfasst (OCR)",                     7, false),
-        // Imports — per-log rewards never one-time; connection bonuses are one-time
+        // Imports - per-log rewards never one-time; connection bonuses are one-time
         SPRITMONITOR_LOG            ("Ladevorgang importiert (Sprit-Monitor)",         2, false),
         SPRITMONITOR_CONNECTED      ("Sprit-Monitor Import",                          50, true),
         TESLA_HISTORY_LOG           ("Ladevorgang importiert (TeslaLogger)",           2, false),
         TESLA_LOGGER_CONNECTED      ("TeslaLogger Import",                            20, true),
         TESLA_DAILY_LOG             ("Ladevorgang importiert (Tesla Sync)",            5, false),
         TESLA_CONNECTED             ("Tesla Verbindung hinzugefügt",                  50, true),
-        // Vehicle management — FIRST/SUBSEQUENT chosen by caller; image bonuses are one-time
+        // Vehicle management - FIRST/SUBSEQUENT chosen by caller; image bonuses are one-time
         CAR_CREATED_FIRST           ("Fahrzeug hinzugefügt",                          20, false),
         CAR_CREATED_SUBSEQUENT      ("Fahrzeug hinzugefügt",                           5, false),
         IMAGE_UPLOADED              ("Erstes Auto-Bild hochgeladen",                  15, true),
         IMAGE_PUBLIC                ("Auto-Bild öffentlich geteilt",                  10, true),
-        // Social — REFERRAL_WELCOME is one-time per referred user; REFERRAL_INVITED is count-capped by caller
+        // Social - REFERRAL_WELCOME is one-time per referred user; REFERRAL_INVITED is count-capped by caller
         REFERRAL_INVITED            ("Freund eingeladen",                             100, false),
         REFERRAL_WELCOME            ("Willkommensbonus (eingeladen)",                  25, true),
-        // Public API Upload — per-log reward
+        // Public API Upload - per-log reward
         API_UPLOAD_LOG              ("Ladevorgang importiert (API)",                    2, false),
         // Data quality on existing charges (price-amend modal) - once per log and field,
         // enforced via awardOncePerEntity; deleting the log deducts them again (sourceEntityId)
@@ -60,12 +60,14 @@ public class CoinLogService {
         CARD_LINKED                 ("Ladekarte zugeordnet",                           2, false),
         CPO_ADDED                   ("Ladesäulen-Betreiber nachgetragen",              3, false),
         CARD_CREATED                ("Erste Ladekarte angelegt",                       5, true),
+        // Antwort auf die Frage nach der Säule - einmal je Frage (sourceEntityId = Frage)
+        SITE_CONFIRMED              ("Ladesäule zugeordnet",                           3, false),
         // Fahrzeugbewertung - einmal je Bewertung bzw. je Textfassung via awardOncePerEntity, unabhängig vom Urteil
         RATING_SUBMITTED            ("Fahrzeug bewertet",                             50, false),
         REVIEW_APPROVED_SHORT       ("Erfahrung veröffentlicht",                      30, false),
         REVIEW_APPROVED_LONG        ("Erfahrungsbericht veröffentlicht",             150, false),
         // Deductions
-        LOG_DELETED_DEDUCTION       ("Ladevorgang gelöscht",                           0, false); // defaultAmount unused — caller passes dynamic negative amount
+        LOG_DELETED_DEDUCTION       ("Ladevorgang gelöscht",                           0, false); // defaultAmount unused - caller passes dynamic negative amount
 
         private final String description;
         private final int defaultAmount;

@@ -32,9 +32,13 @@ allowed:
 app:
   car-images:
     directory: ${java.io.tmpdir}/ev-monitor-test-images
+  min-native-version: 42
+  bundle-dir: ${java.io.tmpdir}/ev-monitor-test-bundles
+  bundle-base-url: https://test.local/api/app/bundle
+  bundle-publish-token: test-secret
   security:
     rate-limiting:
-      enabled: false  # Disabled in tests — all tests share 127.0.0.1, which would exhaust the bucket
+      enabled: false  # Disabled in tests - all tests share 127.0.0.1, which would exhaust the bucket
   premium:
     enabled: false  # Default: beta mode
 
@@ -50,7 +54,11 @@ internal:
 import-samples:
   enabled: false
 
-# Disable charging efficiency correction in tests — formula-math tests use neutral factors.
+# Tests rufen nie das echte Ladesaeulenregister - die Saeulen-Zuordnung nach jedem Ingest wuerde es sonst tun.
+charging-station-registry:
+  enabled: false
+
+# Disable charging efficiency correction in tests - formula-math tests use neutral factors.
 # Dedicated unit tests in EvLogServiceChargingEfficiencyTest cover the correction itself.
 evmonitor:
   consumption:

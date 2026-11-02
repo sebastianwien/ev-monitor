@@ -2,6 +2,8 @@ package com.evmonitor.infrastructure.scheduling;
 
 import com.evmonitor.application.recap.MonthlyRecap;
 import com.evmonitor.application.recap.MonthlyRecapService;
+import com.evmonitor.application.recap.RecapHighlights;
+import com.evmonitor.application.recap.RecapHighlightsService;
 import com.evmonitor.infrastructure.email.EmailService;
 import com.evmonitor.infrastructure.github.GitHubIssueService;
 import com.evmonitor.infrastructure.persistence.MonthlyRecapQueryRepository;
@@ -32,8 +34,10 @@ class MonthlyRecapJobTest {
     private final MonthlyRecapService recapService = mock(MonthlyRecapService.class);
     private final EmailService emailService = mock(EmailService.class);
     private final GitHubIssueService gitHubIssueService = mock(GitHubIssueService.class);
+    private final RecapHighlightsService highlightsService = mock(RecapHighlightsService.class);
+    { when(highlightsService.highlights(any(), any(), any())).thenReturn(RecapHighlights.NONE); }
 
-    private final MonthlyRecapJob job = new MonthlyRecapJob(repository, recapService, emailService, gitHubIssueService);
+    private final MonthlyRecapJob job = new MonthlyRecapJob(repository, recapService, emailService, gitHubIssueService, highlightsService);
 
     private final RecapCandidate candidate = new RecapCandidate(UUID.randomUUID(), UUID.randomUUID());
     private final MonthlyRecap recap = mock(MonthlyRecap.class);
@@ -46,7 +50,7 @@ class MonthlyRecapJobTest {
 
         MonthlyRecapJob.Report report = job.run(AUGUST);
 
-        verify(emailService).sendMonthlyRecapEmail(recap);
+        verify(emailService).sendMonthlyRecapEmail(recap, RecapHighlights.NONE);
         verify(repository, never()).release(any(), any());
         assertThat(report.sent()).isEqualTo(1);
     }
@@ -59,7 +63,7 @@ class MonthlyRecapJobTest {
         MonthlyRecapJob.Report report = job.run(AUGUST);
 
         verify(recapService, never()).build(any(), any());
-        verify(emailService, never()).sendMonthlyRecapEmail(any());
+        verify(emailService, never()).sendMonthlyRecapEmail(any(), any());
         assertThat(report.sent()).isZero();
     }
 
@@ -71,7 +75,7 @@ class MonthlyRecapJobTest {
 
         MonthlyRecapJob.Report report = job.run(AUGUST);
 
-        verify(emailService, never()).sendMonthlyRecapEmail(any());
+        verify(emailService, never()).sendMonthlyRecapEmail(any(), any());
         verify(repository).release(candidate.userId(), MONTH);
         assertThat(report.skipped()).isEqualTo(1);
     }
@@ -84,12 +88,12 @@ class MonthlyRecapJobTest {
         when(repository.claim(any(), any(), any())).thenReturn(true);
         when(recapService.build(candidate, AUGUST)).thenReturn(Optional.of(recap));
         when(recapService.build(second, AUGUST)).thenReturn(Optional.of(secondRecap));
-        doThrow(new RuntimeException("smtp down")).when(emailService).sendMonthlyRecapEmail(recap);
+        doThrow(new RuntimeException("smtp down")).when(emailService).sendMonthlyRecapEmail(recap, RecapHighlights.NONE);
 
         MonthlyRecapJob.Report report = job.run(AUGUST);
 
         verify(repository).release(candidate.userId(), MONTH);
-        verify(emailService).sendMonthlyRecapEmail(secondRecap);
+        verify(emailService).sendMonthlyRecapEmail(secondRecap, RecapHighlights.NONE);
         assertThat(report.sent()).isEqualTo(1);
         assertThat(report.failed()).isEqualTo(1);
         verify(gitHubIssueService).createIssue(anyString(), anyString(), anyString());

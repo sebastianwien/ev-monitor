@@ -53,4 +53,14 @@ class LeaderboardTickerSoftDeletedCarTest extends AbstractIntegrationTest {
         assertThat(queries.getTotalChargeDurationMinutes(start, end)).isEqualTo(minutesBefore - 90);
         assertThat(queries.getTotalCostEur(start, end)).isEqualByComparingTo(costBefore.subtract(new BigDecimal("12.00")));
     }
+
+    @Test
+    void ticker_carModelsForCo2_onlyCarsWithChargesInWindowAndNotDeleted() {
+        assertThat(queries.getCarModelsWithChargesBetween(start, end)).containsEntry(car.getId(), CarBrand.CarModel.MODEL_3);
+        assertThat(queries.getCarModelsWithChargesBetween(end, end.plusYears(1))).doesNotContainKey(car.getId());
+
+        carRepository.save(car.softDelete());
+
+        assertThat(queries.getCarModelsWithChargesBetween(start, end)).doesNotContainKey(car.getId());
+    }
 }
