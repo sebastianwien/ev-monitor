@@ -85,8 +85,8 @@ public class MonthlyRecapService {
                 .toList();
         BigDecimal cost = nonePriced ? null : stats.energyCostEur();
         BigDecimal distance = positiveOrNull(stats.totalDistanceKm());
-        // Benziner der Fahrzeugklasse des Autos zum Benzinpreis, passend zur Zeile "gegenüber einem Benziner"
-        BigDecimal fuelPrice = BigDecimal.valueOf(fuelPriceService.getBenzinPrice());
+        // Benziner der Fahrzeugklasse zum eingefrorenen Benzinpreis des Monats, wie im Story-Rückblick
+        BigDecimal fuelPrice = BigDecimal.valueOf(fuelPriceService.getBenzinPrice(month));
         VehicleCategory category = car.get().getModel().getCategory();
         BigDecimal fuelLiters = category.getPetrolLitersPer100Km();
 
