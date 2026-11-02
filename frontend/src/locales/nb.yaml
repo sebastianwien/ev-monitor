@@ -886,7 +886,7 @@ dashboard:
   peer_drivers: sjåfører
   peer_charges: "ladinger"
   peer_consumption: Forbruk
-  peer_range: Rekkevidde (90→10%)
+  peer_range: Rekkevidde (100→10%)
   peer_cost: Kostnad
   peer_cost_label: Strømkostnad
   peer_cost_per_distance: Kjørekostnad

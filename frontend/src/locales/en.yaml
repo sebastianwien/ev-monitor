@@ -926,7 +926,7 @@ dashboard:
   peer_drivers: "drivers"
   peer_charges: "charges"
   peer_consumption: "Consumption"
-  peer_range: "Range (90→10%)"
+  peer_range: "Range (100→10%)"
   peer_cost: "Cost"
   peer_cost_label: "Energy cost"
   peer_cost_per_distance: "Trip cost"

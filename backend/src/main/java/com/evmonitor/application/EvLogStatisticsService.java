@@ -766,8 +766,12 @@ public class EvLogStatisticsService {
             PeerMetrics p = variant.peers();
             // Skip specs with no peer data at all (unless it's the user's spec)
             if (!isUserSpec && p.avgConsumptionKwhPer100km() == null && p.avgCostPerKwh() == null) continue;
+            UserMetrics own = isUserSpec ? userMetrics(userCar) : null;
+            Integer ownRange = own != null
+                    ? RangeMath.rangeKm(userCar.getEffectiveBatteryCapacityKwh(), own.consumptionKwhPer100km()) : null;
             items.add(new PeerModelComparisonItem(variant.specId(), variant.displayName(), isUserSpec,
-                    variant.netBatteryCapacityKwh(), isUserSpec ? userMetrics(userCar) : null, p));
+                    variant.netBatteryCapacityKwh(), own, p, ownRange,
+                    RangeMath.rangeKm(variant.netBatteryCapacityKwh(), p.avgConsumptionKwhPer100km())));
         }
         BigDecimal driveWinter = driveConsumptionService.peerDrive(new DriveConsumptionService.PeerQuery(userCar.getModel(), null,
                 DriveConsumptionService.Period.ALL, DriveConsumptionService.Season.WINTER, user.getId())).consumptionKwhPer100km();
