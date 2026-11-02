@@ -117,7 +117,7 @@ import { useLocaleFormat, RANGE_STEP } from '../composables/useLocaleFormat'
 import { officialModelThumbUrl } from '../config/modelImages'
 import { combustionAllowed } from '../utils/costMix'
 import { buildLadderAxis, barLength } from '../utils/ladderScale'
-import { roundRange, prospectKm } from '../utils/modelStory'
+import { roundRange } from '../utils/modelStory'
 import { shownConsumption } from '../utils/modelConsumption'
 import { applyVariant, betterMarks, compareSummary, variantsWithTrips } from '../utils/compareModels'
 
@@ -213,13 +213,13 @@ const variantOptions = computed<VariantOption[][]>(() => rankedItems.value.map((
   }
   return [all, ...variantChoices.value[i].map((v, vi) => {
     const real = shownConsumption(r.model) != null ? roundRange(v.range?.rangeKm) : null
-    const wltp = real != null ? prospectKm(v.wltpRangeKm)! : v.wltpRangeKm
+    const wltp = real != null ? v.range?.prospectRangeKm ?? null : v.wltpRangeKm
     return {
       key: `${vi}-${v.displayLabel ?? v.batteryCapacityKwh}`,
       label: v.displayLabel || v.variantName || `${formatNumber(v.batteryCapacityKwh)} kWh`,
       battery: `${formatNumber(v.batteryCapacityKwh)} kWh`,
       range: real != null ? formatDistance(real) : null,
-      prospect: t('model.page.variant_prospect', { range: formatDistance(wltp) }),
+      prospect: wltp != null ? t('model.page.variant_prospect', { range: formatDistance(wltp) }) : '',
     }
   })]
 }))

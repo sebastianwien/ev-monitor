@@ -3,11 +3,11 @@
  * (four tiles: range, consumption, charging, cost) and the evidence behind it (range by season,
  * consumption by route type). Each tile is rated FULL (measured), PARTIAL (the model has logs but
  * not this figure) or NONE (spec only). Pure: all values come from the public stats response, no
- * consumption formula of its own; the measured ranges come from the API (RangeMath, 100 to 10 %),
- * only the prospectus figure is put on the same window here.
+ * consumption, range or charging rule of its own: ranges, the prospectus figure on the same window and
+ * the charging facts come from the API; the page only multiplies kWh by a price.
  */
 
-import { AC_CHARGING_EFFICIENCY, DC_CHARGING_EFFICIENCY } from './consumptionPreview'
+import type { VariantChargingFacts } from '../api/publicModelService'
 
 /** Same as the backend calculator: below this many highway cars the highway effect is the fleet estimate */
 const MIN_HIGHWAY_CARS = 5
@@ -22,9 +22,10 @@ export interface StoryInput {
   logCount: number
   carCount: number
   driverCount: number
-  netBatteryKwh: number | null
   wltpKwhPer100km: number | null
   wltpRangeKm: number | null
+  /** the prospectus range on the drivers' window (100 to 10 %) from the API, rounded to 10 km; null without one */
+  prospectRangeKm: number | null
   avgKwhPer100km: number | null
   /**
    * Ranges of the chosen battery from the API (RangeMath on the model's range consumption: other drivers'
@@ -37,6 +38,8 @@ export interface StoryInput {
   /** null when either season has too few logs */
   seasonal: { summer: number; winter: number; summerLogs: number; winterLogs: number } | null
   fastChargePowerKw: number | null
+  /** charging facts of the chosen battery from the API (FastChargeStop, HomeCharge); null on an older backend */
+  charging: VariantChargingFacts | null
   /** AC price, mostly at home: the normal charge in the cost tile */
   acPricePerKwh?: number | null
   /** fast charging without a subscription (big networks' contract-free price); preferred for the fast charge */
@@ -117,12 +120,6 @@ export interface ModelStory {
   evidence: ModelEvidence
 }
 
-/** The window every range of the page sits on (100 to 10 %); applied here only to the prospectus figure */
-const WINDOW_SHARE = 0.9
-const STOP_SHARE = 0.7
-/** A normal charge, overnight at the wallbox: 20 to 80 % */
-const NORMAL_SHARE = 0.6
-
 /** Non-breaking space between a number and its unit, so a headline never wraps before "km." */
 export function keepUnits(text: string): string {
   return text
@@ -130,21 +127,15 @@ export function keepUnits(text: string): string {
     .replace(/\bkg (CO₂|CO2)/g, 'kg\u00a0$1')
 }
 
-/** A fast-charging stop from 10 to 80 % as billed at the charger: 70 % of the net battery through DC losses. */
-export function fastStop(netKwh: number | null, pricePerKwh: number | null): { kwh: number; eur: number } | null {
-  if (!netKwh || !pricePerKwh) return null
-  const kwh = netKwh * STOP_SHARE / DC_CHARGING_EFFICIENCY
-  return { kwh, eur: kwh * pricePerKwh }
+/** A fast-charging stop from 10 to 80 %: the API's kWh at the charger times the price; null without either. */
+export function fastStop(plugKwh: number | null | undefined, pricePerKwh: number | null): { kwh: number; eur: number } | null {
+  if (!plugKwh || !pricePerKwh) return null
+  return { kwh: plugKwh, eur: plugKwh * pricePerKwh }
 }
 
 /** The fast-charge price of the page (tile, SEO text, FAQ): without a subscription where known, else what the drivers pay at DC, else their mean */
 export function fastChargePrice(d: Pick<StoryInput, 'fastAdHocPricePerKwh' | 'dcPricePerKwh' | 'avgPricePerKwh'>): number | null {
   return d.fastAdHocPricePerKwh ?? d.dcPricePerKwh ?? d.avgPricePerKwh ?? null
-}
-
-/** WLTP counts 100 to 0 %, the drivers 100 to 10 %: the comparison puts the prospectus on the same window. */
-export function prospectKm(wltpKm: number | null): number | null {
-  return wltpKm ? Math.round(wltpKm * WINDOW_SHARE / 10) * 10 : null
 }
 
 /** The API figure rounded to 10 km like the hero; null without one. */
@@ -156,7 +147,7 @@ export function buildModelStory(d: StoryInput, f: StoryFormatters): ModelStory {
   const hasLogs = d.logCount > 0 && d.avgKwhPer100km != null
   const level: StoryLevel = hasLogs ? 'FULL' : 'NONE'
   const realRangeKm = hasLogs ? roundRange(d.range?.realKm) : null
-  const prospectRangeKm = prospectKm(d.wltpRangeKm)
+  const prospectRangeKm = d.prospectRangeKm
   const thirstiest = hasLogs ? roundRange(d.range?.driverMinKm) : null
   const frugal = hasLogs ? roundRange(d.range?.driverMaxKm) : null
   const summerRangeKm = hasLogs ? roundRange(d.range?.summerKm) : null
@@ -231,10 +222,10 @@ function consumptionFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): F
 
 function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
   const base = { key: 'charging' as const, label: label(f, 'charging'), unit: 'min' }
-  if (!d.fastChargePowerKw || !d.netBatteryKwh) {
+  const minutes = d.charging?.fastStopMinutes
+  if (!d.fastChargePowerKw || minutes == null) {
     return { ...base, value: null, note: f.t('model.page.note_charging_none'), level: hasLogs ? 'PARTIAL' : 'NONE' }
   }
-  const minutes = Math.round(d.netBatteryKwh * STOP_SHARE / d.fastChargePowerKw * 60 / 5) * 5
   const kw = f.formatNumber(Math.round(d.fastChargePowerKw))
   return {
     ...base, value: f.formatNumber(minutes), level: 'FULL',
@@ -247,8 +238,9 @@ function chargingFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): Fact
 function costFact(d: StoryInput, f: StoryFormatters, hasLogs: boolean): FactTile {
   const base = { key: 'cost' as const, label: label(f, 'cost') }
   // What a buyer pays per charge: at home 20 to 80 % at the AC price, on the road 10 to 80 % at the DC price
-  const home = d.netBatteryKwh && d.acPricePerKwh ? d.netBatteryKwh * NORMAL_SHARE / AC_CHARGING_EFFICIENCY * d.acPricePerKwh : null
-  const fast = fastStop(d.netBatteryKwh, fastChargePrice(d))?.eur ?? null
+  const homeKwh = d.charging?.homeChargePlugKwh
+  const home = homeKwh && d.acPricePerKwh ? homeKwh * d.acPricePerKwh : null
+  const fast = fastStop(d.charging?.fastStopPlugKwh, fastChargePrice(d))?.eur ?? null
   if (home != null) {
     return { ...base, level: 'FULL', value: f.formatCurrency(home), unit: f.t('model.page.cost_home'), note: '',
       ...(fast != null ? { extra: { value: f.formatCurrency(fast), unit: f.t('model.page.cost_fast') } } : {}) }

@@ -304,7 +304,7 @@ const answer = computed(() => {
     driveTime: r.longTripTotalMinutes != null ? t('personal_range.drive_time', { duration: duration(r.longTripTotalMinutes) }) : null,
     chargeTime: r.longTripStops > 0 && r.longTripChargingMinutes != null
       ? t('personal_range.charge_time', { duration: duration(r.longTripChargingMinutes) }) : null,
-    tripCost: tripChargingCost(r.longTripStops, inputs.netBatteryKwh ?? null),
+    tripCost: tripChargingCost(r.longTripStops, r.fastStopPlugKwh),
     cost: formatCurrency(r.monthlyCostEur, { decimals: 0 }),
     // the reader's own cost per 100 km, from the month and the yearly mileage it rests on
     costBasis: inputs.annualKm
@@ -329,8 +329,8 @@ function petrolCompare(evMonthly: number, annualKm: number | null) {
 }
 
 /** The charging stops of the holiday trip, each 10 to 80 % at the price without a subscription */
-function tripChargingCost(stops: number, netKwh: number | null): string | null {
-  const stop = stops > 0 && props.fastPricePerKwh ? fastStop(netKwh, props.fastPricePerKwh) : null
+function tripChargingCost(stops: number, plugKwh: number | null | undefined): string | null {
+  const stop = stops > 0 && props.fastPricePerKwh ? fastStop(plugKwh, props.fastPricePerKwh) : null
   return stop ? formatCurrency(stops * stop.eur, { decimals: 0 }) : null
 }
 
