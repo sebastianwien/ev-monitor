@@ -454,7 +454,7 @@ onUnmounted(() => unregisterReload?.())
             <StoryWinterOutlook v-if="outlook && !recapHero" :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :text="outlook" />
             <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
             <router-link v-if="autoSyncOffer" to="/imports" data-testid="story-empty-autosync"
-              class="flex items-start gap-3 rounded-xl bg-green-50 p-3.5 text-left edge-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-green-900/20"
+              class="flex items-start gap-3 rounded-xl bg-white p-3.5 text-left edge-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-700/50"
               @click="analytics.track('story_empty_autosync')">
               <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300" aria-hidden="true">
                 <ArrowPathIcon class="h-5 w-5" />

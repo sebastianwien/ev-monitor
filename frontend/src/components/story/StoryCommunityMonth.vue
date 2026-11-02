@@ -24,10 +24,11 @@ watch(key, k => { fetchCommunityMonth(k) }, { immediate: true })
 
 <template>
   <section v-if="lines.length" data-testid="story-community-month" class="pt-2">
-    <h2 class="flex items-center gap-3 text-center text-[18px] font-bold tracking-tight text-story-accent md:text-[20px] dark:text-story-accent-dark">
-      <span class="h-px flex-1 bg-edge" aria-hidden="true" />
+    <!-- Überschrift wie "Diesen Monat" (StoryFeed) -->
+    <h2 class="flex items-center gap-3 text-center text-[18px] font-bold tracking-tight text-gray-900 md:text-[20px] dark:text-gray-100">
+      <span class="h-0.5 flex-1 bg-gray-900 dark:bg-gray-100" aria-hidden="true" />
       <span class="text-balance">{{ t('story.community_month_title', { month: monthName }) }}</span>
-      <span class="h-px flex-1 bg-edge" aria-hidden="true" />
+      <span class="h-0.5 flex-1 bg-gray-900 dark:bg-gray-100" aria-hidden="true" />
     </h2>
     <ul class="mt-3 grid gap-2">
       <li v-for="line in lines" :key="line.key" data-testid="story-community-line" class="flex items-start gap-2.5 text-[15px] text-pretty text-gray-900 tabular-nums dark:text-gray-50">

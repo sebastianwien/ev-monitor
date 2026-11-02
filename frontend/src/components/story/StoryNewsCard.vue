@@ -60,7 +60,7 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
         </li>
       </ul>
     </section>
-    <p v-if="view.sub" class="text-pretty text-[14px] text-gray-600 tabular-nums dark:text-gray-300">{{ keepUnits(view.sub) }}</p>
+    <p v-if="view.sub" class="text-pretty text-[14px] text-gray-600 tabular-nums dark:text-gray-300">{{ keepUnits(view.sub) }}<template v-if="view.cheer">{{ ` ${view.cheer}` }}</template></p>
     <!-- Monatsrückblick: Platz und Modellvergleich als Zeilen mit Symbol, Pokal für den Platz, Blitz für den Verbrauch, Scheine für Euro -->
     <ul v-if="view.details?.length" class="grid gap-1.5" data-testid="story-news-details">
       <li v-for="d in view.details" :key="d.id" class="flex items-start gap-2 text-pretty text-[15px] font-semibold text-gray-900 tabular-nums dark:text-gray-50">

@@ -19,7 +19,7 @@ const props = defineProps<{ tile: StoryTile; selected?: boolean; /** Modell ohne
 const emit = defineEmits<{ open: [id: StoryTile['id']] }>()
 
 const { t } = useI18n()
-const { formatCurrency, formatConsumption, formatDistance, formatDecimal, consumptionUnitLabel, distanceUnitLabel, currencySymbol } = useLocaleFormat()
+const { formatCurrency, formatConsumption, formatDistance, formatDecimal, consumptionUnitLabel, distanceUnitLabel, currencyParts } = useLocaleFormat()
 
 const label = computed(() => t(`story.q_${props.tile.id}`))
 
@@ -51,8 +51,7 @@ const value = computed(() => {
 
 /** Symbol als kleine Einheit hinter der Zahl, ausser die Waehrung schreibt es davor (GBP). */
 function euroParts(v: number) {
-  const f = formatCurrency(v, { decimals: 0 })
-  return f.startsWith(currencySymbol.value) ? { n: f, unit: '' } : { n: f.replace(currencySymbol.value, '').trim(), unit: currencySymbol.value }
+  return currencyParts(v, { decimals: 0 })
 }
 
 /** Satz zur Strom-Kachel: Stand und Laden in kWh, Laden mit Tilde, sobald hochgerechnet. */

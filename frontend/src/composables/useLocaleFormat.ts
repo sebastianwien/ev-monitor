@@ -137,6 +137,13 @@ export function useLocaleFormat() {
         return `${formatted} ${unitSystem.value.currencySymbol}`
     }
 
+    /** Betrag und Symbol getrennt, für Kachelzahlen mit kleiner Einheit; schreibt die Währung das Symbol davor (GBP), bleibt es am Betrag. */
+    function currencyParts(eur: number, opts?: { decimals?: number }): { n: string; unit: string } {
+        const f = formatCurrency(eur, opts)
+        const symbol = unitSystem.value.currencySymbol
+        return f.startsWith(symbol) ? { n: f, unit: '' } : { n: f.replace(symbol, '').trim(), unit: symbol }
+    }
+
     /**
      * Format cost per kWh (EUR/kWh from backend) in user's currency.
      * Uses subunit where available: '32 ct/kWh', '28p/kWh', '3,68 kr/kWh'
@@ -249,6 +256,7 @@ export function useLocaleFormat() {
         currency,
         currencySymbol,
         formatCurrency,
+        currencyParts,
         formatCostPerKwh,
         formatCostPerDistance,
 

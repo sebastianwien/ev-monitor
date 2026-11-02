@@ -29,10 +29,13 @@ const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim(
 const all = (host: Element, id: string) => [...host.querySelectorAll(`[data-testid="${id}"]`)].map(el => [...el.children].map(text).join(' '))
 
 describe('StoryRecapHero', () => {
-  it('zeigt Satz mit Ersparnis in Euro und CO₂, darunter €/100 km, Energie und Ladungen, ohne Normal- und Schnellladen', () => {
+  it('zeigt Satz, darunter die Ersparnis in Euro und CO₂ als eigene Fläche, dann €/100 km, Energie und Ladungen, ohne Normal- und Schnellladen', () => {
     const host = mount(recap(facts))
     expect(text(host)).toContain('September: 512 km für 61 €.')
-    expect(text(host)).toContain('Gegenüber einem Verbrenner hast du 45 kg CO₂ und 6 € gespart. Klasse! 🎉')
+    const saving = host.querySelector('[data-testid="recap-saving"]')
+    expect(text(saving)).toBe('Gegenüber einem Verbrenner hast du 45 kg CO₂ und 6 € gespart. Klasse! 🎉')
+    expect([...saving!.querySelectorAll('strong')].map(text)).toEqual(['45 kg CO₂', '6 €', 'Klasse! 🎉'])
+    expect(saving!.nextElementSibling).toBe(host.querySelector('[data-testid="recap-fact"]')!.parentElement)
     expect(all(host, 'recap-fact')).toEqual(['11,91 € pro 100 km', '96 kWh Geladen', '9 Ladungen'])
     expect(text(host)).not.toMatch(/Normal \(AC\)|Schnell \(DC\)|Benziner/)
     expect(host.querySelector('[data-testid="recap-co2"]')).toBeNull()
@@ -60,6 +63,11 @@ describe('StoryRecapHero', () => {
     expect(text(host)).toContain('Gegenüber einem Verbrenner hast du 6 € gespart. Klasse! 🎉')
   })
 
+  it('ohne Ersparnis und ohne CO₂ keine leere Fläche', () => {
+    const host = mount({ ...recap({ ...facts, co2Kg: null }), savingEur: null } as Moment)
+    expect(host.querySelector('[data-testid="recap-saving"]')).toBeNull()
+  })
+
   it('ohne Ersparnis und ohne Strecke keine leeren Kacheln', () => {
     const host = mount({ ...recap(facts), savingEur: null, km: 0 } as Moment)
     expect(all(host, 'recap-fact')).toEqual(['96 kWh Geladen', '9 Ladungen'])
@@ -72,6 +80,6 @@ describe('StoryRecapHero', () => {
     app.use(createPinia()).use(i18n)
     app.mount(host)
     const factsList = host.querySelector('[data-testid="recap-fact"]')!.parentElement!
-    expect(factsList.nextElementSibling?.getAttribute('data-testid')).toBe('outlook')
+    expect(factsList.nextElementSibling?.querySelector('[data-testid="outlook"]')).not.toBeNull()
   })
 })

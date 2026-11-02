@@ -15,6 +15,8 @@ export interface MomentView {
   eyebrow: string
   sentence: string
   sub?: string
+  /** Jubel hinter dem Ersparnis-Satz des Rückblicks ("Klasse! 🎉"); der Kopf setzt ihn fett. */
+  cheer?: string
   badge?: string
   action?: MomentAction
   secondary?: MomentAction
@@ -101,10 +103,12 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
           // Nur der günstigere Monat: "teurer als andere" ohne Weg zum Günstigeren hilft niemandem.
           details.push({ id: 'cost', text: t('story.moment_month_peer_cheaper', { eur: eur(Math.abs(m.peer.diffEur)), month }) })
         }
+        const saving = monthSaving(m.savingEur, m.facts?.co2Kg ?? null)
         return {
           eyebrow: t('story.moment_month_eyebrow'),
           sentence: t(`story.hero_${line.kind}`, { month, km: line.km != null ? km(line.km) : '', eur: line.eur != null ? eur(line.eur) : '', n: m.charges }, m.charges),
-          sub: monthSaving(m.savingEur, m.facts?.co2Kg ?? null),
+          sub: saving,
+          cheer: saving ? t('story.moment_month_cheer') : undefined,
           details: details.length ? details : undefined,
           // Der Vormonat steht mit allen Kacheln und Insights eine Seite zurück. Teilen ruht vorerst.
           action: { id: 'prev_month', label: t('story.moment_month_view', { month }) },
