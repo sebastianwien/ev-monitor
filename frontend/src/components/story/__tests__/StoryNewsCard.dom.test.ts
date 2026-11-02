@@ -58,6 +58,8 @@ describe('StoryNewsCard', () => {
     expect(text(host)).toContain('September: 512 km für 61 €.')
     expect(host.querySelector('[data-testid="story-news-details"]')).toBeNull()
     expect(text(host)).toContain('Gegenüber einem Verbrenner: 6 € gespart.')
+    const withCo2 = mount({ ...base, kind: 'month_change', key: 'mc', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: 6.4, places: [], peer: null, facts: { kwh: 96, co2Kg: 45.4 } })
+    expect(text(withCo2)).toContain('Gegenüber einem Verbrenner: 6 € und 45 kg CO₂ gespart.')
     expect(host.querySelector('.bg-green-600')).toBeNull()
     expect(text(host.querySelector('button.text-green-700'))).toBe('September ansehen')
     expect(text(host)).not.toContain('teilen')

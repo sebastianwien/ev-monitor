@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { TrophyIcon, BoltIcon, BanknotesIcon, SparklesIcon } from '@heroicons/vue/24/outline'
+import { TrophyIcon, BoltIcon, BanknotesIcon } from '@heroicons/vue/24/outline'
 import type { Moment } from '../../composables/storyMoments'
 import { useMomentView } from '../../composables/useMomentView'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
@@ -11,7 +11,7 @@ import BoldNumbers from './BoldNumbers.vue'
 /**
  * Monatsrückblick als Kopf der Seite, solange der laufende Monat leer ist: Satz und Ersparnis wie die
  * Karte, darunter Kosten pro 100 km, Energie und Ladungen, der Ausblick auf den laufenden Monat (Slot),
- * das gesparte CO₂, Platz und Modellvergleich. Die Ersparnis steht nur im Satz, nicht noch einmal als
+ * Platz und Modellvergleich. Die Ersparnis (Euro und CO₂) steht nur im Satz, nicht noch einmal als
  * Zahl; Normal- gegen Schnellladen steht in der Strom-Kachel des Vormonats. Die ganze Karte öffnet den Vormonat.
  */
 const props = defineProps<{ moment: Moment; carId: string | null; carName: string }>()
@@ -33,8 +33,6 @@ const kpis = computed(() => {
     { id: 'charges', value: String(m.charges), label: t('story.recap_charges', m.charges) },
   ].filter((x): x is { id: string; value: string; label: string } => x != null)
 })
-
-const co2 = computed(() => facts.value?.co2Kg != null ? t('story.recap_co2', { kg: `${formatDecimal(facts.value.co2Kg, 0)} kg` }) : null)
 
 /** Die ganze Karte führt in den Vormonat, wie der Pfeil im Monatswähler. */
 function open() {
@@ -65,11 +63,7 @@ function open() {
 
     <slot name="outlook" />
 
-    <ul v-if="co2 || view.details?.length" class="grid gap-1.5">
-      <li v-if="co2" data-testid="recap-co2" class="flex items-start gap-2 text-pretty text-[15px] text-gray-900 tabular-nums dark:text-gray-50">
-        <SparklesIcon class="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
-        <BoldNumbers :text="co2" />
-      </li>
+    <ul v-if="view.details?.length" class="grid gap-1.5">
       <li v-for="d in view.details" :key="d.id" class="flex items-start gap-2 text-pretty text-[15px] text-gray-900 tabular-nums dark:text-gray-50">
         <component :is="d.id === 'rank' ? TrophyIcon : d.id === 'cost' ? BanknotesIcon : BoltIcon" class="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
         <BoldNumbers :text="keepUnits(d.text)" />

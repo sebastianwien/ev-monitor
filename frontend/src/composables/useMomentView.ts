@@ -52,6 +52,14 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
   const dayForecast = (f: DayForecast) => `${t(`story.weather_${f.kind}`)}, ${tempRange(f)}`
   const shortDate = (at: number) => new Date(at).toLocaleDateString(locale.value, { day: 'numeric', month: 'numeric' })
 
+  /** Ersparnis gegenüber dem Verbrenner in einem Satz: Euro und CO₂, je nur ab einer ganzen Einheit. */
+  function monthSaving(savingEur: number | null, co2Kg: number | null): string | undefined {
+    const kg = co2Kg != null && Math.round(co2Kg) >= 1 ? `${formatDecimal(co2Kg, 0)} kg` : null
+    if (savingEur != null && kg) return t('story.moment_month_saving_co2', { eur: eur(savingEur), kg })
+    if (savingEur != null) return t('story.moment_month_saving', { eur: eur(savingEur) })
+    return kg ? t('story.moment_month_co2', { kg }) : undefined
+  }
+
   return computed<MomentView>(() => {
     const m = props.moment
     switch (m.kind) {
@@ -96,7 +104,7 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
         return {
           eyebrow: t('story.moment_month_eyebrow'),
           sentence: t(`story.hero_${line.kind}`, { month, km: line.km != null ? km(line.km) : '', eur: line.eur != null ? eur(line.eur) : '', n: m.charges }, m.charges),
-          sub: m.savingEur != null ? t('story.moment_month_saving', { eur: eur(m.savingEur) }) : undefined,
+          sub: monthSaving(m.savingEur, m.facts?.co2Kg ?? null),
           details: details.length ? details : undefined,
           // Der Vormonat steht mit allen Kacheln und Insights eine Seite zurück. Teilen ruht vorerst.
           action: { id: 'prev_month', label: t('story.moment_month_view', { month }) },
