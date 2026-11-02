@@ -1,6 +1,6 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useLocaleFormat } from './useLocaleFormat'
+import { useLocaleFormat, RANGE_STEP } from './useLocaleFormat'
 import { convertCostPerDistance } from '../utils/unitConversions'
 import type { RankedModel } from './useModelRanking'
 import type { FuelKind } from '../utils/costMix'
@@ -11,9 +11,6 @@ import { chargeRhythmText, type RhythmFormat } from '../utils/chargeRhythm'
 export interface RankedModelAnswer { key: string; label: string; value: string; sub: string[] }
 /** One line of "Was die Fahrer messen": label and value */
 export interface RankedModelFact { key: string; label: string; value: string }
-
-/** Ranges read as rough figures: whole tens, in the display unit */
-const RANGE_STEP = 10
 
 /**
  * Wording a ranked model shares between its row and its open detail: range span, trip, fuel,

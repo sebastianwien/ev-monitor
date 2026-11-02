@@ -33,17 +33,17 @@ const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim(
 const q = (host: Element, id: string) => host.querySelector(`[data-testid="${id}"]`)
 
 describe('StoryWinterOutlook', () => {
-  it('zeigt die Reichweite als zwei beschriftete Balken, Sommer als Bezug', () => {
+  it('zeigt die Reichweite als zwei beschriftete Balken, Sommer als Bezug, auf 10 km abgerundet', () => {
     const host = mount({ range })
     const bars = [...host.querySelectorAll<HTMLElement>('[data-bar]')]
     expect(bars.map(b => b.dataset.bar)).toEqual(['summer', 'winter'])
     expect(bars[0].style.width).toBe('100%')
     expect(parseFloat(bars[1].style.width)).toBeCloseTo(79.2, 1)
     const grid = host.querySelector('[data-testid="outlook-range"] [aria-hidden="true"]')!
-    expect([...grid.children].map(text)).toEqual(['Sommer', '', '~351 km', 'Winter', '', '~278 km'])
+    expect([...grid.children].map(text)).toEqual(['Sommer', '', '~350 km', 'Winter', '', '~270 km'])
     expect(text(host.querySelector('[data-testid="outlook-range"] h3'))).toBe('Reichweite mit einer Akkuladung')
     // Vorleser bekommen den Satz statt der Balken
-    expect(host.querySelector('[data-testid="outlook-range"] .sr-only')?.textContent).toBe('Im Winter kommst du mit einer Akkuladung etwa 278 km weit, im Sommer 351 km.')
+    expect(host.querySelector('[data-testid="outlook-range"] .sr-only')?.textContent).toBe('Im Winter kommst du mit einer Akkuladung etwa 270 km weit, im Sommer 350 km.')
     expect(q(host, 'outlook-week')).toBeNull()
   })
 

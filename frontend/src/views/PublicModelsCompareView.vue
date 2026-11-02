@@ -113,7 +113,7 @@ import { useAuthStore } from '../stores/auth'
 import { useMarketRoute, getMarketBasePath } from '../composables/useMarketRoute'
 import { useModelRanking, MAX_COMPARE, type RankedModel } from '../composables/useModelRanking'
 import { useRankedModelText } from '../composables/useRankedModelText'
-import { useLocaleFormat } from '../composables/useLocaleFormat'
+import { useLocaleFormat, RANGE_STEP } from '../composables/useLocaleFormat'
 import { officialModelThumbUrl } from '../config/modelImages'
 import { combustionAllowed } from '../utils/costMix'
 import { buildLadderAxis, barLength } from '../utils/ladderScale'
@@ -254,7 +254,7 @@ const summaryText = computed(() => {
   // with two models the other one is obvious, with three it is named
   const than = items.value.length > 2
   const lean = s.lean ? { a: s.lean.winner, b: s.lean.other, pct: formatNumber(s.lean.pct) } : null
-  const winter = s.winter ? { a: s.winter.winner, b: s.winter.other, km: formatDistance(s.winter.km, { step: 10 }) } : null
+  const winter = s.winter ? { a: s.winter.winner, b: s.winter.other, km: formatDistance(s.winter.km, { step: RANGE_STEP }) } : null
   if (lean && winter && lean.a === winter.a && (!than || lean.b === winter.b)) {
     return t(than ? 'compare.summary_both_than' : 'compare.summary_both', { ...lean, km: winter.km }) + '.'
   }

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import BoldNumbers from './BoldNumbers.vue'
 import WeatherIcon from '../icons/WeatherIcon.vue'
 import { keepUnits } from '../../utils/modelStory'
-import { useLocaleFormat } from '../../composables/useLocaleFormat'
+import { useLocaleFormat, RANGE_STEP } from '../../composables/useLocaleFormat'
 import type { OutlookDay } from '../../composables/storyMoments'
 
 /**
@@ -29,10 +29,10 @@ const bars = computed(() => {
   return [
     { id: 'summer', label: t('story.range_season_summer'), km: r.summerKm, tone: 'bg-gray-300 dark:bg-gray-500' },
     { id: 'winter', label: t('story.range_season_winter'), km: r.winterKm, tone: 'bg-gray-900 dark:bg-gray-100' },
-  ].map(b => ({ ...b, n: formatDistance(b.km, { showUnit: false }), pct: max > 0 ? (b.km / max) * 100 : 0 }))
+  ].map(b => ({ ...b, n: formatDistance(b.km, { showUnit: false, step: RANGE_STEP }), pct: max > 0 ? (b.km / max) * 100 : 0 }))
 })
 const rangeSentence = computed(() => props.range
-  ? t('story.outlook_winter', { winter: formatDistance(props.range.winterKm), summer: formatDistance(props.range.summerKm) })
+  ? t('story.outlook_winter', { winter: formatDistance(props.range.winterKm, { step: RANGE_STEP }), summer: formatDistance(props.range.summerKm, { step: RANGE_STEP }) })
   : '')
 
 const weekday = computed(() => new Intl.DateTimeFormat(locale.value, { weekday: 'short' }))

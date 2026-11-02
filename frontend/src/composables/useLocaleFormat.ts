@@ -16,6 +16,9 @@ import {
 // Existing: Number Formatting (unchanged API)
 // ────────────────────────────────────────────────────────────────
 
+/** Reichweiten als grobe Angabe: volle Zehner in der Anzeige-Einheit, abgerundet (`formatDistance` mit `step`) */
+export const RANGE_STEP = 10
+
 export function useLocaleFormat() {
     const { locale } = useI18n()
     const countryStore = useCountryStore()
