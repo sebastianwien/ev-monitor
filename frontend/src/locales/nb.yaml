@@ -2027,7 +2027,7 @@ imports:
   live_promo_subtitle: "AutoSync Live for kun 1 € mer i måneden"
   live_promo_feature_trip: "<strong>Trip-Tracking:</strong> turer logges automatisk"
   live_promo_feature_drain: "<strong>Phantom-Drain:</strong> oppdage skjult SoC-tap"
-  live_promo_cta: "Oppgrader til Live - 4,90 €/måned"
+  live_promo_cta: "Oppgrader til Live - 6,90 €/måned"
   live_promo_proration_hint: "Forholdsmessig fakturering, ingen ny prøveperiode"
   smartcar_teaser_title: Automatiske ladeøkter – alle merker
   smartcar_coming_soon: Kommer snart
@@ -2810,11 +2810,11 @@ upgrade:
   plan_yearly: Årlig
   plan_yearly_badge: 2 måneder gratis
   plan_after_trial: "Velg abonnement etter prøveperioden:"
-  price_monthly: 3,90 euro
+  price_monthly: 4,90 euro
   price_monthly_unit: /måned
-  price_yearly: 39 euro
+  price_yearly: 49 euro
   price_yearly_unit: /år
-  price_yearly_savings: Ca. 3,25 €/måned – 2 måneder gratis
+  price_yearly_savings: Ca. 4,08 €/måned – 2 måneder gratis
   trial_days: Prøv gratis i 7 dager
   trial_hint_monthly: "{priceMonthly}/måned – kan sies opp når som helst"
   trial_hint_yearly: "{priceYearly}/år – kan sies opp når som helst"
@@ -2842,8 +2842,8 @@ upgrade:
   live_title: AutoSync Live
   live_subtitle: "Få mer ut av Teslaen din"
   live_for_tesla_badge: "For Tesla"
-  live_price_monthly: "4,90 €"
-  live_price_yearly: "49 €"
+  live_price_monthly: "6,90 €"
+  live_price_yearly: "69 €"
   live_price_yearly_savings: "≈ 4,08 €/måned - 2 måneder gratis"
   live_features_intro: "Alt fra AutoSync, pluss:"
   live_feature_trip: "Trip-Tracking via Tesla Live-Stream"

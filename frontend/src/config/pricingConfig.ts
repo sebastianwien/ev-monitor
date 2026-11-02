@@ -19,19 +19,19 @@ export interface PricingInfo {
 }
 
 const PRICING: Record<string, PricingInfo> = {
-  DE: { monthly: '3,90 €', yearly: '39 €', yearlyMonthly: '3,25 €', yearlySavings: '2 Monate gratis', currency: 'EUR', liveMonthly: '4,90 €', liveYearly: '49 €', supporterMonthly: '1,99 €', supporterYearly: '19 €' },
-  AT: { monthly: '3,90 €', yearly: '39 €', yearlyMonthly: '3,25 €', yearlySavings: '2 Monate gratis', currency: 'EUR', liveMonthly: '4,90 €', liveYearly: '49 €', supporterMonthly: '1,99 €', supporterYearly: '19 €' },
-  CH: { monthly: '3,90 €', yearly: '39 €', yearlyMonthly: '3,25 €', yearlySavings: '2 months free', currency: 'EUR', liveMonthly: '4,90 €', liveYearly: '49 €', supporterMonthly: '1,99 €', supporterYearly: '19 €' },
-  US: { monthly: '$5.49', yearly: '$54', yearlyMonthly: '$4.50', yearlySavings: '2 months free', currency: 'USD', liveMonthly: '€4.90', liveYearly: '€49', supporterMonthly: '$2.49', supporterYearly: '$24' },
-  GB: { monthly: '£4.49', yearly: '£44', yearlyMonthly: '£3.67', yearlySavings: '2 months free', currency: 'GBP', liveMonthly: '€4.90', liveYearly: '€49', supporterMonthly: '£1.99', supporterYearly: '£19' },
-  NO: { monthly: '69 kr', yearly: '690 kr', yearlyMonthly: '57,50 kr', yearlySavings: '2 måneder gratis', currency: 'NOK', liveMonthly: '4,90 €', liveYearly: '49 €', supporterMonthly: '29 kr', supporterYearly: '290 kr' },
-  SE: { monthly: '59 kr', yearly: '590 kr', yearlyMonthly: '49,17 kr', yearlySavings: '2 månader gratis', currency: 'SEK', liveMonthly: '4,90 €', liveYearly: '49 €', supporterMonthly: '29 kr', supporterYearly: '290 kr' },
-  DK: { monthly: '39 kr', yearly: '390 kr', yearlyMonthly: '32,50 kr', yearlySavings: '2 months free', currency: 'DKK', liveMonthly: '4,90 €', liveYearly: '49 €', supporterMonthly: '19 kr', supporterYearly: '190 kr' },
+  DE: { monthly: '4,90 €', yearly: '49 €', yearlyMonthly: '4,08 €', yearlySavings: '2 Monate gratis', currency: 'EUR', liveMonthly: '6,90 €', liveYearly: '69 €', supporterMonthly: '1,99 €', supporterYearly: '19 €' },
+  AT: { monthly: '4,90 €', yearly: '49 €', yearlyMonthly: '4,08 €', yearlySavings: '2 Monate gratis', currency: 'EUR', liveMonthly: '6,90 €', liveYearly: '69 €', supporterMonthly: '1,99 €', supporterYearly: '19 €' },
+  CH: { monthly: '4,90 €', yearly: '49 €', yearlyMonthly: '4,08 €', yearlySavings: '2 months free', currency: 'EUR', liveMonthly: '6,90 €', liveYearly: '69 €', supporterMonthly: '1,99 €', supporterYearly: '19 €' },
+  US: { monthly: '$5.49', yearly: '$54', yearlyMonthly: '$4.50', yearlySavings: '2 months free', currency: 'USD', liveMonthly: '€6.90', liveYearly: '€69', supporterMonthly: '$2.49', supporterYearly: '$24' },
+  GB: { monthly: '£4.49', yearly: '£44', yearlyMonthly: '£3.67', yearlySavings: '2 months free', currency: 'GBP', liveMonthly: '€6.90', liveYearly: '€69', supporterMonthly: '£1.99', supporterYearly: '£19' },
+  NO: { monthly: '69 kr', yearly: '690 kr', yearlyMonthly: '57,50 kr', yearlySavings: '2 måneder gratis', currency: 'NOK', liveMonthly: '6,90 €', liveYearly: '69 €', supporterMonthly: '29 kr', supporterYearly: '290 kr' },
+  SE: { monthly: '59 kr', yearly: '590 kr', yearlyMonthly: '49,17 kr', yearlySavings: '2 månader gratis', currency: 'SEK', liveMonthly: '6,90 €', liveYearly: '69 €', supporterMonthly: '29 kr', supporterYearly: '290 kr' },
+  DK: { monthly: '39 kr', yearly: '390 kr', yearlyMonthly: '32,50 kr', yearlySavings: '2 months free', currency: 'DKK', liveMonthly: '6,90 €', liveYearly: '69 €', supporterMonthly: '19 kr', supporterYearly: '190 kr' },
 }
 
 const DEFAULT_PRICING: PricingInfo = {
   monthly: '€4.90', yearly: '€49', yearlyMonthly: '€4.08', yearlySavings: '2 months free', currency: 'EUR',
-  liveMonthly: '€4.90', liveYearly: '€49',
+  liveMonthly: '€6.90', liveYearly: '€69',
   supporterMonthly: '€1.99', supporterYearly: '€19',
 }
 
