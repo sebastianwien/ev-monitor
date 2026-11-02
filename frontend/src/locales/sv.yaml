@@ -1638,7 +1638,6 @@ cars:
   hero_menu_aria: Mer om det här fordonet
   shared_badge: Delad
   hero_rated_aria: "Betygsatt, redigera ditt betyg"
-  hero_stat_soh: "Batterihälsa"
   hero_shared_aria: "Delad, öppna delningsinställningar"
   switcher_label: Välj fordon
   menu_activate_hint: Förvald vid registrering

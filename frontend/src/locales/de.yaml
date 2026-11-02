@@ -1684,7 +1684,6 @@ cars:
   hero_menu_aria: "Mehr zu diesem Fahrzeug"
   shared_badge: "Geteilt"
   hero_rated_aria: "Bewertet, eigene Bewertung bearbeiten"
-  hero_stat_soh: "Akkuzustand"
   hero_shared_aria: "Geteilt, Teilen-Einstellungen öffnen"
   switcher_label: "Fahrzeug wählen"
   menu_activate_hint: "Wird beim Erfassen vorausgewählt"
