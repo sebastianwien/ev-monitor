@@ -58,4 +58,76 @@ describe('useTabPager', () => {
     expect(pager.dragging.value).toBe(false)
     expect(pager.dragX.value).toBe(0)
   })
+
+  // Regression: beim Loslassen sprang der Track auf 0 zurück, während der Router noch prüfte, und lief
+  // erst danach zum Nachbarn: ein kurzes Zurückfedern, dann der Wechsel.
+  it('hält den Track an der Fingerposition, bis die Route gewechselt hat, und läuft dann mit dem Fingertempo weiter', async () => {
+    const { ref, nextTick } = await import('vue')
+    const { useTabPager } = await import('../useTabPager')
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    // Handybreite: 200 px gewischt, 190 px Restweg
+    host.getBoundingClientRect = () => ({ width: 390 }) as DOMRect
+    const target = ref<HTMLElement | null>(host)
+    const index = ref(0)
+    let resolveNav: () => void = () => {}
+    const pager = useTabPager(target, index, ref(CONTEXT_TABS), () => new Promise<void>(r => { resolveNav = r }))
+    await nextTick()
+    const touch = (type: string, x: number, t: number) => {
+      const e = new Event(type, { bubbles: true, cancelable: true }) as unknown as TouchEvent
+      Object.defineProperty(e, 'touches', { value: type === 'touchend' ? [] : [{ clientX: x, clientY: 100 }] })
+      Object.defineProperty(e, 'timeStamp', { value: t })
+      host.dispatchEvent(e)
+    }
+    touch('touchstart', 300, 0)
+    touch('touchmove', 250, 16)
+    touch('touchmove', 100, 48)
+    touch('touchend', 100, 56)
+    expect(pager.dragging.value).toBe(false)
+    expect(pager.held.value).toBe(true)
+    expect(pager.dragX.value).toBe(-200)
+    index.value = 1
+    await nextTick()
+    expect(pager.dragX.value).toBe(0)
+    expect(pager.held.value).toBe(false)
+    // 150 px in 32 ms: schneller Wisch, kürzer als ohne Schwung
+    expect(pager.releaseMs.value).toBeLessThan(320)
+    resolveNav()
+  })
+
+  async function swipeLeft(navigate: (to: string) => unknown, index = { value: 0 } as { value: number }) {
+    const { ref, nextTick } = await import('vue')
+    const { useTabPager } = await import('../useTabPager')
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    const indexRef = ref(index.value)
+    const pager = useTabPager(ref<HTMLElement | null>(host), indexRef, ref(CONTEXT_TABS), navigate)
+    await nextTick()
+    const touch = (type: string, x: number) => {
+      const e = new Event(type, { bubbles: true, cancelable: true }) as unknown as TouchEvent
+      Object.defineProperty(e, 'touches', { value: type === 'touchend' ? [] : [{ clientX: x, clientY: 100 }] })
+      host.dispatchEvent(e)
+    }
+    touch('touchstart', 300)
+    touch('touchmove', 100)
+    touch('touchend', 100)
+    return { pager, indexRef }
+  }
+
+  it('springt zurück, wenn die Navigation scheitert (Guard, Abbruch)', async () => {
+    const { pager } = await swipeLeft(() => Promise.resolve(new Error('navigation aborted')))
+    await new Promise(r => setTimeout(r))
+    expect(pager.held.value).toBe(false)
+    expect(pager.dragX.value).toBe(0)
+  })
+
+  it('hält weiter, wenn die Navigation fertig ist, bevor der Tab-Index nachzieht', async () => {
+    const { pager, indexRef } = await swipeLeft(() => Promise.resolve(undefined))
+    await new Promise(r => setTimeout(r))
+    expect(pager.held.value).toBe(true)
+    expect(pager.dragX.value).toBe(-200)
+    indexRef.value = 1
+    expect(pager.held.value).toBe(false)
+    expect(pager.dragX.value).toBe(0)
+  })
 })

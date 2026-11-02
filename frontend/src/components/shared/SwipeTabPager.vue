@@ -3,6 +3,7 @@ import { computed, ref, watch, nextTick, onUnmounted, onActivated, onDeactivated
 import { useRouter } from 'vue-router'
 import { useTabPager } from '../../composables/useTabPager'
 import { useIsMobile } from '../../composables/useIsMobile'
+import { RELEASE_EASE } from '../../composables/releaseMotion'
 
 /**
  * Horizontaler Pager fuer zwei verwandte Ansichten (Dashboard/Log-Feed, Fahrzeuge/Ladekarten).
@@ -28,7 +29,7 @@ const isMobile = useIsMobile()
 
 const activeIndex = toRef(props, 'activeIndex')
 const pagerEl = ref<HTMLElement | null>(null)
-const { dragX, dragging } = useTabPager(
+const { dragX, dragging, held, releaseMs } = useTabPager(
   pagerEl,
   activeIndex,
   toRef(props, 'tabs'),
@@ -36,10 +37,13 @@ const { dragX, dragging } = useTabPager(
 )
 
 // Track ist 200% breit (zwei Panes je 100% Viewport). Ein Pane-Wechsel = 50% des
-// Tracks. dragX (px) kommt vom Finger obendrauf.
+// Tracks. dragX (px) kommt vom Finger obendrauf. Nach einem Wisch läuft der Track mit dem
+// Fingertempo weiter (releaseMs), nach einem Tab-Klick mit der Standarddauer.
 const trackStyle = computed(() => ({
   transform: `translateX(calc(-${activeIndex.value * 50}% + ${dragX.value}px))`,
-  transition: dragging.value ? 'none' : 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
+  transition: dragging.value || held.value ? 'none'
+    : releaseMs.value != null ? `transform ${releaseMs.value}ms ${RELEASE_EASE}`
+    : 'transform 0.28s cubic-bezier(0.32, 0.72, 0, 1)',
 }))
 
 // Die Tabs sind unterschiedlich hoch. Im Ruhezustand klappt der inaktive Pane
@@ -72,16 +76,18 @@ watch(dragging, (on) => {
     const next: [number, number] = [0, 0]
     next[neighbour] = window.scrollY - saved[neighbour]
     offsets.value = next
-  } else if (!transitioning.value) {
+  } else if (!transitioning.value && !held.value) {
     offsets.value = [0, 0]
   }
 })
+// Losgelassen, aber die Route hat nicht gewechselt: zurück in Ruhe
+watch(held, (on) => { if (!on && !dragging.value && !transitioning.value) offsets.value = [0, 0] })
 
 watch(activeIndex, (to, from) => {
   slideName.value = to > from ? 'nudge-left' : 'nudge-right'
   transitioning.value = true
   clearTimeout(transTimer)
-  transTimer = setTimeout(() => { transitioning.value = false; offsets.value = [0, 0] }, 320)
+  transTimer = setTimeout(() => { transitioning.value = false; offsets.value = [0, 0] }, Math.max(320, (releaseMs.value ?? 0) + 40))
   if (!active) return
   const y = window.scrollY
   saved[from] = y
@@ -95,7 +101,7 @@ watch(activeIndex, (to, from) => {
   void nextTick(() => window.scrollTo(0, target))
 })
 onUnmounted(() => clearTimeout(transTimer))
-const bothExpanded = computed(() => dragging.value || transitioning.value)
+const bothExpanded = computed(() => dragging.value || held.value || transitioning.value)
 const paneCollapsed = (i: number) => !bothExpanded.value && i !== activeIndex.value
 </script>
 

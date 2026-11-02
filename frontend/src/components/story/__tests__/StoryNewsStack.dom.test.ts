@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeEach } from 'vitest'
-import { createApp, nextTick, type App } from 'vue'
+import { createApp, defineComponent, h, nextTick, ref, type App } from 'vue'
 import { createPinia } from 'pinia'
 import { i18n } from '../../../i18n'
 import StoryNewsStack from '../StoryNewsStack.vue'
+import { RELEASE_MAX_MS } from '../../../composables/releaseMotion'
 import type { Moment, MomentSeen, ScoredMoment } from '../../../composables/storyMoments'
 
 let app: App | null = null
@@ -39,8 +40,8 @@ const q = (sel: string) => document.querySelector<HTMLElement>(sel)
 const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
 /** Transition-Leave in jsdom: ein Frame, bis das Element weg ist. */
 const settle = () => new Promise(r => setTimeout(r, 80))
-/** Wegfliegen der Karte abwarten (200 ms). */
-const flown = () => new Promise(r => setTimeout(r, 260))
+/** Wegfliegen der Karte abwarten (höchstens RELEASE_MAX_MS). */
+const flown = () => new Promise(r => setTimeout(r, RELEASE_MAX_MS + 40))
 /** Finger-Zug als Pointer Events; jsdom kennt kein PointerEvent, Vue hört nur auf den Typ. */
 function drag(el: Element, path: [number, number][]) {
   const fire = (type: string, [x, y]: [number, number]) => {
@@ -105,6 +106,43 @@ describe('StoryNewsStack', () => {
     drag(stack, [[100, 300], [130, 302], [320, 305]])
     await flown()
     expect(events.filter(e => e[0] === 'dismiss')).toEqual([['dismiss', 'first_frost']])
+  })
+
+  it('die Karte bleibt beim Wischen voll sichtbar; beim Loslassen liegt die nächste sofort bereit, die alte fliegt darüber hinaus', async () => {
+    // Wie die Übersicht: erledigt nimmt die Karte sofort aus der Liste
+    const cards = ref(scored(frost, silence))
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    app = createApp(defineComponent({
+      render: () => h(StoryNewsStack, {
+        cards: cards.value, carId: 'c1', carName: 'Tesla Model 3', seen: NONE,
+        onDismiss: (m: Moment) => { cards.value = cards.value.filter(c => c.moment.key !== m.key) },
+      }),
+    }))
+    app.component('router-link', RouterLink)
+    app.use(createPinia()).use(i18n)
+    app.mount(host)
+    await nextTick()
+    const stack = q('[data-testid="story-news-drag"]')!
+    const fire = (type: string, x: number) => {
+      const e = new MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: 300, button: 0 })
+      Object.defineProperties(e, { isPrimary: { value: true }, pointerId: { value: 1 } })
+      stack.dispatchEvent(e)
+    }
+    fire('pointerdown', 100); fire('pointermove', 130); fire('pointermove', 220)
+    await nextTick()
+    const card = q('[data-testid="story-news-first_frost"]')!.closest<HTMLElement>('.rounded-t-2xl')!
+    expect(card.style.opacity).toBe('')
+    fire('pointerup', 320)
+    await nextTick()
+    // Die nächste Karte steht schon vorn, die alte fliegt als Bild darüber hinaus
+    const ghost = q('[data-testid="story-news-leaving"]')!
+    expect(ghost.getAttribute('aria-hidden')).toBe('true')
+    expect(text(ghost)).toContain('Es wird kalt')
+    expect(stack.querySelector(':scope > [data-testid="story-news-card"] [data-testid="story-news-silence"]')).not.toBeNull()
+    await flown()
+    await nextTick()
+    expect(q('[data-testid="story-news-leaving"]')).toBeNull()
   })
 
   it('nach unten ziehen klappt zum Reiter ein', async () => {

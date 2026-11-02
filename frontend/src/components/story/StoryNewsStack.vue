@@ -76,17 +76,29 @@ function expand() {
 }
 function showList() { mode.value = 'list'; emit('list') }
 function dismiss(m: Moment) { emit('dismiss', m) }
+/** Abbild der Karte, die gerade hinausfliegt, während die nächste schon vorn liegt (ohne Test-IDs, inert). */
+const leavingEl = ref<HTMLElement | null>(null)
+let leavingClone: HTMLElement | null = null
 function dismissTop() {
   if (!current.value) return
   rising.value = true
+  leavingClone = null
+  if (swipe.leaving.value && cardEl.value) {
+    leavingClone = cardEl.value.cloneNode(true) as HTMLElement
+    leavingClone.removeAttribute('style')
+    for (const el of [leavingClone, ...leavingClone.querySelectorAll('[data-testid]')]) el.removeAttribute('data-testid')
+  }
   dismiss(current.value)
 }
+watch(leavingEl, (el) => { if (el && leavingClone) el.replaceChildren(leavingClone) })
 const cardEl = ref<HTMLElement | null>(null)
 const swipe = useCardSwipe({
   axes: () => ({ x: mode.value === 'stack', y: true }),
   card: () => cardEl.value,
   dismiss: dismissTop,
   collapse,
+  // Liegt noch eine Karte dahinter, rückt sie sofort nach; bei der letzten fliegt die Karte selbst
+  overlap: () => mode.value === 'stack' && count.value > 1,
 })
 function dismissAll() { for (const c of [...props.cards]) emit('dismiss', c.moment) }
 function onKey(e: KeyboardEvent) { if (e.key === 'Escape') collapse() }
@@ -103,14 +115,14 @@ const panel = 'relative mx-auto w-full max-w-lg rounded-t-2xl border-2 border-b-
       <div v-if="open" class="fixed inset-0 z-[55] touch-none bg-black/30" data-no-swipe data-testid="story-news-backdrop" @click="collapse" />
     </Transition>
     <Transition name="story-news">
-      <section v-if="open" class="fixed inset-x-0 bottom-0 z-[60]" role="region" :aria-label="t('story.news_region')" aria-live="polite" data-no-swipe data-testid="story-news">
-        <div class="touch-none select-none" :style="swipe.stackStyle.value" data-testid="story-news-drag"
+      <section v-if="open" class="fixed inset-x-0 bottom-0 z-[60]" :style="{ '--news-leave-ms': `${swipe.leaveMs.value}ms` }" role="region" :aria-label="t('story.news_region')" aria-live="polite" data-no-swipe data-testid="story-news">
+        <div class="relative touch-none select-none" :style="swipe.stackStyle.value" data-testid="story-news-drag"
              v-on="swipe.handlers" @click.capture="swipe.onClickCapture">
           <!-- Die nächsten Karten schauen oben heraus, die hintere schmaler -->
           <div v-for="i in peeks" :key="i" data-testid="story-news-peek" aria-hidden="true"
                class="mx-auto h-2.5 rounded-t-2xl border-2 border-b-0 border-gray-900 bg-gray-100 dark:border-white/20 dark:bg-gray-800"
                :class="i === peeks ? 'w-[calc(100%-2rem)] max-w-[calc(32rem-2rem)]' : 'w-[calc(100%-4rem)] max-w-[calc(32rem-4rem)]'" />
-          <div :key="mode === 'stack' ? current?.key : 'list'" ref="cardEl" :class="[panel, mode === 'stack' && rising && 'story-news-rise']"
+          <div :key="mode === 'stack' ? current?.key : 'list'" ref="cardEl" data-testid="story-news-card" :class="[panel, mode === 'stack' && rising && 'story-news-rise']"
                :style="mode === 'stack' ? swipe.cardStyle.value : undefined">
             <div class="mx-auto mb-2 h-1 w-10 rounded-full bg-gray-300 dark:bg-gray-600" aria-hidden="true" />
             <template v-if="mode === 'stack' && current">
@@ -132,6 +144,9 @@ const panel = 'relative mx-auto w-full max-w-lg rounded-t-2xl border-2 border-b-
               </div>
             </template>
           </div>
+          <!-- Die erledigte Karte fliegt über der nachgerückten hinaus -->
+          <div v-if="swipe.leaving.value" ref="leavingEl" class="pointer-events-none absolute inset-x-0 bottom-0"
+               :style="swipe.leavingStyle.value" aria-hidden="true" inert data-testid="story-news-leaving" />
         </div>
       </section>
     </Transition>
@@ -149,7 +164,9 @@ const panel = 'relative mx-auto w-full max-w-lg rounded-t-2xl border-2 border-b-
 </template>
 
 <style scoped>
-.story-news-enter-active, .story-news-leave-active { transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1); }
+.story-news-enter-active { transition: transform 260ms cubic-bezier(0.32, 0.72, 0, 1); }
+/* Nach einem Zug nach unten fährt der Stapel mit dem Tempo des Fingers hinaus (--news-leave-ms) */
+.story-news-leave-active { transition: transform var(--news-leave-ms, 260ms) cubic-bezier(0.25, 0.75, 0.35, 1); }
 .story-news-enter-from, .story-news-leave-to { transform: translateY(100%); }
 .story-news-dim-enter-active, .story-news-dim-leave-active { transition: opacity 200ms ease; }
 .story-news-dim-enter-from, .story-news-dim-leave-to { opacity: 0; }

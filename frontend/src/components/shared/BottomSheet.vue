@@ -112,8 +112,9 @@ defineExpose({ requestClose })
         role="dialog"
         :aria-modal="minimized ? 'false' : 'true'"
         :aria-label="label"
+        :style="drag.leaveMs.value != null ? { '--sheet-leave-ms': `${drag.leaveMs.value}ms` } : undefined"
         @click.self="onBackdrop">
-        <div class="sheet-backdrop absolute inset-0 touch-none" :class="[stacked ? 'bg-black/25' : 'bg-black/50', minimized && 'opacity-0']" @click="onBackdrop" />
+        <div class="sheet-backdrop absolute inset-0 touch-none" :class="[stacked ? 'bg-black/25' : 'bg-black/50', minimized && 'opacity-0']" :style="drag.backdropStyle.value" @click="onBackdrop" />
         <div
           :data-testid="testid"
           :data-minimized="minimized || undefined"
@@ -136,18 +137,26 @@ defineExpose({ requestClose })
   transform: translateY(calc(100% - var(--sheet-peek, 4rem) - 3.5rem - env(safe-area-inset-bottom)));
 }
 
-/* Hintergrund blendet, das Panel faehrt - dieselbe Kurve wie das Mehr-Sheet. */
-.sheet-enter-active,
-.sheet-leave-active {
-  transition: opacity 0.2s ease;
+/* Nur die Abdunklung blendet, das Panel faehrt voll sichtbar - wie eine Karte, nicht wie ein Geist.
+   Die Ebene selbst haelt sich per visibility-Transition genau so lange, wie das Panel faehrt (Vue misst
+   die Dauer an ihr); nach einem Zug ist das die Dauer aus dem Fingertempo (--sheet-leave-ms). */
+.sheet-enter-active { transition: visibility 0.25s; }
+.sheet-leave-active { transition: visibility var(--sheet-leave-ms, 0.25s); }
+.sheet-enter-from,
+.sheet-leave-to {
+  visibility: hidden;
+}
+.sheet-enter-active .sheet-backdrop,
+.sheet-leave-active .sheet-backdrop {
+  transition: opacity 0.25s ease;
+}
+.sheet-enter-from .sheet-backdrop,
+.sheet-leave-to .sheet-backdrop {
+  opacity: 0;
 }
 .sheet-enter-active .sheet-panel,
 .sheet-leave-active .sheet-panel {
   transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1);
-}
-.sheet-enter-from,
-.sheet-leave-to {
-  opacity: 0;
 }
 .sheet-enter-from .sheet-panel,
 .sheet-leave-to .sheet-panel {
@@ -155,17 +164,26 @@ defineExpose({ requestClose })
 }
 
 /* Ab sm haengt der Dialog in der Mitte - eine volle Bildschirmhoehe Schiebeweg waere
-   dort unruhig, ein kurzer Versatz reicht als Richtungshinweis. */
+   dort unruhig, ein kurzer Versatz reicht als Richtungshinweis; dort blendet das Panel mit. */
 @media (min-width: 640px) {
+  .sheet-enter-active .sheet-panel,
+  .sheet-leave-active .sheet-panel {
+    transition: transform 0.25s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s ease;
+  }
   .sheet-enter-from .sheet-panel,
   .sheet-leave-to .sheet-panel {
     transform: translateY(1.5rem);
+    opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .sheet-panel,
   .sheet-backdrop,
+  .sheet-enter-active,
+  .sheet-leave-active,
+  .sheet-enter-active .sheet-backdrop,
+  .sheet-leave-active .sheet-backdrop,
   .sheet-enter-active .sheet-panel,
   .sheet-leave-active .sheet-panel {
     transition: none;

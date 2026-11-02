@@ -99,6 +99,24 @@ describe('BottomSheet', () => {
       expect(closed.n).toBe(1)
     })
 
+    it('beim Loslassen fährt das Panel mit dem Finger hinaus, nur die Abdunklung blendet', async () => {
+      await mountWith(body)
+      drag(document.querySelector<HTMLElement>('[data-testid="body"]')!, [100, 130, 180, 230])
+      // Erst die Bewegung ins Panel, dann schließen: ein schon ausblendendes Element patcht Vue nicht mehr
+      await nextTick()
+      expect(panel().style.transform).toBe('translateY(100%)')
+      expect(panel().style.transition).toMatch(/^transform \d+ms cubic-bezier/)
+      expect(backdrop().style.opacity).toBe('0')
+      await afterLeave()
+    })
+
+    it('nach dem Zurückfedern schließt ein Tipp daneben wieder mit der Standarddauer', async () => {
+      await mountWith(body)
+      drag(document.querySelector<HTMLElement>('[data-testid="body"]')!, [100, 105, 110])
+      await nextTick()
+      expect(document.querySelector<HTMLElement>('[role="dialog"]')!.style.getPropertyValue('--sheet-leave-ms')).toBe('')
+    })
+
     it('ein kurzer Zug federt zurück', async () => {
       const closed = await mountWith(body)
       drag(document.querySelector<HTMLElement>('[data-testid="body"]')!, [100, 105, 110])
