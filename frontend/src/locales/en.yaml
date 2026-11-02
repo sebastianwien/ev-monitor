@@ -1681,6 +1681,7 @@ cars:
   hero_menu_aria: "More for this vehicle"
   shared_badge: "Shared"
   hero_rated_aria: "Rated, edit your rating"
+  hero_stat_soh: "Battery health"
   hero_shared_aria: "Shared, open sharing settings"
   switcher_label: "Choose vehicle"
   menu_activate_hint: "Preselected when logging"

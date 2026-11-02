@@ -41,42 +41,60 @@ describe('CarHero chips', () => {
         return emitted
     }
 
-    /** Mobile Zeile, damit jeder Chip genau einmal vorkommt. */
-    const mobileRow = () => document.querySelector('[data-testid="car-hero-chips-mobile"]') as HTMLElement
+    /** Desktop-Zeile im Foto: Aktionen vor Infos. */
+    const desktopRow = () => document.querySelector('[data-testid="car-hero-chips"]') as HTMLElement
+    /** Mobil: Kennzahlen-Leiste und Technik-Zeile unter dem Foto. */
+    const stats = () => document.querySelector('[data-testid="car-hero-stats-mobile"]') as HTMLElement
+    const specs = () => document.querySelector('[data-testid="car-hero-specs-mobile"]') as HTMLElement
 
     it('renders SoH as its own chip, separate from capacity', async () => {
         await mount()
-        const soh = mobileRow().querySelector('button[data-chip="soh"]')!
+        const soh = desktopRow().querySelector('button[data-chip="soh"]')!
         expect(soh.textContent).toContain('92')
         expect(soh.textContent).not.toContain('kWh')
     })
 
     it('makes rated and shared clickable and emits their targets', async () => {
         const emitted = await mount()
-        ;(mobileRow().querySelector('button[data-chip="soh"]') as HTMLButtonElement).click()
-        ;(mobileRow().querySelector('button[data-chip="rated"]') as HTMLButtonElement).click()
-        ;(mobileRow().querySelector('button[data-chip="shared"]') as HTMLButtonElement).click()
+        ;(desktopRow().querySelector('button[data-chip="soh"]') as HTMLButtonElement).click()
+        ;(desktopRow().querySelector('button[data-chip="rated"]') as HTMLButtonElement).click()
+        ;(desktopRow().querySelector('button[data-chip="shared"]') as HTMLButtonElement).click()
         expect(emitted).toEqual(['soh', 'rating', 'share'])
     })
 
     it('puts action chips before info chips', async () => {
         await mount()
-        const order = [...mobileRow().querySelectorAll('[data-chip]')].map(el => el.getAttribute('data-chip'))
+        const order = [...desktopRow().querySelectorAll('[data-chip]')].map(el => el.getAttribute('data-chip'))
         expect(order).toEqual(['soh', 'rated', 'shared', 'capacity', 'power'])
     })
 
-    it('shows odometer and overall consumption as info chips when known', async () => {
-        await mount({ odometerKm: 66113, avgConsumptionKwhPer100km: 17.34 })
-        const row = mobileRow()
-        expect(row.querySelector('[data-chip="odometer"]')!.textContent).toContain('66.113 km')
-        expect(row.querySelector('[data-chip="consumption"]')!.textContent).toContain('17,3')
-        const order = [...row.querySelectorAll('[data-chip]')].map(el => el.getAttribute('data-chip'))
-        expect(order).toEqual(['soh', 'rated', 'shared', 'odometer', 'consumption', 'capacity', 'power'])
+    it('mobile: no swipeable chip row any more', async () => {
+        await mount()
+        expect(document.querySelector('[data-testid="car-hero-chips-mobile"]')).toBeNull()
     })
 
-    it('leaves the chips out without a value', async () => {
+    it('mobile: odometer, consumption and SoH as key figures, SoH opens the sheet', async () => {
+        const emitted = await mount({ odometerKm: 66113, avgConsumptionKwhPer100km: 17.34 })
+        const order = [...stats().querySelectorAll('[data-stat]')].map(el => el.getAttribute('data-stat'))
+        expect(order).toEqual(['odometer', 'consumption', 'soh'])
+        expect(stats().querySelector('[data-stat="odometer"]')!.textContent).toContain('66.113')
+        expect(stats().querySelector('[data-stat="odometer"]')!.textContent).toContain('Kilometerstand')
+        expect(stats().querySelector('[data-stat="consumption"]')!.textContent).toContain('17,3')
+        expect(stats().querySelector('[data-stat="soh"]')!.textContent).toContain('92')
+        ;(stats().querySelector('button[data-stat="soh"]') as HTMLButtonElement).click()
+        expect(emitted).toEqual(['soh'])
+    })
+
+    it('mobile: leaves key figures out without a value, SoH stays', async () => {
         await mount({ odometerKm: null, avgConsumptionKwhPer100km: null })
-        expect(mobileRow().querySelector('[data-chip="odometer"]')).toBeNull()
-        expect(mobileRow().querySelector('[data-chip="consumption"]')).toBeNull()
+        const order = [...stats().querySelectorAll('[data-stat]')].map(el => el.getAttribute('data-stat'))
+        expect(order).toEqual(['soh'])
+    })
+
+    it('mobile: technical data as one quiet line, rated and shared live in their own cards', async () => {
+        await mount()
+        expect(specs().textContent).toContain('67,7 kWh')
+        expect(specs().textContent).toContain('220 kW')
+        expect(stats().querySelector('[data-chip="rated"], [data-chip="shared"]')).toBeNull()
     })
 })

@@ -1638,6 +1638,7 @@ cars:
   hero_menu_aria: Mer om dette kjøretøyet
   shared_badge: Delt
   hero_rated_aria: "Vurdert, rediger din vurdering"
+  hero_stat_soh: "Batteritilstand"
   hero_shared_aria: "Delt, åpne delingsinnstillinger"
   switcher_label: Velg kjøretøy
   menu_activate_hint: Forhåndsvalgt ved registrering
