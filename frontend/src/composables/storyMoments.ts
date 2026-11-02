@@ -219,36 +219,16 @@ export function detectFirstFrost(input: {
   }
 }
 
-/** Energie, AC und DC mit Kosten und gespartes CO₂ eines abgeschlossenen Monats. */
+/** Energie und gespartes CO₂ eines abgeschlossenen Monats. */
 export interface RecapFacts {
   kwh: number
-  ac: { kwh: number; eur: number | null } | null
-  dc: { kwh: number; eur: number | null } | null
   co2Kg: number | null
 }
 
-/**
- * Zahlen für den Rückblick aus der Monatsstatistik. Kosten je Ladetyp nur, wenn keiner Ladung der Preis
- * fehlt (wie die Ersparnis). CO₂ wie die CO₂-Kachel aus der Bilanz der API, nur wenn es weniger war.
- */
-export function recapFacts(
-  stats: {
-    totalKwhCharged: number
-    chargingTypeSplit: { acKwh: number; dcKwh: number; acEurPerKwh?: number | null; dcEurPerKwh?: number | null } | null
-    co2?: { savedKg: number } | null
-  },
-  priceless: number,
-): RecapFacts {
-  const cs = stats.chargingTypeSplit
-  const part = (kwh: number | undefined, eurPerKwh: number | null | undefined) =>
-    kwh != null && kwh > 0 ? { kwh, eur: priceless === 0 && eurPerKwh != null ? kwh * eurPerKwh : null } : null
+/** Zahlen für den Rückblick aus der Monatsstatistik. CO₂ wie die CO₂-Kachel aus der Bilanz der API, nur wenn es weniger war. */
+export function recapFacts(stats: { totalKwhCharged: number; co2?: { savedKg: number } | null }): RecapFacts {
   const saved = stats.co2?.savedKg
-  return {
-    kwh: stats.totalKwhCharged,
-    ac: part(cs?.acKwh, cs?.acEurPerKwh),
-    dc: part(cs?.dcKwh, cs?.dcEurPerKwh),
-    co2Kg: saved != null && saved > 0 ? saved : null,
-  }
+  return { kwh: stats.totalKwhCharged, co2Kg: saved != null && saved > 0 ? saved : null }
 }
 
 /**

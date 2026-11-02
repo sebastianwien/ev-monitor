@@ -335,25 +335,13 @@ describe('recapFacts', () => {
     co2: { savedKg: 45.1, petrolKg: 93.8, electricityKg: 48.7, distanceKm: 412, petrolLiters: 30.9, petrolLitersPer100km: 7.5 },
   }
 
-  it('nennt Energie, AC und DC mit Kosten und das gesparte CO₂ aus der API', () => {
-    const f = recapFacts(prev, 0)!
-    expect(f.kwh).toBe(96)
-    expect(f.ac).toEqual({ kwh: 71, eur: 71 * 0.3 })
-    expect(f.dc).toEqual({ kwh: 25, eur: 25 * 0.6 })
-    expect(f.co2Kg).toBe(45.1)
+  it('nennt Energie und das gesparte CO₂ aus der API', () => {
+    expect(recapFacts(prev)).toEqual({ kwh: 96, co2Kg: 45.1 })
   })
 
-  it('lässt Kosten weg, wenn Ladungen ohne Preis fehlen oder der Typ keinen Preis hat', () => {
-    expect(recapFacts(prev, 2)).toMatchObject({ ac: { kwh: 71, eur: null }, dc: { kwh: 25, eur: null } })
-    const noDcPrice = { ...prev, chargingTypeSplit: { ...prev.chargingTypeSplit, dcEurPerKwh: null } }
-    expect(recapFacts(noDcPrice, 0)).toMatchObject({ dc: { kwh: 25, eur: null } })
-  })
-
-  it('lässt einen Ladetyp ohne kWh und CO₂ ohne Bilanz oder ohne Ersparnis weg', () => {
-    const acOnly = { ...prev, chargingTypeSplit: { ...prev.chargingTypeSplit, dcKwh: 0 }, co2: null }
-    expect(recapFacts(acOnly, 0)).toMatchObject({ dc: null, co2Kg: null })
-    expect(recapFacts({ ...prev, co2: undefined }, 0)).toMatchObject({ co2Kg: null })
-    expect(recapFacts({ ...prev, co2: { ...prev.co2, savedKg: -3 } }, 0)).toMatchObject({ co2Kg: null })
-    expect(recapFacts({ ...prev, chargingTypeSplit: null }, 0)).toMatchObject({ ac: null, dc: null })
+  it('lässt CO₂ ohne Bilanz oder ohne Ersparnis weg', () => {
+    expect(recapFacts({ ...prev, co2: null })).toMatchObject({ co2Kg: null })
+    expect(recapFacts({ ...prev, co2: undefined })).toMatchObject({ co2Kg: null })
+    expect(recapFacts({ ...prev, co2: { ...prev.co2, savedKg: -3 } })).toMatchObject({ co2Kg: null })
   })
 })

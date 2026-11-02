@@ -24,7 +24,7 @@ import { carDisplayName } from '../utils/enumLabel'
 import { isPreviewHost, mainAppOrigin } from '../utils/previewHost'
 import { DAY, winterOutlook, type Moment } from '../composables/storyMoments'
 import StoryRecapHero from '../components/story/StoryRecapHero.vue'
-import BoldNumbers from '../components/story/BoldNumbers.vue'
+import StoryWinterOutlook from '../components/story/StoryWinterOutlook.vue'
 import { useMomentSeen } from '../composables/useMomentSeen'
 import StoryNewsStack from '../components/story/StoryNewsStack.vue'
 import StoryNewsList from '../components/story/StoryNewsList.vue'
@@ -445,12 +445,13 @@ onUnmounted(() => unregisterReload?.())
           <div v-else-if="!hasCharges && heroMode === 'month'" class="grid gap-4" :class="recapOnTop ? '' : 'py-2'">
             <StoryRecapHero v-if="recapHero" :moment="recapHero" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapHero!, id)">
               <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
+              <!-- Mit Rückblick steht der Ausblick direkt unter den Zahlen -->
+              <template v-if="outlook" #outlook>
+                <StoryWinterOutlook :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :text="outlook" />
+              </template>
             </StoryRecapHero>
             <p v-else class="text-center text-[17px] font-bold text-balance text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
-            <div v-if="outlook" data-testid="story-winter-outlook" class="grid gap-0.5">
-              <p class="text-[12px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ t('story.outlook_eyebrow', { month: monthLabel(month) }) }}</p>
-              <p class="text-[15px] text-pretty text-gray-900 tabular-nums dark:text-gray-50"><BoldNumbers :text="outlook" /></p>
-            </div>
+            <StoryWinterOutlook v-if="outlook && !recapHero" :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :text="outlook" />
             <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
             <router-link v-if="autoSyncOffer" to="/imports" data-testid="story-empty-autosync"
               class="flex items-start gap-3 rounded-xl bg-green-50 p-3.5 text-left edge-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-green-900/20"

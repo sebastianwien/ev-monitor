@@ -656,7 +656,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       peer: previousPeerLine(prev, prevMonth),
     })
     return m?.kind === 'month_change' && prev
-      ? { ...m, facts: recapFacts(prev, pricelessInPreviousMonth.value) }
+      ? { ...m, facts: recapFacts(prev) }
       : m
   })
 

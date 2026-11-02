@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach } from 'vitest'
-import { createApp, type App } from 'vue'
+import { createApp, h, type App } from 'vue'
 import { createPinia } from 'pinia'
 import { i18n } from '../../../i18n'
 import StoryRecapHero from '../StoryRecapHero.vue'
@@ -10,7 +10,7 @@ let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 const NOW = new Date(2026, 9, 2, 12).getTime()
 
-const facts: RecapFacts = { kwh: 96, ac: { kwh: 71, eur: 21.3 }, dc: { kwh: 25, eur: 15 }, co2Kg: 45.4 }
+const facts: RecapFacts = { kwh: 96, co2Kg: 45.4 }
 const recap = (f: RecapFacts | null): Moment => ({
   at: NOW, lifetimeMs: Infinity, actionable: false, dismissible: true, key: 'mc',
   kind: 'month_change', year: 2026, month: 9, km: 512, eur: 61, charges: 9, savingEur: 6.4, places: [], peer: null, facts: f,
@@ -29,12 +29,12 @@ const text = (el: Element | null) => el?.textContent?.replace(/\s+/g, ' ').trim(
 const all = (host: Element, id: string) => [...host.querySelectorAll(`[data-testid="${id}"]`)].map(el => [...el.children].map(text).join(' '))
 
 describe('StoryRecapHero', () => {
-  it('zeigt Satz, Ersparnis, €/100 km, Energie, Ladungen, AC und DC mit Kosten und das gesparte CO₂', () => {
+  it('zeigt Satz mit Ersparnis, darunter €/100 km, Energie, Ladungen und das gesparte CO₂, ohne Normal- und Schnellladen', () => {
     const host = mount(recap(facts))
     expect(text(host)).toContain('September: 512 km für 61 €.')
     expect(text(host)).toContain('Gegenüber einem Verbrenner: 6 € gespart.')
-    expect(all(host, 'recap-fact')).toEqual(['6 € Gespart', '11,91 € pro 100 km', '96 kWh Geladen', '9 Ladungen'])
-    expect(all(host, 'recap-split')).toEqual(['Normal (AC) 21 € 71 kWh', 'Schnell (DC) 15 € 25 kWh'])
+    expect(all(host, 'recap-fact')).toEqual(['11,91 € pro 100 km', '96 kWh Geladen', '9 Ladungen'])
+    expect(text(host)).not.toMatch(/Normal \(AC\)|Schnell \(DC\)/)
     expect(text(host.querySelector('[data-testid="recap-co2"]'))).toBe('45 kg CO₂ weniger als mit einem Benziner.')
     expect([...host.querySelectorAll('[data-testid="recap-co2"] strong')].map(text)).toEqual(['45'])
   })
@@ -49,10 +49,9 @@ describe('StoryRecapHero', () => {
     expect(text(host)).not.toMatch(/teilen/i)
   })
 
-  it('ohne Zahlen des Vormonats ohne Energie, ohne Aufteilung und CO₂', () => {
+  it('ohne Zahlen des Vormonats ohne Energie und CO₂', () => {
     const host = mount(recap(null))
-    expect(all(host, 'recap-fact')).toEqual(['6 € Gespart', '11,91 € pro 100 km', '9 Ladungen'])
-    expect(host.querySelector('[data-testid="recap-split"]')).toBeNull()
+    expect(all(host, 'recap-fact')).toEqual(['11,91 € pro 100 km', '9 Ladungen'])
     expect(host.querySelector('[data-testid="recap-co2"]')).toBeNull()
   })
 
@@ -61,8 +60,13 @@ describe('StoryRecapHero', () => {
     expect(all(host, 'recap-fact')).toEqual(['96 kWh Geladen', '9 Ladungen'])
   })
 
-  it('lässt Kosten weg, wo der Preis fehlt', () => {
-    const host = mount(recap({ ...facts, ac: { kwh: 71, eur: null }, dc: null }))
-    expect(all(host, 'recap-split')).toEqual(['Normal (AC) 71 kWh'])
+  it('setzt den Ausblick direkt unter die Zahlen', () => {
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    app = createApp({ render: () => h(StoryRecapHero, { moment: recap(facts), carId: 'c1', carName: 'VW ID.3' }, { outlook: () => h('p', { 'data-testid': 'outlook' }, 'Ausblick') }) })
+    app.use(createPinia()).use(i18n)
+    app.mount(host)
+    const factsList = host.querySelector('[data-testid="recap-fact"]')!.parentElement!
+    expect(factsList.nextElementSibling?.getAttribute('data-testid')).toBe('outlook')
   })
 })

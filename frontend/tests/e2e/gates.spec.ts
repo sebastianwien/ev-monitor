@@ -109,7 +109,7 @@ for (const v of VIEWS) {
       await expect(page.getByTestId('story-empty-autosync')).toContainText('schickt Ladungen selbst an EV Monitor');
       // Leerer laufender Monat: der Rückblick steht oben, auch wenn seine Karte weggeklickt ist, und fehlt im Stapel.
       await expect(page.getByTestId('story-recap-hero')).toContainText(/September: 512\skm für 61\s€\./);
-      await expect(page.getByTestId('recap-fact')).toHaveText([/512\skm/, /95\skWh/, /11/]);
+      await expect(page.getByTestId('recap-fact')).toHaveText([/pro 100\skm/, /95\skWh/, /11/]);
       await expect(page.getByTestId('story-recap-hero')).not.toContainText('teilen');
       await expect(page.getByTestId('story-news-month_change')).toHaveCount(0);
       await shot(page, v.name, '06-leerer-monat-autosync');
@@ -119,12 +119,17 @@ for (const v of VIEWS) {
       await brand(page, 'VW');
       const now = new Date(2026, 1, 10, 12).getTime();
       const d = calmMonth(now);
-      d.previousStats = { ...d.previousStats, chargingTypeSplit: { acKwh: 70, dcKwh: 25, unknownKwh: 0, acEurPerKwh: 0.32, dcEurPerKwh: 0.59 } };
       d.monthStats = stats({ totalCharges: 0, totalKwhCharged: 0, energyCostEur: 0, totalCostEur: 0, totalDistanceKm: 0, chargesOverTime: [] });
+      // Reichweite kommt vom Backend: Winter kürzer als Sommer, sonst gibt es keinen Ausblick
+      const season = (km: number, consumption: number) => ({ rangeKm: km, consumptionKwhPer100km: consumption, source: 'OWN_DRIVE', scope: null });
+      d.recentStats = stats({ range: { current: season(310, 19.4), summer: season(380, 15.8), winter: season(310, 19.4) } });
+      d.previousStats = { ...d.previousStats, co2: { savedKg: 45.1, petrolKg: 93.8, electricityKg: 48.7, distanceKm: 512, petrolLiters: 38.4, petrolLitersPer100km: 7.5 } };
       d.logs = [log(now, { loggedAt: iso(now - 10 * DAY), createdAt: iso(now - 10 * DAY) })];
       await openStory(page, d);
       await expect(page.getByTestId('story-winter-outlook')).toContainText(/Ausblick Februar.*Im Winter kommst du mit einer Akkuladung etwa/i);
-      await expect(page.getByTestId('recap-split')).toHaveText([/Normal \(AC\)\s*70\skWh\s*22\s€/, /Schnell \(DC\)\s*25\skWh\s*15\s€/]);
+      // Im Rückblick-Kopf steht der Ausblick direkt unter den Zahlen, Normal- und Schnellladen gibt es dort nicht
+      await expect(page.getByTestId('story-recap-hero').getByTestId('story-winter-outlook')).toBeVisible();
+      await expect(page.getByTestId('story-recap-hero')).not.toContainText('Schnell (DC)');
       await expect(page.getByTestId('recap-co2')).toContainText('CO₂ weniger als mit einem Benziner');
       await shot(page, v.name, '07-leerer-wintermonat');
       // Ein vergangener leerer Wintermonat bekommt keinen Ausblick mehr.
