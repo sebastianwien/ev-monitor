@@ -13,6 +13,8 @@ import java.util.List;
  * @param chargesPerWeek       from the yearly mileage when given, else the commute (kept for older pages)
  * @param chargesPerWeekSummer charges a week for the commute on the commute days, at the summer consumption, not rounded
  * @param chargesPerWeekWinter the same at the winter consumption
+ * @param fastStopPlugKwh      kWh at the charger for one fast-charging stop (FastChargeStop), for the trip cost at the
+ *                             reader's price; nullable for Blue/Green
  */
 public record PersonalRangeResponse(
         int winterRangeKm,
@@ -25,7 +27,8 @@ public record PersonalRangeResponse(
         BigDecimal chargesPerWeekWinter,
         int monthlyCostEur,
         DataLevel dataLevel,
-        List<Assumption> assumptions
+        List<Assumption> assumptions,
+        BigDecimal fastStopPlugKwh
 ) {
     /** MEASURED: all consumption values from the community; WLTP_FACTOR: none; PARTIAL: mixed. */
     public enum DataLevel { MEASURED, PARTIAL, WLTP_FACTOR }

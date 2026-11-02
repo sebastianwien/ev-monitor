@@ -4,6 +4,8 @@ import com.evmonitor.application.DriveConsumptionService.PeerQuery;
 import com.evmonitor.application.DriveConsumptionService.Period;
 import com.evmonitor.application.DriveConsumptionService.Season;
 import com.evmonitor.application.charging.FastChargePowerTable;
+import com.evmonitor.application.charging.FastChargeStop;
+import com.evmonitor.application.charging.HomeCharge;
 import com.evmonitor.application.community.CommunityConsumptionService;
 import com.evmonitor.application.community.WltpFleetFactors;
 import com.evmonitor.application.range.ModelRangeConsumption;
@@ -56,6 +58,7 @@ public class PublicModelService {
     private final EvTripRepository evTripRepository;
     private final CommunityConsumptionService community;
     private final DriveConsumptionService driveConsumptionService;
+    private final PlausibilityProperties plausibility;
 
     /** Flottenfaktoren der Community ({@link CommunityConsumptionService#fleetFactors}), für den Rechner. */
     public WltpFleetFactors fleetFactors(boolean isSeedUser) {
@@ -104,7 +107,26 @@ public class PublicModelService {
                 RangeMath.rangeKm(net, consumption(range.summer())),
                 RangeMath.rangeKm(net, consumption(range.winter())),
                 spread ? min : null,
-                spread ? max : null);
+                spread ? max : null,
+                prospectRangeKm(s.officialRangeKm()));
+    }
+
+    /** The official range on the range window (100 to 10 %), rounded to 10 km; null without one. */
+    private static Integer prospectRangeKm(BigDecimal officialRangeKm) {
+        if (officialRangeKm == null || officialRangeKm.signum() <= 0) return null;
+        return officialRangeKm.multiply(RangeMath.SHARE).divide(BigDecimal.TEN, 0, RoundingMode.HALF_UP).intValue() * 10;
+    }
+
+    /**
+     * Charging facts of a battery: a fast-charging stop at DC losses and the measured power of the model
+     * (the page says "lädt mit x kW", so never a fleet median), a home charge at the wallbox efficiency.
+     */
+    private PublicModelStatsResponse.VariantCharging variantCharging(VariantStats s, BigDecimal measuredFastChargeKw) {
+        BigDecimal net = s.batteryCapacityKwh();
+        return new PublicModelStatsResponse.VariantCharging(
+                FastChargeStop.plugKwh(net, BigDecimal.valueOf(plausibility.getDcChargingEfficiency())),
+                FastChargeStop.minutes(net, measuredFastChargeKw),
+                HomeCharge.plugKwh(net, BigDecimal.valueOf(plausibility.getAcChargingEfficiency())));
     }
 
     private static boolean isValidCarModelEnumName(String name) {
@@ -245,6 +267,9 @@ public class PublicModelService {
         ModelRangeConsumption range = modelRange(carModel, avgConsumption, seasonal,
                 summarizeWltpSpecs(modelEnumName).avgConsumption(), fleetFactors(isSeedUser));
 
+        // A self-call would bypass the fastChargePower cache; the page is cached as a whole
+        BigDecimal measuredFastChargeKw = loadFastChargePowerTable(isSeedUser).measuredKw(modelEnumName);
+
         List<PublicModelStatsResponse.WltpVariant> wltpVariants = buildVariantStats(wltpEntities, carsForModel, carModel, isSeedUser)
                 .stream()
                 .map(s -> new PublicModelStatsResponse.WltpVariant(
@@ -255,7 +280,8 @@ public class PublicModelService {
                         s.realConsumptionKwhPer100km(),
                         s.realConsumptionMinKwhPer100km(), s.realConsumptionMaxKwhPer100km(),
                         s.realConsumptionTripCount(), s.estimatedConsumptionCount(),
-                        s.realConsumptionRangeSource(), s.seasonalDistribution(), variantRange(s, range)))
+                        s.realConsumptionRangeSource(), s.seasonalDistribution(), variantRange(s, range),
+                        variantCharging(s, measuredFastChargeKw)))
                 .toList();
 
         List<VehicleSpecificationEntity> epaEntities =
@@ -272,7 +298,8 @@ public class PublicModelService {
                                 s.realConsumptionKwhPer100km(),
                                 s.realConsumptionMinKwhPer100km(), s.realConsumptionMaxKwhPer100km(),
                                 s.realConsumptionTripCount(), s.estimatedConsumptionCount(),
-                                s.realConsumptionRangeSource(), s.seasonalDistribution(), variantRange(s, range)))
+                                s.realConsumptionRangeSource(), s.seasonalDistribution(), variantRange(s, range),
+                                variantCharging(s, measuredFastChargeKw)))
                         .toList();
 
         List<PublicModelStatsResponse.YearEntry> yearDistribution =

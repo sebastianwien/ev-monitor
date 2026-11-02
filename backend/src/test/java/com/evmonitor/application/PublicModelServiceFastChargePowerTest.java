@@ -1,6 +1,7 @@
 package com.evmonitor.application;
 
 import com.evmonitor.application.charging.FastChargePower;
+import com.evmonitor.application.community.CommunityConsumptionService;
 import com.evmonitor.domain.CarRepository;
 import com.evmonitor.domain.EvTripRepository;
 import com.evmonitor.infrastructure.persistence.JpaEvLogRepository;
@@ -20,7 +21,7 @@ class PublicModelServiceFastChargePowerTest {
     private final JpaEvLogRepository evLogRepository = mock(JpaEvLogRepository.class);
     private final PublicModelService service = new PublicModelService(evLogRepository,
             mock(JpaVehicleSpecificationRepository.class), mock(JpaUserRepository.class), mock(CarRepository.class),
-            mock(EvTripRepository.class), mock(com.evmonitor.application.community.CommunityConsumptionService.class), mock(DriveConsumptionService.class));
+            mock(EvTripRepository.class), mock(CommunityConsumptionService.class), mock(DriveConsumptionService.class), new PlausibilityProperties());
 
     @Test
     void thePlaceholderModelForUnlistedCarsNeverEntersTheFleetMedian() {

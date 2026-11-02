@@ -381,4 +381,11 @@ class PersonalRangeCalculatorTest {
         // 2500 km/week × 0.19 = 475 kWh; DC charge 10→80 % = 53.9 kWh → 8.8 → 9.0
         assertThat(r.chargesPerWeek()).isEqualByComparingTo("9.0");
     }
+
+    @Test
+    void fastStopPlugKwh_einStoppAnDerSaeuleWieAufDerModellseite() {
+        PersonalRangeResponse r = PersonalRangeCalculator.calculate(PersonalRangeRequestFixtures.answers(40, 50, true, 600), measured());
+        // 77 × 0,7 / 0,95 (DC), unabhängig vom Laden zu Hause: die Stopps der langen Fahrt sind immer Schnellladungen
+        assertThat(r.fastStopPlugKwh()).isEqualByComparingTo("56.74");
+    }
 }

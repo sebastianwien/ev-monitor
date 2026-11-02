@@ -207,7 +207,7 @@ class PublicEmbedServiceTest {
     private static PublicModelStatsResponse.WltpVariant variant(BigDecimal netKwh, BigDecimal real, Integer trips,
                                                                 PublicModelStatsResponse.SeasonalDistribution s) {
         return new PublicModelStatsResponse.WltpVariant(netKwh, null, null, null, null, null, null, null,
-                real, null, null, trips, null, null, s, null);
+                real, null, null, trips, null, null, s, null, null);
     }
 
     /** Range consumption as PublicModelService derives it without trips: the charge figures, seasons from 10 logs. */
