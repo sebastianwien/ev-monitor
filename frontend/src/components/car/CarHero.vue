@@ -104,6 +104,9 @@ const infoOnPhoto = 'bg-black/45 text-white backdrop-blur'
 const chipBase = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 min-h-11 md:min-h-8 text-sm md:text-xs font-medium'
 // Maske statt Verlauf: das Foto selbst wird transparent, darunter liegt die Seitenflaeche.
 const photoMask = '[mask-image:linear-gradient(to_bottom,black_50%,transparent_92%)] md:[mask-image:none]'
+// Kennzahl in drei Zeilen (Zahl, Einheit, Label): "kWh/100km" passt auf 390 px nicht neben die Zahl,
+// gleicher Aufbau in jeder Spalte haelt Zahlen, Einheiten und Labels auf einer Linie.
+const statUnit = 'mt-1 text-[13px] font-semibold leading-tight text-gray-500 dark:text-gray-400'
 const statLabel = 'text-[11.5px] font-semibold uppercase leading-tight tracking-wide text-gray-500 dark:text-gray-400'
 const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px] min-w-[40px] rounded-full bg-black/45 text-white backdrop-blur px-3 text-sm font-medium hover:bg-black/60 transition'
 </script>
@@ -169,17 +172,17 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
       <div class="mt-4 grid auto-cols-fr grid-flow-col md:hidden divide-x divide-gray-200 border-y border-gray-200 dark:divide-white/10 dark:border-white/10" data-testid="car-hero-stats-mobile">
         <dl v-for="s in stats" :key="s.key" :data-stat="s.key" class="flex min-w-0 flex-col-reverse justify-between gap-1 px-3 py-3 first:pl-0">
           <dt :class="statLabel">{{ s.label }}</dt>
-          <dd class="flex flex-wrap items-baseline gap-x-1 text-gray-900 dark:text-gray-100">
+          <dd class="flex flex-col text-gray-900 dark:text-gray-100">
             <span class="text-[24px] font-extrabold leading-none tracking-tight tabular-nums">{{ s.value }}</span>
-            <span class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ s.unit }}</span>
+            <span :class="statUnit">{{ s.unit }}</span>
           </dd>
         </dl>
         <button type="button" data-stat="soh" class="flex min-h-11 min-w-0 items-center gap-1 px-3 py-3 text-left first:pl-0 active:bg-gray-50 dark:active:bg-white/5"
           :aria-label="sohPercent != null ? t('soh.open_aria', { soh: Math.round(sohPercent) }) : t('soh.open_aria_unknown')" @click="emit('soh')">
           <span class="flex min-w-0 flex-1 flex-col justify-between gap-1 self-stretch">
-            <span v-if="sohPercent != null" class="flex items-baseline gap-x-1 text-gray-900 dark:text-gray-100">
+            <span v-if="sohPercent != null" class="flex flex-col text-gray-900 dark:text-gray-100">
               <span class="text-[24px] font-extrabold leading-none tracking-tight tabular-nums">~{{ Math.round(sohPercent) }}</span>
-              <span class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">%</span>
+              <span :class="statUnit">%</span>
             </span>
             <span v-else class="text-[15px] font-bold leading-6 text-gray-900 dark:text-gray-100">{{ t('soh.badge_none') }}</span>
             <span :class="statLabel">{{ t('cars.hero_stat_soh') }}</span>
