@@ -15,6 +15,7 @@ import java.time.YearMonth;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Locale;
@@ -30,8 +31,11 @@ public final class MonthlyRecapMail {
 
     static final String TEMPLATE = "monthly-recap.html";
 
-    /** Unter 10 Prozent Unterschied zum Vormonat lohnt kein Satz. */
-    private static final BigDecimal MIN_CHANGE_SHARE = new BigDecimal("0.10");
+    /**
+     * Ab einem Viertel mehr oder weniger als im Vormonat ist die Strecke eine Neuigkeit. Darunter
+     * schwankt sie fast jeden Monat, und der Aufhänger wäre jeden Monat derselbe.
+     */
+    private static final BigDecimal NOTABLE_CHANGE_SHARE = new BigDecimal("0.25");
 
     /** logged_at steht in UTC, die Mail zeigt Ortszeit. */
     private static final ZoneId DISPLAY_ZONE = ZoneId.of("Europe/Berlin");
@@ -42,8 +46,11 @@ public final class MonthlyRecapMail {
     }
 
     /**
+     * Die Mail ist ein Anstoß, kein Abzug der Story: Hero, ein Aufhänger, Knopf in die App. Alle
+     * Kacheln stehen im Rückblick der Story.
+     *
      * @param priceUrl Einstieg "Preise nachtragen" in der App, steht nur im Hinweis auf fehlende Preise
-     * @param storyUrl Knopf "Ganzen Monat ansehen" am Ende der Mail
+     * @param storyUrl Knopf "Ganzen Monat ansehen"
      */
     public static Rendered render(MonthlyRecap recap, RecapHighlights highlights, String unsubscribeUrl,
                                   String priceUrl, String storyUrl) {
@@ -54,69 +61,92 @@ public final class MonthlyRecapMail {
         Map<String, String> vars = new HashMap<>();
         Set<String> sections = new HashSet<>();
         vars.put("month", month);
-        vars.put("carName", recap.carName());
-        vars.put("charges", String.valueOf(recap.charges()));
-        vars.put("kwh", number(recap.kwh(), "#,##0.#", en));
         vars.put("unsubscribeUrl", unsubscribeUrl);
         vars.put("priceUrl", priceUrl);
         vars.put("storyUrl", storyUrl);
 
-        addHeader(recap, en, locale, sections, vars);
-        addSavings(recap, en, sections, vars);
-        addTiles(recap, en, sections, vars);
-        addDetails(recap, en, sections, vars);
-        addHighlights(highlights, en, sections, vars);
+        vars.put("hero", hero(recap, en, month));
+        // Genau ein Aufhänger, der stärkste zuerst: so liest sich die Mail nicht jeden Monat gleich.
+        if (!addRankHook(highlights, en, sections, vars) && !addDistanceHook(recap, en, locale, sections, vars)) {
+            addSavingsHook(recap, en, sections, vars);
+        }
         addHint(recap, en, locale, sections, vars);
-        // Vorschautext in der Inbox: der Hero-Satz und, wenn vorhanden, die Ersparnis.
-        String saved = !sections.contains("savings") ? ""
-                : en ? " " + vars.get("savings") + " saved compared to a combustion car."
-                : " Gegenüber einem Verbrenner " + vars.get("savings") + " gespart.";
-        vars.put("preheader", vars.get("hero") + saved);
+        // Der Betreff fragt, der Vorschautext in der Inbox antwortet mit dem Hero.
+        vars.put("preheader", vars.get("hero"));
 
         String subject = en
-                ? "Your " + month + " with the " + recap.carName()
-                : "Dein " + month + " mit dem " + recap.carName();
+                ? "How was your " + month + " with the " + recap.carName() + "?"
+                : "Wie war dein " + month + " mit dem " + recap.carName() + "?";
         return new Rendered(subject, EmailTemplateRenderer.render(TEMPLATE, en ? "en" : "de", vars, sections));
     }
 
     /**
-     * Hero wie in der Story: "August: 1.766 km für 147 €.", ohne Strecke "147 € für 12 Ladungen", ohne
-     * Preise "1.766 km, 12 Ladungen", ohne beides nur die Ladungen. Darunter der Vormonat nur bei einer
-     * Änderung, die man spürt.
+     * Wie in der Story: "August: 1.766 km für 147 €.", ohne Strecke "147 € für 12 Ladungen", ohne
+     * Preise "1.766 km, 12 Ladungen", ohne beides nur die Ladungen.
      */
-    private static void addHeader(MonthlyRecap recap, boolean en, Locale locale, Set<String> sections, Map<String, String> vars) {
-        String month = vars.get("month");
-        // Geschützte Leerzeichen: Zahl und Einheit bleiben im Hero zusammen (wie keepUnits in der Story).
-        String km = recap.distanceKm() == null ? null : number(recap.distanceKm(), "#,##0", en) + " km";
+    private static String hero(MonthlyRecap recap, boolean en, String month) {
+        // Geschützte Leerzeichen: Zahl und Einheit bleiben zusammen (wie keepUnits in der Story).
+        String km = recap.distanceKm() == null ? null : number(recap.distanceKm(), "#,##0", en) + "\u00a0km";
         // Unter 0,50 € stünde "0 €" im Hero: dann die Variante ohne Preise.
         boolean hasCost = recap.costEur() != null && recap.costEur().setScale(0, RoundingMode.HALF_UP).signum() > 0;
-        String cost = hasCost ? money(recap.costEur(), "#,##0", en).replace(" €", " €") : null;
+        String cost = hasCost ? money(recap.costEur(), "#,##0", en).replace(" €", "\u00a0€") : null;
         String charges = en
                 ? recap.charges() + (recap.charges() == 1 ? " session" : " sessions")
                 : recap.charges() + (recap.charges() == 1 ? " Ladung" : " Ladungen");
         String forWord = en ? " for " : " für ";
-        String hero;
-        if (km != null && cost != null) hero = month + ": " + km + forWord + cost + ".";
-        else if (cost != null) hero = month + ": " + cost + forWord + charges + ".";
-        else if (km != null) hero = month + ": " + km + ", " + charges + ".";
-        else hero = month + ": " + charges + ".";
-        vars.put("hero", hero);
-        if (km == null) {
-            return;
+        if (km != null && cost != null) return month + ": " + km + forWord + cost + ".";
+        if (cost != null) return month + ": " + cost + forWord + charges + ".";
+        if (km != null) return month + ": " + km + ", " + charges + ".";
+        return month + ": " + charges + ".";
+    }
+
+    /** Aufhänger 1: der beste Platz in der Rangliste des Monats. */
+    private static boolean addRankHook(RecapHighlights highlights, boolean en, Set<String> sections, Map<String, String> vars) {
+        if (highlights == null || highlights.places().isEmpty()) {
+            return false;
         }
-        sections.add("km");
-        vars.put("km", km);
+        RecapHighlights.Place best = highlights.places().stream()
+                .min(Comparator.comparingInt(RecapHighlights.Place::rank)).orElseThrow();
+        sections.add("hookRank");
+        vars.put("rank", String.valueOf(best.rank()));
+        vars.put("category", en ? englishCategory(best.category()) : best.category().getDisplayName());
+        return true;
+    }
+
+    /** Aufhänger 2: deutlich mehr oder weniger gefahren als im Vormonat. */
+    private static boolean addDistanceHook(MonthlyRecap recap, boolean en, Locale locale, Set<String> sections, Map<String, String> vars) {
         BigDecimal previous = recap.previousDistanceKm();
-        if (previous == null) {
-            return;
+        if (recap.distanceKm() == null || previous == null || previous.signum() <= 0) {
+            return false;
         }
         BigDecimal diff = recap.distanceKm().subtract(previous);
-        if (diff.abs().compareTo(previous.multiply(MIN_CHANGE_SHARE)) < 0) {
-            return;
+        if (diff.abs().compareTo(previous.multiply(NOTABLE_CHANGE_SHARE)) < 0) {
+            return false;
         }
-        sections.add(diff.signum() > 0 ? "more" : "less");
-        vars.put("kmDiff", number(diff.abs(), "#,##0", en) + " km");
+        sections.add(diff.signum() > 0 ? "hookMore" : "hookLess");
+        vars.put("kmDiff", number(diff.abs(), "#,##0", en) + "\u00a0km");
         vars.put("prevMonth", monthName(recap.month().minusMonths(1), locale));
+        return true;
+    }
+
+    /**
+     * Aufhänger 3: Ersparnis gegenüber dem Benziner, nur wenn Strom wirklich günstiger war. Ganze Euro:
+     * der Benziner ist eine Schätzung, Cent täuschten Genauigkeit vor. Was auf 0 € rundet, entfällt.
+     */
+    private static boolean addSavingsHook(MonthlyRecap recap, boolean en, Set<String> sections, Map<String, String> vars) {
+        BigDecimal savings = recap.savingsEur();
+        if (savings == null || savings.setScale(0, RoundingMode.HALF_UP).signum() <= 0) {
+            return false;
+        }
+        sections.add("savings");
+        if (recap.pricelessHint() != null) {
+            sections.add("partial");
+        }
+        vars.put("savings", money(savings, "#,##0", en).replace(" €", "\u00a0€"));
+        vars.put("fuelPrice", money(recap.fuelPricePerLiter(), "#,##0.00", en));
+        vars.put("fuelLiters", number(recap.fuelLitersPer100Km(), "#,##0.0", en));
+        vars.put("carClass", en ? englishClassName(recap.carCategory()) : recap.carCategory().getDisplayName());
+        return true;
     }
 
     /** VehicleCategory kennt nur deutsche Namen; die englische Mail braucht ihre eigenen. */
@@ -132,78 +162,6 @@ public final class MonthlyRecapMail {
             case VAN -> "van";
             case PICKUP -> "pickup";
         };
-    }
-
-    /**
-     * Ersparnis-Satz, nur wenn Strom wirklich günstiger war. Ganze Euro: der Benziner ist eine Schätzung,
-     * Cent täuschten Genauigkeit vor. Was auf 0 € rundet, ist keinen Satz wert.
-     */
-    private static void addSavings(MonthlyRecap recap, boolean en, Set<String> sections, Map<String, String> vars) {
-        BigDecimal savings = recap.savingsEur();
-        if (savings == null || savings.setScale(0, RoundingMode.HALF_UP).signum() <= 0) {
-            return;
-        }
-        sections.add("savings");
-        if (recap.pricelessHint() != null) {
-            sections.add("partial");
-        }
-        vars.put("savings", money(savings, "#,##0", en));
-        vars.put("fuelCost", money(recap.fuelCostEur(), "#,##0", en));
-        vars.put("fuelPrice", money(recap.fuelPricePerLiter(), "#,##0.00", en));
-        vars.put("fuelLiters", number(recap.fuelLitersPer100Km(), "#,##0.0", en));
-        vars.put("carClass", en ? englishClassName(recap.carCategory()) : recap.carCategory().getDisplayName());
-    }
-
-    private static void addTiles(MonthlyRecap recap, boolean en, Set<String> sections, Map<String, String> vars) {
-        if (recap.consumptionKwhPer100km() != null) {
-            sections.add("consumption");
-            vars.put("consumption", number(recap.consumptionKwhPer100km(), "#,##0.0", en));
-        }
-        if (recap.costPer100Km() != null) {
-            sections.add("costPer100");
-            vars.put("costPer100", money(recap.costPer100Km(), "#,##0.00", en));
-        } else if (recap.costEur() != null) {
-            sections.add("costTotal");
-            vars.put("costTotal", money(recap.costEur(), "#,##0.00", en));
-        }
-    }
-
-    /** Schnelllader-Anteil und Heimanteil im Lade-Satz, soweit es sie gibt. */
-    private static void addDetails(MonthlyRecap recap, boolean en, Set<String> sections, Map<String, String> vars) {
-        if (recap.dcCharges() > 0) {
-            sections.add(recap.dcCharges() == recap.charges() ? "dcAll" : "dcSome");
-            vars.put("dc", String.valueOf(recap.dcCharges()));
-        }
-        if (recap.homeSharePercent() != null) {
-            sections.add("home");
-            vars.put("homeShare", recap.homeSharePercent() + (en ? "%" : " %"));
-        }
-    }
-
-    /**
-     * Platz in der Rangliste und Modellvergleich, wie in der Rückblick-Karte der Story. Die Plätze
-     * kommen als ein Satz ("Platz 2 bei Längste Strecke · Platz 3 bei Meiste kWh"), der Vergleich
-     * als zwei Zahlen; das Template setzt den Satz dazu.
-     */
-    private static void addHighlights(RecapHighlights highlights, boolean en, Set<String> sections, Map<String, String> vars) {
-        if (highlights == null) return;
-        if (!highlights.places().isEmpty()) {
-            sections.add("highlights");
-            sections.add("rank");
-            StringBuilder line = new StringBuilder();
-            for (RecapHighlights.Place p : highlights.places()) {
-                if (!line.isEmpty()) line.append(" · ");
-                line.append(en ? "Rank " + p.rank() + " in " + englishCategory(p.category())
-                        : "Platz " + p.rank() + " bei " + p.category().getDisplayName());
-            }
-            vars.put("rankLine", line.toString());
-        }
-        if (highlights.peer() != null) {
-            sections.add("highlights");
-            sections.add("peer");
-            vars.put("peerMine", number(highlights.peer().mine(), "0.0", en));
-            vars.put("peerPeers", number(highlights.peer().peers(), "0.0", en));
-        }
     }
 
     /** Dieselben Namen wie in der Rangliste der App (leaderboard.cat_* in en.yaml). */

@@ -25,6 +25,7 @@
     .card, .tile { background-color: #1f2937 !important; border-color: rgba(255, 255, 255, 0.35) !important; }
     .txt { color: #f3f4f6 !important; }
     .muted { color: #9ca3af !important; }
+    .save { color: #4ade80 !important; }
     .hair { border-color: rgba(255, 255, 255, 0.2) !important; }
   }
 </style>
@@ -36,38 +37,13 @@
 
     <div style="padding: 22px 16px 4px;">
       <p class="txt hero" style="margin: 0; font-size: 28px; font-weight: bold; line-height: 1.1; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; color: #111827;">{{hero}}</p>
+      <!--if:hookRank--><p class="txt" style="margin: 14px 0 0; font-size: 17px; line-height: 1.5; font-variant-numeric: tabular-nums; color: #111827;">Rank <b>{{rank}}</b> in {{category}} in {{month}}.</p><!--end:hookRank-->
+      <!--if:hookMore--><p class="txt" style="margin: 14px 0 0; font-size: 17px; line-height: 1.5; font-variant-numeric: tabular-nums; color: #111827;"><b>{{kmDiff}}</b> more than in {{prevMonth}}.</p><!--end:hookMore-->
+      <!--if:hookLess--><p class="txt" style="margin: 14px 0 0; font-size: 17px; line-height: 1.5; font-variant-numeric: tabular-nums; color: #111827;"><b>{{kmDiff}}</b> less than in {{prevMonth}}.</p><!--end:hookLess-->
+      <!--if:savings--><p class="txt" style="margin: 14px 0 0; font-size: 17px; line-height: 1.5; font-variant-numeric: tabular-nums; color: #111827;">Compared to a combustion car, you saved <b class="save" style="color: #15803d;">{{savings}}</b>.*</p><!--end:savings-->
     </div>
 
-    <div style="padding: 16px 16px 20px;">
-      <p class="txt" style="margin: 0 0 14px; font-size: 16px; line-height: 1.6; font-variant-numeric: tabular-nums; color: #111827;"><!--if:km-->In {{month}} you drove <b>{{km}}</b><!--if:more-->, <b>{{kmDiff}}</b> more than in {{prevMonth}}<!--end:more--><!--if:less-->, <b>{{kmDiff}}</b> less than in {{prevMonth}}<!--end:less-->. <!--end:km-->You charged <b>{{kwh}} kWh</b> in <b>{{charges}}</b> sessions<!--if:dcAll-->, all at fast chargers<!--end:dcAll--><!--if:dcSome-->, <b>{{dc}}</b> of them at fast chargers<!--end:dcSome-->.<!--if:home--> <b>{{homeShare}}</b> of it at home.<!--end:home--></p>
-      <!--if:savings--><p class="txt" style="margin: 0 0 14px; font-size: 16px; line-height: 1.6; font-variant-numeric: tabular-nums; color: #111827;">A combustion car would have cost about <b>{{fuelCost}}</b> for the same distance, so you saved <b style="color: #15803d;">{{savings}}</b>.*</p><!--end:savings-->
-      <!--if:highlights--><p class="txt" style="margin: 0 0 14px; font-size: 16px; line-height: 1.6; font-variant-numeric: tabular-nums; color: #111827;"><!--if:rank-->{{rankLine}}.<!--end:rank--><!--if:peer--> You: <b>{{peerMine}} kWh/100 km</b>, other drivers of your model in {{month}}: <b>{{peerPeers}}</b>.<!--end:peer--></p><!--end:highlights-->
-
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin: 10px 0 0; table-layout: fixed; border-collapse: separate; border-spacing: 6px 0;">
-        <tr>
-          <!--if:consumption-->
-          <td class="tile" style="background-color: #ffffff; border: 2px solid #6b7280; border-radius: 12px; padding: 10px 10px 9px; vertical-align: top;">
-            <p class="txt num" style="margin: 0; font-size: 26px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums;">{{consumption}}</p>
-            <p class="muted" style="margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #6b7280;">kWh per 100 km</p>
-          </td>
-          <!--end:consumption-->
-          <!--if:costPer100-->
-          <td class="tile" style="background-color: #ffffff; border: 2px solid #6b7280; border-radius: 12px; padding: 10px 10px 9px; vertical-align: top;">
-            <p class="txt num" style="margin: 0; font-size: 26px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums;">{{costPer100}}</p>
-            <p class="muted" style="margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #6b7280;">electricity per 100 km</p>
-          </td>
-          <!--end:costPer100-->
-          <!--if:costTotal-->
-          <td class="tile" style="background-color: #ffffff; border: 2px solid #6b7280; border-radius: 12px; padding: 10px 10px 9px; vertical-align: top;">
-            <p class="txt num" style="margin: 0; font-size: 26px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums;">{{costTotal}}</p>
-            <p class="muted" style="margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #6b7280;">electricity in {{month}}</p>
-          </td>
-          <!--end:costTotal-->
-        </tr>
-      </table>
-
-      <a href="{{storyUrl}}" style="display: inline-block; margin-top: 22px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 15px; line-height: 20px; padding: 12px 18px; border: 2px solid #6b7280; border-radius: 8px; box-shadow: 2px 2px 0 #6b7280;">See all of {{month}}</a>
-
+    <div style="padding: 12px 16px 20px;">
       <!--if:hintOne-->
       <div style="margin: 24px 0 0; padding: 14px 16px; border: 2px solid #fcd34d; border-radius: 12px; background-color: #fffbeb;">
         <p style="margin: 0; font-size: 15px; line-height: 1.5; color: #78350f;">One session has no price: {{hintAt}}<!--if:hintKwh-->, {{hintKwh}}<!--end:hintKwh-->. With the price, the numbers above are exact.</p>
@@ -86,6 +62,8 @@
         <a href="{{priceUrl}}" style="display: inline-block; margin-top: 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 15px; line-height: 20px; padding: 12px 18px; border: 2px solid #6b7280; border-radius: 8px; box-shadow: 2px 2px 0 #6b7280;">Add prices</a>
       </div>
       <!--end:hintAll-->
+
+      <a href="{{storyUrl}}" style="display: inline-block; margin-top: 12px; background-color: #16a34a; color: #ffffff; text-decoration: none; font-weight: bold; font-size: 15px; line-height: 20px; padding: 12px 18px; border: 2px solid #6b7280; border-radius: 8px; box-shadow: 2px 2px 0 #6b7280;">See all of {{month}}</a>
 
       <p class="txt" style="margin: 26px 0 0; font-size: 15px; line-height: 1.6;">See you next month<br>Sebastian</p>
     </div>
