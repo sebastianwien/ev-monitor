@@ -6,7 +6,7 @@ import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, TrashIcon
 import { fixedCostService, type FixedCost } from '../../api/fixedCostService'
 import { ENERGY, useYearCosts } from '../../composables/useYearCosts'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { costPer100km, groupFixedCostsByCategory, summarizeCosts } from '../../utils/carCostSummary'
+import { costPer100km, groupFixedCostsByCategory, summarizeCosts, yearOfSavedCost } from '../../utils/carCostSummary'
 import { isIncomeCategory } from '../../utils/fixedCostAmount'
 import { costColor } from '../../utils/costColors'
 import { useThemeStore } from '../../stores/theme'
@@ -78,8 +78,10 @@ function itemDate(fc: FixedCost): string {
   return fc.endDate ? `${since} - ${fmt(fc.endDate)}` : since
 }
 
-async function onSaved() {
+/** Nach dem Speichern ins Jahr des Eintrags, sonst sieht ein Eintrag aus einem anderen Jahr aus wie nicht gespeichert. */
+async function onSaved(fc: FixedCost) {
   sheet.value = null
+  year.value = Math.min(yearOfSavedCost(fc, year.value), thisYear)
   await load()
 }
 

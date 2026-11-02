@@ -18,7 +18,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  saved: []
+  /** Der gespeicherte Eintrag, damit der Aufrufer ihn zeigen kann. */
+  saved: [fc: FixedCost]
   cancel: []
 }>()
 
@@ -76,12 +77,10 @@ async function save() {
       startDate: isOneTime.value ? null : form.value.startDate,
       endDate: isOneTime.value ? null : form.value.endDate,
     }
-    if (props.edit) {
-      await fixedCostService.update(props.edit.id, payload)
-    } else {
-      await fixedCostService.create(props.carId, payload)
-    }
-    emit('saved')
+    const saved = props.edit
+      ? await fixedCostService.update(props.edit.id, payload)
+      : await fixedCostService.create(props.carId, payload)
+    emit('saved', saved)
   } catch {
     error.value = t('fixed_costs.err_save')
   } finally {

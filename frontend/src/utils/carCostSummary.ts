@@ -109,6 +109,18 @@ function yearAmount(fc: FixedCost, year: number): number {
   return sum
 }
 
+/**
+ * Jahr, das die Kostenkarte nach dem Speichern zeigen soll: das angezeigte, wenn der Eintrag
+ * dort zahlt, sonst das Jahr seiner Zahlung bzw. seines Starts. Sonst wirkt ein Eintrag aus
+ * einem anderen Jahr, als waere er nicht gespeichert worden.
+ */
+export function yearOfSavedCost(fc: FixedCost, shownYear: number): number {
+  if (yearAmount(fc, shownYear) !== 0) return shownYear
+  const d = fc.date ?? fc.startDate
+  const y = d ? Number(d.slice(0, 4)) : NaN
+  return Number.isFinite(y) ? y : shownYear
+}
+
 function sortKey(fc: FixedCost): string {
   return fc.date ?? fc.startDate ?? fc.createdAt
 }
