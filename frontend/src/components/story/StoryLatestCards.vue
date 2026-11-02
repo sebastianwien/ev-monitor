@@ -74,7 +74,8 @@ const plain = `${row} h-12 bg-white edge-card dark:bg-gray-700/50`
 </script>
 
 <template>
-  <div class="grid gap-2 md:grid-cols-2" data-testid="story-latest">
+  <!-- grid-cols-1 (minmax 0): ohne feste Spalte wüchse sie auf die volle Länge der gekürzten Texte -->
+  <div class="grid grid-cols-1 gap-2 md:grid-cols-2" data-testid="story-latest">
     <!-- Heute geladen: grün hinterlegt, "Neu", drei Zeilen; die Zeile zeigt die Ladung, ohne Preis führt der Knopf darunter zum Preis -->
     <div v-if="charge && charge.today" class="grid rounded-xl bg-green-50 edge-card dark:bg-green-900/20" :class="trip ? '' : 'md:col-span-2'" data-testid="story-latest-today">
       <button type="button" :class="row" class="min-h-16 py-2.5 rounded-b-none" data-testid="story-latest-charge" @click="emit('open-charge', charge.id, false)">
