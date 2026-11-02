@@ -2,6 +2,7 @@ package com.evmonitor.testutil;
 
 import com.evmonitor.domain.EvLogRepository;
 import com.evmonitor.domain.EvTripRepository;
+import com.evmonitor.domain.route.RouteSketcher;
 import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
@@ -44,4 +45,8 @@ public abstract class AbstractPostgresIT {
 
     @MockitoBean
     protected SpritMonitorClient spritMonitorClient;
+
+    /** Mock: Routenskizze ruft einen externen Routing-Dienst. */
+    @MockitoBean
+    protected RouteSketcher routeSketcher;
 }

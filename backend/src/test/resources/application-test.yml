@@ -32,6 +32,10 @@ allowed:
 app:
   car-images:
     directory: ${java.io.tmpdir}/ev-monitor-test-images
+  min-native-version: 42
+  bundle-dir: ${java.io.tmpdir}/ev-monitor-test-bundles
+  bundle-base-url: https://test.local/api/app/bundle
+  bundle-publish-token: test-secret
   security:
     rate-limiting:
       enabled: false  # Disabled in tests - all tests share 127.0.0.1, which would exhaust the bucket

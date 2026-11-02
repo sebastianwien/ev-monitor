@@ -1,8 +1,16 @@
 package com.evmonitor.testutil;
 
 import com.evmonitor.domain.*;
+import com.evmonitor.application.AppUpdateService;
 import com.evmonitor.application.LiveChargingService;
 import com.evmonitor.application.NearbyCpoService;
+import com.evmonitor.application.StripeService;
+import com.evmonitor.application.imports.vweuda.VwEudaAutoSyncEntitlementService;
+import com.evmonitor.application.imports.vweuda.VwEudaImportService;
+import com.evmonitor.application.imports.vweuda.VwEudaNotificationService;
+import com.evmonitor.application.tessie.TessieImportService;
+import com.evmonitor.application.user.AccountPurgeClient;
+import com.evmonitor.application.waitlist.WaitlistService;
 import com.evmonitor.application.tariff.crawl.TariffCrawlScheduler;
 import com.evmonitor.application.tariff.crawl.TariffExtractor;
 import com.evmonitor.application.tariff.crawl.TariffPageFetcher;
@@ -18,6 +26,7 @@ import com.evmonitor.infrastructure.external.plausible.PlausibleClient;
 import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.RateLimitService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.context.annotation.Import;
@@ -26,6 +35,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -36,18 +46,22 @@ import java.util.UUID;
  *
  * Key Features:
  * - Full Spring Boot context with RANDOM_PORT
- * - TestRestTemplate for HTTP requests
+ * - TestRestTemplate and MockMvc for HTTP requests
  * - All repositories available
  * - @Transactional for automatic rollback
  * - Helper methods for authenticated requests
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(TestAsyncConfig.class)
 public abstract class AbstractIntegrationTest {
 
     @Autowired
     protected TestRestTemplate restTemplate;
+
+    @Autowired
+    protected MockMvc mockMvc;
 
     @Autowired
     protected UserRepository userRepository;
@@ -133,6 +147,41 @@ public abstract class AbstractIntegrationTest {
     /** Mock: HTTP-Proxy zum Connectors-Dienst für Live-Laden. */
     @MockitoBean
     protected LiveChargingService liveChargingService;
+
+    /** Mock: Stripe-API (Checkout, Webhooks). */
+    @MockitoBean
+    protected StripeService stripeService;
+
+    /** Mock: Purge-Aufrufe an Connectors und Wallbox per HTTP. */
+    @MockitoBean
+    protected AccountPurgeClient accountPurgeClient;
+
+    /** Spy: Warteliste, nur DB. */
+    @MockitoSpyBean
+    protected WaitlistService waitlistService;
+
+    /**
+     * Mock: App-Bundles. Kein Spy, weil findUpdateFor @Cacheable ist: der Spy umhüllt den
+     * CGLIB-Proxy und der Cache-Interceptor ruft das Original am Stub vorbei.
+     */
+    @MockitoBean
+    protected AppUpdateService appUpdateService;
+
+    /** Spy: VW-EUDA-Import, verarbeitet hochgeladene ZIPs. */
+    @MockitoSpyBean
+    protected VwEudaImportService vwEudaImportService;
+
+    /** Spy: VW-EUDA-Benachrichtigung, Mail geht über den EmailService-Mock. */
+    @MockitoSpyBean
+    protected VwEudaNotificationService vwEudaNotificationService;
+
+    /** Spy: VW-EUDA-Berechtigung, nur DB. */
+    @MockitoSpyBean
+    protected VwEudaAutoSyncEntitlementService vwEudaAutoSyncEntitlementService;
+
+    /** Spy: Tessie-Import, der HTTP-Client dahinter wird in Tests gestubbt. */
+    @MockitoSpyBean
+    protected TessieImportService tessieImportService;
 
     /**
      * Create HTTP headers with JWT Bearer token for authenticated requests.

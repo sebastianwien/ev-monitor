@@ -41,6 +41,7 @@ class TestContextGuardTest {
             "org.springframework.test.context.ActiveProfiles",
             "org.springframework.test.context.ContextConfiguration",
             "org.springframework.boot.test.context.SpringBootTest",
+            "org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc",
             "org.springframework.test.context.bean.override.mockito.MockitoBean",
             "org.springframework.test.context.bean.override.mockito.MockitoSpyBean");
 
