@@ -27,8 +27,7 @@ public class WeatherOutlookCache {
     @Cacheable(value = "weatherOutlook", key = "#geohash")
     public Optional<WeatherOutlook> forGeohash(String geohash) {
         WGS84Point center = GeoHash.fromGeohashString(geohash).getBoundingBoxCenter();
-        TemperatureService.DailyTemperatures t =
-                temperatureService.getDailyTemperatures(center.getLatitude(), center.getLongitude(), PAST_DAYS, FORECAST_DAYS);
-        return WeatherOutlook.from(t.means(), t.mins(), t.maxs(), PAST_DAYS);
+        return WeatherOutlook.from(
+                temperatureService.getDailyWeather(center.getLatitude(), center.getLongitude(), PAST_DAYS, FORECAST_DAYS), PAST_DAYS);
     }
 }

@@ -98,39 +98,50 @@ public class TemperatureService {
         return temperatures.stream().map(n -> n == null ? null : n.doubleValue()).toList();
     }
 
-    /** Tagesmittel, Tiefst- und Hoechstwerte; Index 0 ist der aelteste Tag, Luecken sind {@code null}. Leer ohne Daten. */
-    public record DailyTemperatures(List<Double> means, List<Double> mins, List<Double> maxs) {
-        static final DailyTemperatures EMPTY = new DailyTemperatures(List.of(), List.of(), List.of());
+    /**
+     * Tageswerte in Ortszeit, Index 0 ist der aelteste Tag, Luecken sind {@code null}. Leer ohne Daten.
+     *
+     * @param dates Datum je Tag (ISO, {@code 2026-11-02})
+     * @param codes WMO-Wettercode je Tag
+     * @param gusts staerkste Boe je Tag in km/h
+     */
+    public record DailyWeather(List<String> dates, List<Double> means, List<Double> mins, List<Double> maxs,
+                               List<Integer> codes, List<Double> gusts) {
+        static final DailyWeather EMPTY = new DailyWeather(List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     /**
-     * Tagesmittel, Tiefst- und Hoechstwerte in Ortszeit: {@code pastDays} zurueck und {@code forecastDays}
-     * voraus in einem Aufruf, Index 0 ist der aelteste Tag. Fuer den Wetter-Ausblick der Story. Wie
-     * {@link #getHourlyForUtcDay} faengt die Methode nichts ab, der Aufrufer entscheidet.
+     * Tageswerte in Ortszeit: {@code pastDays} zurueck und {@code forecastDays} voraus in einem Aufruf,
+     * Index 0 ist der aelteste Tag. Fuer den Wetter-Ausblick der Story. Wie {@link #getHourlyForUtcDay}
+     * faengt die Methode nichts ab, der Aufrufer entscheidet.
      */
     @SuppressWarnings("unchecked")
-    public DailyTemperatures getDailyTemperatures(double latitude, double longitude, int pastDays, int forecastDays) {
+    public DailyWeather getDailyWeather(double latitude, double longitude, int pastDays, int forecastDays) {
         String url = UriComponentsBuilder.fromHttpUrl(FORECAST_URL)
                 .queryParam("latitude", latitude)
                 .queryParam("longitude", longitude)
-                .queryParam("daily", "temperature_2m_mean,temperature_2m_min,temperature_2m_max")
+                .queryParam("daily", "temperature_2m_mean,temperature_2m_min,temperature_2m_max,weather_code,wind_gusts_10m_max")
                 .queryParam("past_days", pastDays)
                 .queryParam("forecast_days", forecastDays)
                 .queryParam("timezone", "auto")
                 .toUriString();
 
         Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-        if (response == null) return DailyTemperatures.EMPTY;
+        if (response == null) return DailyWeather.EMPTY;
         Map<String, Object> daily = (Map<String, Object>) response.get("daily");
-        if (daily == null) return DailyTemperatures.EMPTY;
-        return new DailyTemperatures(series(daily, "temperature_2m_mean"), series(daily, "temperature_2m_min"), series(daily, "temperature_2m_max"));
+        if (daily == null) return DailyWeather.EMPTY;
+        return new DailyWeather(series(daily, "time", String::valueOf),
+                series(daily, "temperature_2m_mean", n -> ((Number) n).doubleValue()),
+                series(daily, "temperature_2m_min", n -> ((Number) n).doubleValue()),
+                series(daily, "temperature_2m_max", n -> ((Number) n).doubleValue()),
+                series(daily, "weather_code", n -> ((Number) n).intValue()),
+                series(daily, "wind_gusts_10m_max", n -> ((Number) n).doubleValue()));
     }
 
-    @SuppressWarnings("unchecked")
-    private static List<Double> series(Map<String, Object> daily, String key) {
-        List<Number> values = (List<Number>) daily.get(key);
-        if (values == null) return List.of();
-        return values.stream().map(n -> n == null ? null : n.doubleValue()).toList();
+    /** Eine Tagesreihe aus der Antwort; {@code null} bleibt {@code null}, ohne Reihe leer. */
+    private static <T> List<T> series(Map<String, Object> daily, String key, java.util.function.Function<Object, T> map) {
+        if (!(daily.get(key) instanceof List<?> values)) return List.of();
+        return values.stream().map(v -> v == null ? null : map.apply(v)).toList();
     }
 
     @SuppressWarnings("unchecked")

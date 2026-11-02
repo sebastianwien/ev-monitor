@@ -142,25 +142,33 @@ class TemperatureServiceTest {
         verifyNoInteractions(restTemplate);
     }
 
-    /** Ausblick fuer die Story: Tagesmittel, Tiefst- und Hoechstwerte der letzten und der kommenden Tage in einem Aufruf, Ortszeit. */
+    /** Ausblick fuer die Story: Datum, Tagesmittel, Tiefst-, Hoechstwert, Wettercode und Boeen der letzten und der kommenden Tage in einem Aufruf, Ortszeit. */
     @Test
     void tageswerteHolenVergangenheitUndVorhersageInEinemAufruf() {
         Map<String, Object> daily = new java.util.HashMap<>();
+        daily.put("time", List.of("2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04"));
         daily.put("temperature_2m_mean", java.util.Arrays.asList(12.1, 11.0, null, 8.4));
         daily.put("temperature_2m_min", java.util.Arrays.asList(8.0, 7.5, null, 3.2));
         daily.put("temperature_2m_max", java.util.Arrays.asList(15.0, 14.1, null, 11.9));
+        daily.put("weather_code", java.util.Arrays.asList(0, 3, null, 61));
+        daily.put("wind_gusts_10m_max", java.util.Arrays.asList(12.4, 45.0, null, 30.1));
         when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(Map.of("daily", daily));
 
-        TemperatureService.DailyTemperatures t = service.getDailyTemperatures(52.53, 13.46, 7, 7);
+        TemperatureService.DailyWeather t = service.getDailyWeather(52.53, 13.46, 7, 7);
 
+        assertThat(t.dates()).containsExactly("2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04");
         assertThat(t.means()).containsExactly(12.1, 11.0, null, 8.4);
         assertThat(t.mins()).containsExactly(8.0, 7.5, null, 3.2);
         assertThat(t.maxs()).containsExactly(15.0, 14.1, null, 11.9);
+        assertThat(t.codes()).containsExactly(0, 3, null, 61);
+        assertThat(t.gusts()).containsExactly(12.4, 45.0, null, 30.1);
         verify(restTemplate).getForObject(argThat((String url) ->
                 url.startsWith("https://api.open-meteo.com/v1/forecast")
                 && url.contains("temperature_2m_mean")
                 && url.contains("temperature_2m_min")
                 && url.contains("temperature_2m_max")
+                && url.contains("weather_code")
+                && url.contains("wind_gusts_10m_max")
                 && url.contains("past_days=7")
                 && url.contains("forecast_days=7")
                 && url.contains("timezone=auto")
@@ -170,9 +178,12 @@ class TemperatureServiceTest {
     @Test
     void tageswerteOhneDailyBlockSindLeer() {
         when(restTemplate.getForObject(anyString(), eq(Map.class))).thenReturn(Map.of());
-        TemperatureService.DailyTemperatures t = service.getDailyTemperatures(52.53, 13.46, 7, 7);
+        TemperatureService.DailyWeather t = service.getDailyWeather(52.53, 13.46, 7, 7);
+        assertThat(t.dates()).isEmpty();
         assertThat(t.means()).isEmpty();
         assertThat(t.mins()).isEmpty();
         assertThat(t.maxs()).isEmpty();
+        assertThat(t.codes()).isEmpty();
+        assertThat(t.gusts()).isEmpty();
     }
 }
