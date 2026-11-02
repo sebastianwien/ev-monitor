@@ -110,26 +110,27 @@ public class AdminQueryRepository {
     // ── Wochenreport: Neuzugaenge im Zeitfenster [from, to) ───────────────────
 
     public long countNewUsers(LocalDateTime from, LocalDateTime to) {
-        return countCreatedBetween("app_user", "is_seed_data = false", from, to);
+        return countBetween("app_user", "created_at", "is_seed_data = false", from, to);
     }
 
     public long countNewCars(LocalDateTime from, LocalDateTime to) {
-        return countCreatedBetween("car", "deleted_at IS NULL", from, to);
+        return countBetween("car", "created_at", "deleted_at IS NULL", from, to);
     }
 
+    /** Nach Ladezeitpunkt, nicht nach Eintragung: Importe alter Ladungen blähen sonst die Importwoche auf. */
     public long countNewEvLogs(LocalDateTime from, LocalDateTime to) {
-        return countCreatedBetween("ev_log", "deleted_at IS NULL", from, to);
+        return countBetween("ev_log", "logged_at", "deleted_at IS NULL", from, to);
     }
 
     public long countNewTrips(LocalDateTime from, LocalDateTime to) {
-        return countCreatedBetween("ev_trip", "1 = 1", from, to);
+        return countBetween("ev_trip", "created_at", "1 = 1", from, to);
     }
 
-    /** Tabelle und Filter sind Konstanten aus dieser Klasse, nie Nutzerinput. */
-    private long countCreatedBetween(String table, String filter, LocalDateTime from, LocalDateTime to) {
+    /** Tabelle, Spalte und Filter sind Konstanten aus dieser Klasse, nie Nutzerinput. */
+    private long countBetween(String table, String column, String filter, LocalDateTime from, LocalDateTime to) {
         Object result = em.createNativeQuery(
                         "SELECT COUNT(*) FROM " + table + " WHERE " + filter
-                                + " AND created_at >= :from AND created_at < :to")
+                                + " AND " + column + " >= :from AND " + column + " < :to")
                 .setParameter("from", from)
                 .setParameter("to", to)
                 .getSingleResult();
