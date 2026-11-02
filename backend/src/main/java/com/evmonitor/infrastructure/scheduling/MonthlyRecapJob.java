@@ -18,8 +18,8 @@ import java.time.ZoneId;
 import java.util.Optional;
 
 /**
- * Verschickt am 2. des Monats den Rückblick auf den Vormonat, am 3. holt derselbe Lauf nach,
- * was am 2. gescheitert ist.
+ * Verschickt am 1. des Monats den Rückblick auf den Vormonat, am 2. holt derselbe Lauf nach,
+ * was am 1. gescheitert ist.
  *
  * <p>Jeder Versand legt vorher einen Marker in {@code monthly_recap_sent} an. Damit mailt auch
  * dann niemand doppelt, wenn bei Blue/Green kurz zwei Instanzen denselben Cron auslösen. Scheitert
@@ -52,7 +52,7 @@ public class MonthlyRecapJob {
         this.highlightsService = highlightsService;
     }
 
-    @Scheduled(cron = "${app.monthly-recap.cron:0 0 10 2,3 * *}", zone = "Europe/Berlin")
+    @Scheduled(cron = "${app.monthly-recap.cron:0 0 10 1,2 * *}", zone = "Europe/Berlin")
     public void sendMonthlyRecaps() {
         if (!enabled) {
             return;
@@ -94,7 +94,7 @@ public class MonthlyRecapJob {
             gitHubIssueService.createIssue(
                     "monthly-recap-error-" + month,
                     "🚨 [EV Monitor] Monatsrückblick: " + failed + " Versand(e) fehlgeschlagen",
-                    "## Versand-Fehler\n\nMonat: `%s`\n\n%d von %d Mails fehlgeschlagen (Details im Log). Der Lauf am 3. versucht sie erneut."
+                    "## Versand-Fehler\n\nMonat: `%s`\n\n%d von %d Mails fehlgeschlagen (Details im Log). Der Lauf am 2. versucht sie erneut."
                             .formatted(month, failed, candidates.size())
             );
         }
