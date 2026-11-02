@@ -386,10 +386,12 @@ const copyCarId = async (id: string) => {
             </div>
           </div>
 
-          <button type="button" @click="openAddForm" v-haptic
-            class="btn-3d inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-edge bg-white px-4 text-sm font-semibold text-gray-900 hover:bg-gray-50 dark:bg-white/10 dark:text-gray-100 dark:hover:bg-white/15">
-            {{ t('cars.add_btn') }}
-          </button>
+          <div class="flex justify-center">
+            <button type="button" @click="openAddForm" v-haptic
+              class="btn-3d inline-flex min-h-11 items-center gap-2 rounded-xl border-2 border-edge bg-green-600 px-4 text-sm font-semibold text-white hover:bg-green-700">
+              {{ t('cars.add_btn') }}
+            </button>
+          </div>
         </div>
 
         <CarManageSheet
