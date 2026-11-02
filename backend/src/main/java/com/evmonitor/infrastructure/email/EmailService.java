@@ -356,7 +356,8 @@ public class EmailService {
         String unsubscribeUrl = buildUnsubscribeUrl(recap.email());
         // Öffnet auf /logs das Modal "Preise nachtragen" für genau dieses Auto (LogsView, pricelessDeepLink).
         String priceUrl = campaignUrl("/logs", "monthly-recap") + "&car=" + recap.carId() + "&nachtragen=preis";
-        MonthlyRecapMail.Rendered mail = MonthlyRecapMail.render(recap, highlights, unsubscribeUrl, priceUrl);
+        MonthlyRecapMail.Rendered mail = MonthlyRecapMail.render(recap, highlights, unsubscribeUrl, priceUrl,
+                campaignUrl("/story", "monthly-recap"));
         String senderName = MonthlyRecapMail.isEnglish(recap.locale())
                 ? "Sebastian from ev-monitor"
                 : "Sebastian von ev-monitor";

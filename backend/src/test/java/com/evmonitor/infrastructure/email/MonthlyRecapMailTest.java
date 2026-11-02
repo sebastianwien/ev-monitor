@@ -21,6 +21,7 @@ class MonthlyRecapMailTest {
 
     private static final String UNSUBSCRIBE = "https://ev-monitor.net/api/unsubscribe?token=abc";
     private static final String PRICE_URL = "https://ev-monitor.net/logs?car=c1&nachtragen=preis";
+    private static final String STORY_URL = "https://ev-monitor.net/story?utm_campaign=monthly-recap";
 
     /** Ihle, August 2026: 147,37 € Strom, 276,28 € Benzin, 1.766 km, Juli 863 km. */
     private Recap ihle() {
@@ -28,25 +29,26 @@ class MonthlyRecapMailTest {
     }
 
     @Test
-    void german_savingsLeadInsteadOfTheBill() {
+    void german_monthAsStory_wholeEuros_noBarsNoGreeting() {
         MonthlyRecapMail.Rendered mail = render(ihle());
 
         assertThat(mail.subject()).isEqualTo("Dein August mit dem Model 3");
         assertThat(mail.html())
-                .contains("Dein August mit dem Model 3")
                 .contains("August: 1.766\u00a0km für 147\u00a0€.")
-                .contains("<b>903 km</b> mehr als im Juli.")
-                .contains("Gespart gegenüber einem Verbrenner")
-                .contains("128,91 €")
-                .contains("Strom <b>147,37 €</b>")
-                .contains("rund 276 €")
-                .contains("width=\"53%\"")
-                .contains("351,4")
+                .contains("Im August bist du <b>1.766\u00a0km</b> gefahren, <b>903 km</b> mehr als im Juli.")
+                .contains("Geladen hast du <b>351,4 kWh</b> in <b>12</b> Ladungen, <b>10</b> davon am Schnelllader.")
+                .contains("Ein Verbrenner hätte für dieselbe Strecke rund <b>276 €</b> gekostet, du hast also ")
+                .contains("129 €</b> gespart.*")
                 .contains("16,8")
                 .contains("8,34 €")
-                .contains("<b>10</b> von <b>12</b> Ladungen am Schnelllader.")
                 .contains("2,24 €/l")
+                .contains("Ganzen August ansehen")
                 .contains(UNSUBSCRIBE)
+                .doesNotContain("Hallo")
+                .doesNotContain("128,91")
+                .doesNotContain("width=\"53%\"")
+                .doesNotContain("text-transform: uppercase")
+                .doesNotContain("mindestens drei Ladungen")
                 .doesNotContain("{{")
                 .doesNotContain("<!--if:")
                 .doesNotContain("daheim")
@@ -59,6 +61,14 @@ class MonthlyRecapMailTest {
         r.previousKm = "1700";
 
         assertThat(render(r).html()).contains("August: 1.766\u00a0km für 147\u00a0€.").doesNotContain("als im Juli");
+    }
+
+    @Test
+    void savingsBelowHalfAEuro_wouldRoundToZero_soNoSavingsSentence() {
+        Recap r = ihle();
+        r.cost = "275.90";
+
+        assertThat(render(r).html()).doesNotContain("gespart").doesNotContain("Tankerkönig");
     }
 
     @Test
@@ -76,7 +86,7 @@ class MonthlyRecapMailTest {
 
         String html = render(r).html();
 
-        assertThat(html).doesNotContain("Gespart").doesNotContain("Benzin").doesNotContain("Tankerkönig");
+        assertThat(html).doesNotContain("gespart").doesNotContain("Benzin").doesNotContain("Tankerkönig");
         assertThat(html).contains("1.766\u00a0km");
     }
 
@@ -89,8 +99,10 @@ class MonthlyRecapMailTest {
 
         assertThat(html)
                 .contains("August: 147\u00a0€ für 12 Ladungen.")
+                .contains("Geladen hast du <b>351,4 kWh</b>")
+                .doesNotContain("bist du")
                 .contains("147,37")
-                .doesNotContain("Gespart")
+                .doesNotContain("gespart")
                 .doesNotContain("pro 100 km</p>");
     }
 
@@ -123,7 +135,7 @@ class MonthlyRecapMailTest {
         assertThat(render(r).html())
                 .contains("Bei keiner Ladung ist ein Preis eingetragen")
                 .contains("Preise nachtragen")
-                .doesNotContain("Gespart");
+                .doesNotContain("gespart");
     }
 
     @Test
@@ -133,7 +145,7 @@ class MonthlyRecapMailTest {
         r.dc = 0;
         r.home = 75;
 
-        assertThat(render(r).html()).contains("<b>75 %</b> daheim geladen.").doesNotContain("Schnelllader");
+        assertThat(render(r).html()).contains("Davon <b>75 %</b> daheim.").doesNotContain("Schnelllader");
     }
 
     @Test
@@ -142,7 +154,7 @@ class MonthlyRecapMailTest {
         r.ac = 0;
         r.dc = 12;
 
-        assertThat(render(r).html()).contains("Alle <b>12</b> Ladungen am Schnelllader.");
+        assertThat(render(r).html()).contains("in <b>12</b> Ladungen, alle am Schnelllader.");
     }
 
     @Test
@@ -153,7 +165,9 @@ class MonthlyRecapMailTest {
         MonthlyRecapMail.Rendered mail = render(r);
 
         assertThat(mail.subject()).isEqualTo("Your August with the Model 3");
-        assertThat(mail.html()).contains("€128.91").contains("August: 1,766\u00a0km for €147.").contains("<b>903 km</b> more than in July.").contains("Hi Ihle,");
+        assertThat(mail.html()).contains("so you saved <b style=\"color: #15803d;\">€129</b>.*").contains("August: 1,766\u00a0km for €147.")
+                .contains("In August you drove <b>1,766\u00a0km</b>, <b>903 km</b> more than in July.")
+                .contains("See all of August").doesNotContain("Hi Ihle");
     }
 
     @Test
@@ -173,20 +187,12 @@ class MonthlyRecapMailTest {
     @Test
     void footnote_namesTheLitresAndTheClassOfTheCar() {
         Recap r = ihle();
-        assertThat(render(r).html()).contains("7,6 l/100 km Benzin für einen Verbrenner der Klasse Mittelklasse bei ");
+        assertThat(render(r).html()).contains("* Vergleich mit einem Benziner der Mittelklasse: 7,6 l/100 km, Benzin ");
 
         r.locale = "en";
         r.liters = "8.4";
         r.category = VehicleCategory.SUV;
-        assertThat(render(r).html()).contains("8.4 l/100 km of petrol for a combustion car in the SUV class at ");
-    }
-
-    @Test
-    void usernameIsEscaped() {
-        Recap r = ihle();
-        r.username = "<b>x</b>";
-
-        assertThat(render(r).html()).contains("&lt;b&gt;x&lt;/b&gt;").doesNotContain("<b>x</b>");
+        assertThat(render(r).html()).contains("* Compared with a petrol SUV: 8.4 l/100 km, petrol at ");
     }
 
     @Test
@@ -207,10 +213,10 @@ class MonthlyRecapMailTest {
 
         Recap en = ihle();
         en.locale = "en";
-        assertThat(render(en).html()).contains("August: 1,766 km for €147. €128.91 saved compared to a combustion car.</div>");
+        assertThat(render(en).html()).contains("August: 1,766 km for €147. €129 saved compared to a combustion car.</div>");
 
         String html = render(ihle()).html();
-        assertThat(html).contains("August: 1.766\u00a0km für 147\u00a0€. Gegenüber einem Verbrenner 128,91 € gespart.</div>");
+        assertThat(html).contains("August: 1.766\u00a0km für 147\u00a0€. Gegenüber einem Verbrenner 129 € gespart.</div>");
         assertThat(html).contains("<meta name=\"color-scheme\" content=\"light dark\">");
     }
 
@@ -247,7 +253,7 @@ class MonthlyRecapMailTest {
     }
 
     private MonthlyRecapMail.Rendered render(Recap r, RecapHighlights highlights) {
-        return MonthlyRecapMail.render(r.build(), highlights, UNSUBSCRIBE, PRICE_URL);
+        return MonthlyRecapMail.render(r.build(), highlights, UNSUBSCRIBE, PRICE_URL, STORY_URL);
     }
 
     /** Veränderbarer Baukasten, damit jeder Test nur sein Feld setzt. */

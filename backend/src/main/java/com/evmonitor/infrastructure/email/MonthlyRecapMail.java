@@ -43,24 +43,23 @@ public final class MonthlyRecapMail {
 
     /**
      * @param priceUrl Einstieg "Preise nachtragen" in der App, steht nur im Hinweis auf fehlende Preise
+     * @param storyUrl Knopf "Ganzen Monat ansehen" am Ende der Mail
      */
-    /**
-     * @param priceUrl Einstieg "Preise nachtragen" in der App, steht nur im Hinweis auf fehlende Preise
-     */
-    public static Rendered render(MonthlyRecap recap, RecapHighlights highlights, String unsubscribeUrl, String priceUrl) {
+    public static Rendered render(MonthlyRecap recap, RecapHighlights highlights, String unsubscribeUrl,
+                                  String priceUrl, String storyUrl) {
         boolean en = isEnglish(recap.locale());
         Locale locale = en ? Locale.ENGLISH : Locale.GERMAN;
         String month = monthName(recap.month(), locale);
 
         Map<String, String> vars = new HashMap<>();
         Set<String> sections = new HashSet<>();
-        vars.put("username", recap.username());
         vars.put("month", month);
         vars.put("carName", recap.carName());
         vars.put("charges", String.valueOf(recap.charges()));
         vars.put("kwh", number(recap.kwh(), "#,##0.#", en));
         vars.put("unsubscribeUrl", unsubscribeUrl);
         vars.put("priceUrl", priceUrl);
+        vars.put("storyUrl", storyUrl);
 
         addHeader(recap, en, locale, sections, vars);
         addSavings(recap, en, sections, vars);
@@ -69,7 +68,7 @@ public final class MonthlyRecapMail {
         addHighlights(highlights, en, sections, vars);
         addHint(recap, en, locale, sections, vars);
         // Vorschautext in der Inbox: der Hero-Satz und, wenn vorhanden, die Ersparnis.
-        String saved = recap.savingsEur() == null ? ""
+        String saved = !sections.contains("savings") ? ""
                 : en ? " " + vars.get("savings") + " saved compared to a combustion car."
                 : " Gegenüber einem Verbrenner " + vars.get("savings") + " gespart.";
         vars.put("preheader", vars.get("hero") + saved);
@@ -105,6 +104,7 @@ public final class MonthlyRecapMail {
         if (km == null) {
             return;
         }
+        sections.add("km");
         vars.put("km", km);
         BigDecimal previous = recap.previousDistanceKm();
         if (previous == null) {
@@ -114,7 +114,6 @@ public final class MonthlyRecapMail {
         if (diff.abs().compareTo(previous.multiply(MIN_CHANGE_SHARE)) < 0) {
             return;
         }
-        sections.add("kmChange");
         sections.add(diff.signum() > 0 ? "more" : "less");
         vars.put("kmDiff", number(diff.abs(), "#,##0", en) + " km");
         vars.put("prevMonth", monthName(recap.month().minusMonths(1), locale));
@@ -135,25 +134,24 @@ public final class MonthlyRecapMail {
         };
     }
 
-    /** Ersparnis als Hero, nur wenn Strom wirklich günstiger war. Nie die Stromkosten allein groß. */
+    /**
+     * Ersparnis-Satz, nur wenn Strom wirklich günstiger war. Ganze Euro: der Benziner ist eine Schätzung,
+     * Cent täuschten Genauigkeit vor. Was auf 0 € rundet, ist keinen Satz wert.
+     */
     private static void addSavings(MonthlyRecap recap, boolean en, Set<String> sections, Map<String, String> vars) {
         BigDecimal savings = recap.savingsEur();
-        if (savings == null) {
+        if (savings == null || savings.setScale(0, RoundingMode.HALF_UP).signum() <= 0) {
             return;
         }
         sections.add("savings");
         if (recap.pricelessHint() != null) {
             sections.add("partial");
         }
-        vars.put("savings", money(savings, "#,##0.00", en));
-        vars.put("cost", money(recap.costEur(), "#,##0.00", en));
+        vars.put("savings", money(savings, "#,##0", en));
         vars.put("fuelCost", money(recap.fuelCostEur(), "#,##0", en));
         vars.put("fuelPrice", money(recap.fuelPricePerLiter(), "#,##0.00", en));
         vars.put("fuelLiters", number(recap.fuelLitersPer100Km(), "#,##0.0", en));
         vars.put("carClass", en ? englishClassName(recap.carCategory()) : recap.carCategory().getDisplayName());
-        int bar = recap.costEur().multiply(BigDecimal.valueOf(100))
-                .divide(recap.fuelCostEur(), 0, RoundingMode.HALF_UP).intValue();
-        vars.put("costBar", String.valueOf(Math.max(bar, 2)));
     }
 
     private static void addTiles(MonthlyRecap recap, boolean en, Set<String> sections, Map<String, String> vars) {
@@ -170,15 +168,13 @@ public final class MonthlyRecapMail {
         }
     }
 
-    /** Ein Satz unter den Kacheln: Schnelllader-Anteil und Heimanteil, soweit es sie gibt. */
+    /** Schnelllader-Anteil und Heimanteil im Lade-Satz, soweit es sie gibt. */
     private static void addDetails(MonthlyRecap recap, boolean en, Set<String> sections, Map<String, String> vars) {
         if (recap.dcCharges() > 0) {
-            sections.add("details");
             sections.add(recap.dcCharges() == recap.charges() ? "dcAll" : "dcSome");
             vars.put("dc", String.valueOf(recap.dcCharges()));
         }
         if (recap.homeSharePercent() != null) {
-            sections.add("details");
             sections.add("home");
             vars.put("homeShare", recap.homeSharePercent() + (en ? "%" : " %"));
         }
