@@ -44,16 +44,28 @@ import type { EvLogResponse } from '../components/dashboard/EditLogModal.vue'
 import type { SummarySection } from '../components/log-wizard/LogSummary.vue'
 import { dayKeyOf } from '../composables/storyDay'
 import { useLogsRefreshStore } from '../stores/logsRefresh'
+import { prefetchDay } from '../components/story/day/dayData'
+import { whenIdle } from '../utils/whenIdle'
 
-const StorySheet = defineAsyncComponent(() => import('../components/story/StorySheet.vue'))
-const StoryTilePane = defineAsyncComponent(() => import('../components/story/StoryTilePane.vue'))
-const StoryPriceSheet = defineAsyncComponent(() => import('../components/story/StoryPriceSheet.vue'))
-const PlacesSheet = defineAsyncComponent(() => import('../components/story/places/PlacesSheet.vue'))
-const EditTripModal = defineAsyncComponent(() => import('../components/dashboard/EditTripModal.vue'))
-const EditLogModal = defineAsyncComponent(() => import('../components/dashboard/EditLogModal.vue'))
+// Sheets, die man aus der Übersicht öffnet: ihr Code lädt im Leerlauf vor, sobald die Seite steht (siehe
+// unten), damit das erste Antippen nicht erst auf Download und Auswertung wartet.
+const loadStorySheet = () => import('../components/story/StorySheet.vue')
+const loadStoryTilePane = () => import('../components/story/StoryTilePane.vue')
+const loadStoryPriceSheet = () => import('../components/story/StoryPriceSheet.vue')
+const loadPlacesSheet = () => import('../components/story/places/PlacesSheet.vue')
+const loadEditTripModal = () => import('../components/dashboard/EditTripModal.vue')
+const loadEditLogModal = () => import('../components/dashboard/EditLogModal.vue')
+const loadStoryDaySheet = () => import('../components/story/day/StoryDaySheet.vue')
+const StorySheet = defineAsyncComponent(loadStorySheet)
+const StoryTilePane = defineAsyncComponent(loadStoryTilePane)
+const StoryPriceSheet = defineAsyncComponent(loadStoryPriceSheet)
+const PlacesSheet = defineAsyncComponent(loadPlacesSheet)
+const EditTripModal = defineAsyncComponent(loadEditTripModal)
+const EditLogModal = defineAsyncComponent(loadEditLogModal)
 const PricelessLogsModal = defineAsyncComponent(() => import('../components/dashboard/PricelessLogsModal.vue'))
-const StoryDaySheet = defineAsyncComponent(() => import('../components/story/day/StoryDaySheet.vue'))
+const StoryDaySheet = defineAsyncComponent(loadStoryDaySheet)
 const LogFormModal = defineAsyncComponent(() => import('../components/log-form/LogFormModal.vue'))
+const SHEET_CHUNKS = [loadStorySheet, loadStoryTilePane, loadStoryDaySheet, loadPlacesSheet, loadStoryPriceSheet, loadEditLogModal, loadEditTripModal]
 
 const { t, locale } = useI18n()
 const { formatDistance } = useLocaleFormat()
@@ -100,6 +112,13 @@ const storyCtx = (): StoryCarContext => ({
 })
 const story = useDashboardStory(selectedCarId, storyCtx)
 const { month, offset, tiles, feed, days, monthStats, hasCharges, loading, error, layers, switching } = story
+
+let chunksPrefetched = false
+watch(loading, (busy) => {
+  if (busy || chunksPrefetched) return
+  chunksPrefetched = true
+  whenIdle(() => { for (const load of SHEET_CHUNKS) void load().catch(() => {}) })
+}, { immediate: true })
 
 
 const { isVehicleCharging } = useVehicleCharging(cars, smartcarStatus)
@@ -350,9 +369,16 @@ function backToClassic() {
 // Erfassen-Wizard mit dem Datum und kehrt danach zum selben Tag zurueck.
 const openDay = ref<string | null>(null)
 const todayKey = () => dayKeyOf(new Date())
-function onOpenDay(d: number) {
+function dayKeyInMonth(d: number): string {
   const pad = (n: number) => String(n).padStart(2, '0')
-  openDay.value = `${month.value.year}-${pad(month.value.month)}-${pad(d)}`
+  return `${month.value.year}-${pad(month.value.month)}-${pad(d)}`
+}
+function onOpenDay(d: number) {
+  openDay.value = dayKeyInMonth(d)
+}
+/** Finger liegt auf dem Tag: das Tagesblatt lädt schon, bevor es beim Loslassen aufgeht. */
+function onIntentDay(d: number) {
+  if (selectedCarId.value) prefetchDay(selectedCarId.value, dayKeyInMonth(d))
 }
 const addCharge = ref<{ day: string; loggedAt: string } | null>(null)
 function onAddCharge(loggedAt: string) {
@@ -468,7 +494,7 @@ onUnmounted(() => unregisterReload?.())
             <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
               {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
             </p>
-            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :key="`${month.year}-${month.month}`" :days="days" @open-day="onOpenDay" />
+            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :key="`${month.year}-${month.month}`" :days="days" @open-day="onOpenDay" @intent-day="onIntentDay" />
             <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
             <StoryFeed
               v-if="narrow && showFeed"

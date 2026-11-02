@@ -16,9 +16,10 @@ import { useLogsRefreshStore } from '../../../stores/logsRefresh'
 import { analytics } from '../../../services/analytics'
 import { toLocalDatetimeInput } from '../../../utils/tripForm'
 import {
-  dayRange, shiftDay, eventsOfDay, daySummary, dayAtNow, bundleEvents, type DayEvent, type DayLog, type DayTrip, type OdometerGap,
+  shiftDay, eventsOfDay, daySummary, dayAtNow, bundleEvents, type DayEvent, type DayLog, type DayTrip, type OdometerGap,
 } from '../../../composables/storyDay'
 import { groupKeysOf } from '../../../utils/chargeGroups'
+import { loadDay } from './dayData'
 
 /**
  * Tagesblatt: alles, was an einem Tag war. Handy und Tablet: Sheet mit zwei Ebenen (Tag, dann
@@ -51,18 +52,15 @@ let request = 0
 let opened = false
 async function load() {
   const mine = ++request
-  const { from, to } = dayRange(day.value)
-  const params = { carId: props.carId, from, to }
   loading.value = true
   failed.value = false
   try {
-    const [l, tr, g] = await Promise.all([
-      api.get('/logs', { params }), api.get('/trips', { params }), api.get('/trips/gaps', { params }).catch(() => null),
-    ])
+    // Hat der Fingerdruck auf den Tag schon geladen, kommt das hier sofort
+    const d = await loadDay(props.carId, day.value)
     if (mine !== request) return
-    logs.value = l.data
-    trips.value = tr.data
-    gaps.value = Array.isArray(g?.data) ? g.data : []
+    logs.value = d.logs
+    trips.value = d.trips
+    gaps.value = d.gaps
     if (!opened) {
       opened = true
       analytics.track('story_day_open', { has_entries: events.value.length ? 'ja' : 'nein' })

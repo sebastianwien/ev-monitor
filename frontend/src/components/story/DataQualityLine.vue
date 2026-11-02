@@ -13,7 +13,11 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
  */
 const props = defineProps<{ days: DayCoverage[] }>()
 /** Klick, Tap oder Enter auf einen Tag bis heute: Tagesblatt öffnen */
-const emit = defineEmits<{ 'open-day': [day: number] }>()
+const emit = defineEmits<{
+  'open-day': [day: number]
+  /** Finger liegt auf einem Tag: wer das Tagesblatt öffnet, kann schon laden. */
+  'intent-day': [day: number]
+}>()
 const { t } = useI18n()
 const { formatDecimal, formatDistance } = useLocaleFormat()
 
@@ -47,7 +51,10 @@ function indexAt(clientX: number): number | null {
 }
 function onPointer(e: PointerEvent) {
   const i = indexAt(e.clientX)
-  if (i != null) active.value = i
+  if (i == null) return
+  active.value = i
+  const d = props.days[i]
+  if (e.type === 'pointerdown' && d && !d.future) emit('intent-day', d.day)
 }
 function onLeave(e: PointerEvent) {
   if (e.pointerType !== 'touch') active.value = rest()

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { whenIdle } from '../utils/whenIdle'
 import { useI18n } from 'vue-i18n'
 import { ChevronDownIcon, PlusIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
 import CarSwitch from '../components/car/CarSwitch.vue'
@@ -150,7 +151,7 @@ async function merge(earlier: DayEvent, later: DayEvent) {
 }
 
 // ── Vormonat nachladen: beim Scrollen, solange er etwas bringt; sonst bleibt der Knopf ──
-const { older, setVisible, reset: resetOlder } = useAutoOlder({
+const { older, prime, setVisible, reset: resetOlder } = useAutoOlder({
   loading: logsLoading,
   count: () => logs.value.length + trips.value.length,
   enabled: () => hasAnyLogs.value,
@@ -158,10 +159,12 @@ const { older, setVisible, reset: resetOlder } = useAutoOlder({
 })
 watch(selectedCarId, resetOlder)
 const sentinel = ref<HTMLElement | null>(null)
+/** So weit unter dem Bildschirm lädt der Vormonat schon nach. */
+const OLDER_MARGIN_PX = 600
 let observer: IntersectionObserver | null = null
 onMounted(() => {
   if (typeof IntersectionObserver === 'undefined') return
-  observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { rootMargin: '0px 0px 600px 0px' })
+  observer = new IntersectionObserver(([entry]) => setVisible(entry.isIntersecting), { rootMargin: `0px 0px ${OLDER_MARGIN_PX}px 0px` })
   if (sentinel.value) observer.observe(sentinel.value)
 })
 watch(sentinel, (el, prev) => {
@@ -169,6 +172,24 @@ watch(sentinel, (el, prev) => {
   if (el) observer?.observe(el)
 })
 onUnmounted(() => observer?.disconnect())
+
+// Liegt das Logbuch verdeckt im anderen Tab (Handy-Pager), sieht der Beobachter das Listenende nie. Ist die
+// Liste so kurz, dass er beim Wechsel sofort nachladen würde (Monatsanfang), lädt der Vormonat schon vorab:
+// sonst fiele Request und Aufbau mitten in die Wisch-Animation. Einmal je Auto, im Leerlauf.
+const bookEl = ref<HTMLElement | null>(null)
+let primed = false
+watch(selectedCarId, () => { primed = false })
+watch(logsLoading, (busy) => {
+  if (busy || primed || !selectedCarId.value) return
+  primed = true
+  whenIdle(() => {
+    const end = sentinel.value?.getBoundingClientRect()
+    const top = bookEl.value?.getBoundingClientRect()
+    // Noch keine Einträge, also kein Listenende: beim nächsten Laden noch einmal schauen
+    if (!end || !top) { primed = false; return }
+    if (end.top - top.top < window.innerHeight + OLDER_MARGIN_PX) prime()
+  })
+}, { immediate: true })
 // Einmal je Besuch, nach dem ersten Laden: welche Buchart der Nutzer sieht
 let opened = false
 watch(logsLoading, (busy) => {
@@ -191,7 +212,7 @@ onMounted(() => { dataFeedback.load() })
 <template>
   <div class="md:mx-auto md:max-w-6xl md:px-6 md:pb-6">
     <div class="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)] lg:items-start lg:gap-6">
-      <div class="min-w-0 bg-white pb-6 dark:bg-gray-900 md:rounded-3xl md:edge-box" data-testid="logbook">
+      <div class="min-w-0 bg-white pb-6 dark:bg-gray-900 md:rounded-3xl md:edge-box" data-testid="logbook" ref="bookEl">
         <h1 class="sr-only">{{ t('logs.title') }}</h1>
         <!-- Das Auto nur nennen, wenn es mehrere gibt -->
         <header v-if="cars.length > 1" class="px-4 pb-2 pt-3 md:pt-5">

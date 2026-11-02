@@ -113,6 +113,28 @@ describe('DataQualityLine', () => {
     spy.mockRestore()
   })
 
+  it('der Fingerdruck meldet den Tag vorab (Tagesblatt kann laden), Ziehen und Tage nach heute nicht', async () => {
+    const spy = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+      const w = this.dataset.testid === 'story-days' ? 310 : 0
+      return { width: w, height: 10, left: 0, top: 0, right: w, bottom: 10, x: 0, y: 0, toJSON: () => ({}) } as DOMRect
+    })
+    const intents: number[] = []
+    const host = document.createElement('div')
+    document.body.appendChild(host)
+    app = createApp(DataQualityLine, { days: days([3, 24], 28), onIntentDay: (d: number) => intents.push(d) })
+    app.component('router-link', RouterLink)
+    app.use(createPinia()).use(i18n)
+    app.mount(host)
+    const bar = host.querySelector('[data-testid="story-days"]') as HTMLElement
+    // 10 px je Tag: 55 ist Tag 6, 295 ist Tag 30 (nach heute)
+    bar.dispatchEvent(new MouseEvent('pointerdown', { clientX: 55 }))
+    bar.dispatchEvent(new MouseEvent('pointermove', { clientX: 95 }))
+    bar.dispatchEvent(new MouseEvent('pointerdown', { clientX: 295 }))
+    await settle()
+    expect(intents).toEqual([6])
+    spy.mockRestore()
+  })
+
   it('Fahrtage als Säule nach km, Ladetage grün, Legende nennt nur, was vorkommt', () => {
     const plain = mount(days([1, 15], 25))
     expect(plain.querySelectorAll('[data-role="km"]')).toHaveLength(0)

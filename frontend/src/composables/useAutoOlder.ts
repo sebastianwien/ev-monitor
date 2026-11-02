@@ -34,9 +34,13 @@ export function useAutoOlder(opts: {
     }
     if (auto.value && visible && opts.enabled()) older()
   }, { flush: 'sync' }) // jeden Wechsel sehen, auch zwei im selben Tick
+  /** Genau einen Schritt vorab laden, ohne Kette: solange die Liste verdeckt liegt (anderer Tab). */
+  function prime() {
+    if (auto.value && opts.enabled()) older()
+  }
   function reset() {
     auto.value = true
     before = -1
   }
-  return { auto, older, setVisible, reset }
+  return { auto, older, prime, setVisible, reset }
 }

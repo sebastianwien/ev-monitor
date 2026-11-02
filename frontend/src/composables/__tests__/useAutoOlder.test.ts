@@ -45,6 +45,17 @@ describe('useAutoOlder', () => {
     expect(auto.auto.value).toBe(true)
   })
 
+  it('prime lädt genau einen Schritt vorab, ohne Kette, solange das Ende nicht sichtbar ist', async () => {
+    const { auto, calls, finish } = setup()
+    auto.prime()
+    expect(calls).toHaveLength(1)
+    await finish()
+    expect(calls).toHaveLength(1)
+    // Wird das Ende danach sichtbar, geht es normal weiter
+    auto.setVisible(true)
+    expect(calls).toHaveLength(2)
+  })
+
   it('während eines Ladevorgangs kein zweiter, danach geht es weiter', async () => {
     const { auto, loading, calls } = setup()
     loading.value = true
