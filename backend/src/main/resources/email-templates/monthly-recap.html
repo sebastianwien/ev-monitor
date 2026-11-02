@@ -48,7 +48,7 @@
           <!--if:consumption-->
           <td class="tile" style="background-color: #ffffff; border: 2px solid #6b7280; border-radius: 12px; padding: 10px 10px 9px; vertical-align: top;">
             <p class="txt num" style="margin: 0; font-size: 26px; font-weight: bold; line-height: 1.1; font-variant-numeric: tabular-nums;">{{consumption}}</p>
-            <p class="muted" style="margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #6b7280;">kWh pro 100 km</p>
+            <p class="muted" style="margin: 6px 0 0; font-size: 13px; line-height: 1.4; color: #6b7280;">kWh pro 100 km, ab Säule</p>
           </td>
           <!--end:consumption-->
           <!--if:costPer100-->
@@ -91,6 +91,7 @@
     </div>
 
     <div class="hair muted" style="padding: 14px 16px 20px; border-top: 1px solid #e5e7eb; font-size: 12px; line-height: 1.5; color: #6b7280;">
+      <!--if:per100-->Die Werte pro 100 km sind, was du im {{month}} geladen und bezahlt hast, geteilt durch die gefahrene Strecke. Eine Ladung kurz vor Monatsende fährst du oft erst im nächsten Monat leer, deshalb schwanken sie von Monat zu Monat. Über mehrere Monate gleicht sich das aus.<br><!--end:per100-->
       <!--if:savings-->*<!--if:partial--> Nur Ladungen mit Preis, die Strecke anteilig nach kWh.<!--end:partial--> Vergleich mit einem Benziner der {{carClass}}: {{fuelLiters}} l/100 km, Benzin {{fuelPrice}}/l laut Tankerkönig.<br><!--end:savings-->
       Diese Mail kommt einmal im Monat. <a href="{{unsubscribeUrl}}" style="color: #6b7280;">Abbestellen</a> mit einem Klick, ohne Login.
     </div>

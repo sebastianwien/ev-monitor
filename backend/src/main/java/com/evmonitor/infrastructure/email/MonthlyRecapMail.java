@@ -56,7 +56,8 @@ public final class MonthlyRecapMail {
         vars.put("month", month);
         vars.put("carName", recap.carName());
         vars.put("charges", String.valueOf(recap.charges()));
-        vars.put("kwh", number(recap.kwh(), "#,##0.#", en));
+        // Netz-kWh, damit Satz, kWh-Kachel und Kosten dieselbe Basis haben; ohne sie die Summe der Ladungen.
+        vars.put("kwh", number(recap.gridKwh() != null ? recap.gridKwh() : recap.kwh(), "#,##0.#", en));
         vars.put("unsubscribeUrl", unsubscribeUrl);
         vars.put("priceUrl", priceUrl);
         vars.put("storyUrl", storyUrl);
@@ -155,9 +156,12 @@ public final class MonthlyRecapMail {
     }
 
     private static void addTiles(MonthlyRecap recap, boolean en, Set<String> sections, Map<String, String> vars) {
-        if (recap.consumptionKwhPer100km() != null) {
+        if (recap.grossKwhPer100Km() != null) {
             sections.add("consumption");
-            vars.put("consumption", number(recap.consumptionKwhPer100km(), "#,##0.0", en));
+            vars.put("consumption", number(recap.grossKwhPer100Km(), "#,##0.0", en));
+        }
+        if (recap.grossKwhPer100Km() != null || recap.costPer100Km() != null) {
+            sections.add("per100");
         }
         if (recap.costPer100Km() != null) {
             sections.add("costPer100");

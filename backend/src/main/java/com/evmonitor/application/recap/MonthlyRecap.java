@@ -13,7 +13,7 @@ import java.util.UUID;
  *
  * @param costEur                Stromkosten, null wenn bei keiner Ladung ein Preis eingetragen ist
  * @param distanceKm             gefahrene Strecke aus dem Kilometerstand, null ohne Odometer-Daten
- * @param consumptionKwhPer100km Verbrauch aus der Statistik (dieselbe Rechnung wie im Dashboard)
+ * @param gridKwh                netzseitig geladene kWh aus der Statistik (gridKwhCharged), Basis wie die Kosten
  * @param homeSharePercent       Anteil der daheim geladenen kWh, null wenn nichts privat geladen wurde
  * @param fuelCostEur            was ein Benziner der Fahrzeugklasse für dieselbe Strecke getankt hätte, null ohne Strecke
  * @param fuelLitersPer100Km     Realverbrauch dieses Benziners (aus der Fahrzeugklasse), für die Fußnote
@@ -35,7 +35,7 @@ public record MonthlyRecap(
         BigDecimal kwh,
         BigDecimal costEur,
         BigDecimal distanceKm,
-        BigDecimal consumptionKwhPer100km,
+        BigDecimal gridKwh,
         Integer homeSharePercent,
         BigDecimal fuelCostEur,
         BigDecimal fuelPricePerLiter,
@@ -55,6 +55,17 @@ public record MonthlyRecap(
         }
         BigDecimal savings = fuelCostEur.subtract(costEur);
         return savings.signum() > 0 ? savings : null;
+    }
+
+    /**
+     * Geladen ab Säule durch gefahrene Strecke, dieselbe Basis wie {@link #costPer100Km()}. Kein
+     * Verbrauch aus dem Akku (das wäre EvLogService), sondern das, was bezahlt wurde, je 100 km.
+     */
+    public BigDecimal grossKwhPer100Km() {
+        if (gridKwh == null || gridKwh.signum() <= 0 || distanceKm == null || distanceKm.signum() <= 0) {
+            return null;
+        }
+        return gridKwh.multiply(BigDecimal.valueOf(100)).divide(distanceKm, 1, RoundingMode.HALF_UP);
     }
 
     public BigDecimal costPer100Km() {
