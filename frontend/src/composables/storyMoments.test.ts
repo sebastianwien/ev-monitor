@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
   recapPlaces, detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate,
-  momentScore, pickCards, winterOutlook, recapFacts, HOUR, DAY, type MomentSeen, type Moment,
+  momentScore, pickCards, winterOutlook, weekOutlook, recapFacts, HOUR, DAY, type MomentSeen, type Moment,
 } from './storyMoments'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
@@ -306,6 +306,32 @@ describe('momentScore und pickCards', () => {
     expect(pickCards([silence], NOW, dismissed)).toEqual([])
     const expired: MomentSeen = { shown: {}, dismissed: { 'silence:l': NOW - 1 } }
     expect(pickCards([silence], NOW, expired).map(s => s.moment.kind)).toEqual(['silence'])
+  })
+})
+
+describe('weekOutlook', () => {
+  const weather = { recentMeanC: 8.6, aheadMeanC: 4.3, deltaC: -4.3, recentDays: 7, aheadDays: 7, aheadMinC: -1.4, aheadMaxC: 6.4 }
+
+  it('nennt die Spanne der nächsten Tage und die Tendenz gegen letzte Woche, gerundet', () => {
+    expect(weekOutlook(weather, 11)).toEqual({ days: 7, minC: -1, maxC: 6, deltaC: -4 })
+    expect(weekOutlook({ ...weather, deltaC: 2.6 }, 1)).toMatchObject({ deltaC: 3 })
+  })
+
+  it('lässt die Tendenz unter 2 Grad weg, die Spanne bleibt; kälter und wärmer gleich behandelt', () => {
+    expect(weekOutlook({ ...weather, deltaC: -1.4 }, 12)).toEqual({ days: 7, minC: -1, maxC: 6, deltaC: null })
+    expect(weekOutlook({ ...weather, deltaC: -1.5 }, 12)).toMatchObject({ deltaC: null })
+    expect(weekOutlook({ ...weather, deltaC: 1.5 }, 12)).toMatchObject({ deltaC: null })
+  })
+
+  it('rundet knapp unter null nicht auf "-0"', () => {
+    expect(Object.is(weekOutlook({ ...weather, aheadMinC: -0.4 }, 12)!.minC, 0)).toBe(true)
+  })
+
+  it('schweigt außerhalb des Winters, ohne Wetter oder ohne Spanne', () => {
+    for (const month of [3, 6, 9, 10]) expect(weekOutlook(weather, month)).toBeNull()
+    expect(weekOutlook(null, 11)).toBeNull()
+    expect(weekOutlook({ ...weather, aheadMinC: null }, 11)).toBeNull()
+    expect(weekOutlook({ ...weather, aheadMaxC: undefined }, 11)).toBeNull()
   })
 })
 

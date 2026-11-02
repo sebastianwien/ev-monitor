@@ -22,7 +22,7 @@ import { purchasesAvailable } from '../utils/iapPolicy'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
 import { carDisplayName } from '../utils/enumLabel'
 import { isPreviewHost, mainAppOrigin } from '../utils/previewHost'
-import { DAY, winterOutlook, type Moment } from '../composables/storyMoments'
+import { DAY, winterOutlook, weekOutlook, type Moment } from '../composables/storyMoments'
 import StoryRecapHero from '../components/story/StoryRecapHero.vue'
 import StoryWinterOutlook from '../components/story/StoryWinterOutlook.vue'
 import { useMomentSeen } from '../composables/useMomentSeen'
@@ -68,7 +68,7 @@ const LogFormModal = defineAsyncComponent(() => import('../components/log-form/L
 const SHEET_CHUNKS = [loadStorySheet, loadStoryTilePane, loadStoryDaySheet, loadPlacesSheet, loadStoryPriceSheet, loadEditLogModal, loadEditTripModal]
 
 const { t, locale } = useI18n()
-const { formatDistance } = useLocaleFormat()
+const { formatDistance, formatDecimal } = useLocaleFormat()
 const router = useRouter()
 const authStore = useAuthStore()
 const { haptic } = useHaptic()
@@ -162,7 +162,12 @@ const newsCards = computed(() => recapHero.value ? story.cards.value.filter(c =>
 const outlook = computed(() => {
   if (month.value.offset !== 0 || newsCards.value.some(c => c.moment.kind === 'first_frost')) return null
   const o = winterOutlook(story.range.value, month.value.month)
-  return o && t('story.outlook_winter', { winter: formatDistance(o.winterKm, { round: true }), summer: formatDistance(o.summerKm, { round: true }) })
+  const w = weekOutlook(story.weather.value, month.value.month)
+  const week = w && t(w.deltaC == null ? 'story.outlook_week' : w.deltaC < 0 ? 'story.outlook_week_colder' : 'story.outlook_week_warmer',
+    { days: w.days, min: formatDecimal(w.minC, 0), max: formatDecimal(w.maxC, 0), delta: Math.abs(w.deltaC ?? 0) })
+  const parts = [o && t('story.outlook_winter', { winter: formatDistance(o.winterKm, { round: true }), summer: formatDistance(o.summerKm, { round: true }) }), week]
+  const lines = parts.filter((x): x is string => !!x)
+  return lines.length ? lines : null
 })
 /** Vormonat aus dem offenen Rückblick (Kopf oder Karte): der Community-Block hängt an ihm und verschwindet mit ihm. */
 const communityMonth = computed(() => {
@@ -447,11 +452,11 @@ onUnmounted(() => unregisterReload?.())
               <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
               <!-- Mit Rückblick steht der Ausblick direkt unter den Zahlen -->
               <template v-if="outlook" #outlook>
-                <StoryWinterOutlook :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :text="outlook" />
+                <StoryWinterOutlook :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :lines="outlook" />
               </template>
             </StoryRecapHero>
             <p v-else class="text-center text-[17px] font-bold text-balance text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
-            <StoryWinterOutlook v-if="outlook && !recapHero" :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :text="outlook" />
+            <StoryWinterOutlook v-if="outlook && !recapHero" :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :lines="outlook" />
             <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
             <router-link v-if="autoSyncOffer" to="/imports" data-testid="story-empty-autosync"
               class="flex items-start gap-3 rounded-xl bg-white p-3.5 text-left edge-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-700/50"

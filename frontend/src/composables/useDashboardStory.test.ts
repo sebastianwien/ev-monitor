@@ -354,10 +354,10 @@ describe('useDashboardStory - ältere Monate', () => {
 })
 
 describe('wantsWeatherOutlook', () => {
-  it('holt den Wetter-Ausblick nur im Oktober, dem Monat der Herbst-Prognose', () => {
-    expect(wantsWeatherOutlook(new Date(2026, 9, 15))).toBe(true)
+  it('holt den Wetter-Ausblick von Oktober (Herbst-Prognose) bis Februar (Ausblick im Winter)', () => {
+    for (const m of [9, 10, 11, 0, 1]) expect(wantsWeatherOutlook(new Date(2026, m, 15))).toBe(true)
     expect(wantsWeatherOutlook(new Date(2026, 8, 30))).toBe(false)
-    expect(wantsWeatherOutlook(new Date(2026, 10, 1))).toBe(false)
+    expect(wantsWeatherOutlook(new Date(2026, 2, 1))).toBe(false)
   })
 })
 

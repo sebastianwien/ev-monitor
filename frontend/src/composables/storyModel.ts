@@ -189,8 +189,8 @@ const AUTUMN_MONTHS = [10]
 const FIRST_WINTER_MONTH = 11
 /** Unter so vielen Euro Mehrkosten gibt es keine Prognose. */
 const MIN_FORECAST_EUR = 5
-/** Ab so vielen Grad kaelter nennt die Prognose den Wetter-Ausblick. */
-const MIN_COLDER_C = 2
+/** Ab so vielen Grad kaelter nennt die Prognose den Wetter-Ausblick; dieselbe Schwelle gilt fuer die Tendenz im Winter-Ausblick. */
+export const MIN_COLDER_C = 2
 /** Ladeverlust: bis 12 Prozent ueblich (AC-Pauschale 10), bis 20 auffaellig, darueber Problem. */
 const FLOW_LOSS_GOOD_PERCENT = 12
 const FLOW_LOSS_WARN_PERCENT = 20

@@ -55,6 +55,7 @@ describe('keepUnits', () => {
     expect(keepUnits('hast du 102 kg CO₂ und 59 € gespart')).toBe('hast du 102\u00a0kg\u00a0CO₂ und 59\u00a0€ gespart')
     expect(keepUnits('you saved 45 kg of CO₂')).toBe('you saved 45\u00a0kg of CO₂')
     expect(keepUnits('har du spart 70 kr')).toBe('har du spart 70\u00a0kr')
+    expect(keepUnits('-1 bis 6 °C')).toBe('-1 bis 6\u00a0°C')
   })
 })
 

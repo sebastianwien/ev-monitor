@@ -1,5 +1,5 @@
 import { tripTimestamp } from '../utils/recentActivity'
-import { heroLine, petrolCostEur } from './storyModel'
+import { heroLine, petrolCostEur, MIN_COLDER_C } from './storyModel'
 import { COLD_MAX_C, type RankEntry } from './storyInsights'
 import { SHORT_TRIP_KM } from './storyDay'
 import { geohashDistanceKm } from '../utils/tripMap'
@@ -231,6 +231,9 @@ export function recapFacts(stats: { totalKwhCharged: number; co2?: { savedKg: nu
   return { kwh: stats.totalKwhCharged, co2Kg: saved != null && saved > 0 ? saved : null }
 }
 
+/** Monate des Ausblicks im leeren Monat (dieselben wie die Winterwerte im Backend). */
+const OUTLOOK_MONTHS = [11, 12, 1, 2]
+
 /**
  * Ausblick im leeren Wintermonat (November bis Februar, dieselben Monate wie die Winterwerte im
  * Backend): Reichweite mit einer Akkuladung im Winter gegen den Sommer. Nur wenn der Winter kürzer ist.
@@ -239,11 +242,31 @@ export function winterOutlook(
   range: { winter: { km: number } | null; summer: { km: number } | null } | null,
   month: number,
 ): { winterKm: number; summerKm: number } | null {
-  if (![11, 12, 1, 2].includes(month)) return null
+  if (!OUTLOOK_MONTHS.includes(month)) return null
   const winter = range?.winter
   const summer = range?.summer
   if (!winter || !summer || winter.km >= summer.km) return null
   return { winterKm: winter.km, summerKm: summer.km }
+}
+
+/**
+ * Wetter der nächsten Tage am Heimladeort für denselben Ausblick: Spanne von Tiefst- bis Höchstwert
+ * und, ab {@link MIN_COLDER_C} Grad Unterschied, die Tendenz gegen letzte Woche (negativ heißt kälter).
+ */
+export function weekOutlook(
+  weather: { deltaC: number; aheadDays: number; aheadMinC?: number | null; aheadMaxC?: number | null } | null,
+  month: number,
+): { days: number; minC: number; maxC: number; deltaC: number | null } | null {
+  if (!OUTLOOK_MONTHS.includes(month) || !weather || weather.aheadMinC == null || weather.aheadMaxC == null) return null
+  // "|| 0": Math.round(-0.4) ist -0, angezeigt als "-0"
+  const round = (c: number) => Math.round(c) || 0
+  return {
+    days: weather.aheadDays,
+    minC: round(weather.aheadMinC),
+    maxC: round(weather.aheadMaxC),
+    // Schwelle am ungerundeten Wert wie in der Herbst-Prognose, sonst zählt -1,5 anders als +1,5
+    deltaC: Math.abs(weather.deltaC) >= MIN_COLDER_C ? round(weather.deltaC) : null,
+  }
 }
 
 export function detectMonthChange(input: {

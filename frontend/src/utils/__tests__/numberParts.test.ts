@@ -10,6 +10,11 @@ describe('numberParts', () => {
     expect(bold('63% aller Ladevorgänge zu Hause')).toEqual(['63%'])
   })
 
+  it('nimmt ein Minus vor der Zahl mit, aber keinen Bindestrich zwischen Zahlen', () => {
+    expect(bold('Die nächsten 7 Tage: -1 bis 6 °C')).toEqual(['7', '-1', '6'])
+    expect(bold('2-3 Ladungen')).toEqual(['2', '3'])
+  })
+
   it('lässt Ziffern in Wörtern wie CO2 stehen', () => {
     expect(bold('1.200 kg CO2 gespart')).toEqual(['1.200'])
   })

@@ -125,8 +125,11 @@ for (const v of VIEWS) {
       d.recentStats = stats({ range: { current: season(310, 19.4), summer: season(380, 15.8), winter: season(310, 19.4) } });
       d.previousStats = { ...d.previousStats, co2: { savedKg: 45.1, petrolKg: 93.8, electricityKg: 48.7, distanceKm: 512, petrolLiters: 38.4, petrolLitersPer100km: 7.5 } };
       d.logs = [log(now, { loggedAt: iso(now - 10 * DAY), createdAt: iso(now - 10 * DAY) })];
+      // Wetter am Heimladeort: die nächsten 7 Tage kälter als die letzte Woche
+      await page.route(/\/api\/weather\/outlook/, route => route.fulfill({ json: { recentMeanC: 8.6, aheadMeanC: 4.3, deltaC: -4.3, recentDays: 7, aheadDays: 7, aheadMinC: -1.4, aheadMaxC: 6.4 } }));
       await openStory(page, d);
       await expect(page.getByTestId('story-winter-outlook')).toContainText(/Ausblick Februar.*Im Winter kommst du mit einer Akkuladung etwa/i);
+      await expect(page.getByTestId('story-winter-outlook')).toContainText(/Die nächsten 7 Tage: -1 bis 6\s°C, rund 4 Grad kälter als letzte Woche\./);
       // Im Rückblick-Kopf steht der Ausblick direkt unter den Zahlen, Normal- und Schnellladen gibt es dort nicht
       await expect(page.getByTestId('story-recap-hero').getByTestId('story-winter-outlook')).toBeVisible();
       await expect(page.getByTestId('story-recap-hero')).not.toContainText('Schnell (DC)');

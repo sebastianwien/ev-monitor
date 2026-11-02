@@ -1,6 +1,6 @@
 import api from './axios'
 
-/** Temperatur-Ausblick am Heimladeort: kommende Tage gegen die letzte Woche, Grad Celsius. */
+/** Temperatur-Ausblick am Heimladeort: die nächsten 7 Tage gegen die letzte Woche, Grad Celsius. */
 export interface WeatherOutlookResponse {
   recentMeanC: number
   aheadMeanC: number
@@ -8,6 +8,9 @@ export interface WeatherOutlookResponse {
   deltaC: number
   recentDays: number
   aheadDays: number
+  /** Tiefst- und Höchstwert der kommenden Tage; fehlt bei älterem Backend oder ohne Werte. */
+  aheadMinC?: number | null
+  aheadMaxC?: number | null
 }
 
 export const weatherService = {

@@ -271,13 +271,13 @@ interface CarBundle {
   /** Endstand des Vormonats je Kategorie, Basis der Ranglisten-Abschlusskarte. */
   previousRanks: RankResponse[]
   previousPeer: { mine: number; peers: number } | null
-  /** Wetter-Ausblick am Heimladeort, nur im Oktober geholt (Herbst-Prognose). */
+  /** Wetter-Ausblick am Heimladeort, nur von Oktober bis Februar geholt (siehe wantsWeatherOutlook). */
   weather: WeatherOutlookResponse | null
 }
 
-/** Der Wetter-Ausblick wird nur im Monat der Herbst-Prognose geholt, sonst kein Open-Meteo-Aufruf. */
+/** Wetter-Ausblick am Heimladeort: Oktober für die Herbst-Prognose, November bis Februar für den Ausblick im leeren Monat; sonst kein Open-Meteo-Aufruf. */
 export function wantsWeatherOutlook(now: Date): boolean {
-  return now.getMonth() === 9
+  return [9, 10, 11, 0, 1].includes(now.getMonth())
 }
 
 /** Wie der Monats-Cache, nur je Auto: Hero und Zuletzt-Karten stehen beim naechsten Oeffnen sofort. */
@@ -716,7 +716,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   return {
     offset, month, months, setOffset, switching, placeRows, dataMonths, minOffset,
     monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
-    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, recentTrips, cards, monthRecap, range, benchmark,
+    layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, recentTrips, cards, monthRecap, range, weather, benchmark,
     reload, markPriceUnknown, savingsAccess,
   }
 }
