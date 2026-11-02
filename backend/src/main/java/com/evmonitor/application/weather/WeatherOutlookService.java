@@ -9,8 +9,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Wetter-Ausblick fuer die Story: wird es am Heimladeort in den naechsten zwei Wochen kaelter
- * als in der letzten Woche? Anker ist der haeufigste Heimladeort des Nutzers, ohne ihn gibt es
+ * Wetter-Ausblick fuer die Story: wird es am Heimladeort in den naechsten 7 Tagen kaelter
+ * als in der letzten Woche, und in welcher Spanne? Anker ist der haeufigste Heimladeort des Nutzers, ohne ihn gibt es
  * keinen Ausblick. Ein Wetterausfall ist kein Fehler fuer den Nutzer, nur kein Ausblick.
  */
 @Service

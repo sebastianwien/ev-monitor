@@ -30,15 +30,22 @@ class WeatherOutlookServiceTest {
     @Test
     void ausblickAmHeimladeort() {
         when(places.homeGeohash(userId)).thenReturn("u33dc0");
-        when(temperatures.getDailyMeans(anyDouble(), anyDouble(), eq(7), eq(14)))
-                .thenReturn(List.of(12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0,
-                        6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0));
+        List<Double> week = List.of(12.0, 12.0, 12.0, 12.0, 12.0, 12.0, 12.0);
+        when(temperatures.getDailyTemperatures(anyDouble(), anyDouble(), eq(7), eq(7)))
+                .thenReturn(new TemperatureService.DailyTemperatures(
+                        concat(week, List.of(6.0, 6.0, 6.0, 6.0, 6.0, 6.0, 6.0)),
+                        concat(week, List.of(1.0, 2.0, -1.0, 3.0, 2.0, 1.0, 0.0)),
+                        concat(week, List.of(9.0, 10.0, 8.0, 7.0, 11.0, 9.0, 8.0))));
 
         WeatherOutlook o = service.outlook(userId).orElseThrow();
 
+        // 7 Tage zurueck gegen 7 Tage voraus, dazu die Spanne der kommenden Woche
         assertThat(o.deltaC()).isEqualTo(-6.0);
-        verify(temperatures).getDailyMeans(doubleThat(lat -> lat > 52.4 && lat < 52.6),
-                doubleThat(lon -> lon > 13.3 && lon < 13.5), eq(7), eq(14));
+        assertThat(o.aheadDays()).isEqualTo(7);
+        assertThat(o.aheadMinC()).isEqualTo(-1.0);
+        assertThat(o.aheadMaxC()).isEqualTo(11.0);
+        verify(temperatures).getDailyTemperatures(doubleThat(lat -> lat > 52.4 && lat < 52.6),
+                doubleThat(lon -> lon > 13.3 && lon < 13.5), eq(7), eq(7));
     }
 
     @Test
@@ -52,8 +59,12 @@ class WeatherOutlookServiceTest {
     @Test
     void wetterausfallIstKeinFehlerSondernKeinAusblick() {
         when(places.homeGeohash(userId)).thenReturn("u33dc0");
-        when(temperatures.getDailyMeans(anyDouble(), anyDouble(), anyInt(), anyInt())).thenThrow(new RuntimeException("429"));
+        when(temperatures.getDailyTemperatures(anyDouble(), anyDouble(), anyInt(), anyInt())).thenThrow(new RuntimeException("429"));
 
         assertThat(service.outlook(userId)).isEmpty();
+    }
+
+    private static List<Double> concat(List<Double> a, List<Double> b) {
+        return java.util.stream.Stream.concat(a.stream(), b.stream()).toList();
     }
 }

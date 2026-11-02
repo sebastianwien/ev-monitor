@@ -20,15 +20,15 @@ import java.util.Optional;
 public class WeatherOutlookCache {
 
     static final int PAST_DAYS = 7;
-    static final int FORECAST_DAYS = 14;
+    static final int FORECAST_DAYS = 7;
 
     private final TemperatureService temperatureService;
 
     @Cacheable(value = "weatherOutlook", key = "#geohash")
     public Optional<WeatherOutlook> forGeohash(String geohash) {
         WGS84Point center = GeoHash.fromGeohashString(geohash).getBoundingBoxCenter();
-        return WeatherOutlook.from(
-                temperatureService.getDailyMeans(center.getLatitude(), center.getLongitude(), PAST_DAYS, FORECAST_DAYS),
-                PAST_DAYS);
+        TemperatureService.DailyTemperatures t =
+                temperatureService.getDailyTemperatures(center.getLatitude(), center.getLongitude(), PAST_DAYS, FORECAST_DAYS);
+        return WeatherOutlook.from(t.means(), t.mins(), t.maxs(), PAST_DAYS);
     }
 }

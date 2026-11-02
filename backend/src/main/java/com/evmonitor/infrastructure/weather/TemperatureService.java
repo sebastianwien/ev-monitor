@@ -98,29 +98,39 @@ public class TemperatureService {
         return temperatures.stream().map(n -> n == null ? null : n.doubleValue()).toList();
     }
 
+    /** Tagesmittel, Tiefst- und Hoechstwerte; Index 0 ist der aelteste Tag, Luecken sind {@code null}. Leer ohne Daten. */
+    public record DailyTemperatures(List<Double> means, List<Double> mins, List<Double> maxs) {
+        static final DailyTemperatures EMPTY = new DailyTemperatures(List.of(), List.of(), List.of());
+    }
+
     /**
-     * Tagesmittel in Ortszeit: {@code pastDays} zurueck und {@code forecastDays} voraus in einem
-     * Aufruf, Index 0 ist der aelteste Tag. Fuer den Wetter-Ausblick der Story. Wie
+     * Tagesmittel, Tiefst- und Hoechstwerte in Ortszeit: {@code pastDays} zurueck und {@code forecastDays}
+     * voraus in einem Aufruf, Index 0 ist der aelteste Tag. Fuer den Wetter-Ausblick der Story. Wie
      * {@link #getHourlyForUtcDay} faengt die Methode nichts ab, der Aufrufer entscheidet.
      */
     @SuppressWarnings("unchecked")
-    public List<Double> getDailyMeans(double latitude, double longitude, int pastDays, int forecastDays) {
+    public DailyTemperatures getDailyTemperatures(double latitude, double longitude, int pastDays, int forecastDays) {
         String url = UriComponentsBuilder.fromHttpUrl(FORECAST_URL)
                 .queryParam("latitude", latitude)
                 .queryParam("longitude", longitude)
-                .queryParam("daily", "temperature_2m_mean")
+                .queryParam("daily", "temperature_2m_mean,temperature_2m_min,temperature_2m_max")
                 .queryParam("past_days", pastDays)
                 .queryParam("forecast_days", forecastDays)
                 .queryParam("timezone", "auto")
                 .toUriString();
 
         Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-        if (response == null) return List.of();
+        if (response == null) return DailyTemperatures.EMPTY;
         Map<String, Object> daily = (Map<String, Object>) response.get("daily");
-        if (daily == null) return List.of();
-        List<Number> means = (List<Number>) daily.get("temperature_2m_mean");
-        if (means == null) return List.of();
-        return means.stream().map(n -> n == null ? null : n.doubleValue()).toList();
+        if (daily == null) return DailyTemperatures.EMPTY;
+        return new DailyTemperatures(series(daily, "temperature_2m_mean"), series(daily, "temperature_2m_min"), series(daily, "temperature_2m_max"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static List<Double> series(Map<String, Object> daily, String key) {
+        List<Number> values = (List<Number>) daily.get(key);
+        if (values == null) return List.of();
+        return values.stream().map(n -> n == null ? null : n.doubleValue()).toList();
     }
 
     @SuppressWarnings("unchecked")
