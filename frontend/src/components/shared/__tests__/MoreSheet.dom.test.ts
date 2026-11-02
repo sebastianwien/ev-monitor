@@ -33,6 +33,7 @@ describe('MoreSheet', () => {
   it('web: no legal links, they sit in the page footer', async () => {
     const links = hrefs(await mount(false))
     expect(links).toContain('/cars')
+    expect(links).toContain('/charging-providers')
     expect(links).not.toContain('/impressum')
   })
 })

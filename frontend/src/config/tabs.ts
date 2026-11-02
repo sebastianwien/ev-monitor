@@ -2,9 +2,9 @@
  * Die Tabs des eingeloggten Bereichs an einer Stelle, damit Desktop-Leiste und
  * Mobile-Pager nie auseinanderlaufen.
  *
- * Mobile wischt man paarweise: Dashboard <-> Log-Feed (CarContextLayout) und
- * Fahrzeuge <-> Ladekarten (CarsLayout). Desktop zeigt alle vier Ziele nebeneinander,
- * ein Klick pro Ziel.
+ * Mobile wischt man nur Dashboard <-> Log-Feed (CarContextLayout). Fahrzeuge und
+ * Ladekarten sind mobil eigene Seiten, erreichbar ueber das Mehr-Menue. Desktop zeigt
+ * alle vier Ziele nebeneinander, ein Klick pro Ziel.
  */
 export const CONTEXT_TABS = [
   { to: '/dashboard', labelKey: 'nav.dashboard' },
@@ -23,7 +23,7 @@ export const CAR_TABS = [
 ] as const
 
 /** Alle Wisch-Paare, beide Designs. */
-const PAGER_PAIRS: readonly (readonly string[])[] = [contextTabPaths(false), contextTabPaths(true), CAR_TABS.map(tab => tab.to)]
+const PAGER_PAIRS: readonly (readonly string[])[] = [contextTabPaths(false), contextTabPaths(true)]
 
 /** Wechsel innerhalb eines Wisch-Paars: dann führt der Pager den Scrollstand je Tab, nicht der Router. */
 export function samePagerPair(from: string, to: string): boolean {

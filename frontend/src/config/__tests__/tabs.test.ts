@@ -33,14 +33,15 @@ describe('Tab-Konfiguration', () => {
 
 // Wechsel innerhalb eines Wisch-Paars: der Pager führt den Scrollstand je Tab, nicht der Router.
 describe('samePagerPair', () => {
-  it('Übersicht bzw. Dashboard und Logs, Fahrzeuge und Ladekarten', () => {
+  it('Übersicht bzw. Dashboard und Logs', () => {
     expect(samePagerPair('/story', '/logs')).toBe(true)
     expect(samePagerPair('/logs', '/dashboard')).toBe(true)
-    expect(samePagerPair('/cars', '/charging-providers')).toBe(true)
   })
 
   it('über die Paar-Grenze, zu sich selbst oder außerhalb: nein', () => {
     expect(samePagerPair('/logs', '/cars')).toBe(false)
+    // Fahrzeuge und Ladekarten sind seit 02.11.2026 eigene Seiten (Ladekarten im Mehr-Menü), kein Wisch-Paar
+    expect(samePagerPair('/cars', '/charging-providers')).toBe(false)
     expect(samePagerPair('/logs', '/logs')).toBe(false)
     expect(samePagerPair('/modelle', '/logs')).toBe(false)
   })

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import {
-  XMarkIcon, TruckIcon, ArrowsRightLeftIcon, ArrowDownTrayIcon,
+  XMarkIcon, TruckIcon, CreditCardIcon, ArrowsRightLeftIcon, ArrowDownTrayIcon,
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon, ChatBubbleLeftEllipsisIcon,
 } from '@heroicons/vue/24/outline'
@@ -26,6 +26,7 @@ const { haptic } = useHaptic()
 interface NavItem { to: string; label: string; icon: typeof TruckIcon; demoHidden?: boolean }
 const items: NavItem[] = [
   { to: '/cars', label: 'dashboard.vehicles_btn', icon: TruckIcon },
+  { to: '/charging-providers', label: 'nav.cards', icon: CreditCardIcon },
   { to: '/modelle', label: 'nav.models_compare', icon: ArrowsRightLeftIcon },
   { to: '/imports', label: 'nav.bottom.import', icon: ArrowDownTrayIcon, demoHidden: true },
   { to: '/settings', label: 'nav.bottom.settings', icon: Cog6ToothIcon, demoHidden: true },

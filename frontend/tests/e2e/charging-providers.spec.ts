@@ -5,23 +5,23 @@ import { featureAnnouncements } from '../../src/config/featureAnnouncements';
 const API_URL = process.env.API_URL || 'http://localhost:8080';
 
 /**
- * Der Tab ist der einzige Weg zu /charging-providers - bricht er, ist die
+ * Der Bereichs-Link ist der einzige Weg zu /charging-providers - bricht er, ist die
  * Ladekarten-Verwaltung unerreichbar.
  *
- * Welcher Tab das ist, haengt von der Breite ab: Desktop zeigt die Workspace-Leiste mit
- * allen vier Zielen (Chip-Links, der aktive mit aria-current), Mobile den Zweier-Switch
- * Fahrzeuge <-> Ladekarten (role=tab mit aria-selected).
+ * Desktop zeigt die Workspace-Leiste mit allen vier Zielen (Chip-Links, der aktive mit
+ * aria-current). Mobil stehen Fahrzeuge und Ladekarten im Mehr-Menue der Bottom-Nav.
  */
-function areaTab(page: Page, isMobile: boolean, name: string): Locator {
-  return isMobile
-    ? page.locator('[role="tab"]:visible', { hasText: name })
-    : page.getByRole('navigation', { name: 'Bereiche' }).getByRole('link', { name, exact: true })
+async function goToArea(page: Page, isMobile: boolean, desktopName: string, mobileName: string) {
+  if (isMobile) {
+    await page.getByRole('button', { name: 'Mehr', exact: true }).click()
+    await page.getByTestId('more-sheet').getByRole('link', { name: mobileName, exact: true }).click()
+  } else {
+    await page.getByRole('navigation', { name: 'Bereiche' }).getByRole('link', { name: desktopName, exact: true }).click()
+  }
 }
 
-async function expectSelected(tab: Locator, isMobile: boolean, selected: boolean) {
-  if (isMobile) await expect(tab).toHaveAttribute('aria-selected', String(selected))
-  else if (selected) await expect(tab).toHaveAttribute('aria-current', 'page')
-  else await expect(tab).not.toHaveAttribute('aria-current', 'page')
+function areaTab(page: Page, name: string): Locator {
+  return page.getByRole('navigation', { name: 'Bereiche' }).getByRole('link', { name, exact: true })
 }
 
 test.describe('Fuhrpark-Tabs: Fahrzeuge <-> Ladekarten', () => {
@@ -38,24 +38,24 @@ test.describe('Fuhrpark-Tabs: Fahrzeuge <-> Ladekarten', () => {
     await expect(page).toHaveURL(/\/dashboard/, { timeout: 10_000 });
   });
 
-  test('Tab wechselt zwischen Fahrzeugen und Ladekarten', async ({ page, isMobile }) => {
+  test('Wechsel zwischen Fahrzeugen und Ladekarten', async ({ page, isMobile }) => {
     const errors: string[] = [];
     page.on('pageerror', err => errors.push(err.message));
 
     await page.goto('/cars');
     await page.waitForLoadState('networkidle');
 
-    const cardsTab = areaTab(page, isMobile, 'Meine Ladekarten');
-    await expect(cardsTab).toBeVisible();
-    await expectSelected(cardsTab, isMobile, false);
+    // Mobil schliesst das Foto direkt an den Kopf an: kein Umschalter ueber dem Auto
+    if (isMobile) await expect(page.locator('[role="tab"]:visible')).toHaveCount(0);
+    else await expect(areaTab(page, 'Meine Ladekarten')).not.toHaveAttribute('aria-current', 'page');
 
-    await cardsTab.click();
+    await goToArea(page, isMobile, 'Meine Ladekarten', 'Ladekarten');
     await expect(page).toHaveURL(/\/charging-providers/);
     await expect(page.locator('h1:has-text("Meine Ladekarten")')).toBeVisible();
-    await expectSelected(cardsTab, isMobile, true);
+    if (!isMobile) await expect(areaTab(page, 'Meine Ladekarten')).toHaveAttribute('aria-current', 'page');
 
     // Zurueck: die Ladekarten-Verwaltung darf keine Sackgasse sein
-    await areaTab(page, isMobile, 'Meine Fahrzeuge').click();
+    await goToArea(page, isMobile, 'Meine Fahrzeuge', 'Fahrzeuge');
     await expect(page).toHaveURL(/\/cars/);
     await expect(page.locator('h1:has-text("Meine Fahrzeuge")')).toBeVisible();
 
@@ -63,15 +63,15 @@ test.describe('Fuhrpark-Tabs: Fahrzeuge <-> Ladekarten', () => {
   });
 
   test('Desktop: Ladekarten und zurueck zum Dashboard in je einem Klick', async ({ page, isMobile }) => {
-    test.skip(!!isMobile, 'Die Workspace-Leiste gibt es nur ab 768px - Mobile wischt stattdessen.');
+    test.skip(!!isMobile, 'Die Workspace-Leiste gibt es nur ab 768px - mobil geht es ueber das Mehr-Menue.');
 
     await page.waitForLoadState('networkidle');
 
-    await areaTab(page, false, 'Meine Ladekarten').click();
+    await areaTab(page, 'Meine Ladekarten').click();
     await expect(page).toHaveURL(/\/charging-providers/);
     await expect(page.locator('h1:has-text("Meine Ladekarten")')).toBeVisible();
 
-    await areaTab(page, false, 'Dashboard').click();
+    await areaTab(page, 'Dashboard').click();
     await expect(page).toHaveURL(/\/dashboard/);
   });
 
