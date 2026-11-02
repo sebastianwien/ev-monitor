@@ -5,6 +5,8 @@ export interface FuelPrices {
   petrolEurPerLitre: number
   dieselEurPerLitre: number
   updatedAt: string | null
+  /** Eingefrorener Benzinpreis des Vormonats, derselbe Wert wie in der Monatsmail. */
+  previousMonthPetrolEurPerLitre?: number
 }
 
 export const fuelPriceService = {

@@ -242,6 +242,8 @@ export interface PetrolPrice {
   eurPerLitre: number
   /** true, wenn der Preis vom Tankerkoenig-Abruf stammt und nicht aus einem Rueckfallwert. */
   live: boolean
+  /** Eingefrorener Preis des Vormonats für den Monatsrückblick (wie die Monatsmail), fehlt ohne API. */
+  previousMonthEurPerLitre?: number
 }
 
 /** Heimlade-Ersparnis: gesperrt (Probemonat vorbei, kein Tarif) oder bis wann der Probemonat läuft. */
@@ -319,7 +321,11 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
   const prices = fuel.status === 'fulfilled' ? fuel.value : null
   return {
     petrol: prices && prices.petrolEurPerLitre > 0
-      ? { eurPerLitre: prices.petrolEurPerLitre, live: prices.updatedAt != null }
+      ? {
+          eurPerLitre: prices.petrolEurPerLitre,
+          live: prices.updatedAt != null,
+          previousMonthEurPerLitre: (prices.previousMonthPetrolEurPerLitre ?? 0) > 0 ? prices.previousMonthPetrolEurPerLitre : undefined,
+        }
       : { eurPerLitre: PETROL_EUR_PER_L_DE, live: false },
     savingsEur: savings.status === 'fulfilled' ? savings.value.savings?.savingsEur ?? null : null,
     savingsAccess: savings.status === 'fulfilled'
@@ -648,7 +654,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
         distanceKm: prev.totalDistanceKm, energyCostEur: prev.energyCostEur, charges: prev.totalCharges,
         priceless: pricelessInPreviousMonth.value,
       } : null,
-      petrolEurPerLitre: petrol.value.eurPerLitre,
+      // Der Rückblick zeigt den Vormonat: dessen eingefrorener Preis, damit Story und Monatsmail dieselbe Ersparnis zeigen.
+      petrolEurPerLitre: petrol.value.previousMonthEurPerLitre ?? petrol.value.eurPerLitre,
       petrolLitersPer100km: petrolLitersPer100km(c.vehicleCategory),
       // Plätze des Vormonats (Treppchen alle, sonst der beste bis 10) und Modellvergleich: Verbrauch im
       // selben Monat, sonst der Preis in Euro nach derselben Regel wie "Diesen Monat".

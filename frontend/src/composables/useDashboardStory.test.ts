@@ -87,6 +87,17 @@ describe('useDashboardStory - Benzinpreis', () => {
     expect(story.petrol.value).toEqual({ eurPerLitre: 2.13, live: true })
   })
 
+  it('merkt sich den eingefrorenen Vormonatspreis fuer den Rueckblick, wie in der Monatsmail', async () => {
+    getMock.mockImplementation((url: string) => {
+      if (url.includes('/public/fuel-prices')) return Promise.resolve({ data: { petrolEurPerLitre: 2.13, dieselEurPerLitre: 2.25, updatedAt: '2026-10-02T06:00:00Z', previousMonthPetrolEurPerLitre: 2.06 } })
+      if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
+      return Promise.resolve({ data: [] })
+    })
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    expect(story.petrol.value).toEqual({ eurPerLitre: 2.13, live: true, previousMonthEurPerLitre: 2.06 })
+  })
+
   it('faellt ohne API-Antwort auf die Konstante zurueck und ohne Abrufzeitpunkt auf nicht live', async () => {
     getMock.mockImplementation((url: string) => {
       if (url.includes('/public/fuel-prices')) return Promise.reject(new Error('down'))
