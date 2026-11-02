@@ -2,18 +2,18 @@ import { describe, it, expect } from 'vitest'
 import { getPricing } from '../pricingConfig'
 
 describe('getPricing', () => {
-    it('DE bekommt 3,90 EUR', () => {
+    it('DE bekommt 4,90 EUR', () => {
         const p = getPricing('DE')
-        expect(p.monthly).toBe('3,90 €')
-        expect(p.yearly).toBe('39 €')
+        expect(p.monthly).toBe('4,90 €')
+        expect(p.yearly).toBe('49 €')
         expect(p.currency).toBe('EUR')
     })
 
     it('AT und CH bekommen denselben Preis wie DE', () => {
-        expect(getPricing('AT').monthly).toBe('3,90 €')
-        expect(getPricing('CH').monthly).toBe('3,90 €')
-        expect(getPricing('AT').yearly).toBe('39 €')
-        expect(getPricing('CH').yearly).toBe('39 €')
+        expect(getPricing('AT').monthly).toBe('4,90 €')
+        expect(getPricing('CH').monthly).toBe('4,90 €')
+        expect(getPricing('AT').yearly).toBe('49 €')
+        expect(getPricing('CH').yearly).toBe('49 €')
     })
 
     it('NL und BE bekommen 4,90 EUR (intl)', () => {
