@@ -3492,6 +3492,7 @@ soh:
   open_aria: "Battery health approximately {soh} percent, show details"
   open_aria_unknown: "Show battery health"
   pill_label: "~{pct}% SoH"
+  stat_unit: "% SoH"
   hub_detail: "SoC hub {hub}%"
   badge_none: "Check SoH"
   of_original: "of original capacity"

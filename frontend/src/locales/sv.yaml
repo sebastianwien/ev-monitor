@@ -3375,6 +3375,7 @@ soh:
   open_aria: "Batterihälsa ungefär {soh} procent, visa detaljer"
   open_aria_unknown: "Visa batterihälsa"
   pill_label: "~{pct} % SoH"
+  stat_unit: "% SoH"
   hub_detail: "Laddspann {hub} %"
   badge_none: "Kontrollera SoH"
   of_original: "av ursprunglig kapacitet"

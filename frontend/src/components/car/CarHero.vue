@@ -182,7 +182,7 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
           <span class="flex min-w-0 flex-1 flex-col self-start">
             <span v-if="sohPercent != null" class="flex flex-col text-gray-900 dark:text-gray-100">
               <span class="text-[24px] font-extrabold leading-none tracking-tight tabular-nums">~{{ Math.round(sohPercent) }}</span>
-              <span :class="statUnit">%</span>
+              <span :class="statUnit">{{ t('soh.stat_unit') }}</span>
             </span>
             <span v-else class="text-[15px] font-bold leading-6 text-gray-900 dark:text-gray-100">{{ t('soh.badge_none') }}</span>
           </span>

@@ -81,6 +81,7 @@ describe('CarHero chips', () => {
         expect(stats().querySelector('[data-stat="odometer"]')!.textContent).toContain('Kilometerstand')
         expect(stats().querySelector('[data-stat="consumption"]')!.textContent).toContain('17,3')
         expect(stats().querySelector('[data-stat="soh"]')!.textContent).toContain('92')
+        expect(stats().querySelector('[data-stat="soh"]')!.textContent).toContain('% SoH')
         ;(stats().querySelector('button[data-stat="soh"]') as HTMLButtonElement).click()
         expect(emitted).toEqual(['soh'])
     })
