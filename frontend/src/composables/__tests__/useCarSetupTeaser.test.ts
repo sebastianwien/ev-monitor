@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { ref } from 'vue'
 import {
     carTeaserKind,
     isTeaserDismissed,
@@ -135,5 +136,42 @@ describe('Dismiss-Persistenz', () => {
     it('ignoriert kaputte Eintraege, statt den Teaser fuer immer zu verschlucken', () => {
         localStorage.setItem('carTeaser.AUTOSYNC.car-1', 'nonsense')
         expect(isTeaserDismissed('car-1', 'AUTOSYNC')).toBe(false)
+    })
+})
+
+// Regression 02.11.2026: Auf Prod sah ein Tesla-Fahrer mit laufender Telemetry den Teaser.
+// Der Tesla-Status kommt erst nach dem Telemetry-Check an (Polling startet ohne await),
+// der Check brach deshalb ab und liess telemetryActive auf false.
+describe('useCarSetupTeaser - Telemetry-Check unabhaengig vom Tesla-Status', () => {
+    beforeEach(() => {
+        localStorage.clear()
+        vi.resetModules()
+    })
+
+    async function setup(pairing: () => Promise<unknown>) {
+        vi.doMock('../../api/teslaFleetService', () => ({ default: { getPairingStatus: pairing } }))
+        vi.doMock('../../stores/auth', () => ({ useAuthStore: () => ({ isPremium: false, isDemoAccount: false }) }))
+        vi.doMock('../../utils/iapPolicy', () => ({ purchasesAvailable: () => true }))
+        const { useCarSetupTeaser } = await import('../useCarSetupTeaser')
+        const tesla = car({ brand: 'Tesla', model: 'Model 3' })
+        // Tesla-Status noch nicht geladen: genau der Zustand beim ersten Laden von /cars
+        return { tesla, ...useCarSetupTeaser(ref([tesla]), ref(null)) }
+    }
+
+    it('schweigt, wenn Telemetry laeuft, auch solange der Tesla-Status noch fehlt', async () => {
+        const { tesla, teaserFor, loadTelemetryStatus } = await setup(() => Promise.resolve({ dataSource: 'TELEMETRY' }))
+        await loadTelemetryStatus()
+        expect(teaserFor(tesla)).toBeNull()
+    })
+
+    it('blitzt nicht auf, bevor der Check fertig ist', async () => {
+        const { tesla, teaserFor } = await setup(() => new Promise(() => {}))
+        expect(teaserFor(tesla)).toBeNull()
+    })
+
+    it('teasert nach dem Check, wenn der Account nicht verbunden ist (404)', async () => {
+        const { tesla, teaserFor, loadTelemetryStatus } = await setup(() => Promise.reject(new Error('404')))
+        await loadTelemetryStatus()
+        expect(teaserFor(tesla)).toBe('TELEMETRY')
     })
 })

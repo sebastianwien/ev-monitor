@@ -70,28 +70,27 @@ export function dismissTeaser(carId: string, kind: CarTeaserKind, now: number = 
 /**
  * Bindet die Regel an Auth-Store und Tesla-Pairing-Status.
  *
- * `teslaStatus` kommt vom Aufrufer (in /cars laedt `useCarForm` ihn ohnehin schon),
- * damit wir `/tesla/fleet/status` nicht doppelt abfragen. Ergaenzt wird nur der
- * Pairing-Status, der als einziger verraet, ob Telemetry wirklich laeuft.
+ * `teslaStatus` kommt vom Aufrufer (in /cars laedt `useCarForm` ihn ohnehin schon) und
+ * liefert nur die Auto-Zuordnung. Ob Telemetry laeuft, verraet allein der Pairing-Status.
+ * Der wird bewusst ohne Blick auf `teslaStatus` abgefragt: das Status-Polling startet
+ * ohne await und ist beim ersten Laden noch leer.
  */
 export function useCarSetupTeaser(cars: Ref<Car[]>, teslaStatus: Ref<TeslaConnectionStatus | null>) {
     const authStore = useAuthStore()
     const telemetryActive = ref(false)
+    // Bis der Pairing-Status da ist, schweigt der Telemetry-Teaser, sonst blitzt er bei
+    // Fahrern mit laufender Telemetry kurz auf.
+    const telemetryChecked = ref(false)
     // localStorage ist nicht reaktiv - dieser Tick zieht die Teaser nach einem Dismiss neu durch.
     const dismissTick = ref(0)
 
-    /**
-     * `force` ueberspringt den Connected-Guard: direkt nach der Einrichtung ist der
-     * gepollte `teslaStatus` noch alt, wir wollen den Teaser aber sofort verschwinden sehen.
-     */
-    const loadTelemetryStatus = async (force = false) => {
+    const loadTelemetryStatus = async () => {
         if (authStore.isDemoAccount) return
         if (!cars.value.some(c => autoSyncProviderFor(c) === 'TESLA')) return
-        // Ohne verbundenen Account antwortet der Pairing-Endpoint mit 404 - dann gar nicht erst fragen.
-        if (!force && !teslaStatus.value?.connected) return
-
+        // Ohne verbundenen Account antwortet der Endpoint mit 404: dann eben nicht aktiv.
         const pairing = await teslaFleetService.getPairingStatus().catch(() => null)
         telemetryActive.value = pairing?.dataSource === 'TELEMETRY'
+        telemetryChecked.value = true
     }
 
     const teaserFor = (car: Car): CarTeaserKind | null => {
@@ -104,6 +103,7 @@ export function useCarSetupTeaser(cars: Ref<Car[]>, teslaStatus: Ref<TeslaConnec
             teslaConnectedCarId: teslaStatus.value?.carId ?? null,
         })
         if (!kind) return null
+        if (kind === 'TELEMETRY' && !telemetryChecked.value) return null
         return isTeaserDismissed(car.id, kind) ? null : kind
     }
 

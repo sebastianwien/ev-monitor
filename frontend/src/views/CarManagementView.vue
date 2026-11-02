@@ -210,7 +210,7 @@ const closeTeslaPrompt = () => {
   teslaCallbackError.value = null
   // Wurde die Telemetry im Modal eingerichtet, soll der Teaser sofort verschwinden -
   // der gepollte teslaStatus waere dafuer zu traege.
-  loadTelemetryStatus(true)
+  loadTelemetryStatus()
 }
 
 /** Teaser-CTA: dasselbe Einrichtungs-Modal wie direkt nach dem Anlegen eines Teslas. */
