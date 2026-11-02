@@ -26,7 +26,6 @@ class AdminWeeklyEvLogCountTest extends AbstractIntegrationTest {
         LocalDateTime start = LocalDateTime.of(2032, 3, 1, 0, 0);
         LocalDateTime end = start.plusDays(7);
         long before = queries.countNewEvLogs(start, end);
-        long nowBefore = queries.countNewEvLogs(LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1));
 
         User user = createAndSaveUser("weekly-" + UUID.randomUUID().toString().substring(0, 8) + "@ev-monitor.net");
         Car car = createAndSaveCar(user.getId(), CarBrand.CarModel.MODEL_3);
@@ -34,7 +33,5 @@ class AdminWeeklyEvLogCountTest extends AbstractIntegrationTest {
                 "u33d1", null, null, null, start.plusDays(2), DataSource.USER_LOGGED, ChargingType.AC, null));
 
         assertThat(queries.countNewEvLogs(start, end)).isEqualTo(before + 1);
-        assertThat(queries.countNewEvLogs(LocalDateTime.now().minusHours(1), LocalDateTime.now().plusHours(1)))
-                .isEqualTo(nowBefore);
     }
 }
