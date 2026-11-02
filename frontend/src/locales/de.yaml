@@ -1711,7 +1711,7 @@ cars:
     include: "{category} einrechnen"
     by_category: "Kosten {year}"
     empty_year: "Für {year} sind keine Kosten erfasst."
-    history_link: "Monatsverlauf im Dashboard"
+    months_toggle: "Monate anzeigen"
     or: "oder"
     per_100: "auf 100 {unit}"
 

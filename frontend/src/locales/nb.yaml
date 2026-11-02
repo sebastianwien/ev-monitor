@@ -1665,7 +1665,7 @@ cars:
     include: "Ta med {category}"
     by_category: "Kostnader {year}"
     empty_year: "Ingen ladinger eller faste kostnader registrert for {year}."
-    history_link: "Månedsoversikt på dashbordet"
+    months_toggle: "Vis måneder"
     or: "eller"
     per_100: "per 100 {unit}"
 carselector:

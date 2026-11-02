@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useI18n } from 'vue-i18n'
-import { ArrowRightIcon, ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
+import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon, PlusIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import { fixedCostService, type FixedCost } from '../../api/fixedCostService'
 import { ENERGY, useYearCosts } from '../../composables/useYearCosts'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
@@ -14,22 +14,26 @@ import { KM_PER_MILE } from '../../utils/unitConversions'
 import BottomSheet from '../shared/BottomSheet.vue'
 import ToggleSwitch from '../shared/ToggleSwitch.vue'
 import YearSlide from '../shared/YearSlide.vue'
+import Collapse from '../shared/Collapse.vue'
+import CostMonthBars from '../shared/CostMonthBars.vue'
 import FixedCostForm from './FixedCostForm.vue'
 
 /**
  * "Was es kostet": was das Auto im Kalenderjahr kostet, mit Pfeilen durch die Jahre. Kopfzahl
  * und Satz rechnen Fixkosten immer umgelegt. Jede Kategorie (auch Strom) laesst sich aus- und
- * einrechnen, gemeinsam mit dem Kostenverlauf im Dashboard, der den Monatsverlauf zeigt.
+ * einrechnen, gemeinsam mit dem Kostenverlauf im Dashboard. "Monate anzeigen" klappt die
+ * Monatsbalken auf (dieselben wie im Dashboard), wahlweise mit Fixkosten auf Monate umgelegt.
  * Fixkosten werden hier gepflegt: Zeile tippen oeffnet Bearbeiten im Sheet, "Kosten erfassen"
  * legt an.
  */
-const props = defineProps<{ carId: string; registrationDate: string | null; showHistoryLink: boolean }>()
+const props = defineProps<{ carId: string; registrationDate: string | null }>()
 const { t } = useI18n()
 const { formatCurrency, isImperial } = useLocaleFormat()
 
-const { ranked, thisYear, year, minYear, points, distance, items, loading, error, load, hidden, setShown, proRataSeries } =
+const { ranked, thisYear, year, minYear, points, distance, items, loading, error, load, hidden, setShown, spread, series, proRataSeries } =
   useYearCosts(() => props.carId, () => props.registrationDate)
 const openGroups = ref<Set<string>>(new Set())
+const monthsOpen = ref(false)
 const sheet = ref<{ edit: FixedCost | null } | null>(null)
 const deleting = ref(false)
 
@@ -140,9 +144,21 @@ const navBtn = 'inline-flex h-11 w-11 items-center justify-center rounded-xl tex
           <div v-for="x in shares" :key="x.key" class="h-full border-r border-white last:border-r-0 dark:border-gray-700" :style="{ width: `${x.pct}%`, background: colorOf(x.key) }" />
         </div>
 
-        <RouterLink v-if="showHistoryLink" to="/dashboard" class="mt-3 inline-flex items-center gap-1.5 min-h-11 text-sm font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100" data-testid="car-cost-history-link">
-          {{ t('cars.costs.history_link') }}<ArrowRightIcon class="h-4 w-4" aria-hidden="true" />
-        </RouterLink>
+        <!-- Monatsbalken wie im Dashboard-Kostenverlauf, hier direkt am Auto -->
+        <button type="button" class="mt-2 -ml-1 inline-flex min-h-11 items-center gap-1.5 px-1 text-sm font-semibold text-gray-900 dark:text-gray-100"
+          :aria-expanded="monthsOpen" aria-controls="car-cost-months" data-testid="car-cost-months-toggle" @click="monthsOpen = !monthsOpen">
+          {{ t('cars.costs.months_toggle') }}
+          <ChevronDownIcon class="h-4 w-4 transition-transform duration-300" :class="monthsOpen ? 'rotate-180 ease-out' : 'ease-in'" aria-hidden="true" />
+        </button>
+        <Collapse :open="monthsOpen">
+          <div id="car-cost-months" class="pb-1">
+            <CostMonthBars :series="series" :ranked="ranked" :year="year" />
+            <label class="mt-2 flex min-h-11 cursor-pointer items-center justify-between gap-3">
+              <span class="text-sm text-gray-600 dark:text-gray-300 select-none">{{ t('cars.costs.spread_short') }}</span>
+              <ToggleSwitch v-model="spread" :label="t('cost_history.mode_spread_label')" />
+            </label>
+          </div>
+        </Collapse>
       </div>
       <p v-else class="mt-3 text-sm text-gray-600 dark:text-gray-300">{{ year === thisYear ? t('cars.costs.empty_all') : t('cars.costs.empty_year', { year }) }}</p>
 

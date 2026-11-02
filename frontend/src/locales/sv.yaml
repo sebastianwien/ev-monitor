@@ -1665,7 +1665,7 @@ cars:
     include: "Räkna med {category}"
     by_category: "Kostnader {year}"
     empty_year: "Inga laddningar eller fasta kostnader registrerade för {year}."
-    history_link: "Månadsöversikt på instrumentpanelen"
+    months_toggle: "Visa månader"
     or: "eller"
     per_100: "per 100 {unit}"
 carselector:
