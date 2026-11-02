@@ -3,6 +3,8 @@ package com.evmonitor.testutil;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.context.annotation.ClassPathScanningCandidateComponentProvider;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.type.filter.AnnotationTypeFilter;
 import org.springframework.core.type.filter.AssignableTypeFilter;
 
 import java.lang.annotation.Annotation;
@@ -21,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * <p>Jede Kombination aus eigenen Mock-Feldern oder Context-Annotationen in einer Unterklasse
  * erzeugt einen weiteren Spring-Context pro Testlauf (5-8 s je Context in CI). Mocks und Spies
  * gehören deshalb in {@link AbstractIntegrationTest} oder {@link AbstractPostgresIT}.
+ * Klassen mit eigenem {@code @SpringBootTest} ohne Basisklasse zählen ebenso.
  * Ausnahmen stehen mit Begründung in {@link #EXCEPTIONS}.
  */
 class TestContextGuardTest {
@@ -56,7 +59,17 @@ class TestContextGuardTest {
             "com.evmonitor.infrastructure.web.PublicApiTripRateLimitIntegrationTest",
             "@TestPropertySource schaltet das Rate-Limiting an, das im Test-Profil für alle anderen aus ist",
             "com.evmonitor.application.PriceSuggestionEfficiencyIntegrationTest",
-            "@TestPropertySource setzt eigene Schwellenwerte für die Effizienzprüfung");
+            "@TestPropertySource setzt eigene Schwellenwerte für die Effizienzprüfung",
+            "com.evmonitor.application.ingest.event.ImportEventPostgresIT",
+            "globale Statistik und findAll() brauchen eine eigene Postgres-Datenbank",
+            "com.evmonitor.tools.ConsumptionFormulaComparisonTest",
+            "@Disabled, lokales Analyse-Tool gegen die dev-Datenbank",
+            "com.evmonitor.infrastructure.persistence.JpaEvLogRepositoryNullDateFilterTest",
+            "@Disabled, läuft nur lokal mit Docker",
+            "com.evmonitor.infrastructure.persistence.LeaderboardQueryRepositoryTest",
+            "@Disabled, läuft nur lokal mit Docker",
+            "com.evmonitor.domain.EvTripRepositoryNullDateFilterTest",
+            "@Disabled, läuft nur lokal mit Docker");
 
     @Test
     void unterklassenDerBasisklassenErzwingenKeinenEigenenContext() {
@@ -66,6 +79,11 @@ class TestContextGuardTest {
                 continue;
             }
             collectViolations(testClass, violations);
+        }
+        for (Class<?> testClass : findSpringBootTestsWithoutBaseClass()) {
+            if (!EXCEPTIONS.containsKey(testClass.getName())) {
+                violations.add(testClass.getName() + ": eigener @SpringBootTest ohne Basisklasse");
+            }
         }
         assertThat(violations)
                 .withFailMessage("Diese Testklassen erzwingen einen eigenen Spring-Context. "
@@ -104,6 +122,20 @@ class TestContextGuardTest {
         } catch (ClassNotFoundException e) {
             throw new IllegalStateException("Testklasse nicht gefunden: " + name, e);
         }
+    }
+
+    private static List<Class<?>> findSpringBootTestsWithoutBaseClass() {
+        var scanner = new ClassPathScanningCandidateComponentProvider(false);
+        scanner.addIncludeFilter(new AnnotationTypeFilter(SpringBootTest.class));
+        List<Class<?>> result = new ArrayList<>();
+        for (BeanDefinition definition : scanner.findCandidateComponents("com.evmonitor")) {
+            Class<?> testClass = loadClass(definition.getBeanClassName());
+            boolean extendsBase = BASE_CLASSES.stream().anyMatch(base -> base.isAssignableFrom(testClass));
+            if (!extendsBase && !BASE_CLASSES.contains(testClass)) {
+                result.add(testClass);
+            }
+        }
+        return result;
     }
 
     /** Prüft Klassen-, Methoden- und Feld-Annotationen der Klasse, ihrer Oberklassen bis zur Basisklasse und ihrer Nested-Klassen. */
