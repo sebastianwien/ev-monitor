@@ -134,7 +134,7 @@ public class StripeService {
     @Value("${stripe.referral-coupon-id:}")
     private String referralCouponId;
 
-    @Value("${stripe.referral-reward-cents:390}")
+    @Value("${stripe.referral-reward-cents:490}")
     private long referralRewardCents;
 
     @Value("${connectors.base-url:http://connectors-service:8081}")

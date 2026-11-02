@@ -287,7 +287,7 @@ stripe:
   price-id-monthly-dkk: ${STRIPE_PRICE_ID_MONTHLY_DKK:}
   price-id-yearly-dkk: ${STRIPE_PRICE_ID_YEARLY_DKK:}
   referral-coupon-id: ${STRIPE_REFERRAL_COUPON_ID:}
-  referral-reward-cents: ${STRIPE_REFERRAL_REWARD_CENTS:399}
+  referral-reward-cents: ${STRIPE_REFERRAL_REWARD_CENTS:490}
 
 # Mistral AI (La Plateforme, EU) fuer den Sprachlog. Ohne Key ist das Feature aus (503).
 # Preise frieren beim Aufruf als voice_draft.cost_usd ein. Transcribe laut Mistral-Modellkarte,
