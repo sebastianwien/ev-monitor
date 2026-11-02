@@ -132,7 +132,7 @@ const CASES: Case[] = [
       const review = card(page, 'month_change');
       await expect(sentence(page, 'month_change')).toContainText(/September: 512\skm für 61\s€\./);
       // Verbrenner: 512 km x 7,6 l (Klasse SEDAN, das E2E-Auto ist ein Model 3) x 1,75 € = 68 €, Strom 61 €: 7 € gespart
-      await expect(review).toContainText(/Gegenüber einem Verbrenner: 7\s€ gespart\./);
+      await expect(review).toContainText(/Gegenüber einem Verbrenner hast du 7\s€ gespart\. Klasse! 🎉/);
       await expect(review.getByRole('button', { name: 'September ansehen' })).toBeVisible();
     },
   },

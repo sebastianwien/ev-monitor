@@ -130,7 +130,7 @@ for (const v of VIEWS) {
       // Im Rückblick-Kopf steht der Ausblick direkt unter den Zahlen, Normal- und Schnellladen gibt es dort nicht
       await expect(page.getByTestId('story-recap-hero').getByTestId('story-winter-outlook')).toBeVisible();
       await expect(page.getByTestId('story-recap-hero')).not.toContainText('Schnell (DC)');
-      await expect(page.getByTestId('story-recap-hero')).toContainText(/Gegenüber einem Verbrenner: 7\s€ und 45\skg CO₂ gespart\./);
+      await expect(page.getByTestId('story-recap-hero')).toContainText(/Gegenüber einem Verbrenner hast du 45\skg CO₂ und 7\s€ gespart\. Klasse! 🎉/);
       await shot(page, v.name, '07-leerer-wintermonat');
       // Ein vergangener leerer Wintermonat bekommt keinen Ausblick mehr.
       await page.getByTestId('story-month-prev').first().click();

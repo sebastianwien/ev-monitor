@@ -32,16 +32,16 @@ describe('StoryRecapHero', () => {
   it('zeigt Satz mit Ersparnis in Euro und CO₂, darunter €/100 km, Energie und Ladungen, ohne Normal- und Schnellladen', () => {
     const host = mount(recap(facts))
     expect(text(host)).toContain('September: 512 km für 61 €.')
-    expect(text(host)).toContain('Gegenüber einem Verbrenner: 6 € und 45 kg CO₂ gespart.')
+    expect(text(host)).toContain('Gegenüber einem Verbrenner hast du 45 kg CO₂ und 6 € gespart. Klasse! 🎉')
     expect(all(host, 'recap-fact')).toEqual(['11,91 € pro 100 km', '96 kWh Geladen', '9 Ladungen'])
     expect(text(host)).not.toMatch(/Normal \(AC\)|Schnell \(DC\)|Benziner/)
     expect(host.querySelector('[data-testid="recap-co2"]')).toBeNull()
   })
 
   it('ohne Euro-Ersparnis nennt der Satz nur das CO₂, ohne nennenswertes CO₂ nur die Euro', () => {
-    expect(text(mount({ ...recap(facts), savingEur: null } as Moment))).toContain('Gegenüber einem Verbrenner: 45 kg CO₂ gespart.')
+    expect(text(mount({ ...recap(facts), savingEur: null } as Moment))).toContain('Gegenüber einem Verbrenner hast du 45 kg CO₂ gespart. Klasse! 🎉')
     app?.unmount(); document.body.innerHTML = ''
-    expect(text(mount(recap({ ...facts, co2Kg: 0.4 })))).toContain('Gegenüber einem Verbrenner: 6 € gespart.')
+    expect(text(mount(recap({ ...facts, co2Kg: 0.4 })))).toContain('Gegenüber einem Verbrenner hast du 6 € gespart. Klasse! 🎉')
   })
 
   it('führt beim Tippen auf die ganze Karte zum Vormonat und bietet kein Teilen an', () => {
@@ -57,7 +57,7 @@ describe('StoryRecapHero', () => {
   it('ohne Zahlen des Vormonats ohne Energie und CO₂', () => {
     const host = mount(recap(null))
     expect(all(host, 'recap-fact')).toEqual(['11,91 € pro 100 km', '9 Ladungen'])
-    expect(text(host)).toContain('Gegenüber einem Verbrenner: 6 € gespart.')
+    expect(text(host)).toContain('Gegenüber einem Verbrenner hast du 6 € gespart. Klasse! 🎉')
   })
 
   it('ohne Ersparnis und ohne Strecke keine leeren Kacheln', () => {
