@@ -132,7 +132,7 @@ const overlayBtn = 'inline-flex items-center justify-center gap-1.5 min-h-[40px]
           <span v-if="teslaDot" :class="[overlayBtn, 'md:hidden pointer-events-none']" data-testid="car-hero-tesla-mobile">
             <span class="h-1.5 w-1.5 rounded-full" :class="teslaDot.pulse ? 'bg-green-400 animate-pulse' : 'bg-white/70'" aria-hidden="true" />{{ teslaDot.label }}
           </span>
-          <button type="button" :class="[overlayBtn, 'hidden md:inline-flex']" @click="emit('edit')">
+          <button type="button" :class="[overlayBtn, 'max-md:hidden']" @click="emit('edit')">
             <PencilSquareIcon class="h-5 w-5" aria-hidden="true" />{{ t('cars.edit_btn') }}
           </button>
           <button type="button" :class="overlayBtn" :aria-label="t('cars.hero_menu_aria')" data-testid="car-menu-btn" @click="emit('menu')">
