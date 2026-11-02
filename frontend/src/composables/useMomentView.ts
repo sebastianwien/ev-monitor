@@ -1,6 +1,6 @@
 import { computed, ref, watch, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useLocaleFormat } from './useLocaleFormat'
+import { useLocaleFormat, RANGE_STEP } from './useLocaleFormat'
 import { heroLine } from './storyModel'
 import { DAY, type Moment, type RankPlace } from './storyMoments'
 import { CAT_LABEL } from './useTickerItems'
@@ -35,6 +35,8 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
   const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
   const rtf = computed(() => new Intl.RelativeTimeFormat(locale.value, { numeric: 'auto' }))
   const km = (v: number) => formatDistance(v, { round: true })
+  // Reichweite als grobe Angabe wie im Ausblick: volle Zehner
+  const range = (v: number) => formatDistance(v, { step: RANGE_STEP })
   const eur = (v: number) => formatCurrency(v, { decimals: 0 })
 
   /** "Heute", "Gestern", "Vor 3 Tagen" nach Kalendertagen. */
@@ -88,7 +90,7 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
       case 'first_frost':
         return {
           eyebrow: t('story.moment_frost_eyebrow'),
-          sentence: t('story.moment_frost', { when: dayWord(m.at), temp: `${formatDecimal(m.tempC, 0)} °C`, winter: km(m.winterKm), summer: km(m.summerKm) }),
+          sentence: t('story.moment_frost', { when: dayWord(m.at), temp: `${formatDecimal(m.tempC, 0)} °C`, winter: range(m.winterKm), summer: range(m.summerKm) }),
           action: { id: 'winter', label: t('story.moment_action_winter') },
         }
       case 'month_change': {

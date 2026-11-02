@@ -114,9 +114,14 @@ const CASES: Case[] = [
   },
   {
     name: 'es-wird-kalt',
-    data: () => ({ ...calmMonth(), trips: [trip(NOW_MID, { tripStartedAt: iso(NOW_MID - 10 * HOUR), tripEndedAt: iso(NOW_MID - 9.5 * HOUR), outsideTempCelsius: 3 })] }),
+    data: () => {
+      // Reichweite krumm, damit die Karte die Zehner-Rundung zeigt
+      const season = (km: number, consumption: number) => ({ rangeKm: km, consumptionKwhPer100km: consumption, source: 'OWN_DRIVE', scope: null });
+      return { ...calmMonth(), recentStats: stats({ range: { current: season(278, 19.4), summer: season(351, 15.8), winter: season(278, 19.4) } }),
+        trips: [trip(NOW_MID, { tripStartedAt: iso(NOW_MID - 10 * HOUR), tripEndedAt: iso(NOW_MID - 9.5 * HOUR), outsideTempCelsius: 3 })] };
+    },
     check: async (page) => {
-      await expect(sentence(page, 'first_frost')).toContainText(/Heute 3\s°C\. Im Winter kommst du mit einer Akkuladung etwa [\d.]+\skm weit, im Sommer [\d.]+\skm\./);
+      await expect(sentence(page, 'first_frost')).toContainText(/Heute 3\s°C\. Im Winter kommst du mit einer Akkuladung etwa 270\skm weit, im Sommer 350\skm\./);
       await expect(card(page, 'first_frost').getByRole('button', { name: 'Winterwerte ansehen' })).toBeVisible();
     },
   },
