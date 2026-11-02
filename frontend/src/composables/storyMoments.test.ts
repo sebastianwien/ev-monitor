@@ -310,28 +310,42 @@ describe('momentScore und pickCards', () => {
 })
 
 describe('weekOutlook', () => {
-  const weather = { recentMeanC: 8.6, aheadMeanC: 4.3, deltaC: -4.3, recentDays: 7, aheadDays: 7, aheadMinC: -1.4, aheadMaxC: 6.4 }
+  const days = [
+    { date: '2026-11-02', minC: 1.4, maxC: 9.6, code: 0, gustKmh: 12 },
+    { date: '2026-11-03', minC: -0.4, maxC: 6.2, code: 61, gustKmh: null },
+    { date: '2026-11-04', minC: -2.6, maxC: 3.1, code: 3, gustKmh: 55 },
+  ]
+  const weather = { recentMeanC: 8.6, aheadMeanC: 4.3, deltaC: -4.3, recentDays: 7, aheadDays: 7, days }
 
-  it('nennt die Spanne der nächsten Tage und die Tendenz gegen letzte Woche, gerundet', () => {
-    expect(weekOutlook(weather, 11)).toEqual({ days: 7, minC: -1, maxC: 6, deltaC: -4 })
+  it('zeigt je Tag Wetterlage, Tiefst- und Höchstwert gerundet, dazu die Tendenz gegen letzte Woche', () => {
+    expect(weekOutlook(weather, 11)).toEqual({
+      deltaC: -4,
+      days: [
+        { date: '2026-11-02', minC: 1, maxC: 10, kind: 'sun' },
+        { date: '2026-11-03', minC: 0, maxC: 6, kind: 'rain' },
+        // trocken, aber Böen ab 40 km/h: windig wie beim Wetter am Ziel
+        { date: '2026-11-04', minC: -3, maxC: 3, kind: 'wind' },
+      ],
+    })
     expect(weekOutlook({ ...weather, deltaC: 2.6 }, 1)).toMatchObject({ deltaC: 3 })
   })
 
-  it('lässt die Tendenz unter 2 Grad weg, die Spanne bleibt; kälter und wärmer gleich behandelt', () => {
-    expect(weekOutlook({ ...weather, deltaC: -1.4 }, 12)).toEqual({ days: 7, minC: -1, maxC: 6, deltaC: null })
+  it('lässt die Tendenz unter 2 Grad weg, die Tage bleiben; kälter und wärmer gleich behandelt', () => {
+    expect(weekOutlook({ ...weather, deltaC: -1.4 }, 12)).toMatchObject({ deltaC: null })
     expect(weekOutlook({ ...weather, deltaC: -1.5 }, 12)).toMatchObject({ deltaC: null })
     expect(weekOutlook({ ...weather, deltaC: 1.5 }, 12)).toMatchObject({ deltaC: null })
+    expect(weekOutlook({ ...weather, deltaC: -1.4 }, 12)!.days).toHaveLength(3)
   })
 
   it('rundet knapp unter null nicht auf "-0"', () => {
-    expect(Object.is(weekOutlook({ ...weather, aheadMinC: -0.4 }, 12)!.minC, 0)).toBe(true)
+    expect(Object.is(weekOutlook(weather, 12)!.days[1].minC, 0)).toBe(true)
   })
 
-  it('schweigt außerhalb des Winters, ohne Wetter oder ohne Spanne', () => {
+  it('schweigt außerhalb des Winters, ohne Wetter oder ohne Tage', () => {
     for (const month of [3, 6, 9, 10]) expect(weekOutlook(weather, month)).toBeNull()
     expect(weekOutlook(null, 11)).toBeNull()
-    expect(weekOutlook({ ...weather, aheadMinC: null }, 11)).toBeNull()
-    expect(weekOutlook({ ...weather, aheadMaxC: undefined }, 11)).toBeNull()
+    expect(weekOutlook({ ...weather, days: [] }, 11)).toBeNull()
+    expect(weekOutlook({ ...weather, days: undefined }, 11)).toBeNull()
   })
 })
 

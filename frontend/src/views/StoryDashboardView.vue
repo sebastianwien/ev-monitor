@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, defineAsyncComponent, nextTick, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowPathIcon, ArrowRightIcon, ArrowUturnLeftIcon } from '@heroicons/vue/24/outline'
 import { useCarContext } from '../composables/useCarContext'
@@ -68,7 +67,6 @@ const LogFormModal = defineAsyncComponent(() => import('../components/log-form/L
 const SHEET_CHUNKS = [loadStorySheet, loadStoryTilePane, loadStoryDaySheet, loadPlacesSheet, loadStoryPriceSheet, loadEditLogModal, loadEditTripModal]
 
 const { t, locale } = useI18n()
-const { formatDistance, formatDecimal } = useLocaleFormat()
 const router = useRouter()
 const authStore = useAuthStore()
 const { haptic } = useHaptic()
@@ -158,16 +156,12 @@ const recapHero = computed<Moment | null>(() =>
 /** Rückblick als Kopf: dann sitzt der Monatswähler in seiner Kopfzeile statt als eigene Zeile darüber. */
 const recapOnTop = computed(() => !!recapHero.value)
 const newsCards = computed(() => recapHero.value ? story.cards.value.filter(c => c.moment.kind !== 'month_change') : story.cards.value)
-/** Winter-Ausblick im leeren laufenden Monat; steht die Frost-Karte offen, sagt sie dasselbe. */
+/** Winter-Ausblick im leeren laufenden Monat (Reichweite, Wetter der nächsten Tage); steht die Frost-Karte offen, sagt sie dasselbe. */
 const outlook = computed(() => {
   if (month.value.offset !== 0 || newsCards.value.some(c => c.moment.kind === 'first_frost')) return null
-  const o = winterOutlook(story.range.value, month.value.month)
-  const w = weekOutlook(story.weather.value, month.value.month)
-  const week = w && t(w.deltaC == null ? 'story.outlook_week' : w.deltaC < 0 ? 'story.outlook_week_colder' : 'story.outlook_week_warmer',
-    { days: w.days, min: formatDecimal(w.minC, 0), max: formatDecimal(w.maxC, 0), delta: Math.abs(w.deltaC ?? 0) })
-  const parts = [o && t('story.outlook_winter', { winter: formatDistance(o.winterKm, { round: true }), summer: formatDistance(o.summerKm, { round: true }) }), week]
-  const lines = parts.filter((x): x is string => !!x)
-  return lines.length ? lines : null
+  const range = winterOutlook(story.range.value, month.value.month)
+  const week = weekOutlook(story.weather.value, month.value.month)
+  return range || week ? { range, week } : null
 })
 /** Vormonat aus dem offenen Rückblick (Kopf oder Karte): der Community-Block hängt an ihm und verschwindet mit ihm. */
 const communityMonth = computed(() => {
@@ -452,11 +446,11 @@ onUnmounted(() => unregisterReload?.())
               <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
               <!-- Mit Rückblick steht der Ausblick direkt unter den Zahlen -->
               <template v-if="outlook" #outlook>
-                <StoryWinterOutlook :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :lines="outlook" />
+                <StoryWinterOutlook :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :range="outlook.range" :week="outlook.week" />
               </template>
             </StoryRecapHero>
             <p v-else class="text-center text-[17px] font-bold text-balance text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
-            <StoryWinterOutlook v-if="outlook && !recapHero" :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :lines="outlook" />
+            <StoryWinterOutlook v-if="outlook && !recapHero" :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :range="outlook.range" :week="outlook.week" />
             <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
             <router-link v-if="autoSyncOffer" to="/imports" data-testid="story-empty-autosync"
               class="flex items-start gap-3 rounded-xl bg-white p-3.5 text-left edge-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-700/50"

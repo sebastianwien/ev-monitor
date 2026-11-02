@@ -126,10 +126,14 @@ for (const v of VIEWS) {
       d.previousStats = { ...d.previousStats, co2: { savedKg: 45.1, petrolKg: 93.8, electricityKg: 48.7, distanceKm: 512, petrolLiters: 38.4, petrolLitersPer100km: 7.5 } };
       d.logs = [log(now, { loggedAt: iso(now - 10 * DAY), createdAt: iso(now - 10 * DAY) })];
       // Wetter am Heimladeort: die nächsten 7 Tage kälter als die letzte Woche
-      await page.route(/\/api\/weather\/outlook/, route => route.fulfill({ json: { recentMeanC: 8.6, aheadMeanC: 4.3, deltaC: -4.3, recentDays: 7, aheadDays: 7, aheadMinC: -1.4, aheadMaxC: 6.4 } }));
+      const days = [[-1.4, 6.4, 0], [0.2, 5.1, 3], [-0.6, 3.8, 61], [-2.2, 2.4, 71], [-1.1, 4.0, 2], [0.4, 5.5, 3], [1.0, 6.2, 0]]
+        .map(([minC, maxC, code], i) => ({ date: `2026-02-${String(10 + i).padStart(2, '0')}`, minC, maxC, code, gustKmh: 20 }));
+      await page.route(/\/api\/weather\/outlook/, route => route.fulfill({ json: { recentMeanC: 8.6, aheadMeanC: 4.3, deltaC: -4.3, recentDays: 7, aheadDays: 7, days } }));
       await openStory(page, d);
-      await expect(page.getByTestId('story-winter-outlook')).toContainText(/Ausblick Februar.*Im Winter kommst du mit einer Akkuladung etwa/i);
-      await expect(page.getByTestId('story-winter-outlook')).toContainText(/Die nächsten 7 Tage: -1 bis 6\s°C, rund 4 Grad kälter als letzte Woche\./);
+      await expect(page.getByTestId('story-winter-outlook')).toContainText(/Ausblick Februar/i);
+      await expect(page.getByTestId('outlook-range')).toContainText(/Sommer.*~380\skm.*Winter.*~310\skm/);
+      await expect(page.getByTestId('outlook-day')).toHaveCount(7);
+      await expect(page.getByTestId('outlook-trend')).toHaveText('4° kälter als letzte Woche');
       // Im Rückblick-Kopf steht der Ausblick direkt unter den Zahlen, Normal- und Schnellladen gibt es dort nicht
       await expect(page.getByTestId('story-recap-hero').getByTestId('story-winter-outlook')).toBeVisible();
       await expect(page.getByTestId('story-recap-hero')).not.toContainText('Schnell (DC)');

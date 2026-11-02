@@ -3,6 +3,7 @@ import { heroLine, petrolCostEur, MIN_COLDER_C } from './storyModel'
 import { COLD_MAX_C, type RankEntry } from './storyInsights'
 import { SHORT_TRIP_KM } from './storyDay'
 import { geohashDistanceKm } from '../utils/tripMap'
+import { weatherKind, type DayForecast } from '../utils/destinationForecast'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 
 /**
@@ -249,21 +250,23 @@ export function winterOutlook(
   return { winterKm: winter.km, summerKm: summer.km }
 }
 
+/** Ein Tag im Ausblick: Datum in Ortszeit (ISO), Wetterlage, Tiefst- und Höchstwert gerundet. */
+export interface OutlookDay extends DayForecast { date: string }
+
 /**
- * Wetter der nächsten Tage am Heimladeort für denselben Ausblick: Spanne von Tiefst- bis Höchstwert
- * und, ab {@link MIN_COLDER_C} Grad Unterschied, die Tendenz gegen letzte Woche (negativ heißt kälter).
+ * Wetter der nächsten Tage am Heimladeort für denselben Ausblick: je Tag Wetterlage wie beim Wetter am Ziel,
+ * Tiefst- und Höchstwert, dazu ab {@link MIN_COLDER_C} Grad Unterschied die Tendenz gegen letzte Woche
+ * (negativ heißt kälter).
  */
 export function weekOutlook(
-  weather: { deltaC: number; aheadDays: number; aheadMinC?: number | null; aheadMaxC?: number | null } | null,
+  weather: { deltaC: number; days?: Array<{ date: string; minC: number; maxC: number; code: number; gustKmh?: number | null }> | null } | null,
   month: number,
-): { days: number; minC: number; maxC: number; deltaC: number | null } | null {
-  if (!OUTLOOK_MONTHS.includes(month) || !weather || weather.aheadMinC == null || weather.aheadMaxC == null) return null
+): { days: OutlookDay[]; deltaC: number | null } | null {
+  if (!OUTLOOK_MONTHS.includes(month) || !weather?.days?.length) return null
   // "|| 0": Math.round(-0.4) ist -0, angezeigt als "-0"
   const round = (c: number) => Math.round(c) || 0
   return {
-    days: weather.aheadDays,
-    minC: round(weather.aheadMinC),
-    maxC: round(weather.aheadMaxC),
+    days: weather.days.map(d => ({ date: d.date, minC: round(d.minC), maxC: round(d.maxC), kind: weatherKind(d.code, d.gustKmh ?? 0) })),
     // Schwelle am ungerundeten Wert wie in der Herbst-Prognose, sonst zählt -1,5 anders als +1,5
     deltaC: Math.abs(weather.deltaC) >= MIN_COLDER_C ? round(weather.deltaC) : null,
   }

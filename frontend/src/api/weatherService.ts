@@ -8,9 +8,17 @@ export interface WeatherOutlookResponse {
   deltaC: number
   recentDays: number
   aheadDays: number
-  /** Tiefst- und Höchstwert der kommenden Tage; fehlt bei älterem Backend oder ohne Werte. */
-  aheadMinC?: number | null
-  aheadMaxC?: number | null
+  /** Tage der Vorhersage mit Wetterlage; fehlt bei älterem Backend. */
+  days?: WeatherOutlookDay[]
+}
+
+/** Ein Tag der Vorhersage, Ortszeit. code ist der WMO-Wettercode, gustKmh die stärkste Böe. */
+export interface WeatherOutlookDay {
+  date: string
+  minC: number
+  maxC: number
+  code: number
+  gustKmh: number | null
 }
 
 export const weatherService = {
