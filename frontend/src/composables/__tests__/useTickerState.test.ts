@@ -21,6 +21,42 @@ describe('useTickerState', () => {
   })
 })
 
+describe('useTickerState - Ausblenden in den Einstellungen', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    vi.resetModules()
+  })
+
+  it('blendet den Ticker trotz Einträgen aus und merkt sich das', async () => {
+    const { tickerHasItems, setTickerHasItems, tickerHidden, setTickerHidden } = await import('../useTickerState')
+    setTickerHasItems(true)
+
+    setTickerHidden(true)
+
+    expect(tickerHidden.value).toBe(true)
+    expect(tickerHasItems.value).toBe(false)
+    expect(localStorage.getItem('ticker-hidden')).toBe('true')
+  })
+
+  it('bleibt nach dem Neuladen ausgeblendet, ohne Platz zu reservieren', async () => {
+    localStorage.setItem('ticker-has-items', 'true')
+    localStorage.setItem('ticker-hidden', 'true')
+    const { tickerHasItems } = await import('../useTickerState')
+    expect(tickerHasItems.value).toBe(false)
+  })
+
+  it('Einblenden zeigt vorhandene Einträge wieder', async () => {
+    localStorage.setItem('ticker-has-items', 'true')
+    localStorage.setItem('ticker-hidden', 'true')
+    const { tickerHasItems, setTickerHidden } = await import('../useTickerState')
+
+    setTickerHidden(false)
+
+    expect(tickerHasItems.value).toBe(true)
+    expect(localStorage.getItem('ticker-hidden')).toBe('false')
+  })
+})
+
 describe('useTickerState - Wieder-Aufklappen nach 7 Tagen', () => {
   const DAY = 24 * 60 * 60 * 1000
   const NOW = new Date('2026-10-06T10:00:00Z').getTime()

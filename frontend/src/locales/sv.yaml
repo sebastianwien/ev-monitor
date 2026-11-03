@@ -1811,6 +1811,8 @@ settings:
   leaderboard_disable: Inaktivera
   ticker_share_label: "Visa laddningar anonymt i tickern"
   ticker_share_hint: "Dina publika laddningar kan visas i tickern utan namn, bil, plats och klockslag, t.ex. 'I dag laddade någon 42 kWh hos Ionity för 16,38 €'. Avstängning gäller senast efter 15 minuter."
+  ticker_show_label: "Visa tickern"
+  ticker_show_hint: "Växlande nyheter från communityn högst upp på sidan. Gäller den här enheten."
   help_title: Hjälp och support
   tutorial_title: Titta på handledningen igen
   tutorial_desc: Vill du gå igenom introduktionsguiden igen? Perfekt om du behöver en uppfriskning eller vill upptäcka nya funktioner.

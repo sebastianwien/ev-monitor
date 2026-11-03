@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { RouterLink } from 'vue-router'
 import { BoltIcon, ChevronDownIcon, ChevronUpIcon, PauseIcon, PlayIcon, ChevronRightIcon, ArrowRightIcon } from '@heroicons/vue/24/outline'
-import { useTickerState, setTickerHasItems } from '../../composables/useTickerState'
+import { useTickerState, setTickerHasItems, tickerHidden } from '../../composables/useTickerState'
 import { analytics } from '../../services/analytics'
 import { useTickerItems, VARIANT_ICON } from '../../composables/useTickerItems'
 import { useTickerRotation, dwellMs } from '../../composables/useTickerRotation'
@@ -45,10 +46,6 @@ function onTogglePause() {
   userPaused.value = !userPaused.value
   if (userPaused.value) analytics.track('ticker_pause')
 }
-function onTextClick() {
-  if (current.value) analytics.track('ticker_tap', { type: current.value.type })
-  next()
-}
 function onTargetClick() {
   if (current.value?.target) analytics.track('ticker_tap', { type: current.value.type, target: current.value.target })
 }
@@ -58,11 +55,13 @@ const tabVisible = ref(typeof document !== 'undefined' ? !document.hidden : true
 const hovered = ref(false)
 const focused = ref(false)
 const userPaused = ref(false)
+/** Mobil ohne Pause-Knopf: hält an, solange der Finger aufliegt (wie Hover); danach volle Lesezeit. */
+const touched = ref(false)
 const reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 /** Im Kopf der CI-Seiten gibt es kein Einklappen: das Band gehört zum Kopf, eine Lasche läge über dem Inhalt. */
 const isCollapsed = computed(() => !props.docked && collapsed.value)
-const paused = computed(() => isCollapsed.value || !tabVisible.value || hovered.value || focused.value || userPaused.value)
+const paused = computed(() => tickerHidden.value || isCollapsed.value || !tabVisible.value || hovered.value || focused.value || userPaused.value || touched.value)
 
 /** Gemessene Durchlaufzeit überlanger Einträge, je Index. */
 const OVERFLOW_PX_PER_S = 40
@@ -102,8 +101,9 @@ function onVisibilityChange() { tabVisible.value = !document.hidden }
 
 /* Wischgeste auf Mobile: links = nächster, rechts = vorheriger Eintrag. */
 let touchX = 0
-const onTouchStart = (e: TouchEvent) => { touchX = e.touches[0].clientX }
+const onTouchStart = (e: TouchEvent) => { touchX = e.touches[0].clientX; touched.value = true }
 const onTouchEnd = (e: TouchEvent) => {
+  touched.value = false
   const dx = e.changedTouches[0].clientX - touchX
   if (Math.abs(dx) > 40) (dx < 0 ? next : prev)()
 }
@@ -148,8 +148,8 @@ onUnmounted(() => {
     @focusin="focused = true" @focusout="focused = false">
 
     <div class="overflow-hidden transition-[height] duration-300" :class="[look.band, isCollapsed ? 'h-1' : 'h-8']">
-      <!-- docked (WorkspaceFrame): ab md schmal und mittig unter der Navbar, mobil volle Breite -->
-      <div v-show="!isCollapsed" class="flex items-center h-full mx-auto" :class="docked ? 'pl-4 md:max-w-2xl md:px-3' : 'max-w-5xl pl-2 sm:pl-4'">
+      <!-- docked (WorkspaceFrame): ab md so breit wie die Workspace-Navigation, mobil volle Breite -->
+      <div v-show="!isCollapsed" class="flex items-center h-full mx-auto" :class="docked ? 'px-4 md:max-w-6xl md:px-6' : 'max-w-5xl px-2 sm:pl-4 sm:pr-0'">
 
         <!-- Typ-Chip: Farbe und Icon tragen die Kategorie, damit der Text kurz bleiben kann -->
         <Transition name="ticker-chip" mode="out-in">
@@ -160,15 +160,18 @@ onUnmounted(() => {
           </span>
         </Transition>
 
-        <!-- Text: Tippen schaltet weiter, Wischen blättert -->
+        <!-- Text: Tippen öffnet das Ziel (falls vorhanden), Wischen blättert -->
         <div ref="viewport"
-          class="ticker-viewport relative flex-1 min-w-0 h-full overflow-hidden ml-2 cursor-pointer select-none"
+          class="ticker-viewport relative flex-1 min-w-0 h-full overflow-hidden ml-2 select-none"
           :class="{ 'ticker-fade-end': overflowPx > 0 && !scrolling, 'ticker-fade-start': scrolling }"
           aria-live="off"
-          @click="onTextClick"
-          @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd">
+          @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd" @touchcancel.passive="touched = false">
           <Transition :name="reducedMotion ? 'ticker-fade' : `ticker-${direction}`">
-            <div v-if="current" :key="index" class="absolute inset-0 flex items-center">
+            <component :is="current.target ? RouterLink : 'div'" v-if="current" :key="index"
+              v-bind="current.target ? { to: current.target } : {}"
+              :class="[current.target && ['cursor-pointer rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2', look.focus]]"
+              class="absolute inset-0 flex items-center"
+              @click="onTargetClick">
               <span
                 data-ticker-text
                 :class="['ticker-text text-xs font-medium whitespace-nowrap', typeStyle[current.type].text]"
@@ -176,15 +179,18 @@ onUnmounted(() => {
                 :title="current.text">
                 {{ current.text }}
               </span>
-            </div>
+            </component>
           </Transition>
         </div>
 
-        <!-- Ziel-Link: nur bei Einträgen mit echter Seite; Antippen des Texts bleibt "nächster Eintrag" -->
+        <!-- Ziel-Pfeil nur ab sm: mobil ist der Text selbst der Link, damit er mehr Platz hat.
+             Ohne Tab-Stopp, der Text-Link ist schon fokussierbar. -->
         <RouterLink v-if="current?.target"
           :to="current.target"
           :class="look.focus"
-          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4"
+          tabindex="-1"
+          aria-hidden="true"
+          class="ml-1 hidden sm:flex h-8 w-11 flex-shrink-0 items-center justify-center rounded focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4"
           :aria-label="t('ticker.open')"
           :title="t('ticker.open')"
           @click="onTargetClick">
@@ -198,10 +204,11 @@ onUnmounted(() => {
           {{ index + 1 }}/{{ count }}
         </span>
 
-        <!-- Steuerung: Pause (WCAG 2.2.2) und Weiter; volle Bandhöhe als Trefferfläche -->
+        <!-- Steuerung ab sm: Pause (WCAG 2.2.2) und Weiter; volle Bandhöhe als Trefferfläche.
+             Mobil: Berührung hält an, Wischen blättert, Ausblenden in den Einstellungen. -->
         <button type="button"
           :class="[look.muted, look.focus]"
-          class="ml-1 flex h-8 w-11 flex-shrink-0 items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 rounded"
+          class="ml-1 hidden sm:flex h-8 w-11 flex-shrink-0 items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-4 rounded"
           :aria-label="userPaused ? t('ticker.play') : t('ticker.pause')"
           :aria-pressed="userPaused"
           @click="onTogglePause">

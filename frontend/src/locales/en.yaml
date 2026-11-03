@@ -1860,6 +1860,8 @@ settings:
   leaderboard_disable: "Disable"
   ticker_share_label: "Show charging sessions anonymously in the ticker"
   ticker_share_hint: "Your public charging sessions may appear in the ticker without name, car, location or time, e.g. 'Today someone charged 42 kWh at Ionity for €16.38'. Switching off takes effect within 15 minutes."
+  ticker_show_label: "Show ticker"
+  ticker_show_hint: "Rotating community news at the top of the page. Applies to this device."
   help_title: "Help & Support"
   tutorial_title: "Watch tutorial again"
   tutorial_desc: "Want to go through the welcome tutorial again? Perfect if you need a refresher or want to discover new features."

@@ -1,9 +1,10 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 
 /** Zeitpunkt des Einklappens (ms) oder 'false'. Altwert 'true' stammt von vor dem Zeitstempel. */
 const STORAGE_KEY = 'ticker-collapsed'
 /** Letztes Fetch-Ergebnis: reserviert den Platz schon vor dem Fetch, sonst springt der Inhalt. */
 const HAS_ITEMS_KEY = 'ticker-has-items'
+const HIDDEN_KEY = 'ticker-hidden'
 /** Nach so langer Zeit klappt ein eingeklappter Ticker einmal wieder auf. */
 const REOPEN_AFTER_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -23,12 +24,21 @@ function initialCollapsed(): boolean {
   return true
 }
 
-export const tickerHasItems = ref(localStorage.getItem(HAS_ITEMS_KEY) === 'true')
+const hasItems = ref(localStorage.getItem(HAS_ITEMS_KEY) === 'true')
+/** In den Einstellungen ausgeblendet (je Gerät). Erfüllt WCAG 2.2.2, wo das Band keine Lasche und keinen Pause-Knopf hat. */
+export const tickerHidden = ref(localStorage.getItem(HIDDEN_KEY) === 'true')
+/** Ticker belegt Platz: Einträge vorhanden und nicht ausgeblendet. */
+export const tickerHasItems = computed(() => hasItems.value && !tickerHidden.value)
 export const tickerCollapsed = ref(initialCollapsed())
 
 export function setTickerHasItems(value: boolean) {
-  tickerHasItems.value = value
+  hasItems.value = value
   localStorage.setItem(HAS_ITEMS_KEY, String(value))
+}
+
+export function setTickerHidden(value: boolean) {
+  tickerHidden.value = value
+  localStorage.setItem(HIDDEN_KEY, String(value))
 }
 
 export function useTickerState() {

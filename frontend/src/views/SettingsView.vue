@@ -16,11 +16,18 @@ import BottomSheet from '../components/shared/BottomSheet.vue'
 import Collapse from '../components/shared/Collapse.vue'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useAccountSettings } from '../composables/useAccountSettings'
+import { tickerHidden, setTickerHidden } from '../composables/useTickerState'
+import { analytics } from '../services/analytics'
 import dashboardPreferencesService from '../api/dashboardPreferencesService'
 
 const { t, locale } = useI18n()
 const { formatCurrency } = useLocaleFormat()
 const countryStore = useCountryStore()
+
+function onTickerShow(show: boolean) {
+  setTickerHidden(!show)
+  analytics.track('ticker_hidden', { state: show ? 'shown' : 'hidden' })
+}
 
 // Shared state
 const loading = ref(false)
@@ -377,6 +384,14 @@ onMounted(async () => {
           <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.ticker_share_hint') }}</p>
         </div>
         <ToggleSwitch :model-value="tickerShareCharges" :label="t('settings.ticker_share_label')" @update:model-value="toggleTickerShareCharges()" />
+      </div>
+      <!-- Der Ticker läuft nur in DE/AT/CH; Ausblenden gilt je Gerät (localStorage). -->
+      <div v-if="['DE', 'AT', 'CH'].includes(countryStore.country)" :class="ROW">
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-900 dark:text-gray-100">{{ t('settings.ticker_show_label') }}</p>
+          <p class="mt-0.5 text-[13px] text-gray-500 dark:text-gray-400">{{ t('settings.ticker_show_hint') }}</p>
+        </div>
+        <ToggleSwitch :model-value="!tickerHidden" :label="t('settings.ticker_show_label')" @update:model-value="onTickerShow" />
       </div>
     </div>
   </ModelBox>

@@ -79,7 +79,7 @@ User koennen sich unter Einstellungen -> Bestenliste vom Ranking abmelden. Der T
 
 ## Ticker-Banner
 
-Ein Band unterhalb der Navigationsleiste (`LeaderboardTicker.vue`), nur für eingeloggte Nutzer in DE/AT/CH, nicht im Demo-Modus. Es zeigt einen Eintrag zur Zeit und wechselt nach einer Verweildauer, überlange Texte laufen einmal durch. Antippen des Texts zeigt den nächsten Eintrag, Wischen blättert, ein Pause-Knopf hält die Rotation an.
+Ein Band unterhalb der Navigationsleiste (`LeaderboardTicker.vue`), nur für eingeloggte Nutzer in DE/AT/CH, nicht im Demo-Modus. Es zeigt einen Eintrag zur Zeit und wechselt nach einer Verweildauer, überlange Texte laufen einmal durch. Hat ein Eintrag eine Zielseite, ist der Text der Link dorthin. Wischen blättert. Ab 640px gibt es zusätzlich Ziel-Pfeil, Pause- und Weiter-Knopf. Mobil fehlen die Knöpfe, damit der Text Platz hat: solange der Finger aufliegt, steht der Eintrag, danach bekommt er die volle Lesezeit. Im Kopf der Workspace-Seiten ist das Band ab 768px so breit wie die Workspace-Navigation.
 
 ### Eintragstypen
 
@@ -123,9 +123,13 @@ Die Monatsend-Prämien rechnen ihr Ranking immer frisch, ohne Cache. Das Fronten
 
 Eine Lasche unter dem Band klappt ein und aus. Beim Einklappen speichert `localStorage` (`ticker-collapsed`) den Zeitpunkt. Nach 7 Tagen klappt der Ticker einmal wieder auf. Ein Altwert `true` ohne Zeitpunkt zählt ab dem ersten Laden.
 
+### Ausblenden
+
+Unter Einstellungen (nur DE/AT/CH) blendet "Ticker anzeigen" das Band auf diesem Gerät ganz aus (`localStorage` `ticker-hidden`), ohne Ablauf. Das ist der Weg nach WCAG 2.2.2 für Bänder ohne Lasche und ohne Pause-Knopf, also im Workspace-Kopf auf dem Handy.
+
 ### Plausible
 
-`ticker_toggle`, `ticker_pause` und `ticker_tap` mit Typ und gegebenenfalls Ziel, nie mit Werten.
+`ticker_toggle`, `ticker_pause`, `ticker_hidden` (`shown`/`hidden`) und `ticker_tap` mit Typ und gegebenenfalls Ziel, nie mit Werten.
 
 ---
 

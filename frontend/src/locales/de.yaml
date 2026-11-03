@@ -1863,6 +1863,8 @@ settings:
   leaderboard_disable: "Deaktivieren"
   ticker_share_label: "Ladungen anonym im Ticker zeigen"
   ticker_share_hint: "Deine öffentlichen Ladungen können ohne Namen, Auto, Ort und Uhrzeit im Ticker erscheinen, z. B. 'Heute hat jemand 42 kWh bei Ionity für 16,38 € geladen'. Ausschalten wirkt nach spätestens 15 Minuten."
+  ticker_show_label: "Ticker anzeigen"
+  ticker_show_hint: "Wechselnde Meldungen aus der Community oben auf der Seite. Gilt auf diesem Gerät."
   help_title: "Hilfe & Support"
   tutorial_title: "Tutorial erneut ansehen"
   tutorial_desc: "Möchtest du das Willkommens-Tutorial nochmal durchgehen? Perfekt wenn du eine Auffrischung brauchst oder neue Features kennenlernen willst."
