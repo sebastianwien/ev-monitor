@@ -1558,7 +1558,7 @@ cars:
   hint_trim: "Variante/Ausstattung"
   label_capacity: "Ausführung *"
   missing_brand_model_link: "Marke oder Modell nicht dabei?"
-  missing_battery_link: "Mein Akku ist nicht dabei?"
+  missing_battery_link: "Ausführung oder Modell nicht dabei?"
   missing_dialog_title: "Was fehlt dir?"
   missing_dialog_what_label: "Was fehlt? *"
   missing_dialog_what_placeholder: "z. B. Polestar 2 Long Range Dual Motor 2022 oder Hersteller Lucid"
