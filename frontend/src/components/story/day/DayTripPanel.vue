@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent, useId } from 'vue'
+import { ref, computed, defineAsyncComponent, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../../../api/axios'
@@ -25,7 +25,8 @@ const props = withDefaults(defineProps<{
   /** Oben links Pfeil zurück (zweite Ebene im Tagesblatt) oder oben rechts X (eigenes Sheet). */
   dismiss?: 'back' | 'close'
 }>(), { dismiss: 'back' })
-const emit = defineEmits<{ back: []; saved: [action: 'edit_trip' | 'add_trip']; deleted: [] }>()
+/** `changed`: eine gemessene Fahrt hat einen Tipp sofort gespeichert, die Ansicht bleibt offen */
+const emit = defineEmits<{ back: []; saved: [action: 'edit_trip' | 'add_trip']; deleted: []; changed: [] }>()
 const { t } = useI18n()
 const { distanceUnitLabel } = useLocaleFormat()
 const { deleteTripWithUndo } = useLogUndo()
@@ -44,6 +45,28 @@ const withMap = computed(() => !!props.trip && hasTripMap(props.trip))
 const routed = computed(() => !!props.trip && isRoutedLine(tripLine(props.trip.tracePolyline, props.trip.routePolyline, props.trip.routeKind)))
 const iconButton = computed(() => ['pointer-events-auto grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-700 dark:text-gray-200',
   withMap.value ? 'border-2 border-edge bg-white/95 hover:bg-white dark:border-gray-600 dark:bg-gray-800/95 dark:hover:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800'])
+
+// Gemessene Fahrt: nur Streckentyp und Besonderheiten sind änderbar, jeder Tipp speichert sofort, ohne Rückmeldung.
+// Lehnt der Server ab, springt die Wahl auf den gespeicherten Stand zurück. Tipps laufen nacheinander raus.
+const autosave = computed(() => !!props.trip && form.value.measured === true)
+const choice = () => ({ routeType: form.value.routeType ?? '', loadExtras: [...(form.value.loadExtras ?? [])] as string[] })
+const same = (a: ReturnType<typeof choice>, b: ReturnType<typeof choice>) => JSON.stringify(a) === JSON.stringify(b)
+let stored = choice()
+let queue: Promise<void> = Promise.resolve()
+watch(() => [form.value.routeType, [...(form.value.loadExtras ?? [])]], () => {
+  if (!autosave.value) return
+  const next = choice()
+  if (same(next, stored)) return
+  queue = queue.then(async () => {
+    try {
+      await api.patch(`/trips/${props.trip!.id}`, tripPayload({ ...form.value, ...next } as TripFormValues))
+      stored = next
+      emit('changed')
+    } catch {
+      if (same(choice(), next)) Object.assign(form.value, { routeType: stored.routeType, loadExtras: [...stored.loadExtras] })
+    }
+  })
+})
 
 async function save() {
   const values = form.value as TripFormValues
@@ -142,10 +165,11 @@ async function remove() {
           @click="confirmingDelete = true">
           <TrashIcon class="h-5 w-5" aria-hidden="true" />
         </button>
-        <button type="button" class="hidden min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 sm:inline-flex sm:items-center dark:text-gray-300 dark:hover:bg-white/10" @click="emit('back')">
+        <!-- Gemessene Fahrt speichert jeden Tipp sofort: kein Abbrechen, kein Speichern, nur Löschen -->
+        <button v-if="!autosave" type="button" class="hidden min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 sm:inline-flex sm:items-center dark:text-gray-300 dark:hover:bg-white/10" @click="emit('back')">
           {{ t('common.cancel') }}
         </button>
-        <button type="submit" :form="formId" data-testid="day-trip-save" :disabled="saving"
+        <button v-if="!autosave" type="submit" :form="formId" data-testid="day-trip-save" :disabled="saving"
           class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-40">
           {{ t('logfields.save') }}
         </button>

@@ -34,6 +34,6 @@ function onClosed() {
     panel-class="sm:max-w-xl"
     @close="onClosed">
     <DayTripPanel :trip="trip" :car-id="carId" :new-end="new Date()" dismiss="close"
-      @back="sheet?.requestClose()" @saved="done" @deleted="done" />
+      @back="sheet?.requestClose()" @saved="done" @deleted="done" @changed="changed = true" />
   </BottomSheet>
 </template>

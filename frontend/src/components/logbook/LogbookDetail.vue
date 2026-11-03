@@ -122,7 +122,7 @@ const speed = computed(() => {
         </template>
       </LogEditPanel>
       <DayTripPanel v-else :key="key" :trip="selection.trip" :car-id="carId" :new-end="new Date()"
-        @back="dismiss" @saved="done" @deleted="done">
+        @back="dismiss" @saved="done" @deleted="done" @changed="emit('changed')">
         <template #facts>
           <p v-if="speed" class="mb-3 text-[13px] tabular-nums md:hidden text-gray-600 dark:text-gray-300" data-testid="logbook-trip-speed">{{ speed }}</p>
         </template>

@@ -147,6 +147,11 @@ function done(action: Action) {
   if (detail.value) back()
   void load()
 }
+/** Gemessene Fahrt hat einen Tipp gespeichert: Tag neu laden, die Fahrt bleibt offen */
+function onTripChanged() {
+  emit('changed')
+  void load()
+}
 const merging = ref(false)
 const mergeFailed = ref(false)
 async function merge(a: DayEvent, b: DayEvent) {
@@ -253,7 +258,7 @@ const selectedId = computed(() => {
             @cancel="back" @saved="done('edit_charge')" @deleted="done('delete')" />
           <GapDetail v-else-if="detail.kind === 'gap'" :gap="detail.gap" dismiss="back" @cancel="back" />
           <DayTripPanel v-else :trip="detail.trip" :car-id="carId" :new-end="newEnd"
-            @back="back" @saved="done" @deleted="done('delete')" />
+            @back="back" @saved="done" @deleted="done('delete')" @changed="onTripChanged" />
         </section>
       </Transition>
       <p v-if="wide && !detail" class="hidden place-self-center px-6 text-center text-[14px] text-gray-500 lg:block dark:text-gray-400">
