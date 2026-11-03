@@ -89,7 +89,8 @@ function unknown() {
       <div v-if="current" class="relative flex-1 overflow-y-auto px-4 pb-5">
         <!-- Griff, Titel und Schließen liegen wie im Lade-Wizard oben; mit Ort schweben sie auf der Karte -->
         <div :class="['z-[600]', area ? 'absolute inset-x-0 top-0 bg-gradient-to-b from-white via-white/80 to-transparent px-4 pb-6 dark:from-gray-800 dark:via-gray-800/80' : '-mx-4 px-4']">
-          <div class="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-200 sm:hidden dark:bg-gray-700" aria-hidden="true" />
+          <!-- Platz für den Griff des Sheets -->
+          <div class="h-3.5 sm:hidden" aria-hidden="true" />
           <div class="mt-1 flex items-center">
             <div class="-ml-2 w-11 shrink-0" />
             <h2 class="min-w-0 flex-1 truncate px-2 text-center text-[17px] font-bold text-gray-900 dark:text-gray-50">{{ t('site_question.title') }}</h2>

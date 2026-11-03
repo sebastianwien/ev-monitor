@@ -123,6 +123,10 @@ defineExpose({ requestClose })
           @touchstart="drag.onTouchStart" @touchmove="drag.onTouchMove" @touchend="drag.onTouchEnd" @touchcancel="drag.onTouchEnd"
           :class="[edge ? 'edge-box sm:rounded-2xl' : 'sm:rounded-sm shadow-[0_-4px_20px_rgba(0,0,0,0.25)] sm:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:sm:shadow-[5px_5px_0_rgba(255,255,255,0.35)]', panelClass]">
           <slot :close="requestClose" />
+          <!-- Griff für alle Sheets, nur wo Ziehen schließt (Handy). Er liegt über dem Inhalt, auch über einer Karte:
+               der helle Saum hält ihn auf Weiß und auf Kartenkacheln gleich sichtbar. -->
+          <div v-if="!props.locked && !minimized" data-testid="sheet-grip" aria-hidden="true"
+            class="pointer-events-none absolute left-1/2 top-2 z-[700] h-1.5 w-10 -translate-x-1/2 rounded-full bg-gray-900 shadow-[0_0_0_2px_rgba(255,255,255,0.9)] sm:hidden dark:bg-gray-100 dark:shadow-[0_0_0_2px_rgba(17,24,39,0.9)]" />
         </div>
       </div>
     </Transition>

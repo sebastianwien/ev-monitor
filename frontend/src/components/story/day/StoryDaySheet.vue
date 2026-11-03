@@ -180,7 +180,8 @@ const selectedId = computed(() => {
       <!-- Ebene 1: der Tag -->
       <section class="flex min-h-0 min-w-0 flex-1 flex-col" :inert="!wide && !!detail" data-testid="day-pane">
         <header class="shrink-0 px-4 pb-3 pt-2 lg:px-6 lg:pt-5">
-          <div class="mx-auto mb-1 h-1.5 w-10 rounded-full bg-gray-200 sm:hidden dark:bg-gray-700" aria-hidden="true" />
+          <!-- Platz für den Griff des Sheets -->
+          <div class="h-2.5 sm:hidden" aria-hidden="true" />
           <div class="flex items-center gap-1">
             <button type="button" data-testid="day-prev" :aria-label="t('storyday.prev')" @click="go(-1)"
               class="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">

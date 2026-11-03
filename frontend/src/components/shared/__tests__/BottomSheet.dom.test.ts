@@ -38,6 +38,15 @@ describe('BottomSheet', () => {
     expect(document.querySelector('[data-testid="content"]')).not.toBeNull()
   })
 
+  // Regression: im Template verdeckte die interne Seitensperre (offen = true) das Prop `locked`
+  it('zeigt den Griff, solange Ziehen schließt, gesperrt nicht', async () => {
+    await mount(false)
+    expect(document.querySelector('[data-testid="sheet-grip"]')).not.toBeNull()
+    app!.unmount(); app = null; document.body.innerHTML = ''
+    await mount(true)
+    expect(document.querySelector('[data-testid="sheet-grip"]')).toBeNull()
+  })
+
   it('die Seite dahinter scrollt nicht, solange ein Sheet offen ist, auch gestapelt', async () => {
     document.body.style.overflow = 'auto'
     const open = { a: ref(true), b: ref(false) }

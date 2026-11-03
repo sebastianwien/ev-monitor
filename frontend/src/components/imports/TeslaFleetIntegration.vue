@@ -374,8 +374,7 @@ async function retryConnect() {
     :label="callbackErrorCode === 'VIN_ALREADY_LINKED' ? t('tesla.callback_error_vin_linked_title') : t('tesla.callback_error_unknown_title')"
     @close="closeCallbackError">
     <template #default="{ close }">
-      <div class="grid gap-4 overflow-y-auto px-4 pb-4 pt-3 sm:px-6 sm:pt-6">
-        <div class="mx-auto h-1 w-10 rounded-full bg-gray-300 sm:hidden dark:bg-gray-600" />
+      <div class="grid gap-4 overflow-y-auto px-4 pb-4 pt-6 sm:px-6">
         <h3 class="flex items-start gap-2 text-xl font-extrabold text-gray-900 dark:text-gray-50">
           <ExclamationTriangleIcon class="mt-0.5 h-6 w-6 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />
           {{ callbackErrorCode === 'VIN_ALREADY_LINKED' ? t('tesla.callback_error_vin_linked_title') : t('tesla.callback_error_unknown_title') }}
@@ -396,8 +395,7 @@ async function retryConnect() {
   <!-- Alle Tesla-Importe löschen: einziger rote Knopf -->
   <BottomSheet v-if="showDeleteAllConfirm" edge :label="t('tesla.delete_modal_title')" @close="showDeleteAllConfirm = false">
     <template #default="{ close }">
-      <div class="grid gap-4 overflow-y-auto px-4 pb-4 pt-3 sm:px-6 sm:pt-6">
-        <div class="mx-auto h-1 w-10 rounded-full bg-gray-300 sm:hidden dark:bg-gray-600" />
+      <div class="grid gap-4 overflow-y-auto px-4 pb-4 pt-6 sm:px-6">
         <h3 class="text-xl font-extrabold text-gray-900 dark:text-gray-50">{{ t('tesla.delete_modal_title') }}</h3>
         <p class="text-sm text-gray-700 dark:text-gray-300" v-html="t('tesla.delete_modal_desc')" />
         <p v-if="deleteAllError" role="alert" :class="[CI_NOTE, 'flex items-start gap-2 py-3 font-semibold text-gray-900 dark:text-gray-100']">

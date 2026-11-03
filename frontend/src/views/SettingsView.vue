@@ -446,8 +446,7 @@ onMounted(async () => {
   <!-- Konto löschen: einziger rote Knopf der Seite -->
   <BottomSheet v-if="showDeleteConfirm" :label="t('settings.delete_modal_title')" edge @close="resetDeleteConfirm">
     <template #default="{ close }">
-      <div class="grid gap-4 overflow-y-auto px-4 pt-3 pb-4 sm:px-6 sm:pt-6">
-        <div class="mx-auto h-1 w-10 rounded-full bg-gray-300 sm:hidden dark:bg-gray-600" />
+      <div class="grid gap-4 overflow-y-auto px-4 pt-6 pb-4 sm:px-6">
         <h3 class="text-xl font-extrabold text-gray-900 dark:text-gray-50">{{ t('settings.delete_modal_title') }}</h3>
         <p class="text-sm text-gray-700 dark:text-gray-300" v-html="t('settings.delete_modal_desc')" />
 
@@ -476,8 +475,7 @@ onMounted(async () => {
   <!-- Abo downgraden oder kündigen -->
   <BottomSheet v-if="tierConfirmAction" :label="tierConfirmTitle" edge @close="closeTierConfirm">
     <template #default="{ close }">
-      <div class="grid gap-4 overflow-y-auto px-4 pt-3 pb-4 sm:px-6 sm:pt-6">
-        <div class="mx-auto h-1 w-10 rounded-full bg-gray-300 sm:hidden dark:bg-gray-600" />
+      <div class="grid gap-4 overflow-y-auto px-4 pt-6 pb-4 sm:px-6">
         <h3 class="text-xl font-extrabold text-gray-900 dark:text-gray-50">{{ tierConfirmTitle }}</h3>
         <p class="text-sm text-gray-600 dark:text-gray-400">{{ tierConfirmBody }}</p>
         <div class="grid grid-cols-2 gap-3">
