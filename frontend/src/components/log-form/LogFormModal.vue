@@ -151,8 +151,9 @@ function onBarClickCapture(e: MouseEvent) {
         @success="emit('saved'); close()" @cancel="close" />
     </div>
 
-    <!-- Minimiert: die Leiste deckt den Wizard-Kopf ab, die Eingaben darunter bleiben erhalten -->
-    <div v-if="minimized" data-testid="log-form-bar" class="absolute inset-x-0 top-0 z-10 h-16 touch-none select-none bg-white dark:bg-gray-900"
+    <!-- Minimiert: die Leiste deckt den Wizard-Kopf ab, die Eingaben darunter bleiben erhalten. Über allem: der Kopf der
+         Prüfseite schwebt mit z-[600] über der Karte, Leaflet-Bedienelemente liegen bei 1000. -->
+    <div v-if="minimized" data-testid="log-form-bar" class="absolute inset-x-0 top-0 z-[1100] h-16 touch-none select-none bg-white dark:bg-gray-900"
       @pointerdown="onBarDown" @pointermove="onBarMove" @pointerup="onBarUp" @pointercancel="onBarUp" @click.capture="onBarClickCapture" @dragstart.prevent>
       <div class="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
       <div class="flex items-center gap-1 px-2">
