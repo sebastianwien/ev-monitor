@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import type { LogFormData } from '../log-form/logFormData'
-import { ClockIcon } from '@heroicons/vue/24/outline'
 import { ROUTE_CHIPS, TIRE_CHIPS } from './optionalChips'
 import { SEG_GROUP, SEG_LABEL as LABEL, segClass } from './segments'
-import { useTimePick, nowLocal } from './useTimePick'
+import { nowLocal } from './useTimePick'
 
 /**
  * "Mehr Details": die optionalen Angaben als Fakten-Zeilen mit Chips statt als Formular.
@@ -15,7 +14,6 @@ import { useTimePick, nowLocal } from './useTimePick'
 const props = defineProps<{ showTime?: boolean }>()
 const form = defineModel<LogFormData>({ required: true })
 const { t } = useI18n()
-const { timePick, pickTime, timeChips } = useTimePick(form)
 
 const routeChips = ROUTE_CHIPS.map(c => ({ ...c, label: t(c.key) }))
 const tireChips = TIRE_CHIPS.map(c => ({ ...c, label: t(c.key) }))
@@ -28,13 +26,9 @@ const numField = 'w-full min-w-0 bg-transparent border-0 p-0 text-right text-xl 
   <div class="pt-1 pb-2 space-y-4">
     <div v-if="showTime" class="space-y-1.5">
       <span :class="LABEL">{{ t('logwizard.d_when') }}</span>
-      <div :class="[SEG_GROUP, 'grid-cols-2']" role="radiogroup" :aria-label="t('logwizard.d_when')">
-        <button v-for="c in timeChips" :key="c.value" type="button" role="radio" :aria-checked="timePick === c.value" :class="segClass(timePick === c.value)"
-          :data-testid="`time-${c.value}`" @click="pickTime(c.value)">
-          <ClockIcon v-if="c.value === 'other'" class="h-4 w-4 flex-shrink-0" />{{ c.label }}
-        </button>
-      </div>
-      <input v-if="timePick === 'other'" id="wizard-time" v-model="form.loggedAt" type="datetime-local" :max="nowLocal()" :aria-label="t('logfields.timestamp')"
+      <!-- Datum und Uhrzeit direkt: ohne Eingabe gilt jetzt (loggedAt null), das Feld zeigt dann die aktuelle Zeit -->
+      <input id="wizard-time" :value="form.loggedAt ?? nowLocal()" type="datetime-local" :max="nowLocal()" :aria-label="t('logfields.timestamp')"
+        @change="form.loggedAt = ($event.target as HTMLInputElement).value || null"
         class="min-h-12 w-full min-w-0 rounded-xl border-2 border-edge bg-white px-3 text-[17px] font-semibold tabular-nums outline-none focus:border-green-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" />
     </div>
 

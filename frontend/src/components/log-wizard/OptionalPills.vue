@@ -6,18 +6,17 @@ import type { LogFormData } from '../log-form/logFormData'
 import RouteIcon from '../icons/RouteIcon.vue'
 import { ROUTE_CHIPS, TIRE_CHIPS } from './optionalChips'
 import { SEG_GROUP, segClass } from './segments'
-import { useTimePick, nowLocal, openNativePicker } from './useTimePick'
+import { nowLocal, openNativePicker } from './useTimePick'
 
 /**
  * Zeit, Strecke und Reifen als drei Pillen in einer Zeile (Schritt 2). Tipp auf eine Pille verwandelt
  * die Zeile an Ort und Stelle in die Segmentgruppe (Pillen gleiten raus, Segmente rein); die Wahl
  * verwandelt sie zurück. Die Zeile wächst dabei nie, nichts verschiebt sich, nichts scrollt.
- * "Anders" bei der Zeit öffnet direkt den nativen Datum/Zeit-Picker statt einer eigenen Eingabezeile.
+ * Die Zeit-Pille öffnet direkt den nativen Datum/Zeit-Picker, ohne Segmentgruppe.
  */
 type Field = 'time' | 'route' | 'tires'
 const form = defineModel<LogFormData>({ required: true })
 const { t, locale } = useI18n()
-const { timePick, pickTime, timeChips } = useTimePick(form)
 const editing = ref<Field | null>(null)
 /** Bleibt beim Schließen stehen, damit der Editor während der Zuklapp-Animation noch Inhalt hat */
 const shownEditor = ref<Field | null>(null)
@@ -38,20 +37,16 @@ const pills = computed<Pill[]>(() => {
     { field: 'tires', text: t(tires.key), icon: tires.icon, label: t('logwizard.d_tires') },
   ]
 })
-const toggle = (f: Field) => { editing.value = editing.value === f ? null : f }
+const toggle = (f: Field) => {
+  // Zeit: kein Zwischenschritt, gleich Datum und Uhrzeit wählen (showPicker braucht die Tap-Geste)
+  if (f === 'time') { editing.value = null; openNativePicker(timeInput.value); return }
+  editing.value = editing.value === f ? null : f
+}
 /** Tapping the chosen route again clears it back to unknown */
 const pickRoute = (v: NonNullable<LogFormData['routeType']>) => { form.value.routeType = form.value.routeType === v ? null : v; editing.value = null }
 const pickTires = (v: LogFormData['tireType']) => { form.value.tireType = v; editing.value = null }
 /** Nativer Picker statt Eingabezeile: showPicker() braucht die Tap-Geste, deshalb direkt im Click-Handler */
 const timeInput = ref<HTMLInputElement | null>(null)
-/** Drei Zellen passen in die Zeile: "Gestern Abend" steckt im Picker, "Wählen" öffnet ihn */
-const segTimeChips = computed(() => timeChips.filter(c => c.value !== 'yesterday').map(c => c.value === 'other' ? { ...c, label: t('logwizard.d_time_pick') } : c))
-const onTime = (p: typeof timeChips[number]['value']) => {
-  pickTime(p)
-  if (p !== 'other') { editing.value = null; return }
-  openNativePicker(timeInput.value)
-}
-const onTimePicked = () => { editing.value = null }
 </script>
 
 <template>
@@ -71,11 +66,7 @@ const onTimePicked = () => { editing.value = null }
     <!-- Lage 2: Segmentgruppe plus X, gleitet von rechts rein; bleibt beim Schließen gerendert (shownEditor), bis sie draußen ist -->
     <div :inert="!editing" :class="['[grid-area:1/1] flex items-center gap-1.5 transition-[translate,opacity] duration-200 ease-out motion-reduce:transition-none',
              editing ? 'translate-x-0 opacity-100' : 'translate-x-6 opacity-0']">
-      <div v-if="shownEditor === 'time'" :class="[SEG_GROUP, 'flex-1 grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_when')">
-        <button v-for="c in segTimeChips" :key="c.value" type="button" role="radio" :aria-checked="timePick === c.value" :class="segClass(timePick === c.value)"
-          :data-testid="`time-${c.value}`" @click="onTime(c.value)">{{ c.label }}</button>
-      </div>
-      <div v-else-if="shownEditor === 'route'" :class="[SEG_GROUP, 'flex-1 grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_route')">
+      <div v-if="shownEditor === 'route'" :class="[SEG_GROUP, 'flex-1 grid-cols-3']" role="radiogroup" :aria-label="t('logwizard.d_route')">
         <button v-for="c in ROUTE_CHIPS" :key="c.value" type="button" role="radio" :aria-checked="form.routeType === c.value" :class="segClass(form.routeType === c.value)"
           @click="pickRoute(c.value)"><component :is="c.icon" class="h-4 w-4 flex-shrink-0" />{{ t(c.key) }}</button>
       </div>
@@ -89,6 +80,6 @@ const onTimePicked = () => { editing.value = null }
     </div>
     <!-- Unsichtbares Feld nur für den nativen Picker; kein display:none, sonst öffnet Safari nichts -->
     <input ref="timeInput" id="wizard-time" v-model="form.loggedAt" type="datetime-local" :max="nowLocal()" :aria-label="t('logfields.timestamp')"
-      class="sr-only" tabindex="-1" @change="onTimePicked" />
+      class="sr-only" tabindex="-1" />
   </div>
 </template>

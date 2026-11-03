@@ -3640,8 +3640,6 @@ logwizard:
   change: "Change"
   more_details: "More details"
   d_when: "When did you charge?"
-  d_time_other: "Other time"
-  d_time_pick: "Pick"
   missing_place: "First choose where you charged."
   missing_fields: "Still missing: {fields}"
   d_soc_before: "Battery before charging"

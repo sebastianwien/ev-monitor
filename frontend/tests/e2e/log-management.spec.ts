@@ -127,9 +127,7 @@ test.describe('Ladevorgänge anlegen und bearbeiten', () => {
     // Zeit, Strecke und Reifen stehen als Pillen in Schritt 2; die Prüfseite zeigt zugeklappt nur die Zahlen-Pillen
     const quickLine = page.locator('[data-testid="summary-optional"]');
     await expect(quickLine).toContainText('Akku vorher');
-    await expect(page.locator('[data-testid="time-other"]')).toBeHidden();
     await quickLine.click();
-    await page.locator('[data-testid="time-other"]').click();
     const when = yesterday.toISOString().slice(0, 16);
     await page.locator('[data-testid="optional-panel"] input[type="datetime-local"]').fill(when);
     await expect(page.locator('[data-testid="optional-panel"] input[type="datetime-local"]')).toHaveValue(when);
