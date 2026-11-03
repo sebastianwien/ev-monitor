@@ -492,6 +492,7 @@ onUnmounted(() => unregisterReload?.())
                   :energy-cost-eur="monthStats?.energyCostEur ?? null"
                   :charges="monthStats?.totalCharges ?? 0"
                   :layers="layers"
+                  :so-far="month.offset === 0 ? { trips: story.tripCount.value, days: new Date().getDate() } : null"
                   @layers="(open) => open && analytics.track('story_layers_opened')">
                   <template #nav>
                     <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" :labelled="false" @select="selectMonth" />

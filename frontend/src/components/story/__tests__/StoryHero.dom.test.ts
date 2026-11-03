@@ -11,7 +11,7 @@ let app: App | null = null
 function afterReset() { try { localStorage.removeItem('ev-country') } catch { /* egal */ } }
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = ''; afterReset() })
 
-const base = {
+const base: { monthLabel: string; distanceKm: number | null; energyCostEur: number | null; charges: number; layers: null } = {
   monthLabel: 'Oktober',
   distanceKm: 274,
   energyCostEur: 33.4,
@@ -152,5 +152,13 @@ describe('StoryHero', () => {
     const host = mount({ distanceKm: 0, layers: layers as never })
     expect(host.querySelector('[data-testid="story-hero-meta"]')).toBeNull()
     expect(text(host.querySelector('[data-testid="story-hero-layers"]'))).toBe('Alle Kosten 196 €')
+  })
+  it('laufender Monat: graue Zeile nennt Fahrten und vergangene Tage', () => {
+    const host = mount({ distanceKm: 4, energyCostEur: null, charges: 0, soFar: { trips: 1, days: 3 } })
+    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toBe('1 Fahrt in 3 Tagen')
+  })
+  it('laufender Monat mit Kosten: Fahrten vor Euro je 100 km', () => {
+    const host = mount({ soFar: { trips: 12, days: 1 } })
+    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toMatch(/^12 Fahrten in 1 Tag · /)
   })
 })

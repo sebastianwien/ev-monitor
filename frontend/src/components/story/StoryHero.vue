@@ -24,6 +24,8 @@ const props = defineProps<{
   energyCostEur: number | null
   charges: number
   layers: CostLayer[] | null
+  /** Nur im laufenden Monat: Fahrten bisher und vergangene Tage, damit eine kleine Zahl am Monatsanfang lesbar ist. */
+  soFar?: { trips: number; days: number } | null
 }>()
 const emit = defineEmits<{ layers: [open: boolean] }>()
 
@@ -45,6 +47,12 @@ const sentenceParts = computed(() => {
   return i < 0 ? { month: '', rest: sentence.value } : { month: sentence.value.slice(0, i + 1), rest: sentence.value.slice(i + 2) }
 })
 const meta = computed(() => [
+  props.soFar
+    ? t('story.hero_so_far', {
+      trips: t('story.hero_trips', { n: props.soFar.trips }, props.soFar.trips),
+      days: t('story.hero_days', { n: props.soFar.days }, props.soFar.days),
+    })
+    : null,
   // Je 100 km aus dem Satz selbst, damit Nachrechnen aufgeht; nur wenn er km und Euro nennt.
   // In der Strecken-Einheit des Satzes (km oder mi), damit beide zusammenpassen.
   line.value.kind === 'km_cost'

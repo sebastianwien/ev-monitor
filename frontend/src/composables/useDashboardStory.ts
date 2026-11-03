@@ -722,7 +722,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
 
   return {
     offset, month, months, setOffset, switching, placeRows, dataMonths, minOffset,
-    monthStats, previousStats, tiles, feed, days, hasCharges, loading, error,
+    monthStats, previousStats, tripCount: computed(() => trips.value.length), tiles, feed, days, hasCharges, loading, error,
     layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, recentTrips, cards, monthRecap, range, weather, benchmark,
     reload, markPriceUnknown, savingsAccess,
   }
