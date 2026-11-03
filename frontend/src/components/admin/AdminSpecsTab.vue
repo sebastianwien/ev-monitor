@@ -93,12 +93,23 @@ function sorted(rows: SpecRow[]): SpecRow[] {
     })
 }
 
+/** Freitextsuche: jedes Wort muss in Marke, Modell, Variante oder Trim der Zeile vorkommen. */
+const search = ref('')
+watch(search, () => { page.value = 0; closeInline() })
+const searchTokens = computed(() => search.value.toLowerCase().split(/\s+/).filter(Boolean))
+function matchesSearch(m: ModelGroup, r: SpecRow): boolean {
+    if (!searchTokens.value.length) return true
+    const hay = [m.carBrand, m.carModel, m.displayName, r.variantName, r.trimLevel].filter(Boolean).join(' ').toLowerCase()
+    return searchTokens.value.every(t => hay.includes(t))
+}
+
 const filteredModels = computed<ModelGroup[]>(() => {
     if (!data.value) return []
     const f = filter.value
+    const narrowed = f !== 'ALL' || searchTokens.value.length > 0
     return data.value.models
-        .map(m => ({ ...m, rows: sorted(f === 'ALL' ? m.rows : m.rows.filter(r => r.workLists.includes(f))) }))
-        .filter(m => f === 'ALL' || m.rows.length > 0)
+        .map(m => ({ ...m, rows: sorted(m.rows.filter(r => (f === 'ALL' || r.workLists.includes(f)) && matchesSearch(m, r))) }))
+        .filter(m => !narrowed || m.rows.length > 0)
 })
 
 /** Seiten zu PAGE_SIZE Spec-Zeilen; ein Modell kann über zwei Seiten laufen und steht dann auf beiden. */
@@ -267,6 +278,9 @@ const date = (iso: string) => new Date(iso).toLocaleString('de-DE', { dateStyle:
       <button type="button" class="ml-auto px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-sm text-white" @click="openCreate(null)">Neue Zeile</button>
     </div>
 
+    <input v-model="search" type="search" placeholder="Suchen: Marke, Modell, Variante, Trim" aria-label="Specs durchsuchen"
+           class="w-full sm:max-w-md px-3 py-1.5 bg-gray-900 border border-gray-700 rounded-sm text-sm text-gray-100 placeholder-gray-500" />
+
     <p v-if="error" class="text-sm text-red-400" role="alert">{{ error }}</p>
     <p v-if="notice" class="text-sm text-green-400" role="status">{{ notice }} <button type="button" class="underline" @click="notice = ''">ok</button></p>
     <p v-if="loading" class="text-sm text-gray-500">Lädt …</p>
@@ -357,6 +371,6 @@ const date = (iso: string) => new Date(iso).toLocaleString('de-DE', { dateStyle:
       </button>
     </nav>
 
-    <p v-if="data && visibleModels.length === 0 && !loading" class="text-sm text-gray-500">Diese Arbeitsliste ist leer.</p>
+    <p v-if="data && visibleModels.length === 0 && !loading" class="text-sm text-gray-500">{{ searchTokens.length ? 'Keine Zeile passt zur Suche.' : 'Diese Arbeitsliste ist leer.' }}</p>
   </div>
 </template>
