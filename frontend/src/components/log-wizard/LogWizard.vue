@@ -49,7 +49,8 @@ const props = defineProps<{
   /** Im Erfassen-Sheet statt als eigene Vollbildseite */
   embedded?: boolean
 }>()
-const emit = defineEmits<{ success: []; cancel: [] }>()
+/** `step-shown`: ein Schritt steht im DOM (der vorige ist weg, out-in), mit seinem Element - das Sheet misst daran seine Höhe */
+const emit = defineEmits<{ success: []; cancel: []; 'step-shown': [step: WizardStep, el: Element] }>()
 const { t } = useI18n()
 const { haptic } = useHaptic()
 const { formatNumber, formatDecimal } = useLocaleFormat()
@@ -377,7 +378,7 @@ watch(() => form.value.latitude, async (lat) => {
 })
 const onStepEl = (el: unknown) => {
   const node = el instanceof HTMLElement ? el : null
-  if (node && node !== stepEl.value) { stepEl.value = node; requestAnimationFrame(() => focusStep(node)) }
+  if (node && node !== stepEl.value) { stepEl.value = node; emit('step-shown', step.value, node); requestAnimationFrame(() => focusStep(node)) }
   else if (!node) stepEl.value = null
 }
 
