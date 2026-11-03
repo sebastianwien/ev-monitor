@@ -48,13 +48,13 @@ function open() {
     <button v-if="view.action" type="button" class="sr-only focus:not-sr-only focus:justify-self-start focus:text-[15px] focus:font-semibold focus:text-green-700 dark:focus:text-green-400" @click.stop="open">{{ view.action.label }}</button>
     <div class="grid gap-1">
       <!-- Unter dem Monatskopf: Label mittig zwischen grünen Strichen wie die Abschnittsköpfe der Seite -->
-      <p v-if="secondary" class="mb-1 flex items-center gap-3 text-[16px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">
+      <p v-if="secondary" class="mb-1 flex items-center gap-3 text-[13px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">
         <span class="h-0.5 flex-1 bg-green-700 dark:bg-green-400" aria-hidden="true" />
         <span>{{ view.eyebrow }}</span>
         <span class="h-0.5 flex-1 bg-green-700 dark:bg-green-400" aria-hidden="true" />
       </p>
       <div v-else class="flex items-center justify-between gap-2">
-        <p class="text-[16px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ view.eyebrow }}</p>
+        <p class="text-[13px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ view.eyebrow }}</p>
         <!-- Monatswähler; Klicks dort öffnen nicht die Karte -->
         <div @click.stop><slot /></div>
       </div>
@@ -62,7 +62,7 @@ function open() {
     </div>
 
     <!-- Die gute Nachricht des Monats: die eine grüne Fläche der Seite -->
-    <p v-if="view.sub" data-testid="recap-saving" class="text-pretty rounded-xl bg-green-50 px-4 py-3 text-[17px] leading-snug text-gray-900 tabular-nums edge-card dark:bg-green-900/20 dark:text-gray-50"><BoldNumbers :text="keepUnits(view.sub)" units /><template v-if="view.cheer">{{ ' ' }}<strong class="font-bold">{{ view.cheer }}</strong></template></p>
+    <p v-if="view.sub" data-testid="recap-saving" class="text-pretty rounded-xl bg-green-50 px-4 py-3 text-[15px] leading-snug text-gray-900 tabular-nums edge-card dark:bg-green-900/20 dark:text-gray-50"><BoldNumbers :text="keepUnits(view.sub)" units /><template v-if="view.cheer">{{ ' ' }}<strong class="font-bold">{{ view.cheer }}</strong></template></p>
 
     <ul class="grid divide-x divide-gray-200 dark:divide-white/15" :class="['grid-cols-1', 'grid-cols-2', 'grid-cols-3'][kpis.length - 1]">
       <li v-for="k in kpis" :key="k.id" data-testid="recap-fact" class="grid content-start gap-1 px-1 text-center">
