@@ -142,7 +142,7 @@ function onBarClickCapture(e: MouseEvent) {
 
 <template>
   <BottomSheet ref="sheet" edge :label="t('logform.title')" testid="log-form-sheet"
-    panel-class="h-[min(calc(100dvh-env(safe-area-inset-top)-0.5rem),var(--wizard-h,39rem))] max-h-none! dark:bg-gray-900! sm:h-auto sm:max-h-[90vh]! sm:max-w-xl"
+    panel-class="h-[min(calc(100dvh-env(safe-area-inset-top)-0.5rem-var(--bottom-nav-h,0px)),var(--wizard-h,39rem))] max-h-none! dark:bg-gray-900! sm:h-auto sm:max-h-[90vh]! sm:max-w-xl"
     :minimizable="canMinimize" :minimized="minimized"
     @minimize="emit('update:minimized', true)" @close="emit('close')">
     <!-- Ein Hintergrund wie der Wizard, auch unter Griff und Safe-Area -->

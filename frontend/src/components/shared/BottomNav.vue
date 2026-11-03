@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onUnmounted, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { HomeIcon, QueueListIcon, BoltIcon, Bars3Icon } from '@heroicons/vue/24/outline'
@@ -27,6 +27,11 @@ const route = useRoute()
 const { t } = useI18n()
 const { haptic } = useHaptic()
 const keyboardOpen = useKeyboardOpen()
+// Sheets enden oberhalb der Leiste und fahren hinter ihr ein und aus: sie lesen ihre Höhe aus --bottom-nav-h.
+// Mit offener Tastatur ist die Leiste weg, dann 0.
+const NAV_H = 'calc(3.5rem + 2px + env(safe-area-inset-bottom))'
+watchEffect(() => document.documentElement.style.setProperty('--bottom-nav-h', keyboardOpen.value ? '0px' : NAV_H))
+onUnmounted(() => document.documentElement.style.removeProperty('--bottom-nav-h'))
 
 const isStart = computed(() => route.path === '/dashboard' || route.path === '/story')
 const isLogs = computed(() => route.path === '/logs')

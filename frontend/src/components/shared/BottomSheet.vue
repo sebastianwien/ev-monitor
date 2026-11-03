@@ -107,8 +107,8 @@ defineExpose({ requestClose })
     <Transition name="sheet" @after-leave="emit('close')">
       <div
         v-if="visible"
-        class="fixed inset-0 flex items-end sm:items-center justify-center sm:p-4"
-        :class="minimized ? 'z-30 pointer-events-none' : 'z-50'"
+        class="fixed inset-0 flex items-end sm:items-center justify-center sm:p-4 max-md:bottom-[var(--bottom-nav-h,0px)]"
+        :class="minimized ? 'z-30 pointer-events-none' : 'z-50 max-md:z-[39]'"
         role="dialog"
         :aria-modal="minimized ? 'false' : 'true'"
         :aria-label="label"
@@ -118,7 +118,7 @@ defineExpose({ requestClose })
         <div
           :data-testid="testid"
           :data-minimized="minimized || undefined"
-          class="sheet-panel pointer-events-auto relative w-full max-h-[90vh] flex flex-col overflow-hidden overscroll-contain bg-white dark:bg-gray-800 rounded-t-2xl pb-[env(safe-area-inset-bottom)] sm:pb-0"
+          class="sheet-panel pointer-events-auto relative w-full max-h-[90vh] max-md:max-h-[calc(100dvh-var(--bottom-nav-h,0px)-4rem)] flex flex-col overflow-hidden overscroll-contain bg-white dark:bg-gray-800 rounded-t-2xl pb-[max(0px,calc(env(safe-area-inset-bottom)-var(--bottom-nav-h,0px)))] sm:pb-0"
           :style="drag.style.value"
           @touchstart="drag.onTouchStart" @touchmove="drag.onTouchMove" @touchend="drag.onTouchEnd" @touchcancel="drag.onTouchEnd"
           :class="[edge ? 'edge-box sm:rounded-2xl' : 'sm:rounded-sm shadow-[0_-4px_20px_rgba(0,0,0,0.25)] sm:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:sm:shadow-[5px_5px_0_rgba(255,255,255,0.35)]', panelClass]">
@@ -138,7 +138,8 @@ defineExpose({ requestClose })
 .sheet-backdrop { transition: opacity 0.25s ease; }
 .sheet-panel { transition: transform 0.3s cubic-bezier(0.32, 0.72, 0, 1); }
 .sheet-panel[data-minimized] {
-  transform: translateY(calc(100% - var(--sheet-peek, 4rem) - 3.5rem - env(safe-area-inset-bottom)));
+  /* Das Panel endet oberhalb der Bottom-Nav (--bottom-nav-h am Container): nur die Leiste schaut heraus */
+  transform: translateY(calc(100% - var(--sheet-peek, 4rem)));
 }
 
 /* Nur die Abdunklung blendet, das Panel faehrt voll sichtbar - wie eine Karte, nicht wie ein Geist.
