@@ -6,7 +6,7 @@ import DayRibbon from '../story/day/DayRibbon.vue'
 import DayTimeline, { type StandingRow } from '../story/day/DayTimeline.vue'
 import { tripDetailKeys, chargeDetailKeys, type Standing } from '../../utils/logbook'
 import { useLocaleFormat } from '../../composables/useLocaleFormat'
-import { daySummary, type DayEvent, type DayTrip } from '../../composables/storyDay'
+import { daySummary, ribbonWorthShowing, type DayEvent, type DayTrip } from '../../composables/storyDay'
 import { tripDayLabel } from '../../utils/tripTimeFormat'
 
 import type { TripFacts } from '../../utils/tripCalculations'
@@ -38,10 +38,7 @@ const emit = defineEmits<{ select: [event: DayEvent]; merge: [earlier: DayEvent,
 const { t, locale } = useI18n()
 const { formatDistance, formatCurrency, formatDecimal, formatConsumption } = useLocaleFormat()
 
-const showRibbon = computed(() => {
-  const socs = props.events.flatMap(e => [e.socFrom, e.socTo]).filter((v): v is number => v != null).map(Math.round)
-  return socs.length > 0 && Math.max(...socs) > Math.min(...socs)
-})
+const showRibbon = computed(() => ribbonWorthShowing(props.events))
 const stickyTop = { top: 'var(--content-top, var(--top-nav-h))' }
 /** Zeile unter dem Mauszeiger: ihre Balken im Diagramm treten hervor (Desktop), beim Bündel die aller Teile */
 const hovered = ref<string | null>(null)

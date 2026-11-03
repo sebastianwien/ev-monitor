@@ -316,3 +316,14 @@ export function batteryBars(all: DayEvent[], slot = 30): BatteryBar[] {
 export function barOfEvent(bar: { from: number }, event: { from: number; to: number }, slot = 30): boolean {
   return bar.from < event.to && bar.from + slot > event.from
 }
+
+/** Ab dieser Akku-Spanne (Prozentpunkte) erzählt das Tagesdiagramm mehr als die Fahrtkarte */
+const RIBBON_MIN_SPAN = 15
+
+/** Tagesdiagramm nur, wenn geladen wurde oder der Akku spürbar geschwankt ist; ein Strich auf gleicher Höhe sagt nichts */
+export function ribbonWorthShowing(events: DayEvent[]): boolean {
+  const socs = events.flatMap(e => [e.socFrom, e.socTo]).filter((v): v is number => v != null).map(Math.round)
+  if (!socs.length) return false
+  const span = Math.max(...socs) - Math.min(...socs)
+  return span >= RIBBON_MIN_SPAN || (span > 0 && events.some(e => e.kind === 'charge'))
+}

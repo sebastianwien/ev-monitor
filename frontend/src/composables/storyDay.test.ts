@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { barOfEvent,
   dayKeyOf, dayRange, shiftDay, eventsOfDay, daySummary, chargeKwh, missingOf, chargePlace,
-  gapMinutes, canMerge, showStanding, ribbonSegments, dayAtNow, batteryBars, bundleEvents, bundleTotals,
+  gapMinutes, canMerge, showStanding, ribbonSegments, ribbonWorthShowing, dayAtNow, batteryBars, bundleEvents, bundleTotals,
   drivenByDay, gapIsWithinOneDay,
   type DayLog, type DayTrip, type DayEvent, type OdometerGap,
 } from './storyDay'
@@ -264,5 +264,21 @@ describe('drivenByDay (km je Tag aus Fahrten plus Lücken)', () => {
   it('überspringt Fahrten ohne Start und ohne Strecke zählt 0 km', () => {
     const days = drivenByDay([trip({ tripStartedAt: null as unknown as string }), trip({ id: 'x', distanceKm: null })], [], key)
     expect([...days.entries()]).toEqual([['2026-08-16', { trips: 1, km: 0 }]])
+  })
+})
+
+describe('ribbonWorthShowing', () => {
+  const e = (over: Partial<DayEvent>) => ({ id: 'x', kind: 'trip', from: 0, to: 10, socFrom: null, socTo: null, ...over }) as DayEvent
+  it('kurze Fahrt mit wenig Hub: kein Diagramm', () => {
+    expect(ribbonWorthShowing([e({ socFrom: 85, socTo: 80 })])).toBe(false)
+  })
+  it('ab 15 Punkten Spanne: Diagramm', () => {
+    expect(ribbonWorthShowing([e({ socFrom: 80, socTo: 70 }), e({ socFrom: 70, socTo: 65 })])).toBe(true)
+  })
+  it('Ladung mit Hub: Diagramm', () => {
+    expect(ribbonWorthShowing([e({ kind: 'charge', socFrom: 80, socTo: 85 })])).toBe(true)
+  })
+  it('ohne Akkuwerte: kein Diagramm', () => {
+    expect(ribbonWorthShowing([e({ kind: 'charge' })])).toBe(false)
   })
 })
