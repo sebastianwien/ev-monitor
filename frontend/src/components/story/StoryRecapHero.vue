@@ -47,7 +47,13 @@ function open() {
   <article class="grid cursor-pointer gap-4" data-testid="story-recap-hero" :aria-label="view.eyebrow" @click="open">
     <button v-if="view.action" type="button" class="sr-only focus:not-sr-only focus:justify-self-start focus:text-[15px] focus:font-semibold focus:text-green-700 dark:focus:text-green-400" @click.stop="open">{{ view.action.label }}</button>
     <div class="grid gap-1">
-      <div class="flex items-center justify-between gap-2">
+      <!-- Unter dem Monatskopf: Label mittig zwischen grünen Strichen wie die Abschnittsköpfe der Seite -->
+      <p v-if="secondary" class="mb-1 flex items-center gap-3 text-[16px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">
+        <span class="h-0.5 flex-1 bg-green-700 dark:bg-green-400" aria-hidden="true" />
+        <span>{{ view.eyebrow }}</span>
+        <span class="h-0.5 flex-1 bg-green-700 dark:bg-green-400" aria-hidden="true" />
+      </p>
+      <div v-else class="flex items-center justify-between gap-2">
         <p class="text-[16px] font-semibold uppercase tracking-[0.06em] text-green-700 dark:text-green-400">{{ view.eyebrow }}</p>
         <!-- Monatswähler; Klicks dort öffnen nicht die Karte -->
         <div @click.stop><slot /></div>
