@@ -224,7 +224,7 @@ export function petrolCostEur(distanceKm: number | null, eurPerLitre: number, li
 
 /** Der Hero-Satz des Monats: km für Euro, sonst Euro für Ladungen, sonst was da ist. Kosten 0 heißt ohne Preise. */
 export interface HeroLine {
-  kind: 'km_cost' | 'cost_charges' | 'km_charges' | 'charges'
+  kind: 'km_cost' | 'cost_charges' | 'km_charges' | 'km' | 'charges'
   km: number | null
   eur: number | null
   charges: number
@@ -233,8 +233,15 @@ export interface HeroLine {
 export function heroLine(input: { distanceKm: number | null; energyCostEur: number | null; charges: number }): HeroLine {
   const km = input.distanceKm != null && input.distanceKm > 0 ? input.distanceKm : null
   const eur = input.energyCostEur != null && input.energyCostEur > 0 ? input.energyCostEur : null
-  const kind = km != null ? (eur != null ? 'km_cost' : 'km_charges') : (eur != null ? 'cost_charges' : 'charges')
+  // Nur Fahrten ohne Ladung: nur die Strecke, keine "0 Ladungen"
+  const kind = km != null ? (eur != null ? 'km_cost' : input.charges > 0 ? 'km_charges' : 'km') : (eur != null ? 'cost_charges' : 'charges')
   return { kind, km, eur, charges: input.charges }
+}
+
+/** Der Rückblick auf den Vormonat steht bis zum 3. groß unter dem Monatskopf, danach als Karte im Stapel. */
+export const RECAP_STAGE_LAST_DAY = 3
+export function recapOnStage(now: number): boolean {
+  return new Date(now).getDate() <= RECAP_STAGE_LAST_DAY
 }
 
 /** CO₂ weniger seit der ersten Ladung. */

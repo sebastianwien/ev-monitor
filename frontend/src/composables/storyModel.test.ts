@@ -7,6 +7,7 @@ import {
   peerCostDiffEur,
   petrolLitersPer100km,
   heroLine,
+  recapOnStage,
   lifetimeCo2,
   monthWindow,
   type StoryInput, MIN_SOLID_CHARGES } from './storyModel'
@@ -469,6 +470,17 @@ describe('heroLine', () => {
   it('ohne Kosten: km und Ladungen, ohne beides nur Ladungen', () => {
     expect(heroLine({ distanceKm: 274, energyCostEur: 0, charges: 6 })).toEqual({ kind: 'km_charges', km: 274, eur: null, charges: 6 })
     expect(heroLine({ distanceKm: 0, energyCostEur: null, charges: 2 })).toEqual({ kind: 'charges', km: null, eur: null, charges: 2 })
+  })
+  it('nur Fahrten, keine Ladung: nur km, keine Null-Ladungen', () => {
+    expect(heroLine({ distanceKm: 85, energyCostEur: null, charges: 0 })).toEqual({ kind: 'km', km: 85, eur: null, charges: 0 })
+  })
+})
+
+describe('recapOnStage', () => {
+  it('bis zum 3. des Monats groß, ab dem 4. nicht mehr', () => {
+    expect(recapOnStage(new Date(2026, 10, 1, 0, 5).getTime())).toBe(true)
+    expect(recapOnStage(new Date(2026, 10, 3, 23, 59).getTime())).toBe(true)
+    expect(recapOnStage(new Date(2026, 10, 4, 0, 0).getTime())).toBe(false)
   })
 })
 

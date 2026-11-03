@@ -15,7 +15,7 @@ import { useMomentView } from '../composables/useMomentView'
 import { useHaptic } from '../composables/useHaptic'
 import { useIsMobile } from '../composables/useIsMobile'
 import { analytics } from '../services/analytics'
-import type { TileId } from '../composables/storyModel'
+import { recapOnStage, type TileId } from '../composables/storyModel'
 import { autoSyncProviderFor, autoSyncOfferFor } from '../composables/useCarAutoSyncProvider'
 import { purchasesAvailable } from '../utils/iapPolicy'
 import { shareOrCopy, type ShareOutcome } from '../utils/shareOrCopy'
@@ -145,17 +145,22 @@ async function share(title: string, text: string) {
 const narrow = useIsMobile('(max-width: 1023px)')
 const sheetIds = computed(() => tiles.value.map(x => x.id))
 // Steht, sobald ein Monat da ist, und bleibt beim Monatswechsel stehen (der neue kommt mit seinen Daten)
-const showFeed = computed(() => !!monthStats.value && !error.value && (hasCharges.value || liveActive.value))
+/** Monat mit Ladung oder gefahrener Strecke (Fahrten): dann steht der Monatskopf statt des Leerzustands. */
+const hasActivity = computed(() => hasCharges.value || (monthStats.value?.totalDistanceKm ?? 0) > 0)
+const showFeed = computed(() => !!monthStats.value && !error.value && (hasActivity.value || liveActive.value))
 /**
- * Laufender Monat ohne Ladung und ohne Live-Laden: der Rückblick auf den Vormonat steht als Kopf,
+ * Laufender Monat ohne Ladung, ohne Fahrt und ohne Live-Laden: der Rückblick auf den Vormonat steht als Kopf,
  * auch wenn seine Karte schon weggeklickt ist. Im Stapel fehlt er dann.
  */
 const recapHero = computed<Moment | null>(() =>
-  !(loading.value && !monthStats.value) && !error.value && !hasCharges.value && heroMode.value === 'month' && month.value.offset === 0
+  !(loading.value && !monthStats.value) && !error.value && !hasActivity.value && heroMode.value === 'month' && month.value.offset === 0
     ? story.monthRecap.value : null)
+/** Laufender Monat mit Daten: bis zum 3. steht der Rückblick groß unter dem Monatskopf, danach als Karte im Stapel. */
+const recapStage = computed<Moment | null>(() =>
+  monthHero.value && month.value.offset === 0 && recapOnStage(Date.now()) ? story.monthRecap.value : null)
 /** Rückblick als Kopf: dann sitzt der Monatswähler in seiner Kopfzeile statt als eigene Zeile darüber. */
 const recapOnTop = computed(() => !!recapHero.value)
-const newsCards = computed(() => recapHero.value ? story.cards.value.filter(c => c.moment.kind !== 'month_change') : story.cards.value)
+const newsCards = computed(() => recapHero.value || recapStage.value ? story.cards.value.filter(c => c.moment.kind !== 'month_change') : story.cards.value)
 /** Winter-Ausblick im leeren laufenden Monat (Reichweite, Wetter der nächsten Tage); steht die Frost-Karte offen, sagt sie dasselbe. */
 const outlook = computed(() => {
   if (month.value.offset !== 0 || newsCards.value.some(c => c.moment.kind === 'first_frost')) return null
@@ -165,11 +170,11 @@ const outlook = computed(() => {
 })
 /** Vormonat aus dem offenen Rückblick (Kopf oder Karte): der Community-Block hängt an ihm und verschwindet mit ihm. */
 const communityMonth = computed(() => {
-  const m = recapHero.value ?? story.cards.value.find(c => c.moment.kind === 'month_change')?.moment
+  const m = recapHero.value ?? recapStage.value ?? story.cards.value.find(c => c.moment.kind === 'month_change')?.moment
   return m?.kind === 'month_change' && month.value.offset === 0 ? { year: m.year, month: m.month } : null
 })
 /** Steht der Monatssatz (StoryHero)? Dann sitzen die Monatspfeile in ihm, sonst als eigene Zeile darüber. */
-const monthHero = computed(() => !(loading.value && !monthStats.value) && !error.value && hasCharges.value && heroMode.value === 'month')
+const monthHero = computed(() => !(loading.value && !monthStats.value) && !error.value && hasActivity.value && heroMode.value === 'month')
 /** Steht der Live-Hero? Dann sitzen die Monatspfeile in seiner Kopfzeile. */
 const liveHero = computed(() => !(loading.value && !monthStats.value) && !error.value && heroMode.value === 'live')
 
@@ -441,7 +446,7 @@ onUnmounted(() => unregisterReload?.())
             <button type="button" class="ml-2 min-h-[44px] font-semibold underline" @click="story.reload()">{{ t('story.retry') }}</button>
           </div>
 
-          <div v-else-if="!hasCharges && heroMode === 'month'" class="grid gap-4" :class="recapOnTop ? '' : 'py-2'">
+          <div v-else-if="!hasActivity && heroMode === 'month'" class="grid gap-4" :class="recapOnTop ? '' : 'py-2'">
             <StoryRecapHero v-if="recapHero" :moment="recapHero" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapHero!, id)">
               <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
               <!-- Mit Rückblick steht der Ausblick direkt unter den Zahlen -->
@@ -490,6 +495,9 @@ onUnmounted(() => unregisterReload?.())
                   </template>
                 </StoryHero>
               </Transition>
+            </div>
+            <div v-if="recapStage" class="pt-2">
+              <StoryRecapHero :moment="recapStage" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapStage!, id)" />
             </div>
             <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
               {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}

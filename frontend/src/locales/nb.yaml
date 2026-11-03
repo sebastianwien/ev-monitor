@@ -4425,6 +4425,7 @@ story:
   hero_km_cost: "{month}: {km} for {eur}."
   hero_cost_charges: "{month}: {eur} for {n}\u00a0lading. | {month}: {eur} for {n}\u00a0ladinger."
   hero_km_charges: "{month}: {km}, {n}\u00a0lading. | {month}: {km}, {n}\u00a0ladinger."
+  hero_km: "{month}: {km}."
   hero_charges: "{month}: {n}\u00a0lading. | {month}: {n}\u00a0ladinger."
   moment_month_saving: "Sammenlignet med en fossilbil har du spart {eur}."
   moment_month_saving_co2: "Sammenlignet med en fossilbil har du spart {kg} CO₂ og {eur}."

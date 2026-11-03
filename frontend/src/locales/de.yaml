@@ -4589,6 +4589,7 @@ story:
   hero_km_cost: "{month}: {km} für {eur}."
   hero_cost_charges: "{month}: {eur} für {n}\u00a0Ladung. | {month}: {eur} für {n}\u00a0Ladungen."
   hero_km_charges: "{month}: {km}, {n}\u00a0Ladung. | {month}: {km}, {n}\u00a0Ladungen."
+  hero_km: "{month}: {km}."
   hero_charges: "{month}: {n}\u00a0Ladung. | {month}: {n}\u00a0Ladungen."
   moment_month_saving: "Gegenüber einem Verbrenner hast du {eur} gespart."
   moment_month_saving_co2: "Gegenüber einem Verbrenner hast du {kg} CO₂ und {eur} gespart."
