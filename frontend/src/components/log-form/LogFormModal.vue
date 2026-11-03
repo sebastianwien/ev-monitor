@@ -79,10 +79,13 @@ const handleEscape = (e: KeyboardEvent) => {
 onMounted(() => document.addEventListener('keydown', handleEscape))
 onUnmounted(() => document.removeEventListener('keydown', handleEscape))
 
-// Die Leiste lässt sich hochziehen: das Sheet folgt dem Finger, die Abdunklung blendet mit ein. Loslassen nach
-// derselben Regel wie das Schließen der anderen Sheets (Weg oder schneller Wisch), sonst federt es zur Leiste zurück.
-// Nach unten passiert nichts, Verwerfen bleibt beim X.
-let bar: { y: number; base: number; last: { y: number; t: number }; prev: { y: number; t: number } } | null = null
+// Die Leiste lässt sich hochziehen: das Sheet folgt dem Finger (oder der Maus), die Abdunklung blendet mit ein.
+// Loslassen nach derselben Regel wie das Schließen der anderen Sheets (Weg oder schneller Wisch), sonst federt es
+// zur Leiste zurück. Nach unten passiert nichts, Verwerfen bleibt beim X. Pointer- statt Touch-Events: so geht es
+// auch mit der Maus; touch-none an der Leiste hält den nativen Scroll fern, damit kein pointercancel kommt.
+let bar: { id: number; y: number; base: number; moved: boolean; last: { y: number; t: number }; prev: { y: number; t: number } } | null = null
+/** Ein Zug ist kein Tipp: der Klick danach soll die Leiste nicht zusätzlich aufmachen */
+let swallowClick = false
 const backdrop = () => panel()?.parentElement?.querySelector<HTMLElement>('.sheet-backdrop') ?? null
 /** Verschiebung des minimierten Panels nach unten (translateY), auch bei matrix3d */
 function minimizedOffset(p: HTMLElement): number {
@@ -90,37 +93,50 @@ function minimizedOffset(p: HTMLElement): number {
   if (!t || t === 'none' || typeof DOMMatrixReadOnly === 'undefined') return 0
   return new DOMMatrixReadOnly(t).m42
 }
-function onBarTouchStart(e: TouchEvent) {
+function onBarDown(e: PointerEvent) {
   const p = panel()
-  const y = e.touches[0]?.clientY
-  if (!p || y == null || e.touches.length !== 1) return
-  bar = { y, base: minimizedOffset(p), last: { y, t: e.timeStamp }, prev: { y, t: e.timeStamp } }
+  if (!p || bar || (e.pointerType === 'mouse' && e.button !== 0)) return
+  bar = { id: e.pointerId, y: e.clientY, base: minimizedOffset(p), moved: false, last: { y: e.clientY, t: e.timeStamp }, prev: { y: e.clientY, t: e.timeStamp } }
+  swallowClick = false
 }
-function onBarTouchMove(e: TouchEvent) {
+function onBarMove(e: PointerEvent) {
   const p = panel()
-  const y = e.touches[0]?.clientY
-  if (!bar || !p || y == null) return
+  if (!bar || e.pointerId !== bar.id || !p) return
+  const up = Math.max(0, bar.y - e.clientY)
+  if (!bar.moved) {
+    if (Math.abs(bar.y - e.clientY) < 4) return
+    bar.moved = true
+    ;(e.currentTarget as Element).setPointerCapture?.(e.pointerId)
+  }
   e.preventDefault()
   bar.prev = bar.last
-  bar.last = { y, t: e.timeStamp }
-  const up = Math.max(0, bar.y - y)
+  bar.last = { y: e.clientY, t: e.timeStamp }
   p.style.transition = 'none'
   p.style.transform = `translateY(${Math.max(0, bar.base - up)}px)`
   const b = backdrop()
   if (b && bar.base > 0) { b.style.transition = 'none'; b.style.opacity = String(Math.min(1, up / bar.base)) }
 }
-function onBarTouchEnd() {
-  if (!bar) return
+function onBarUp(e: PointerEvent) {
+  if (!bar || e.pointerId !== bar.id) return
+  const { moved } = bar
   const up = bar.y - bar.last.y
   const dt = bar.last.t - bar.prev.t
   const v = dt > 0 ? (bar.prev.y - bar.last.y) / dt : 0
   bar = null
+  if (!moved) return
+  swallowClick = true
   // Inline-Werte weg: der Übergang läuft von der Fingerposition zum Ziel (offen oder Leiste)
   const p = panel(); const b = backdrop()
   for (const el of [p, b]) el?.style.removeProperty('transition')
   p?.style.removeProperty('transform')
   b?.style.removeProperty('opacity')
-  if (cardRelease({ axis: 'y', dx: 0, dy: up, v, width: 0 }) === 'collapse') expand()
+  if (e.type !== 'pointercancel' && cardRelease({ axis: 'y', dx: 0, dy: up, v, width: 0 }) === 'collapse') expand()
+}
+function onBarClickCapture(e: MouseEvent) {
+  if (!swallowClick) return
+  swallowClick = false
+  e.stopPropagation()
+  e.preventDefault()
 }
 </script>
 
@@ -136,8 +152,8 @@ function onBarTouchEnd() {
     </div>
 
     <!-- Minimiert: die Leiste deckt den Wizard-Kopf ab, die Eingaben darunter bleiben erhalten -->
-    <div v-if="minimized" data-testid="log-form-bar" class="absolute inset-x-0 top-0 z-10 h-16 touch-none bg-white dark:bg-gray-900"
-      @touchstart.passive="onBarTouchStart" @touchmove="onBarTouchMove" @touchend="onBarTouchEnd" @touchcancel="onBarTouchEnd">
+    <div v-if="minimized" data-testid="log-form-bar" class="absolute inset-x-0 top-0 z-10 h-16 touch-none select-none bg-white dark:bg-gray-900"
+      @pointerdown="onBarDown" @pointermove="onBarMove" @pointerup="onBarUp" @pointercancel="onBarUp" @click.capture="onBarClickCapture" @dragstart.prevent>
       <div class="mx-auto mt-2 h-1.5 w-10 rounded-full bg-gray-200 dark:bg-gray-700" aria-hidden="true" />
       <div class="flex items-center gap-1 px-2">
         <button type="button" class="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-xl px-2 text-left" @click="expand">

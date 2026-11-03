@@ -22,17 +22,16 @@ async function mountMinimized() {
 
 const touch = (type: string, y: number, t: number) => {
   const e = new Event(type, { bubbles: true, cancelable: true }) as any
-  e.touches = type === 'touchend' ? [] : [{ clientX: 100, clientY: y }]
-  e.changedTouches = [{ clientX: 100, clientY: y }]
+  Object.assign(e, { clientX: 100, clientY: y, pointerId: 1, pointerType: 'touch', button: 0 })
   Object.defineProperty(e, 'timeStamp', { value: t })
   return e
 }
 function drag(from: number, to: number, ms: number) {
   const bar = document.querySelector('[data-testid="log-form-bar"]')!
-  bar.dispatchEvent(touch('touchstart', from, 0))
-  bar.dispatchEvent(touch('touchmove', (from + to) / 2, ms / 2))
-  bar.dispatchEvent(touch('touchmove', to, ms))
-  bar.dispatchEvent(touch('touchend', to, ms))
+  bar.dispatchEvent(touch('pointerdown', from, 0))
+  bar.dispatchEvent(touch('pointermove', (from + to) / 2, ms / 2))
+  bar.dispatchEvent(touch('pointermove', to, ms))
+  bar.dispatchEvent(touch('pointerup', to, ms))
 }
 
 describe('LogFormModal minimiert', () => {
@@ -51,8 +50,8 @@ describe('LogFormModal minimiert', () => {
   it('das Sheet folgt dem Finger', async () => {
     await mountMinimized()
     const bar = document.querySelector('[data-testid="log-form-bar"]')!
-    bar.dispatchEvent(touch('touchstart', 800, 0))
-    bar.dispatchEvent(touch('touchmove', 760, 50))
+    bar.dispatchEvent(touch('pointerdown', 800, 0))
+    bar.dispatchEvent(touch('pointermove', 760, 50))
     const panel = document.querySelector<HTMLElement>('[data-testid="log-form-sheet"]')!
     expect(panel.style.transform).toContain('translateY(')
     expect(panel.style.transition).toBe('none')
