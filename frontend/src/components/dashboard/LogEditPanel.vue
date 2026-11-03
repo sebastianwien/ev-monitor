@@ -17,13 +17,13 @@
       </button>
     </div>
 
-    <!-- Übersicht als Spalte: die Karte füllt den Platz, den die Kacheln frei lassen -->
+    <!-- Übersicht als Spalte: die Karte ist 224 px hoch wie bei der Fahrt; fehlt Platz, schrumpft sie bis 160 px, bevor die Ansicht scrollt -->
     <div :class="['flex-1 overflow-y-auto p-4 space-y-4', !section && 'flex flex-col']">
       <!-- Uebersicht: was da ist, was fehlt, Optionales -->
       <template v-if="!section">
         <!-- Erst die Ladung sehen: der Ort als Kartenkopf wie auf der Prüfseite des Wizards, ein Tipp darauf bearbeitet ihn -->
         <!-- Der Zeitpunkt steht im Kopf statt als fünfte Kachel: das Raster bleibt 2x2 wie auf der Prüfseite -->
-        <PlaceHeader :context="placeContext" :height="overMap ? PLACE_MAP_PX + HEAD_PX : PLACE_MAP_PX" grow :time="timeLabel" clickable :class="['-mt-4', overMap && 'flex-1']" data-testid="summary-place"
+        <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" grow :time="timeLabel" clickable :class="['-mt-4', overMap && 'shrink basis-56']" data-testid="summary-place"
           @click="section = 'place'" @time="openNativePicker(timeInput)" />
         <!-- Tipp auf die Zeit öffnet direkt den Picker des Geräts, wie "Wählen" im Wizard; das Feld selbst bleibt unsichtbar -->
         <input ref="timeInput" id="wizard-time" v-model="formData.loggedAt" type="datetime-local" :max="nowLocal()"
@@ -340,9 +340,8 @@ const timeLabel = computed(() => formData.value.loggedAt
 const placeLabel = computed(() => pickedName.value ?? (formData.value.isPublicCharging
   ? (formData.value.cpoName ?? t('logwizard.place_public'))
   : t('logwizard.place_private')))
+/** Mindesthöhe der Karte im Kopf; liegt Platz frei, wächst sie bis 224 px (basis-56) */
 const PLACE_MAP_PX = 160
-/** Höhe der Kreise, die in der Übersicht auf der Karte liegen: um sie wird die Karte höher */
-const HEAD_PX = 56
 const overMap = computed(() => !section.value && placeContext.value.lat != null)
 /** Zurück und X: auf der Karte ein Kreis mit Kante, sonst nur die Fläche beim Hover */
 const iconButton = computed(() => ['pointer-events-auto grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-600 dark:text-gray-300',
