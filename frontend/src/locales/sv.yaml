@@ -1484,7 +1484,7 @@ cars:
   hint_trim: Variant/utrustningsnivå
   label_capacity: "Utförande *"
   missing_brand_model_link: "Saknas märke eller modell?"
-  missing_battery_link: "Saknas ditt batteri?"
+  missing_battery_link: "Saknas utförande eller modell?"
   missing_dialog_title: "Vad saknas?"
   missing_dialog_what_label: "Vad saknas? *"
   missing_dialog_what_placeholder: "t.ex. Polestar 2 Long Range Dual Motor 2022 eller märket Lucid"

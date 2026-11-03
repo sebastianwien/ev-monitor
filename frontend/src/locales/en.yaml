@@ -1527,7 +1527,7 @@ cars:
   hint_trim: "Variant/trim level"
   label_capacity: "Variant *"
   missing_brand_model_link: "Brand or model not listed?"
-  missing_battery_link: "My battery is not listed?"
+  missing_battery_link: "Trim or model not listed?"
   missing_dialog_title: "What is missing?"
   missing_dialog_what_label: "What is missing? *"
   missing_dialog_what_placeholder: "e.g. Polestar 2 Long Range Dual Motor 2022 or the brand Lucid"

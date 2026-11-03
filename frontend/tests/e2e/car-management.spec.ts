@@ -6,7 +6,7 @@ const API_URL = process.env.API_URL || 'http://localhost:8080';
 
 /**
  * Auto-Anlegen seit A2: nur mit Akku-Zeile aus der Liste, keine freie Kapazität mehr.
- * Fehlt etwas, öffnet der Link "Mein Akku ist nicht dabei?" den Meldedialog.
+ * Fehlt etwas, öffnet der Link "Ausführung oder Modell nicht dabei?" den Meldedialog.
  */
 async function dismissAnnouncements(page: Page) {
   const keys = featureAnnouncements.map(a => a.key);
@@ -82,13 +82,13 @@ test.describe('Auto anlegen', () => {
     await api.delete(`/api/cars/${created.id}`);
   });
 
-  test('"Mein Akku ist nicht dabei?" öffnet den Meldedialog mit vorbelegter Mail', async ({ page }) => {
+  test('"Ausführung oder Modell nicht dabei?" öffnet den Meldedialog mit vorbelegter Mail', async ({ page }) => {
     await page.getByRole('button', { name: '+ Fahrzeug hinzufügen' }).click();
     const form = carForm(page);
     await form.locator('select').nth(0).selectOption('TESLA');
     await form.locator('select').nth(1).selectOption('MODEL_3');
 
-    await page.getByRole('button', { name: 'Mein Akku ist nicht dabei?' }).click();
+    await page.getByRole('button', { name: 'Ausführung oder Modell nicht dabei?' }).click();
 
     const dialog = page.getByTestId('missing-vehicle-dialog');
     await expect(dialog).toBeVisible();
