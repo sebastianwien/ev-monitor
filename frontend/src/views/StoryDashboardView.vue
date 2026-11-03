@@ -456,6 +456,8 @@ onUnmounted(() => unregisterReload?.())
             </StoryRecapHero>
             <p v-else class="text-center text-[17px] font-bold text-balance text-gray-900 dark:text-gray-50">{{ t('story.empty_title', { month: monthLabel(month) }) }}</p>
             <StoryWinterOutlook v-if="outlook && !recapHero" :eyebrow="t('story.outlook_eyebrow', { month: monthLabel(month) })" :range="outlook.range" :week="outlook.week" />
+            <!-- "Zuletzt" steht immer, auch im leeren Monat: die letzte Ladung und Fahrt liegen dann im Vormonat -->
+            <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
             <!-- Monat ohne Ladung: wo die Marke einen AutoSync-Weg hat, dasselbe Angebot wie der Moment "Alles erfasst?" -->
             <router-link v-if="autoSyncOffer" to="/imports" data-testid="story-empty-autosync"
               class="flex items-start gap-3 rounded-xl bg-white p-3.5 text-left edge-card focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600 dark:bg-gray-700/50"
