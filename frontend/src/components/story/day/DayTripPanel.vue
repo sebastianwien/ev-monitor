@@ -10,7 +10,8 @@ import DayTripForm from './DayTripForm.vue'
 import TripMeasuredFacts from './TripMeasuredFacts.vue'
 import DataFeedbackButtons from '../../shared/DataFeedbackButtons.vue'
 import DataFeedbackPanel from '../../shared/DataFeedbackPanel.vue'
-import { hasTripMap } from '../../../utils/tripMap'
+import { hasTripMap, isRoutedLine, tripLine } from '../../../utils/tripMap'
+import MapCredit from '../../shared/MapCredit.vue'
 // Leaflet erst laden, wenn eine Fahrt mit Ort offen ist
 const ActivityLocationMap = defineAsyncComponent(() => import('../../dashboard/ActivityLocationMap.vue'))
 import type { DayTrip } from '../../../composables/storyDay'
@@ -40,6 +41,7 @@ const formId = useId()
 const rateable = computed(() => !!props.trip && props.trip.dataSource !== 'USER_CREATED')
 // Wie bei der Ladung: mit Karte schweben Zurück und X als Kreise darauf, der Titel bleibt für Screenreader
 const withMap = computed(() => !!props.trip && hasTripMap(props.trip))
+const routed = computed(() => !!props.trip && isRoutedLine(tripLine(props.trip.tracePolyline, props.trip.routePolyline, props.trip.routeKind)))
 const iconButton = computed(() => ['pointer-events-auto grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-700 dark:text-gray-200',
   withMap.value ? 'border-2 border-edge bg-white/95 hover:bg-white dark:border-gray-600 dark:bg-gray-800/95 dark:hover:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800'])
 
@@ -94,7 +96,7 @@ async function remove() {
       <!-- Karte oben randlos wie der Ort bei der Ladung, unten Verlauf ins Formular, darauf die Fakten.
            Höchstens 224 px; fehlt Platz, schrumpft sie bis 144 px, bevor die Ansicht scrollen muss. -->
       <div v-if="withMap" class="relative -mx-4 -mt-4 mb-4 min-h-36 shrink basis-56 overflow-hidden md:mx-0 md:rounded-xl" data-testid="day-trip-map">
-        <ActivityLocationMap variant="panel" :label="t('dashboard.trip_map_alt')"
+        <ActivityLocationMap variant="panel" no-credit :label="t('dashboard.trip_map_alt')"
           :start-geohash="trip!.locationStartGeohash" :end-geohash="trip!.locationEndGeohash"
           :route-polyline="trip!.routePolyline" :route-kind="trip!.routeKind" :trace-polyline="trip!.tracePolyline" />
         <div class="pointer-events-none absolute inset-x-0 bottom-0 z-[500] bg-gradient-to-t from-white via-white/70 to-transparent px-4 pt-14 dark:from-gray-900 dark:via-gray-900/70">
@@ -122,6 +124,7 @@ async function remove() {
           <DataFeedbackPanel v-if="rateable" subject-type="TRIP" :subject-id="trip!.id" />
         </template>
       </DayTripForm>
+      <MapCredit v-if="withMap" :routed="routed" class="mt-4" />
     </div>
     <!-- Fußleiste wie bei der Ladung: Löschen abgesetzt links, Speichern füllt. Abbrechen erst ab 640 px, auf dem Handy führt der Pfeil oben zurück. -->
     <footer class="flex shrink-0 items-center gap-2 border-t-2 border-gray-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dark:border-gray-800">

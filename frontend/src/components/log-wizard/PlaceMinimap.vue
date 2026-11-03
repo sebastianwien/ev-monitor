@@ -8,7 +8,7 @@ import { MINIMAP_ZOOM, type MinimapArea } from './minimapTiles'
  * Stummes Kartenbild der gewählten Säule: nicht bedienbar, nur Orientierung. Kein Marker-Bild (Vite), ein Kreis reicht.
  * Mit area statt Punkt eine Fläche (private Ladung: die gespeicherte Zelle, nicht die Position darin).
  */
-const props = withDefaults(defineProps<{ lat: number; lon: number; zoom?: number; area?: MinimapArea | null }>(), { zoom: MINIMAP_ZOOM, area: null })
+const props = withDefaults(defineProps<{ lat: number; lon: number; zoom?: number; area?: MinimapArea | null; noCredit?: boolean }>(), { zoom: MINIMAP_ZOOM, area: null })
 const container = ref<HTMLElement | null>(null)
 /** Erst wenn alle Kacheln des Ausschnitts da sind, blendet die Karte ein - bis dahin ruhige graue Fläche statt Kachel-Geploppe */
 const ready = ref(false)
@@ -21,10 +21,10 @@ const pinColor = () => document.documentElement.classList.contains('dark') ? '#f
 onMounted(() => {
   if (!container.value) return
   map = L.map(container.value, {
-    zoomControl: false, attributionControl: true, dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+    zoomControl: false, attributionControl: !props.noCredit, dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
     boxZoom: false, keyboard: false, touchZoom: false, fadeAnimation: false,
   }).setView([props.lat, props.lon], props.zoom)
-  map.attributionControl.setPrefix(false).setPosition('topright')
+  map.attributionControl?.setPrefix(false).setPosition('topright')
   // OSM-Kacheln, per CSS entsättigt (siehe Template): keine Schlüssel, keine fremden Konten. CARTO und
   // Stadia verlangen inzwischen API-Keys, die Kacheln tragen sonst ein Wasserzeichen.
   const tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap', maxZoom: 19 })

@@ -23,7 +23,7 @@
       <template v-if="!section">
         <!-- Erst die Ladung sehen: der Ort als Kartenkopf wie auf der Prüfseite des Wizards, ein Tipp darauf bearbeitet ihn -->
         <!-- Der Zeitpunkt steht im Kopf statt als fünfte Kachel: das Raster bleibt 2x2 wie auf der Prüfseite -->
-        <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" grow :time="timeLabel" clickable :class="['-mt-4', overMap && 'shrink basis-56']" data-testid="summary-place"
+        <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" grow no-credit :time="timeLabel" clickable :class="['-mt-4', overMap && 'shrink basis-56']" data-testid="summary-place"
           @click="section = 'place'" @time="openNativePicker(timeInput)" />
         <!-- Tipp auf die Zeit öffnet direkt den Picker des Geräts, wie "Wählen" im Wizard; das Feld selbst bleibt unsichtbar -->
         <input ref="timeInput" id="wizard-time" v-model="formData.loggedAt" type="datetime-local" :max="nowLocal()"
@@ -73,6 +73,7 @@
         </label>
         <!-- Ergänzungen des Rahmens zur Ladung, z. B. Ladekurve und "Korrekt erkannt?" im Logbuch: zuletzt, direkt über Speichern -->
         <slot name="extra" />
+        <MapCredit v-if="placeContext.lat != null" />
       </template>
 
       <!-- Unteransichten: dieselben Schritte wie beim Anlegen -->
@@ -159,6 +160,7 @@ import { odometerKmToLocal, odometerLocalToKm } from '../../utils/unitConversion
 import { EUR_EXCHANGE_RATES } from '../../config/exchangeRates'
 import { buildLogUpdatePayload, missingRequired, applyPlace, type PlaceChoice, type PlaceKind, type RequiredField } from '../log-wizard/wizardLogic'
 import LogSummary, { type SummarySection } from '../log-wizard/LogSummary.vue'
+import MapCredit from '../shared/MapCredit.vue'
 import PlaceHeader, { type NumbersContext } from '../log-wizard/PlaceHeader.vue'
 import { privateArea } from '../log-wizard/minimapTiles'
 import { nowLocal, openNativePicker } from '../log-wizard/useTimePick'

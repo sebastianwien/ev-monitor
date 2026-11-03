@@ -46,6 +46,8 @@ const props = defineProps<{
   variant?: 'backdrop' | 'panel' | 'thumb'
   /** Textalternative im panel-Modus; als backdrop bleibt die Karte fuer Screenreader unsichtbar. */
   label?: string
+  /** Nennung steht beim Aufrufer unter dem Inhalt (MapCredit), nicht auf der Karte */
+  noCredit?: boolean
 }>()
 
 const isPanel = () => props.variant === 'panel'
@@ -104,7 +106,7 @@ async function render() {
 
   map = L.map(container.value, {
     zoomControl: false,
-    attributionControl: props.variant !== 'thumb',
+    attributionControl: props.variant !== 'thumb' && !props.noCredit,
     dragging: false,
     scrollWheelZoom: false,
     doubleClickZoom: false,
