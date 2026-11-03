@@ -100,13 +100,13 @@ function onMore() {
       <div class="relative w-20 flex justify-center">
         <button
           type="button"
-          class="fab-record btn-3d absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-green-600 text-white border-2 border-edge active:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 dark:focus-visible:outline-gray-100"
+          class="btn-3d absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-green-600 text-white border-2 border-edge active:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 dark:focus-visible:outline-gray-100"
           :aria-label="t('nav.bottom.record')"
           @click="onRecord"
         >
           <BoltIcon class="h-7 w-7" />
         </button>
-        <span class="fab-record-label absolute bottom-1.5 text-[11px] font-semibold leading-none text-gray-900 dark:text-gray-50">{{ t('nav.bottom.record') }}</span>
+        <span class="absolute bottom-1.5 text-[11px] font-semibold leading-none text-gray-900 dark:text-gray-50">{{ t('nav.bottom.record') }}</span>
       </div>
 
       <!-- Rechte Gruppe: Watt + Mehr -->
@@ -144,13 +144,6 @@ function onMore() {
 </template>
 
 <style>
-/* Ist ein Sheet ausgefahren, gleitet der Erfassen-Kreis um seinen Überstand (20 px plus Kante) in die Leiste,
-   damit er nichts im Sheet verdeckt; die Beschriftung darunter blendet so lange aus. Tempo wie das Sheet. */
-.fab-record { transition: translate 0.3s cubic-bezier(0.32, 0.72, 0, 1), transform 0.08s ease, box-shadow 0.08s ease; }
-.fab-record-label { transition: opacity 0.2s ease; }
-:root[data-sheet-raised] .fab-record { translate: 0 22px; }
-:root[data-sheet-raised] .fab-record-label { opacity: 0; }
-@media (prefers-reduced-motion: reduce) { .fab-record, .fab-record-label { transition: none; } }
 /* Solange ein Sheet offen ist (auch beim Aus- und Einfahren), liegt die Leiste über ihm: das Sheet kommt hinter ihr
    hervor und verschwindet hinter ihr. Header und Ticker bleiben unter dem Sheet. */
 :root[data-sheet-open] .bottom-nav { z-index: 60; }

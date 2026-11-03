@@ -15,15 +15,6 @@ function unlockPage() {
     document.documentElement.removeAttribute('data-sheet-open')
   }
 }
-/**
- * Ausgefahrene Sheets (sichtbar, nicht minimiert) als Attribut am Root: die Bottom-Nav senkt ihren Erfassen-Kreis,
- * damit er nichts im Sheet verdeckt. Gesetzt beim Ein-, entfernt beim Beginn des Ausfahrens.
- */
-let raisedSheets = 0
-function setRaised(on: boolean) {
-  raisedSheets = Math.max(0, raisedSheets + (on ? 1 : -1))
-  document.documentElement.toggleAttribute('data-sheet-raised', raisedSheets > 0)
-}
 </script>
 
 <script setup lang="ts">
@@ -88,13 +79,6 @@ function setLock(on: boolean) {
 }
 onMounted(() => { visible.value = true; setLock(!props.minimized) })
 onUnmounted(() => setLock(false))
-let raised = false
-watch(() => visible.value && !props.minimized, on => {
-  if (on === raised) return
-  raised = on
-  setRaised(on)
-})
-onUnmounted(() => { if (raised) { raised = false; setRaised(false) } })
 watch(() => props.minimized, m => setLock(!m))
 
 function requestClose() {
