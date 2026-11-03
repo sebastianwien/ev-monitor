@@ -8,6 +8,7 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import { useThemeStore } from '../../stores/theme'
 import { barScale, fitSegments, type MonthlyCostPoint } from '../../utils/carCostSummary'
 import { costColor } from '../../utils/costColors'
+import Collapse from './Collapse.vue'
 
 /**
  * Ein Balken je Monat: Strom in Indigo, Fixkosten in Amber-Abstufungen (groesste Kategorie am
@@ -78,7 +79,8 @@ const onHover = (e: PointerEvent, key: string | null) => { if (e.pointerType ===
         </span>
         <span class="text-right tabular-nums" :class="Math.round(r.total) === 0 ? 'text-gray-400 dark:text-gray-500' : 'font-medium text-gray-900 dark:text-gray-100'">{{ money(r.total) }}</span>
       </button>
-      <dl v-if="open === i" class="max-w-[17rem] space-y-1 pb-2 pl-[2.75rem] text-sm box-content">
+      <Collapse :open="open === i">
+      <dl class="max-w-[17rem] space-y-1 pb-2 pl-[2.75rem] text-sm box-content">
         <div v-for="x in r.parts" :key="x.key" class="flex items-center gap-2">
           <span class="inline-block h-2.5 w-2.5 rounded-sm" :style="{ background: x.eur > 0 ? colorOf(x.key) : 'transparent' }" aria-hidden="true" />
           <dt class="text-gray-600 dark:text-gray-300">{{ labelOf(x.key) }}</dt>
@@ -89,6 +91,7 @@ const onHover = (e: PointerEvent, key: string | null) => { if (e.pointerType ===
           <dd class="ml-auto font-semibold tabular-nums text-gray-900 dark:text-gray-100">{{ money(r.total) }}</dd>
         </div>
       </dl>
+      </Collapse>
     </li>
   </ul>
 </template>
