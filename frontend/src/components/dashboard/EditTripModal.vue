@@ -12,7 +12,9 @@ import type { DayTrip } from '../../composables/storyDay'
  * Das Sheet fährt erst aus, dann meldet es sich - der Aufrufer entfernt uns daraufhin per v-if.
  * `changed` kommt deshalb erst mit dem Ausfahren, wenn gespeichert oder gelöscht wurde.
  */
-defineProps<{ trip: DayTrip; carId: string }>()
+defineProps<{ trip: DayTrip; carId: string
+  /** Über einem anderen Sheet (Tagesblatt): leichter abdunkeln */
+  stacked?: boolean }>()
 const emit = defineEmits<{ close: []; changed: [] }>()
 const { t } = useI18n()
 
@@ -32,8 +34,9 @@ function onClosed() {
     testid="edit-trip-modal"
     edge
     panel-class="sm:max-w-xl"
+    :stacked="stacked"
     @close="onClosed">
-    <DayTripPanel :trip="trip" :car-id="carId" :new-end="new Date()" dismiss="close"
+    <DayTripPanel :trip="trip" :car-id="carId" :new-end="new Date()" dismiss="none"
       @back="sheet?.requestClose()" @saved="done" @deleted="done" @changed="changed = true" />
   </BottomSheet>
 </template>

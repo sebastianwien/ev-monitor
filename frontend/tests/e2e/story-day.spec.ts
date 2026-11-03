@@ -83,22 +83,28 @@ for (const [width, height, voice] of [[390, 844, true], [820, 1180, true], [1440
       await inSheet(page).getByTestId('day-merge-confirm').click();
       await expect.poll(() => calls).toContain(`POST /api/trips/${T1}/merge`);
 
-      // Fahrt öffnen: große Karte oben, Formular in der neuen CI
+      // Fahrt öffnen: unter 1024 px dasselbe Sheet wie überall (über dem Tag, ohne Pfeil und X), sonst die rechte Spalte
+      const trip = width < 1024 ? page.getByTestId('edit-trip-modal') : inSheet(page);
       await inSheet(page).getByTestId('day-row-trip').first().click();
-      await expect(inSheet(page).getByTestId('day-trip-map')).toBeVisible();
+      await expect(trip.getByTestId('day-trip-map')).toBeVisible();
+      if (width < 1024) {
+        await expect(trip.getByTestId('day-detail-back')).toHaveCount(0);
+        await expect(trip.getByTestId('day-detail-close')).toHaveCount(0);
+      }
       // Die Karte bleibt in ihrem Rahmen, statt das ganze Blatt zu füllen
-      const map = (await inSheet(page).getByTestId('day-trip-map').locator('.activity-map').boundingBox())!;
+      const map = (await trip.getByTestId('day-trip-map').locator('.activity-map').boundingBox())!;
       expect(map.height).toBeLessThanOrEqual(300);
-      await expect(inSheet(page).getByTestId('day-trip-form')).toBeVisible();
+      await expect(trip.getByTestId('day-trip-form')).toBeVisible();
       // Speichern sitzt in der Fußleiste außerhalb des Formulars und sendet es trotzdem ab
       await expect(page.getByTestId('trip-start')).toHaveValue('09:00');
-      await inSheet(page).getByTestId('day-trip-save').click();
+      await trip.getByTestId('day-trip-save').click();
       await expect.poll(() => calls).toContain(`PATCH /api/trips/${T1}`);
+      await expect(page.getByTestId('edit-trip-modal')).toHaveCount(0);
       await inSheet(page).getByTestId('day-row-trip').first().click();
 
       // Fahrt löschen, dann Rückgängig im Toast
-      await inSheet(page).getByTestId('day-trip-delete').click();
-      await inSheet(page).getByTestId('day-trip-delete-confirm').click();
+      await trip.getByTestId('day-trip-delete').click();
+      await trip.getByTestId('day-trip-delete-confirm').click();
       await expect.poll(() => calls).toContain(`DELETE /api/trips/${T1}`);
       await page.getByRole('button', { name: /Rückgängig|Undo/ }).click();
       await expect.poll(() => calls).toContain(`POST /api/trips/${T1}/restore`);

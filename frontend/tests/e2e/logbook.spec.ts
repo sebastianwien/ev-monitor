@@ -57,7 +57,9 @@ test('mit Fahrten: Monat, Tagesblatt, Detail, Vormonat lädt beim Scrollen', asy
   await book.getByTestId('day-row-trip').first().click();
   await expect(page.getByTestId('logbook-detail')).toBeVisible();
   await expect(page.getByTestId('day-trip-panel')).toBeVisible();
-  await page.getByTestId('day-trip-panel').getByRole('button').first().click();
+  // Auf dem Handy ohne Pfeil und X: Tipp neben das Sheet schließt
+  await expect(page.getByTestId('day-detail-back')).toHaveCount(0);
+  await page.mouse.click(195, 20);
   await expect(page.getByTestId('logbook-detail')).toBeHidden();
 
   // Ans Ende scrollen: der September kommt ohne Klick

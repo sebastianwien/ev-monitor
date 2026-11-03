@@ -7,6 +7,7 @@ import BottomSheet from '../../shared/BottomSheet.vue'
 import LogEditPanel, { type EvLogResponse } from '../../dashboard/LogEditPanel.vue'
 import DayRibbon from './DayRibbon.vue'
 import DayTimeline from './DayTimeline.vue'
+import EditTripModal from '../../dashboard/EditTripModal.vue'
 import DayTripPanel from './DayTripPanel.vue'
 import GapDetail from './GapDetail.vue'
 import LogbookBundle from '../../logbook/LogbookBundle.vue'
@@ -120,7 +121,15 @@ function openDetail(d: Detail) {
   if (!had) pushLayer()
 }
 const back = () => history.back()
+/** Handy und Tablet: eine Fahrt öffnet dasselbe Sheet wie überall (Letzte Fahrt, Logbuch), über dem Tag */
+const tripSheet = ref<DayTrip | null>(null)
+function onTripSheetChanged() {
+  analytics.track('story_day_action', { action: 'edit_trip' })
+  emit('changed')
+  void load()
+}
 function select(e: DayEvent) {
+  if (e.kind === 'trip' && !wide.value) { tripSheet.value = e.trip; return }
   if (e.kind === 'charge' && e.parts) openDetail({ kind: 'bundle', id: e.id })
   else if (e.kind === 'gap') openDetail({ kind: 'gap', id: e.id, gap: e.gap })
   else openDetail(e.kind === 'charge' ? { kind: 'charge', log: e.log as EvLogResponse & DayLog } : { kind: 'trip', trip: e.trip })
@@ -261,6 +270,7 @@ const selectedId = computed(() => {
             @back="back" @saved="done" @deleted="done('delete')" @changed="onTripChanged" />
         </section>
       </Transition>
+      <EditTripModal v-if="tripSheet" :trip="tripSheet" :car-id="carId" stacked @changed="onTripSheetChanged" @close="tripSheet = null" />
       <p v-if="wide && !detail" class="hidden place-self-center px-6 text-center text-[14px] text-gray-500 lg:block dark:text-gray-400">
         {{ t('storyday.pick') }}
       </p>

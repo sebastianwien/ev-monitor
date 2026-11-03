@@ -22,8 +22,9 @@ import type { DayTrip } from '../../../composables/storyDay'
  */
 const props = withDefaults(defineProps<{
   trip: DayTrip | null; carId: string; newEnd: Date
-  /** Oben links Pfeil zurück (zweite Ebene im Tagesblatt) oder oben rechts X (eigenes Sheet). */
-  dismiss?: 'back' | 'close'
+  /** Oben links Pfeil zurück (zweite Ebene, Spalte am Desktop), oben rechts X, oder nichts: als eigenes Sheet auf dem
+   *  Handy schließen Griff, Wischen, Tipp daneben und Escape, oben steht nur der Papierkorb. */
+  dismiss?: 'back' | 'close' | 'none'
 }>(), { dismiss: 'back' })
 /** `changed`: eine gemessene Fahrt hat einen Tipp sofort gespeichert, die Ansicht bleibt offen */
 const emit = defineEmits<{ back: []; saved: [action: 'edit_trip' | 'add_trip']; deleted: []; changed: [] }>()
