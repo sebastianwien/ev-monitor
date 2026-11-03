@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.UUID;
 
-/** Arbeitsliste "Gemeldet" im Admin-Tab Fahrzeug-Specs. "Erledigt" schickt die Nutzer-Rückmeldung. */
+/** Arbeitsliste "Gemeldet" im Admin-Tab Fahrzeug-Specs. "Erledigt" schickt die Nutzer-Rückmeldung, "Verwerfen" schließt ohne Mail. */
 @RestController
 @RequestMapping("/api/admin/vehicle-requests")
 @PreAuthorize("hasRole('ADMIN')")
@@ -32,5 +32,10 @@ public class AdminMissingVehicleRequestController {
     @PostMapping("/{id}/done")
     public void markDone(@PathVariable UUID id, @AuthenticationPrincipal UserPrincipal admin) {
         service.markDone(admin.getUser().getId(), id);
+    }
+
+    @PostMapping("/{id}/dismiss")
+    public void dismiss(@PathVariable UUID id, @AuthenticationPrincipal UserPrincipal admin) {
+        service.dismiss(admin.getUser().getId(), id);
     }
 }

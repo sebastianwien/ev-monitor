@@ -154,6 +154,10 @@ export const adminVehicleSpecService = {
     async markRequestDone(id: string): Promise<void> {
         await api.post(`${REQUESTS}/${id}/done`)
     },
+    /** Schließt die Meldung ohne Rückmeldung an den Nutzer. */
+    async dismissRequest(id: string): Promise<void> {
+        await api.post(`${REQUESTS}/${id}/dismiss`)
+    },
 }
 
 /** Fehlertext aus einer 4xx-Antwort, sonst ein fester Satz. */

@@ -229,6 +229,18 @@ async function finishRequest(r: MissingVehicleRequestRow) {
     }
 }
 
+async function dismissRequest(r: MissingVehicleRequestRow) {
+    if (!window.confirm(`Meldung "${r.freeText}" verwerfen? Der Nutzer bekommt keine Mail.`)) return
+    error.value = ''
+    try {
+        await adminVehicleSpecService.dismissRequest(r.id)
+        notice.value = 'Verworfen, ohne Mail.'
+        await load()
+    } catch (err) {
+        error.value = apiErrorText(err, 'Verwerfen fehlgeschlagen.')
+    }
+}
+
 /** Protokoll klappt unter der Zeile auf; zweiter Klick schließt es. */
 async function showChanges(row: SpecRow) {
     form.value = null
@@ -308,6 +320,7 @@ const date = (iso: string) => new Date(iso).toLocaleString('de-DE', { dateStyle:
           <div class="flex flex-wrap gap-2">
             <button type="button" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-sm text-xs" @click="openCreate(null, r.brand ?? undefined, r.model ?? undefined)">Zeile anlegen</button>
             <button type="button" class="px-2 py-1 bg-green-700 hover:bg-green-600 rounded-sm text-xs text-white" @click="finishRequest(r)">Erledigt und Nutzer benachrichtigen</button>
+            <button type="button" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 rounded-sm text-xs" @click="dismissRequest(r)">Verwerfen, ohne Mail</button>
           </div>
         </li>
       </ul>
