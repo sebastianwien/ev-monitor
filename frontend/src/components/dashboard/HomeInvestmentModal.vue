@@ -31,7 +31,7 @@ function save() {
 <template>
   <div v-if="open" class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4"
        role="dialog" aria-modal="true" @click.self="emit('close')">
-    <div class="w-full sm:max-w-md bg-white dark:bg-gray-800 rounded-t-lg sm:rounded-sm p-5 sm:shadow-[4px_4px_0_rgba(0,0,0,0.30)]">
+    <div class="w-full sm:max-w-md bg-white dark:bg-gray-800 rounded-t-2xl edge-box sm:rounded-2xl p-5">
       <div class="flex items-start gap-3 mb-4">
         <h2 class="flex-1 text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('savings.investment_title') }}</h2>
         <button type="button" class="p-1 -m-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"

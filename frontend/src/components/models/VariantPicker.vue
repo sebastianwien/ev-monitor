@@ -30,12 +30,12 @@
          wrapper animates with a transform -->
     <Teleport to="body">
       <Transition name="veil">
-        <div v-if="open && !desktop" class="fixed inset-0 z-50 bg-gray-900/45 dark:bg-black/60" aria-hidden="true" @click="close()"></div>
+        <div v-if="open && !desktop" class="fixed inset-0 z-50 bg-black/50" aria-hidden="true" @click="close()"></div>
       </Transition>
       <Transition name="sheet">
         <div v-if="open && !desktop" ref="panel" role="dialog" aria-modal="true" :aria-label="t('model.page.variant_title')"
-             class="fixed inset-x-0 bottom-0 z-50 grid max-h-[80vh] gap-3 overflow-y-auto rounded-t-3xl bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-2.5 shadow-[0_-10px_30px_rgba(0,0,0,0.2)] dark:bg-gray-900">
-          <span class="h-1 w-10 justify-self-center rounded-full bg-gray-200 dark:bg-gray-700" aria-hidden="true"></span>
+             class="fixed inset-x-0 bottom-0 z-50 grid max-h-[80vh] gap-3 overflow-y-auto rounded-t-2xl edge-box bg-white px-4 pb-[calc(env(safe-area-inset-bottom)+20px)] pt-2.5 dark:bg-gray-900">
+          <span class="h-1.5 w-10 justify-self-center rounded-full bg-gray-900 dark:bg-gray-100" aria-hidden="true"></span>
           <div class="flex items-center justify-between">
             <p class="text-[17px] font-bold text-gray-900 dark:text-gray-100">{{ t('model.page.variant_title') }}</p>
             <button type="button" class="grid h-11 w-11 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800" :aria-label="t('model.page.variant_close')" @click="close()">

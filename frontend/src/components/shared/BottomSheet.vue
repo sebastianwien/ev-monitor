@@ -46,9 +46,9 @@ const props = withDefaults(defineProps<{
   panelClass?: string
   /** data-testid am Panel, fuer E2E. */
   testid?: string
-  /** CI-Kante (Outline plus harter Schatten, edge-box) statt weichem Schatten. */
+  /** Veraltet: jedes Sheet hat die CI-Kante (edge-box). Bleibt, damit bestehende Aufrufer nichts durchreichen. */
   edge?: boolean
-  /** Liegt über einem anderen Sheet: leichter abdunkeln, das untere bleibt erkennbar. */
+  /** Liegt über einem anderen Sheet: keine zweite Abdunklung, die Seite dahinter ist immer gleich dunkel. */
   stacked?: boolean
   /** Klick neben das Panel schließt nicht (z. B. während ein Import läuft); requestClose bleibt möglich. */
   locked?: boolean
@@ -118,14 +118,14 @@ defineExpose({ requestClose })
         :aria-label="label"
         :style="drag.leaveMs.value != null ? { '--sheet-leave-ms': `${drag.leaveMs.value}ms` } : undefined"
         @click.self="onBackdrop">
-        <div class="sheet-backdrop absolute inset-0 touch-none" :class="[stacked ? 'bg-black/25' : 'bg-black/50', minimized && 'opacity-0']" :style="drag.backdropStyle.value" @click="onBackdrop" />
+        <div class="sheet-backdrop absolute inset-0 touch-none" :class="[stacked ? 'bg-transparent' : 'bg-black/50', minimized && 'opacity-0']" :style="drag.backdropStyle.value" @click="onBackdrop" />
         <div
           :data-testid="testid"
           :data-minimized="minimized || undefined"
           class="sheet-panel pointer-events-auto relative w-full max-h-[90vh] max-md:max-h-[calc(100dvh-var(--bottom-nav-h,0px)-4rem)] flex flex-col overflow-hidden overscroll-contain bg-white dark:bg-gray-800 rounded-t-2xl pb-[max(0px,calc(env(safe-area-inset-bottom)-var(--bottom-nav-h,0px)))] sm:pb-0"
           :style="drag.style.value"
           @touchstart="drag.onTouchStart" @touchmove="drag.onTouchMove" @touchend="drag.onTouchEnd" @touchcancel="drag.onTouchEnd"
-          :class="[edge ? 'edge-box sm:rounded-2xl' : 'sm:rounded-sm shadow-[0_-4px_20px_rgba(0,0,0,0.25)] sm:shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:sm:shadow-[5px_5px_0_rgba(255,255,255,0.35)]', panelClass]">
+          :class="['edge-box sm:rounded-2xl', panelClass]">
           <slot :close="requestClose" />
           <!-- Griff für alle Sheets, nur wo Ziehen schließt (Handy). Er liegt über dem Inhalt, auch über einer Karte:
                der helle Saum hält ihn auf Weiß und auf Kartenkacheln gleich sichtbar. -->

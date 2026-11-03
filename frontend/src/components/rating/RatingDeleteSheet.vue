@@ -18,9 +18,9 @@ const { t } = useI18n()
 
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm sm:p-4" @click.self="emit('cancel')">
+        <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4" @click.self="emit('cancel')">
             <div role="dialog" aria-modal="true" aria-labelledby="rating-delete-title"
-                 class="w-full sm:max-w-md bg-white dark:bg-gray-800 rounded-t-xl sm:rounded-sm p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-4"
+                 class="w-full sm:max-w-md bg-white dark:bg-gray-800 rounded-t-2xl edge-box sm:rounded-2xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-4"
                  data-testid="rating-delete-sheet">
                 <template v-if="mode === 'rate'">
                     <div class="flex items-start gap-3">

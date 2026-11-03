@@ -53,9 +53,9 @@ async function submit() {
 
 <template>
     <Teleport to="body">
-        <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm sm:p-4" @click.self="emit('close')">
+        <div class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4" @click.self="emit('close')">
             <div role="dialog" aria-modal="true" aria-labelledby="missing-vehicle-title"
-                 class="w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-t-xl sm:rounded-sm p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-4"
+                 class="w-full sm:max-w-md max-h-[92vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-t-2xl edge-box sm:rounded-2xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] space-y-4"
                  data-testid="missing-vehicle-dialog">
                 <div class="flex items-start justify-between gap-3">
                     <h2 id="missing-vehicle-title" class="text-lg font-bold text-gray-900 dark:text-gray-100">{{ t('cars.missing_dialog_title') }}</h2>
