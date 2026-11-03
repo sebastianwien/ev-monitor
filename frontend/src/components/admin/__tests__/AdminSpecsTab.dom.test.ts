@@ -110,6 +110,31 @@ describe('AdminSpecsTab', () => {
         expect(button(host, 'Autos ohne Zeile').textContent).toContain('3')
     })
 
+    it('Suche filtert nach Marke, Modell und Variante, Groß-/Kleinschreibung egal', async () => {
+        const second = { ...sample.models[0], carBrand: 'VW', carModel: 'ID_3', displayName: 'ID.3',
+            rows: [{ ...sample.models[0].rows[0], id: 'spec-9', carBrand: 'VW', carModel: 'ID_3', variantName: 'ID.3 GTX Performance (2024-)', trimLevel: 'GTX Performance' }] }
+        overview.mockResolvedValue({ ...sample, models: [...sample.models, second] })
+        const host = await mount()
+        const search = host.querySelector<HTMLInputElement>('input[type="search"]')!
+        const typeIn = async (v: string) => { search.value = v; search.dispatchEvent(new Event('input')); await nextTick() }
+
+        await typeIn('gtx perf')
+        expect(host.textContent).toContain('ID.3 GTX Performance')
+        expect(host.textContent).not.toContain('Long Range AWD')
+
+        await typeIn('model 3')
+        expect(host.textContent).toContain('Long Range AWD')
+        expect(host.textContent).not.toContain('GTX Performance (2024-)')
+
+        await typeIn('vw')
+        expect(host.textContent).toContain('GTX Performance (2024-)')
+        expect(host.textContent).not.toContain('Long Range AWD')
+
+        await typeIn('')
+        expect(host.textContent).toContain('Long Range AWD')
+        expect(host.textContent).toContain('GTX Performance (2024-)')
+    })
+
     it('zeigt Meldungen als Arbeitsliste, legt die Zeile vorbelegt an und erledigt mit Nutzer-Mail', async () => {
         overview.mockResolvedValue(sample)
         listRequests.mockResolvedValue([{
@@ -211,7 +236,7 @@ describe('AdminSpecsTab', () => {
         await nextTick(); await nextTick()
 
         expect(host.textContent).toContain('Ohne Quelle: 0 von 2 erledigt')
-        let inputs = host.querySelectorAll<HTMLInputElement>('input')
+        let inputs = host.querySelectorAll<HTMLInputElement>('li input')
         expect(inputs.length).toBe(1)
         expect(inputs[0].dataset.field).toBe('sourceUrl')
         expect(inputs[0].closest('li')?.textContent).toContain('60/57.5 kWh')
@@ -224,13 +249,13 @@ describe('AdminSpecsTab', () => {
 
         expect(update).toHaveBeenCalledWith('spec-2', expect.objectContaining({ sourceUrl: 'https://ev-database.org/car/2' }))
         expect(host.textContent).toContain('Ohne Quelle: 1 von 2 erledigt')
-        inputs = host.querySelectorAll<HTMLInputElement>('input')
+        inputs = host.querySelectorAll<HTMLInputElement>('li input')
         expect(inputs.length).toBe(1)
         expect(inputs[0].closest('li')?.textContent).toContain('Long Range RWD')
 
         inputs[0].dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
         await nextTick()
-        expect(host.querySelector('input')).toBeNull()
+        expect(host.querySelector('li input')).toBeNull()
         expect(host.textContent).not.toContain('erledigt')
     })
 
@@ -240,12 +265,12 @@ describe('AdminSpecsTab', () => {
 
         button(host, 'Ohne Quelle').click()
         await nextTick(); await nextTick()
-        const first = host.querySelector<HTMLInputElement>('input')!
+        const first = host.querySelector<HTMLInputElement>('li input')!
         first.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
         await nextTick(); await nextTick()
 
         expect(update).not.toHaveBeenCalled()
-        expect(host.querySelector('input')?.closest('li')?.textContent).toContain('Long Range RWD')
+        expect(host.querySelector('li input')?.closest('li')?.textContent).toContain('Long Range RWD')
     })
 
     it('"Neue Zeile" aus der Modellgruppe ist mit Trim und Akku der neuesten Zeile vorbelegt', async () => {
