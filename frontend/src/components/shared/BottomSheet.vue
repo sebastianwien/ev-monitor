@@ -7,9 +7,22 @@ let openSheets = 0
 let pageOverflow = ''
 function lockPage() {
   if (openSheets++ === 0) { pageOverflow = document.body.style.overflow; document.body.style.overflow = 'hidden' }
+  document.documentElement.setAttribute('data-sheet-open', '')
 }
 function unlockPage() {
-  if (openSheets > 0 && --openSheets === 0) document.body.style.overflow = pageOverflow
+  if (openSheets > 0 && --openSheets === 0) {
+    document.body.style.overflow = pageOverflow
+    document.documentElement.removeAttribute('data-sheet-open')
+  }
+}
+/**
+ * Ausgefahrene Sheets (sichtbar, nicht minimiert) als Attribut am Root: die Bottom-Nav senkt ihren Erfassen-Kreis,
+ * damit er nichts im Sheet verdeckt. Gesetzt beim Ein-, entfernt beim Beginn des Ausfahrens.
+ */
+let raisedSheets = 0
+function setRaised(on: boolean) {
+  raisedSheets = Math.max(0, raisedSheets + (on ? 1 : -1))
+  document.documentElement.toggleAttribute('data-sheet-raised', raisedSheets > 0)
 }
 </script>
 
@@ -75,6 +88,13 @@ function setLock(on: boolean) {
 }
 onMounted(() => { visible.value = true; setLock(!props.minimized) })
 onUnmounted(() => setLock(false))
+let raised = false
+watch(() => visible.value && !props.minimized, on => {
+  if (on === raised) return
+  raised = on
+  setRaised(on)
+})
+onUnmounted(() => { if (raised) { raised = false; setRaised(false) } })
 watch(() => props.minimized, m => setLock(!m))
 
 function requestClose() {
@@ -108,7 +128,7 @@ defineExpose({ requestClose })
       <div
         v-if="visible"
         class="fixed inset-0 flex items-end sm:items-center justify-center sm:p-4 max-md:bottom-[var(--bottom-nav-h,0px)]"
-        :class="minimized ? 'z-30 pointer-events-none' : 'z-50 max-md:z-[39]'"
+        :class="minimized ? 'z-30 pointer-events-none' : 'z-50'"
         role="dialog"
         :aria-modal="minimized ? 'false' : 'true'"
         :aria-label="label"
