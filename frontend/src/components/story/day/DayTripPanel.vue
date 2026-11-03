@@ -119,6 +119,8 @@ async function remove() {
         <ChevronLeftIcon class="h-5 w-5" />
       </button>
       <h2 :class="['flex-1 text-[18px] font-bold tracking-tight', withMap && 'sr-only']">{{ trip ? t('storyday.trip') : t('storyday.add_trip') }}</h2>
+      <!-- Rechts gesammelt: mit Karte ist der Titel nur für Screenreader da und schiebt nichts nach rechts -->
+      <div class="ml-auto flex items-center gap-2">
       <template v-if="trip">
         <button v-if="!confirmingDelete" type="button" data-testid="day-trip-delete" :aria-label="t('storyday.delete_trip')"
           :class="iconButton" @click="armDelete">
@@ -133,6 +135,7 @@ async function remove() {
         :class="[iconButton, '-mr-2']" @click="emit('back')">
         <XMarkIcon class="h-5 w-5" />
       </button>
+      </div>
     </div>
     <div class="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
       <!-- Karte oben randlos wie der Ort bei der Ladung, unten Verlauf ins Formular, darauf die Fakten.
