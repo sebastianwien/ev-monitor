@@ -200,6 +200,33 @@ class MissingVehicleRequestServiceTest {
         verify(notifier, never()).notifyUserDone(any());
     }
 
+    // ── dismiss ──────────────────────────────────────────────────────────────
+
+    @Test
+    void dismiss_closesWithoutMail() {
+        UUID adminId = UUID.randomUUID();
+        MissingVehicleRequest r = MissingVehicleRequest.create(userId, cmd("VW ID.3 GTX Performance").toDraft());
+        when(repository.findById(r.getId())).thenReturn(Optional.of(r));
+
+        service.dismiss(adminId, r.getId());
+
+        assertThat(r.getDoneAt()).isNotNull();
+        assertThat(r.getDoneByAdminId()).isEqualTo(adminId);
+        assertThat(r.getUserNotifiedAt()).isNull();
+        verify(notifier, never()).notifyUserDone(any());
+        verify(repository).save(r);
+    }
+
+    @Test
+    void dismiss_alreadyDone_isConflict() {
+        MissingVehicleRequest r = MissingVehicleRequest.create(userId, cmd("Lucid Air").toDraft());
+        r.markDone(UUID.randomUUID());
+        when(repository.findById(r.getId())).thenReturn(Optional.of(r));
+
+        assertThatThrownBy(() -> service.dismiss(UUID.randomUUID(), r.getId()))
+                .isInstanceOf(ConflictException.class);
+    }
+
     @Test
     void markDone_unknownId_isNotFound() {
         UUID id = UUID.randomUUID();

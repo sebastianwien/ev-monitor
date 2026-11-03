@@ -12,6 +12,7 @@ const assignCar = vi.fn()
 const carsOfSpec = vi.fn()
 const listRequests = vi.fn()
 const markRequestDone = vi.fn()
+const dismissRequest = vi.fn()
 vi.mock('../../../api/adminVehicleSpecService', async () => {
     const actual = await vi.importActual<typeof import('../../../api/adminVehicleSpecService')>('../../../api/adminVehicleSpecService')
     return {
@@ -27,6 +28,7 @@ vi.mock('../../../api/adminVehicleSpecService', async () => {
             carsOfSpec: (id: string) => carsOfSpec(id),
             listRequests: () => listRequests(),
             markRequestDone: (id: string) => markRequestDone(id),
+            dismissRequest: (id: string) => dismissRequest(id),
         },
     }
 })
@@ -77,7 +79,7 @@ afterEach(() => {
     app = null
     document.body.innerHTML = ''
     overview.mockReset(); create.mockReset(); update.mockReset(); changes.mockReset(); reassignCandidates.mockReset(); assignCar.mockReset(); carsOfSpec.mockReset()
-    listRequests.mockReset(); markRequestDone.mockReset()
+    listRequests.mockReset(); markRequestDone.mockReset(); dismissRequest.mockReset()
 })
 
 async function mount(): Promise<HTMLElement> {
@@ -156,6 +158,24 @@ describe('AdminSpecsTab', () => {
         ;[...section.querySelectorAll('button')].find(b => b.textContent?.includes('Erledigt'))!.click()
         await nextTick(); await nextTick()
         expect(markRequestDone).toHaveBeenCalledWith('req-1')
+        expect(listRequests).toHaveBeenCalledTimes(2)
+    })
+
+    it('Verwerfen schließt die Meldung ohne Nutzer-Mail', async () => {
+        overview.mockResolvedValue(sample)
+        listRequests.mockResolvedValue([{
+            id: 'req-2', freeText: 'VW ID.3 GTX Performance', brand: 'VW', model: 'ID_3',
+            netKwh: 79, buildYear: 2025, createdAt: '2026-11-02T18:49:00', adminNotified: true, contactAvailable: true,
+        }])
+        dismissRequest.mockResolvedValue(undefined)
+        vi.spyOn(window, 'confirm').mockReturnValue(true)
+        const host = await mount()
+
+        const section = host.querySelector('[data-testid="reported-requests"]')!
+        ;[...section.querySelectorAll('button')].find(b => b.textContent?.includes('Verwerfen'))!.click()
+        await nextTick(); await nextTick()
+        expect(dismissRequest).toHaveBeenCalledWith('req-2')
+        expect(markRequestDone).not.toHaveBeenCalled()
         expect(listRequests).toHaveBeenCalledTimes(2)
     })
 

@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -98,6 +99,30 @@ class MissingVehicleRequestControllerIntegrationTest extends AbstractIntegration
         ResponseEntity<String> again = restTemplate.exchange(ADMIN_PATH + "/" + id + "/done", HttpMethod.POST,
                 createAuthRequest(admin.getId(), admin.getEmail()), String.class);
         assertThat(again.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+
+        ResponseEntity<String> listAfter = restTemplate.exchange(ADMIN_PATH, HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(listAfter.getBody()).doesNotContain(text);
+    }
+
+    @Test
+    void adminDismiss_removesFromList_nonAdminForbidden() {
+        User user = createAndSaveUser("req-" + System.nanoTime() + "@example.com");
+        User admin = createAndSaveAdminUser("req-admin-" + System.nanoTime() + "@example.com");
+        String text = "Lucid Gravity " + System.nanoTime();
+        restTemplate.exchange(USER_PATH, HttpMethod.POST,
+                createAuthRequest(body(text), user.getId(), user.getEmail()), String.class);
+        String id = requestRepository.findAllByDoneAtIsNullOrderByCreatedAtDesc().stream()
+                .filter(r -> r.getFreeText().equals(text)).findFirst().orElseThrow().getId().toString();
+
+        ResponseEntity<String> forbidden = restTemplate.exchange(ADMIN_PATH + "/" + id + "/dismiss", HttpMethod.POST,
+                createAuthRequest(user.getId(), user.getEmail()), String.class);
+        assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        ResponseEntity<String> dismissed = restTemplate.exchange(ADMIN_PATH + "/" + id + "/dismiss", HttpMethod.POST,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(dismissed.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(requestRepository.findById(UUID.fromString(id)).orElseThrow().getUserNotifiedAt()).isNull();
 
         ResponseEntity<String> listAfter = restTemplate.exchange(ADMIN_PATH, HttpMethod.GET,
                 createAuthRequest(admin.getId(), admin.getEmail()), String.class);

@@ -80,16 +80,29 @@ public class MissingVehicleRequestService {
     /** Nur ein Admin löst die Rückmeldung an den Nutzer aus, nie das System. */
     @Transactional
     public void markDone(UUID adminId, UUID id) {
-        MissingVehicleRequest request = repository.findById(id)
-                .orElseThrow(() -> NotFoundException.forEntity("MissingVehicleRequest", id));
-        if (request.isDone()) {
-            throw new ConflictException("ALREADY_DONE", "Diese Meldung ist schon erledigt.");
-        }
+        MissingVehicleRequest request = openRequest(id);
         request.markDone(adminId);
         if (notifier.notifyUserDone(request)) {
             request.markUserNotified();
         }
         repository.save(request);
+    }
+
+    /** Schließt eine Meldung ohne Rückmeldung, z. B. wenn die Variante schon da war. */
+    @Transactional
+    public void dismiss(UUID adminId, UUID id) {
+        MissingVehicleRequest request = openRequest(id);
+        request.markDone(adminId);
+        repository.save(request);
+    }
+
+    private MissingVehicleRequest openRequest(UUID id) {
+        MissingVehicleRequest request = repository.findById(id)
+                .orElseThrow(() -> NotFoundException.forEntity("MissingVehicleRequest", id));
+        if (request.isDone()) {
+            throw new ConflictException("ALREADY_DONE", "Diese Meldung ist schon erledigt.");
+        }
+        return request;
     }
 
     private static String cleanText(String raw) {
