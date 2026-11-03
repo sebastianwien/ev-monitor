@@ -44,8 +44,8 @@ const cols = computed(() => {
 
 <template>
   <p v-if="time && timeLabel" data-testid="trip-measured-time"
-    class="flex items-center gap-1.5 text-[13px] font-semibold tabular-nums text-gray-700 dark:text-gray-200">
-    <ClockIcon class="h-4 w-4 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />{{ timeLabel }}
+    class="flex items-center gap-1.5 text-[17px] font-bold tabular-nums text-gray-900 dark:text-gray-50">
+    <ClockIcon class="h-5 w-5 shrink-0 text-gray-500 dark:text-gray-400" aria-hidden="true" />{{ timeLabel }}
   </p>
   <dl v-if="stats && cols.length" data-testid="trip-measured-stats" class="grid grid-flow-col auto-cols-fr gap-3">
     <div v-for="c in cols" :key="c.label" class="min-w-0">
