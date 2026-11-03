@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref, defineAsyncComponent, useId } from 'vue'
+import { ref, computed, defineAsyncComponent, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
+import { ChevronLeftIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../../../api/axios'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
 import { useLogUndo } from '../../../composables/useLogUndo'
 import { tripFormFrom, newTripFormAt, tripFormError, tripPayload, type TripFormValues } from '../../../utils/tripForm'
 import DayTripForm from './DayTripForm.vue'
+import TripMeasuredFacts from './TripMeasuredFacts.vue'
+import DataFeedbackButtons from '../../shared/DataFeedbackButtons.vue'
+import DataFeedbackPanel from '../../shared/DataFeedbackPanel.vue'
 import { hasTripMap } from '../../../utils/tripMap'
 // Leaflet erst laden, wenn eine Fahrt mit Ort offen ist
 const ActivityLocationMap = defineAsyncComponent(() => import('../../dashboard/ActivityLocationMap.vue'))
@@ -16,7 +19,11 @@ import type { DayTrip } from '../../../composables/storyDay'
  * Zweite Ebene des Tagesblatts für eine Fahrt: bearbeiten und löschen (mit Rückgängig im Toast)
  * oder nachtragen. Nachtragen endet zur übergebenen Zeit (Tag plus Uhrzeit von jetzt).
  */
-const props = defineProps<{ trip: DayTrip | null; carId: string; newEnd: Date }>()
+const props = withDefaults(defineProps<{
+  trip: DayTrip | null; carId: string; newEnd: Date
+  /** Oben links Pfeil zurück (zweite Ebene im Tagesblatt) oder oben rechts X (eigenes Sheet). */
+  dismiss?: 'back' | 'close'
+}>(), { dismiss: 'back' })
 const emit = defineEmits<{ back: []; saved: [action: 'edit_trip' | 'add_trip']; deleted: [] }>()
 const { t } = useI18n()
 const { distanceUnitLabel } = useLocaleFormat()
@@ -29,6 +36,12 @@ const error = ref<string | null>(null)
 const confirmingDelete = ref(false)
 // Speichern steht in der Fußleiste außerhalb des Formulars; eindeutig, falls beim Wechsel kurz zwei Panels im DOM sind
 const formId = useId()
+// Erkannte Fahrten (nicht von Hand angelegt) fragen überall "Korrekt erkannt?"
+const rateable = computed(() => !!props.trip && props.trip.dataSource !== 'USER_CREATED')
+// Wie bei der Ladung: mit Karte schweben Zurück und X als Kreise darauf, der Titel bleibt für Screenreader
+const withMap = computed(() => !!props.trip && hasTripMap(props.trip))
+const iconButton = computed(() => ['pointer-events-auto grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-700 dark:text-gray-200',
+  withMap.value ? 'border-2 border-edge bg-white/95 hover:bg-white dark:border-gray-600 dark:bg-gray-800/95 dark:hover:bg-gray-800' : 'hover:bg-gray-100 dark:hover:bg-gray-800'])
 
 async function save() {
   const values = form.value as TripFormValues
@@ -63,30 +76,51 @@ async function remove() {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col" data-testid="day-trip-panel">
-    <div class="flex items-center gap-2 border-b-2 border-gray-100 px-4 py-3 dark:border-gray-800">
-      <button type="button" data-testid="day-detail-back" :aria-label="t('common.back')"
-        class="-ml-2 grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-800"
-        @click="emit('back')">
+  <div class="relative flex min-h-0 flex-1 flex-col bg-white dark:bg-gray-900" data-testid="day-trip-panel">
+    <div :class="['flex shrink-0 items-center gap-2 px-4', withMap
+      ? 'pointer-events-none absolute inset-x-0 top-0 z-[600] pb-2 pt-3'
+      : 'border-b-2 border-gray-100 py-3 dark:border-gray-800']">
+      <button v-if="dismiss === 'back'" type="button" data-testid="day-detail-back" :aria-label="t('common.back')"
+        :class="[iconButton, '-ml-2']" @click="emit('back')">
         <ChevronLeftIcon class="h-5 w-5" />
       </button>
-      <h2 class="flex-1 text-[18px] font-bold tracking-tight">{{ trip ? t('storyday.trip') : t('storyday.add_trip') }}</h2>
+      <h2 :class="['flex-1 text-[18px] font-bold tracking-tight', withMap && 'sr-only']">{{ trip ? t('storyday.trip') : t('storyday.add_trip') }}</h2>
+      <button v-if="dismiss === 'close'" type="button" data-testid="day-detail-close" :aria-label="t('common.close')"
+        :class="[iconButton, '-mr-2']" @click="emit('back')">
+        <XMarkIcon class="h-5 w-5" />
+      </button>
     </div>
-    <div class="min-h-0 flex-1 overflow-y-auto p-4">
-      <!-- Karte oben: auf dem Handy randlos über dem Formular, ab 1024 px oben in der rechten Spalte -->
-      <div v-if="trip && hasTripMap(trip)" class="relative -mx-4 -mt-4 mb-4 h-40 overflow-hidden border-b-2 border-gray-100 lg:mx-0 lg:mt-0 lg:h-72 lg:rounded-2xl lg:border-2 lg:border-gray-900 dark:border-gray-800"
-        data-testid="day-trip-map">
+    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+      <!-- Karte oben randlos wie der Ort bei der Ladung, unten Verlauf ins Formular, darauf die Fakten.
+           Höchstens 224 px; fehlt Platz, schrumpft sie bis 144 px, bevor die Ansicht scrollen muss. -->
+      <div v-if="withMap" class="relative -mx-4 -mt-4 mb-4 min-h-36 shrink basis-56 overflow-hidden md:mx-0 md:rounded-xl" data-testid="day-trip-map">
         <ActivityLocationMap variant="panel" :label="t('dashboard.trip_map_alt')"
-          :start-geohash="trip.locationStartGeohash" :end-geohash="trip.locationEndGeohash"
-          :route-polyline="trip.routePolyline" :route-kind="trip.routeKind" :trace-polyline="trip.tracePolyline" />
+          :start-geohash="trip!.locationStartGeohash" :end-geohash="trip!.locationEndGeohash"
+          :route-polyline="trip!.routePolyline" :route-kind="trip!.routeKind" :trace-polyline="trip!.tracePolyline" />
+        <div class="pointer-events-none absolute inset-x-0 bottom-0 z-[500] bg-gradient-to-t from-white via-white/70 to-transparent px-4 pt-14 dark:from-gray-900 dark:via-gray-900/70">
+          <!-- Nur Text: der Verlauf lässt Tipps zur Karte durch, Knöpfe hier wären mit Karte nicht tippbar.
+               Gemessene Fahrt: Tag und Uhrzeit stehen hier wie bei der Ladung, die Kennzahlen darunter im Formular. -->
+          <div v-if="form.measured" :class="$slots.facts ? 'mb-1' : 'mb-3'">
+            <TripMeasuredFacts :form="form" :distance-unit="distanceUnitLabel()" :stats="false" />
+          </div>
+          <slot name="facts" />
+        </div>
       </div>
       <!-- Ergänzung des Rahmens über dem Formular, z. B. Tempo im Logbuch -->
-      <slot name="facts" />
+      <slot v-else name="facts" />
       <DayTripForm :id="formId" v-model="form" :mode="trip ? 'edit' : 'add'" :error="error" :saving="saving" :distance-unit="distanceUnitLabel()"
-        :actions="false" @save="save">
-        <!-- Ergänzungen des Rahmens, z. B. "Korrekt erkannt?" im Logbuch: neben den Besonderheiten bzw. darunter -->
-        <template #extras-end><slot name="extras-end" /></template>
-        <template #extra><slot name="extra" /></template>
+        :actions="false" :measured-time="!withMap" @save="save">
+        <!-- "Korrekt erkannt?" neben den Besonderheiten, die Rückfrage nach dem Daumen darunter -->
+        <template #extras-end>
+          <span v-if="rateable" role="group" :aria-label="t('dashboard.data_feedback_label')" data-testid="trip-feedback"
+            class="ml-auto inline-flex items-center gap-0.5 self-center text-[13px] text-gray-500 dark:text-gray-400">
+            <span class="mr-1">{{ t('dashboard.data_feedback_label') }}</span>
+            <DataFeedbackButtons subject-type="TRIP" :subject-id="trip!.id" />
+          </span>
+        </template>
+        <template #extra>
+          <DataFeedbackPanel v-if="rateable" subject-type="TRIP" :subject-id="trip!.id" />
+        </template>
       </DayTripForm>
     </div>
     <!-- Fußleiste wie bei der Ladung: Löschen abgesetzt links, Speichern füllt. Abbrechen erst ab 640 px, auf dem Handy führt der Pfeil oben zurück. -->

@@ -4775,11 +4775,11 @@ storyday:
   form_extra_trailer: "Trailer"
   form_extra_roof_box: "Roof box or bike rack"
   form_extra_full_load: "Fully loaded"
-  form_measured: "Measured by the car"
   form_soc_start: "Battery at start"
   form_soc_end: "Battery at end"
   form_date: "Date"
   form_time: "Time"
+  form_duration: "Duration"
   form_distance_row: "Distance"
   form_soc: "Battery"
 logbook:

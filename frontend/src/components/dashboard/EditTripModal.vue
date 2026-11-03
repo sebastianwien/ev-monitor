@@ -1,36 +1,28 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useLocaleFormat } from '../../composables/useLocaleFormat'
 import BottomSheet from '../shared/BottomSheet.vue'
-import DayTripForm from '../story/day/DayTripForm.vue'
+import DayTripPanel from '../story/day/DayTripPanel.vue'
+import type { DayTrip } from '../../composables/storyDay'
 
 /**
- * Sheet um das Fahrt-Formular der App-CI (DayTripForm, wie Tagesblatt und Log-Feed). Im Log-Feed
- * wird dieselbe Fahrt inline in ihrer Zeile bearbeitet - auf dem Dashboard fehlt diese Zeile, also
- * bekommt das Formular hier ein
- * eigenes Overlay. Formular-Model, Speichern und Fehlerbehandlung liegen unveraendert
- * beim Aufrufer (useLogList), diese Komponente ist nur die Huelle.
+ * Sheet um dieselbe Fahrt-Ansicht wie Tagesblatt und Logbuch (DayTripPanel): Karte, Formular,
+ * Löschen. Speichern und Löschen erledigt das Panel selbst.
  *
- * `save` meldet nur den Klick - ob gespeichert werden konnte, weiss der Aufrufer. Er
- * faehrt das Sheet danach ueber `requestClose()` aus; `close` kommt, wenn es draussen
- * ist und der Aufrufer uns entfernen darf.
+ * Das Sheet fährt erst aus, dann meldet es sich - der Aufrufer entfernt uns daraufhin per v-if.
+ * `changed` kommt deshalb erst mit dem Ausfahren, wenn gespeichert oder gelöscht wurde.
  */
-const emit = defineEmits<{ save: []; close: [] }>()
-
-defineProps<{
-  /** Validierungs-/Serverfehler aus useLogList. */
-  error?: string | null
-  /** Speichern laeuft - Buttons sperren. */
-  saving?: boolean
-}>()
-
-const form = defineModel<Record<string, any>>({ required: true })
+defineProps<{ trip: DayTrip; carId: string }>()
+const emit = defineEmits<{ close: []; changed: [] }>()
 const { t } = useI18n()
-const { distanceUnitLabel } = useLocaleFormat()
 
 const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
-defineExpose({ requestClose: () => sheet.value?.requestClose() })
+const changed = ref(false)
+function done() { changed.value = true; sheet.value?.requestClose() }
+function onClosed() {
+  if (changed.value) emit('changed')
+  emit('close')
+}
 </script>
 
 <template>
@@ -39,19 +31,9 @@ defineExpose({ requestClose: () => sheet.value?.requestClose() })
     :label="t('dashboard.trip_edit')"
     testid="edit-trip-modal"
     edge
-    @close="emit('close')">
-    <template #default="{ close }">
-      <div class="flex-1 overflow-y-auto p-4">
-        <DayTripForm
-          v-model="form"
-          mode="edit"
-          :title="t('dashboard.trip_edit')"
-          :error="error"
-          :saving="saving"
-          :distance-unit="distanceUnitLabel()"
-          @save="emit('save')"
-          @cancel="close" />
-      </div>
-    </template>
+    panel-class="sm:max-w-xl"
+    @close="onClosed">
+    <DayTripPanel :trip="trip" :car-id="carId" :new-end="new Date()" dismiss="close"
+      @back="sheet?.requestClose()" @saved="done" @deleted="done" />
   </BottomSheet>
 </template>

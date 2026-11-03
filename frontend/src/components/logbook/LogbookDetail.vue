@@ -27,7 +27,7 @@ import type { TripFacts } from '../../utils/tripCalculations'
  */
 export type LogbookSelection =
   | { kind: 'charge'; log: EvLogResponse & { hasPowerCurve?: boolean; hasSocCurve?: boolean }; bundleId?: string }
-  | { kind: 'trip'; trip: DayTrip & { dataSource?: string | null } }
+  | { kind: 'trip'; trip: DayTrip }
   | { kind: 'bundle'; id: string; parts: DayLog[] }
   | { kind: 'gap'; id: string; gap: OdometerGap }
 
@@ -70,7 +70,6 @@ const key = computed(() => {
   if (!s) return undefined
   return s.kind === 'charge' ? s.log.id : s.kind === 'bundle' ? `b-${s.id}` : s.kind === 'gap' ? s.id : s.trip.id
 })
-const tripRateable = computed(() => props.selection?.kind === 'trip' && props.selection.trip.dataSource !== 'USER_CREATED')
 const stickyTop = { top: 'calc(var(--content-top, var(--top-nav-h)) + 1rem)' }
 const { formatConsumption } = useLocaleFormat()
 /** Tempo und Verbrauch der Fahrt, nur auf dem Handy (ab 768 px stehen sie in der Zeile); Streckentyp und Besonderheiten zeigt das Formular als Chips */
@@ -87,7 +86,7 @@ const speed = computed(() => {
   <component :is="wide ? 'aside' : BottomSheet" v-if="wide || selection" ref="sheet"
     v-bind="wide
       ? { class: 'sticky flex max-h-[calc(100dvh-var(--content-top,var(--top-nav-h))-2rem)] min-h-[28rem] flex-col overflow-hidden rounded-3xl bg-white edge-box dark:bg-gray-900', style: stickyTop }
-      : { edge: true, label: selection?.kind === 'bundle' ? t('storyday.parts_title') : selection?.kind === 'gap' ? t('storyday.gap_title') : t('dashboard.edit_title'), panelClass: 'h-[88dvh] sm:max-w-xl', testid: 'logbook-detail' }"
+      : { edge: true, label: selection?.kind === 'bundle' ? t('storyday.parts_title') : selection?.kind === 'gap' ? t('storyday.gap_title') : t('dashboard.edit_title'), panelClass: 'sm:max-w-xl', testid: 'logbook-detail' }"
     data-testid="logbook-detail" @close="emit('close')">
     <template v-if="selection">
       <GapDetail v-if="selection.kind === 'gap'" :key="key" :gap="selection.gap" @cancel="dismiss" />
@@ -126,16 +125,6 @@ const speed = computed(() => {
         @back="dismiss" @saved="done" @deleted="done">
         <template #facts>
           <p v-if="speed" class="mb-3 text-[13px] tabular-nums md:hidden text-gray-600 dark:text-gray-300" data-testid="logbook-trip-speed">{{ speed }}</p>
-        </template>
-        <template #extras-end>
-          <span v-if="tripRateable" role="group" :aria-label="t('dashboard.data_feedback_label')"
-            class="ml-auto inline-flex items-center gap-0.5 self-center text-[13px] text-gray-500 dark:text-gray-400">
-            <span class="mr-1">{{ t('dashboard.data_feedback_label') }}</span>
-            <DataFeedbackButtons subject-type="TRIP" :subject-id="selection.trip.id" />
-          </span>
-        </template>
-        <template #extra>
-          <DataFeedbackPanel v-if="tripRateable" subject-type="TRIP" :subject-id="selection.trip.id" />
         </template>
       </DayTripPanel>
     </template>

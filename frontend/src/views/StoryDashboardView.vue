@@ -41,7 +41,7 @@ import { teaserParts, type PlacePeriod } from '../composables/storyPlaces'
 import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
 import type { EvLogResponse } from '../components/dashboard/EditLogModal.vue'
 import type { SummarySection } from '../components/log-wizard/LogSummary.vue'
-import { dayKeyOf } from '../composables/storyDay'
+import { dayKeyOf, type DayTrip } from '../composables/storyDay'
 import { useLogsRefreshStore } from '../stores/logsRefresh'
 import { prefetchDay } from '../components/story/day/dayData'
 import { whenIdle } from '../utils/whenIdle'
@@ -234,28 +234,17 @@ function openLatestCharge(logId: string, toPrice: boolean) {
   openCharge(logId, toPrice ? 'cost' : undefined)
 }
 
-// Karte "Letzte Fahrt": dasselbe Fahrt-Sheet wie das alte Dashboard, Formular-State im CarContext.
-const tripModalId = ref<string | null>(null)
-const tripSheet = ref<{ requestClose: () => void } | null>(null)
+// Karte "Letzte Fahrt": dieselbe Fahrt-Ansicht wie Tagesblatt und Logbuch, als Sheet.
+const tripModal = ref<DayTrip | null>(null)
 function openLatestTrip(tripId: string) {
   // Die Karte überspringt Umparken: dann ist ihre Fahrt nicht die neueste, sondern eine der letzten Tage
   const trip = ctx.latestTrip.value?.id === tripId ? ctx.latestTrip.value : story.recentTrips.value.find(t => t.id === tripId)
   if (!trip) return
-  ctx.startEditTrip(trip)
-  tripModalId.value = tripId
+  tripModal.value = trip as DayTrip
 }
-async function submitTripEdit() {
-  const id = tripModalId.value
-  if (!id) return
-  await ctx.saveTripEdit(id)
-  if (ctx.tripError.value) return
-  tripSheet.value?.requestClose()
+function onTripChanged() {
   ctx.refreshLogsAndGroups()
   story.reload()
-}
-function onTripSheetClosed() {
-  ctx.cancelTripEdit()
-  tripModalId.value = null
 }
 
 /** Zeile "n Ladungen ohne Preis": dieselbe Liste wie auf /logs, je Ladung den Preis eintragen */
@@ -574,13 +563,11 @@ onUnmounted(() => unregisterReload?.())
       @saved="closeOperator(true)"
       @deleted="closeOperator(true)" />
     <EditTripModal
-      v-if="tripModalId"
-      ref="tripSheet"
-      v-model="ctx.tripForm.value"
-      :error="ctx.tripError.value"
-      :saving="ctx.tripSaving.value"
-      @save="submitTripEdit"
-      @close="onTripSheetClosed" />
+      v-if="tripModal && selectedCarId"
+      :trip="tripModal"
+      :car-id="selectedCarId"
+      @changed="onTripChanged"
+      @close="tripModal = null" />
     <StoryDaySheet
       v-if="openDay && selectedCarId"
       v-model:day="openDay"

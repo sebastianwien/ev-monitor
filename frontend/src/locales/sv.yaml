@@ -4617,11 +4617,11 @@ storyday:
   form_extra_trailer: "Släpvagn"
   form_extra_roof_box: "Takbox eller cykelhållare"
   form_extra_full_load: "Fullastad"
-  form_measured: "Uppmätt av bilen"
   form_soc_start: "Batteri vid start"
   form_soc_end: "Batteri vid mål"
   form_date: "Datum"
   form_time: "Tid"
+  form_duration: "Varaktighet"
   form_distance_row: "Sträcka"
   form_soc: "Batteri"
 logbook:

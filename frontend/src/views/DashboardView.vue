@@ -65,6 +65,7 @@ import type { Car } from '../api/carService'
 import CostHistoryCard from '../components/dashboard/CostHistoryCard.vue'
 import RecentActivityCard from '../components/dashboard/RecentActivityCard.vue'
 import EditTripModal from '../components/dashboard/EditTripModal.vue'
+import type { DayTrip } from '../composables/storyDay'
 import { latestChargeEntry, latestTripEntry } from '../utils/recentActivity'
 import { useLocaleFormat } from '../composables/useLocaleFormat'
 import { useCarContext } from '../composables/useCarContext'
@@ -89,7 +90,7 @@ const {
   fixedCostPerMonth, displayedCostPer100km, canShowFixedModes, effectiveCostMode, toggleCostMode,
   timeRangeOptions, groupByOptions, dismissImportBanner, fetchImplausibleCount, fetchStatistics,
   hasAnyLogs, mergedLogFeed, trips, gaps, latestLog, latestTrip: latestTripRaw, currentOdometerKm, sourceInfo, initCars,
-  editingLog, priceAmendingLog, startEditTrip, cancelTripEdit, saveTripEdit, tripForm, tripSaving, tripError,
+  editingLog, priceAmendingLog, refreshLogsAndGroups,
 } = useCarContext()
 
 // Car whose battery-health detail sheet is open (null = closed).
@@ -132,29 +133,12 @@ const latestTrip = computed(() => {
 })
 
 // Beide Kacheln bearbeiten ihren Eintrag direkt. Der Ladevorgang nutzt den geteilten
-// EditLogModal (liegt im CarContextLayout), die Fahrt bekommt hier ein eigenes Overlay -
-// im Log-Feed haengt dasselbe Formular inline an der Zeile, die es hier nicht gibt.
-const tripModalId = ref<string | null>(null)
-const tripSheet = ref<{ requestClose: () => void } | null>(null)
+// EditLogModal (liegt im CarContextLayout), die Fahrt dieselbe Ansicht wie das Tagesblatt als Sheet.
+const tripModal = ref<DayTrip | null>(null)
 
 function openTripEdit() {
   if (!latestTrip.value) return
-  startEditTrip(latestTrip.value)
-  tripModalId.value = latestTrip.value.id
-}
-
-/** Kommt erst, wenn das Sheet ausgefahren ist - dann darf der State weg. */
-function onTripSheetClosed() {
-  cancelTripEdit()
-  tripModalId.value = null
-}
-
-async function submitTripEdit() {
-  const id = tripModalId.value
-  if (!id) return
-  await saveTripEdit(id)
-  // saveTripEdit haelt den Fehler in tripError fest und laesst das Formular offen.
-  if (!tripError.value) tripSheet.value?.requestClose()
+  tripModal.value = latestTrip.value as DayTrip
 }
 
 // -- Charts --
@@ -1226,13 +1210,11 @@ onUnmounted(() => {
   />
 
   <EditTripModal
-    v-if="tripModalId"
-    ref="tripSheet"
-    v-model="tripForm"
-    :error="tripError"
-    :saving="tripSaving"
-    @save="submitTripEdit"
-    @close="onTripSheetClosed"
+    v-if="tripModal && selectedCarId"
+    :trip="tripModal"
+    :car-id="selectedCarId"
+    @changed="refreshLogsAndGroups()"
+    @close="tripModal = null"
   />
 
   <!-- Battery health detail sheet. `changed` reloads the cars so the chip on the card

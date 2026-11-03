@@ -30,6 +30,8 @@ export interface DayTrip {
   climate?: ClimateSummary | null
   avgSpeedKmh?: number | null
   maxSpeedKmh?: number | null
+  /** Herkunft; USER_CREATED wird nicht nach "Korrekt erkannt?" gefragt */
+  dataSource?: string | null
 }
 
 /** Was das Tagesblatt von einer Ladung braucht (Auszug aus EvLogResponse). */
