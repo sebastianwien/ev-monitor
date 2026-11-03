@@ -147,7 +147,8 @@ const sheetIds = computed(() => tiles.value.map(x => x.id))
 // Steht, sobald ein Monat da ist, und bleibt beim Monatswechsel stehen (der neue kommt mit seinen Daten)
 /** Monat mit Ladung oder gefahrener Strecke (Fahrten): dann steht der Monatskopf statt des Leerzustands. */
 const hasActivity = computed(() => hasCharges.value || (monthStats.value?.totalDistanceKm ?? 0) > 0)
-const showFeed = computed(() => !!monthStats.value && !error.value && (hasActivity.value || liveActive.value))
+// Der Feed listet Ladungen; nur mit Fahrten stünde dort allein der Ladeort-Teaser
+const showFeed = computed(() => !!monthStats.value && !error.value && (hasCharges.value || liveActive.value))
 /**
  * Laufender Monat ohne Ladung, ohne Fahrt und ohne Live-Laden: der Rückblick auf den Vormonat steht als Kopf,
  * auch wenn seine Karte schon weggeklickt ist. Im Stapel fehlt er dann.
@@ -498,9 +499,6 @@ onUnmounted(() => unregisterReload?.())
                 </StoryHero>
               </Transition>
             </div>
-            <div v-if="recapStage" class="pt-2">
-              <StoryRecapHero :moment="recapStage" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapStage!, id)" />
-            </div>
             <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
               {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
             </p>
@@ -512,6 +510,8 @@ onUnmounted(() => unregisterReload?.())
               :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0"
               @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" @prices="openFeedPrices" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" :selected="paneTile?.id ?? null" :model-name="modelName" @open="openSheet" />
+            <!-- Erst der laufende Monat, dann der Vormonat: Rückblick und Community-Block stehen zusammen -->
+            <StoryRecapHero v-if="recapStage" class="pt-2" :moment="recapStage" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapStage!, id)" />
           </template>
           <StoryCommunityMonth
             v-if="communityMonth && !error"
