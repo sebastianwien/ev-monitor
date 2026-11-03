@@ -65,4 +65,23 @@ describe('DayTripPanel', () => {
     await mount('USER_CREATED')
     expect(document.querySelector('[data-testid="day-trip-save"]')).not.toBeNull()
   })
+
+  describe('Löschen oben', () => {
+    it('erster Tipp macht aus dem Papierkorb "Löschen", ohne zweiten springt er nach 3 s zurück', async () => {
+      vi.useFakeTimers()
+      try {
+        await mount('TESLA_FLEET_TELEMETRY', true)
+        const q = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`)
+        expect(document.querySelector('footer')).toBeNull()
+        q('day-trip-delete')!.click()
+        await nextTick()
+        expect(q('day-trip-delete-confirm')).not.toBeNull()
+        vi.advanceTimersByTime(3000)
+        await nextTick()
+        expect(q('day-trip-delete-confirm')).toBeNull()
+        expect(q('day-trip-delete')).not.toBeNull()
+      } finally { vi.useRealTimers() }
+    })
+  })
 })
+

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, defineAsyncComponent, useId, watch } from 'vue'
+import { ref, computed, defineAsyncComponent, onBeforeUnmount, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, TrashIcon, XMarkIcon } from '@heroicons/vue/24/outline'
 import api from '../../../api/axios'
@@ -35,7 +35,16 @@ const { deleteTripWithUndo } = useLogUndo()
 const form = ref<Record<string, any>>(props.trip ? tripFormFrom(props.trip) : newTripFormAt(props.newEnd))
 const saving = ref(false)
 const error = ref<string | null>(null)
+// Löschen sitzt oben neben Zurück bzw. X: der erste Tipp macht aus dem Papierkorb eine rote Pille "Löschen",
+// erst der zweite löscht (Rückgängig im Toast). Ohne zweiten Tipp springt sie nach 3 s zurück.
 const confirmingDelete = ref(false)
+let disarm: ReturnType<typeof setTimeout> | null = null
+function armDelete() {
+  confirmingDelete.value = true
+  if (disarm) clearTimeout(disarm)
+  disarm = setTimeout(() => { confirmingDelete.value = false }, 3000)
+}
+onBeforeUnmount(() => { if (disarm) clearTimeout(disarm) })
 // Speichern steht in der Fußleiste außerhalb des Formulars; eindeutig, falls beim Wechsel kurz zwei Panels im DOM sind
 const formId = useId()
 // Erkannte Fahrten (nicht von Hand angelegt) fragen überall "Korrekt erkannt?"
@@ -110,6 +119,16 @@ async function remove() {
         <ChevronLeftIcon class="h-5 w-5" />
       </button>
       <h2 :class="['flex-1 text-[18px] font-bold tracking-tight', withMap && 'sr-only']">{{ trip ? t('storyday.trip') : t('storyday.add_trip') }}</h2>
+      <template v-if="trip">
+        <button v-if="!confirmingDelete" type="button" data-testid="day-trip-delete" :aria-label="t('storyday.delete_trip')"
+          :class="iconButton" @click="armDelete">
+          <TrashIcon class="h-5 w-5 text-red-600 dark:text-red-400" aria-hidden="true" />
+        </button>
+        <button v-else type="button" data-testid="day-trip-delete-confirm" :disabled="saving" :aria-label="t('storyday.delete_trip_confirm')"
+          class="pointer-events-auto btn-3d min-h-11 rounded-full border-2 border-edge bg-red-600 px-4 text-[15px] font-semibold text-white disabled:opacity-40" @click="remove">
+          {{ t('dashboard.action_delete') }}
+        </button>
+      </template>
       <button v-if="dismiss === 'close'" type="button" data-testid="day-detail-close" :aria-label="t('common.close')"
         :class="[iconButton, '-mr-2']" @click="emit('back')">
         <XMarkIcon class="h-5 w-5" />
@@ -149,31 +168,16 @@ async function remove() {
       </DayTripForm>
       <MapCredit v-if="withMap" :routed="routed" class="mt-4" />
     </div>
-    <!-- Fußleiste wie bei der Ladung: Löschen abgesetzt links, Speichern füllt. Abbrechen erst ab 640 px, auf dem Handy führt der Pfeil oben zurück. -->
-    <footer class="flex shrink-0 items-center gap-2 border-t-2 border-gray-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dark:border-gray-800">
-      <template v-if="confirmingDelete">
-        <span class="flex-1 text-[14px] font-semibold text-gray-900 dark:text-gray-100">{{ t('storyday.delete_trip_confirm') }}</span>
-        <button type="button" class="min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10" @click="confirmingDelete = false">{{ t('common.cancel') }}</button>
-        <button type="button" data-testid="day-trip-delete-confirm" :disabled="saving"
-          class="btn-3d min-h-12 rounded-xl border-2 border-edge bg-red-600 px-4 text-[15px] font-semibold text-white disabled:opacity-40" @click="remove">
-          {{ t('dashboard.action_delete') }}
-        </button>
-      </template>
-      <template v-else>
-        <button v-if="trip" type="button" data-testid="day-trip-delete" :aria-label="t('storyday.delete_trip')"
-          class="-ml-1 grid h-12 w-12 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10"
-          @click="confirmingDelete = true">
-          <TrashIcon class="h-5 w-5" aria-hidden="true" />
-        </button>
-        <!-- Gemessene Fahrt speichert jeden Tipp sofort: kein Abbrechen, kein Speichern, nur Löschen -->
-        <button v-if="!autosave" type="button" class="hidden min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 sm:inline-flex sm:items-center dark:text-gray-300 dark:hover:bg-white/10" @click="emit('back')">
-          {{ t('common.cancel') }}
-        </button>
-        <button v-if="!autosave" type="submit" :form="formId" data-testid="day-trip-save" :disabled="saving"
-          class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-40">
-          {{ t('logfields.save') }}
-        </button>
-      </template>
+    <!-- Fußleiste nur, wo gespeichert werden muss (von Hand angelegt oder nachgetragen): Speichern füllt,
+         Abbrechen erst ab 640 px, auf dem Handy führt der Pfeil oben zurück. Gemessene Fahrten speichern jeden Tipp sofort. -->
+    <footer v-if="!autosave" class="flex shrink-0 items-center gap-2 border-t-2 border-gray-100 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 dark:border-gray-800">
+      <button type="button" class="hidden min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 sm:inline-flex sm:items-center dark:text-gray-300 dark:hover:bg-white/10" @click="emit('back')">
+        {{ t('common.cancel') }}
+      </button>
+      <button type="submit" :form="formId" data-testid="day-trip-save" :disabled="saving"
+        class="btn-3d min-h-12 flex-1 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-40">
+        {{ t('logfields.save') }}
+      </button>
     </footer>
   </div>
 </template>
