@@ -79,7 +79,7 @@ User koennen sich unter Einstellungen -> Bestenliste vom Ranking abmelden. Der T
 
 ## Ticker-Banner
 
-Ein Band unterhalb der Navigationsleiste (`LeaderboardTicker.vue`), nur für eingeloggte Nutzer in DE/AT/CH, nicht im Demo-Modus. Es zeigt einen Eintrag zur Zeit und wechselt nach einer Verweildauer, überlange Texte laufen einmal durch. Hat ein Eintrag eine Zielseite, ist der Text der Link dorthin. Wischen blättert. Ab 640px gibt es zusätzlich Ziel-Pfeil, Pause- und Weiter-Knopf. Mobil fehlen die Knöpfe, damit der Text Platz hat: solange der Finger aufliegt, steht der Eintrag, danach bekommt er die volle Lesezeit. Im Kopf der Workspace-Seiten ist das Band ab 768px so breit wie die Workspace-Navigation.
+Ein Band unterhalb der Navigationsleiste (`LeaderboardTicker.vue`), nur für eingeloggte Nutzer in DE/AT/CH, nicht im Demo-Modus. Es zeigt einen Eintrag zur Zeit und wechselt nach einer Verweildauer, überlange Texte laufen hin und her, mit 3 s Halt an jedem Ende (40 px/s). Ein überlanger Eintrag bleibt mindestens einmal hin und zurück stehen. Bei Hover und Berührung läuft das Hin und Her weiter, der Pause-Knopf und "reduzierte Bewegung" stoppen es. Hat ein Eintrag eine Zielseite, ist der Text der Link dorthin. Wischen blättert. Ab 640px gibt es zusätzlich Ziel-Pfeil, Pause- und Weiter-Knopf. Mobil fehlen die Knöpfe, damit der Text Platz hat: solange der Finger aufliegt, steht der Eintrag, danach bekommt er die volle Lesezeit. Im Kopf der Workspace-Seiten ist das Band ab 768px so breit wie die Workspace-Navigation.
 
 ### Eintragstypen
 

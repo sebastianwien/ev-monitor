@@ -7,10 +7,11 @@ import { useTickerState, setTickerHasItems, tickerHidden } from '../../composabl
 import { analytics } from '../../services/analytics'
 import { useTickerItems, VARIANT_ICON } from '../../composables/useTickerItems'
 import { useTickerRotation, dwellMs } from '../../composables/useTickerRotation'
+import { useTickerPingPong, roundTripMs, scrollMs } from '../../composables/useTickerPingPong'
 
 /**
  * Community-Ticker als Wechselanzeige: ein Eintrag zur Zeit, kurzer Übergang, dann Stillstand.
- * Überlange Texte laufen genau einmal durch. Zwischen zwei Wechseln rechnet der Browser nichts,
+ * Überlange Texte laufen hin und her, mit Halt an jedem Ende. Zwischen zwei Wechseln rechnet der Browser nichts,
  * im Gegensatz zum früheren Endlos-Laufband (rund 20 Prozent CPU im Leerlauf).
  */
 /**
@@ -63,28 +64,28 @@ const reducedMotion = typeof window !== 'undefined' && !!window.matchMedia?.('(p
 const isCollapsed = computed(() => !props.docked && collapsed.value)
 const paused = computed(() => tickerHidden.value || isCollapsed.value || !tabVisible.value || hovered.value || focused.value || userPaused.value || touched.value)
 
-/** Gemessene Durchlaufzeit überlanger Einträge, je Index. */
-const OVERFLOW_PX_PER_S = 40
-const OVERFLOW_DELAY_MS = 1200
+/** Gemessene Überlänge des aktuellen Eintrags in px; 0 = passt. */
 const overflowPx = ref(0)
-const overflowMs = computed(() => overflowPx.value > 0 ? OVERFLOW_DELAY_MS + (overflowPx.value / OVERFLOW_PX_PER_S) * 1000 : 0)
+/* Hin und Her läuft auch bei Hover und Berührung weiter (zum Mitlesen), stoppt nur beim Pause-Knopf. */
+const { atEnd, reset: resetPingPong } = useTickerPingPong({
+  overflowPx,
+  paused: computed(() => userPaused.value || !tabVisible.value || tickerHidden.value || isCollapsed.value),
+})
 
 const count = computed(() => items.value.length)
 const { index, next, prev, restart } = useTickerRotation({
   count,
   paused,
-  dwell: i => dwellMs(items.value[i]?.text.length ?? 0, overflowMs.value),
+  // Überlange Einträge bleiben mindestens einmal hin und zurück stehen.
+  dwell: i => Math.max(dwellMs(items.value[i]?.text.length ?? 0), roundTripMs(overflowPx.value)),
 })
 const current = computed(() => items.value[index.value])
 
-/* Überlänge messen, sobald der neue Eintrag steht; dann einmaliger Durchlauf per CSS-Transition. */
+/* Überlänge messen, sobald der neue Eintrag steht; dann Hin und Her per CSS-Transition. */
 const viewport = ref<HTMLElement | null>(null)
-const scrolling = ref(false)
-let scrollTimer: ReturnType<typeof setTimeout> | undefined
 async function measure() {
-  clearTimeout(scrollTimer)
-  scrolling.value = false
   overflowPx.value = 0
+  resetPingPong()
   await nextTick()
   const el = viewport.value?.querySelector<HTMLElement>('[data-ticker-text]')
   if (!el || !viewport.value) return
@@ -92,7 +93,7 @@ async function measure() {
   if (over > 4 && !reducedMotion) {
     overflowPx.value = over
     restart()
-    scrollTimer = setTimeout(() => { scrolling.value = true }, OVERFLOW_DELAY_MS)
+    resetPingPong()
   }
 }
 watch(index, measure)
@@ -131,7 +132,6 @@ onMounted(async () => {
   measure()
 })
 onUnmounted(() => {
-  clearTimeout(scrollTimer)
   document.removeEventListener('visibilitychange', onVisibilityChange)
 })
 </script>
@@ -163,7 +163,7 @@ onUnmounted(() => {
         <!-- Text: Tippen öffnet das Ziel (falls vorhanden), Wischen blättert -->
         <div ref="viewport"
           class="ticker-viewport relative flex-1 min-w-0 h-full overflow-hidden ml-2 select-none"
-          :class="{ 'ticker-fade-end': overflowPx > 0 && !scrolling, 'ticker-fade-start': scrolling }"
+          :class="{ 'ticker-fade-end': overflowPx > 0 && !atEnd, 'ticker-fade-start': atEnd }"
           aria-live="off"
           @touchstart.passive="onTouchStart" @touchend.passive="onTouchEnd" @touchcancel.passive="touched = false">
           <Transition :name="reducedMotion ? 'ticker-fade' : `ticker-${direction}`">
@@ -175,7 +175,7 @@ onUnmounted(() => {
               <span
                 data-ticker-text
                 :class="['ticker-text text-xs font-medium whitespace-nowrap', typeStyle[current.type].text]"
-                :style="scrolling ? { transform: `translateX(-${overflowPx}px)`, transitionDuration: `${overflowPx / OVERFLOW_PX_PER_S}s` } : undefined"
+                :style="overflowPx > 0 ? { transform: `translateX(-${atEnd ? overflowPx : 0}px)`, transitionDuration: `${scrollMs(overflowPx)}ms` } : undefined"
                 :title="current.text">
                 {{ current.text }}
               </span>
@@ -240,13 +240,13 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* Einmaliger Durchlauf überlanger Texte; läuft aus und bleibt stehen. */
+/* Hin und Her überlanger Texte, Ziel setzt useTickerPingPong. */
 .ticker-text {
   transition-property: transform;
   transition-timing-function: cubic-bezier(0.45, 0, 0.55, 1);
 }
 
-/* Weicher Rand rechts, solange ein überlanger Text noch nicht gelaufen ist */
+/* Weicher Rand rechts, solange ein überlanger Text am Anfang steht */
 .ticker-fade-end {
   mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
 }
