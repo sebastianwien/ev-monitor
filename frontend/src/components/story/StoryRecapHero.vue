@@ -15,7 +15,8 @@ import BoldNumbers from './BoldNumbers.vue'
  * Platz und Modellvergleich. Normal- gegen Schnellladen steht in der Strom-Kachel des Vormonats.
  * Die ganze Karte öffnet den Vormonat.
  */
-const props = defineProps<{ moment: Moment; carId: string | null; carName: string }>()
+/** secondary: steht unter dem Monatskopf statt als Seitenkopf, dann tritt der Satz eine Stufe zurück */
+const props = defineProps<{ moment: Moment; carId: string | null; carName: string; secondary?: boolean }>()
 const emit = defineEmits<{ act: [id: string] }>()
 const { t } = useI18n()
 const { formatDecimal, currencyParts } = useLocaleFormat()
@@ -51,7 +52,7 @@ function open() {
         <!-- Monatswähler; Klicks dort öffnen nicht die Karte -->
         <div @click.stop><slot /></div>
       </div>
-      <p class="text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50">{{ keepUnits(view.sentence) }}</p>
+      <p class="text-pretty font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums dark:text-gray-50" :class="secondary ? 'text-[20px] md:text-[26px]' : 'text-[26px] md:text-[36px]'">{{ keepUnits(view.sentence) }}</p>
     </div>
 
     <!-- Die gute Nachricht des Monats: die eine grüne Fläche der Seite -->

@@ -511,7 +511,7 @@ onUnmounted(() => unregisterReload?.())
               @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" @prices="openFeedPrices" />
             <StoryTileRow v-if="hasCharges" :tiles="tiles" :selected="paneTile?.id ?? null" :model-name="modelName" @open="openSheet" />
             <!-- Erst der laufende Monat, dann der Vormonat: Rückblick und Community-Block stehen zusammen -->
-            <StoryRecapHero v-if="recapStage" class="pt-2" :moment="recapStage" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapStage!, id)" />
+            <StoryRecapHero v-if="recapStage" secondary class="pt-2" :moment="recapStage" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapStage!, id)" />
           </template>
           <StoryCommunityMonth
             v-if="communityMonth && !error"
