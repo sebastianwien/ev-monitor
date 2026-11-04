@@ -229,24 +229,24 @@ const exportInvoices = () => {
     <template v-else-if="report && summary">
       <!-- KPI: BizDev -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-2xl font-bold text-indigo-400">{{ eur(summary.mrrEur) }}</div>
           <div class="text-xs text-gray-400 mt-1">MRR · ARR {{ eur(summary.arrEur) }}</div>
           <div v-if="otherCurrencies.length" class="text-[11px] text-gray-500 mt-1">
             + <span v-for="([c, v], i) in otherCurrencies" :key="c">{{ i > 0 ? ' · ' : '' }}{{ eur(v, c) }}</span> / Monat
           </div>
         </div>
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-2xl font-bold text-emerald-400">{{ summary.active }}</div>
           <div class="text-xs text-gray-400 mt-1">
             Aktiv<span v-if="summary.activeCancelling"> · {{ summary.activeCancelling }} kündigt</span>
           </div>
         </div>
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-2xl font-bold text-amber-400">{{ summary.trialing }}</div>
           <div class="text-xs text-gray-400 mt-1">Im Trial</div>
         </div>
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-2xl font-bold text-red-400">{{ summary.trialsCancelled }}</div>
           <div class="text-xs text-gray-400 mt-1">
             Trial abgebrochen · {{ summary.trialsConverted }} von {{ summary.trialsEnded }} konvertiert ({{ pct(summary.trialConversionRate) }})
@@ -256,19 +256,19 @@ const exportInvoices = () => {
 
       <!-- KPI: Accounting (window) -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-2xl font-bold text-white">{{ eur(summary.netRevenue) }}</div>
           <div class="text-xs text-gray-400 mt-1">Netto im Zeitraum · brutto {{ eur(summary.grossRevenue) }}</div>
         </div>
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-2xl font-bold text-indigo-300">{{ eur(summary.fees) }}</div>
           <div class="text-xs text-gray-400 mt-1">Stripe-Gebühren · Erstattungen {{ eur(summary.refunds) }}</div>
         </div>
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-2xl font-bold text-emerald-300">{{ eur(summary.balanceAvailable) }}</div>
           <div class="text-xs text-gray-400 mt-1">Balance verfügbar · pending {{ eur(summary.balancePending) }}</div>
         </div>
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-2xl font-bold text-white">{{ eur(summary.totalPaidAllTime) }}</div>
           <div class="text-xs text-gray-400 mt-1">Bezahlt gesamt (alle Zeit)</div>
         </div>
@@ -276,19 +276,19 @@ const exportInvoices = () => {
 
       <!-- KPI: retention -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-xl font-bold text-red-300">{{ summary.churnedPaid }} <span class="text-sm text-gray-500">({{ pct(summary.churnRate) }})</span></div>
           <div class="text-xs text-gray-400 mt-1">Churn zahlender Abos im Zeitraum</div>
         </div>
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-xl font-bold text-gray-200">{{ summary.avgSubscriptionAgeDays === null ? '-' : Math.round(summary.avgSubscriptionAgeDays) + ' Tage' }}</div>
           <div class="text-xs text-gray-400 mt-1">Ø Abo-Alter (aktiv + Trial)</div>
         </div>
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-xl font-bold text-gray-200">{{ summary.withReferralDiscount }}</div>
           <div class="text-xs text-gray-400 mt-1">Abos mit Referral-Rabatt</div>
         </div>
-        <div class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div class="text-xl font-bold text-gray-200">{{ summary.canceled }}</div>
           <div class="text-xs text-gray-400 mt-1">Storniert gesamt</div>
         </div>
@@ -296,15 +296,15 @@ const exportInvoices = () => {
 
       <!-- Charts -->
       <div class="grid md:grid-cols-2 gap-4 mb-6">
-        <div class="bg-gray-900 rounded-sm p-4 border border-gray-800 md:col-span-2">
+        <div class="edge-card rounded-xl bg-gray-700/50 p-4 md:col-span-2">
           <h3 class="text-sm font-medium text-gray-300 mb-2">Umsatz pro Monat (Netto, Gebühren, Erstattungen)</h3>
           <div class="h-64 md:h-80"><Bar :data="revenueChart" :options="revenueOptions" /></div>
         </div>
-        <div class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 p-4">
           <h3 class="text-sm font-medium text-gray-300 mb-2">MRR-Verlauf (EUR, Monatsende)</h3>
           <div class="h-64"><Line :data="mrrChart" :options="mrrOptions" /></div>
         </div>
-        <div class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <div class="edge-card rounded-xl bg-gray-700/50 p-4">
           <h3 class="text-sm font-medium text-gray-300 mb-2">Neue Abos, Kündigungen, Trial-Abbrüche</h3>
           <div class="h-64"><Bar :data="subsChart" :options="subsOptions" /></div>
         </div>
@@ -312,7 +312,7 @@ const exportInvoices = () => {
 
       <!-- Distributions -->
       <div class="grid md:grid-cols-2 gap-4 mb-6">
-        <div class="bg-gray-900 rounded-sm border border-gray-800 overflow-x-auto">
+        <div class="edge-card rounded-xl bg-gray-700/50 overflow-x-auto">
           <h3 class="text-sm font-medium text-gray-300 px-4 pt-3 pb-2">Nach Produkt (aktiv + Trial)</h3>
           <table class="w-full text-sm">
             <thead class="text-xs text-gray-500">
@@ -328,7 +328,7 @@ const exportInvoices = () => {
             </tbody>
           </table>
         </div>
-        <div class="bg-gray-900 rounded-sm border border-gray-800 overflow-x-auto">
+        <div class="edge-card rounded-xl bg-gray-700/50 overflow-x-auto">
           <h3 class="text-sm font-medium text-gray-300 px-4 pt-3 pb-2">Nach Land (bezahlte Rechnungen, OSS-Basis)</h3>
           <table class="w-full text-sm">
             <thead class="text-xs text-gray-500">
@@ -374,7 +374,7 @@ const exportInvoices = () => {
           Stornierte anzeigen ({{ summary.canceled }})
         </label>
       </div>
-      <div class="bg-gray-900 rounded-sm border border-gray-800 overflow-x-auto mb-6">
+      <div class="edge-card rounded-xl bg-gray-700/50 overflow-x-auto mb-6">
         <table class="w-full text-sm whitespace-nowrap">
           <thead class="text-xs text-gray-500">
             <tr>
@@ -421,7 +421,7 @@ const exportInvoices = () => {
           <ArrowDownTrayIcon class="w-4 h-4" /> CSV für Steuerberater
         </button>
       </div>
-      <div class="bg-gray-900 rounded-sm border border-gray-800 overflow-x-auto">
+      <div class="edge-card rounded-xl bg-gray-700/50 overflow-x-auto">
         <table class="w-full text-sm whitespace-nowrap">
           <thead class="text-xs text-gray-500">
             <tr>

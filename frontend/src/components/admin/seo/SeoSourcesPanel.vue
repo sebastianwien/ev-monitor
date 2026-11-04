@@ -64,7 +64,7 @@ const link = 'inline-flex items-center gap-1 text-xs text-indigo-300 hover:text-
 </script>
 
 <template>
-  <details class="bg-gray-900 rounded-sm border border-gray-800 p-4" @toggle="onToggle">
+  <details class="edge-card rounded-xl bg-gray-700/50 p-4" @toggle="onToggle">
     <summary class="cursor-pointer text-sm font-semibold text-gray-200">Datenquellen und Abrufe</summary>
     <p class="text-xs text-gray-400 mt-2">Alle Daten werden jede Nacht automatisch abgerufen. Die Originaldaten liegen in den verlinkten Tools.</p>
     <p v-if="message" class="text-xs text-gray-300 mt-2" role="status">{{ message }}</p>

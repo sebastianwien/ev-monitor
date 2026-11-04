@@ -90,7 +90,7 @@ const isError = (r: SeoAuditRow, c: string) => r.findings.some(f => f.check === 
 
     <template v-else-if="view?.day">
       <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <button v-for="t in tiles" :key="t.label" type="button" class="text-left bg-gray-900 rounded-sm px-4 py-3 border border-gray-800 hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        <button v-for="t in tiles" :key="t.label" type="button" class="text-left edge-card rounded-xl bg-gray-700/50 px-4 py-3 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 @click="filter = t.filter">
           <span :class="['block text-xl font-bold tabular-nums', t.bad ? 'text-red-300' : 'text-indigo-300']">{{ t.value }}</span>
           <span class="block text-xs text-gray-300 mt-1">{{ t.label }}</span>
@@ -145,7 +145,7 @@ const isError = (r: SeoAuditRow, c: string) => r.findings.some(f => f.check === 
       </SeoDataTable>
     </template>
 
-    <section v-if="variants.length" class="bg-gray-900 rounded-sm border border-gray-800 p-4" aria-labelledby="seo-duplicates">
+    <section v-if="variants.length" class="edge-card rounded-xl bg-gray-700/50 p-4" aria-labelledby="seo-duplicates">
       <h3 id="seo-duplicates" class="text-sm font-semibold text-gray-200">Duplicate URLs <span class="font-normal text-xs text-gray-500">Search Console, letzte 90 Tage</span></h3>
       <p class="text-xs text-gray-400 mt-1 mb-3">{{ GLOSSARY.duplicate.text }} Abhilfe: alte Schreibweisen per 301 auf die kanonische Adresse umleiten und intern nur noch diese verlinken.</p>
       <ul class="space-y-2">

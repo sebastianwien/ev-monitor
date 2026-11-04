@@ -148,7 +148,7 @@ onMounted(load)
 
       <template v-else>
         <!-- Tagesverlauf nach Ergebnis -->
-        <div v-if="hasImports" class="bg-gray-900 rounded-sm p-3 md:p-4 border border-gray-800 mb-4">
+        <div v-if="hasImports" class="edge-card rounded-xl bg-gray-700/50 p-3 md:p-4 mb-4">
           <h3 class="text-sm font-medium text-gray-300 mb-2">Aufrufe je Tag</h3>
           <div class="h-44 md:h-60"><Bar :data="chartData" :options="chartOptions" /></div>
         </div>
@@ -159,7 +159,7 @@ onMounted(load)
             v-for="c in cards"
             :key="`${c.provider}-${c.channel}`"
             data-testid="import-source-card"
-            class="bg-gray-900 rounded-sm p-4 border border-gray-800 min-w-0"
+            class="edge-card rounded-xl bg-gray-700/50 p-4 min-w-0"
           >
             <header class="flex items-start justify-between gap-2 mb-3">
               <h3 class="font-medium text-white break-words">{{ sourceLabel(c.provider, c.channel) }}</h3>

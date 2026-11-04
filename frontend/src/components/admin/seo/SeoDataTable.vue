@@ -81,7 +81,7 @@ const colspan = computed(() => props.columns.length + (props.expandable ? 1 : 0)
 </script>
 
 <template>
-  <div class="bg-gray-900 rounded-sm border border-gray-800">
+  <div class="edge-card rounded-xl bg-gray-700/50">
     <div class="flex items-center gap-3 px-3 py-2 border-b border-gray-800 flex-wrap">
       <label v-if="searchColumns.length" class="relative flex-1 min-w-[12rem] max-w-sm">
         <span class="sr-only">{{ searchPlaceholder }}</span>

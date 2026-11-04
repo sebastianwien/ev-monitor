@@ -117,7 +117,7 @@ const stackedOptions = { ...baseOptions, scales: { x: { ...baseOptions.scales.x,
 
     <div v-else-if="data" class="space-y-6" :class="{ 'opacity-60': loading }">
       <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <div v-for="t in tiles" :key="t.label" class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+        <div v-for="t in tiles" :key="t.label" class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
           <div :class="['text-xl font-bold tabular-nums', t.color]">{{ t.value }}</div>
           <div class="text-xs text-gray-300 mt-1">{{ t.label }}</div>
           <div class="text-xs text-gray-500">{{ t.sub }}</div>
@@ -127,26 +127,26 @@ const stackedOptions = { ...baseOptions, scales: { x: { ...baseOptions.scales.x,
       <p v-if="!data.days.length" class="text-gray-400 text-sm">Keine Aufnahmen im Zeitraum.</p>
 
       <template v-else>
-        <section class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <section class="edge-card rounded-xl bg-gray-700/50 p-4">
           <h3 class="text-sm font-semibold text-gray-200 mb-2">Aufrufe je Tag</h3>
           <div class="h-56"><Bar :data="callsChart" :options="stackedOptions" /></div>
         </section>
-        <section class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <section class="edge-card rounded-xl bg-gray-700/50 p-4">
           <h3 class="text-sm font-semibold text-gray-200 mb-2">Kosten je Tag (USD)</h3>
           <div class="h-56"><Line :data="costChart" :options="baseOptions" /></div>
         </section>
-        <section class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <section class="edge-card rounded-xl bg-gray-700/50 p-4">
           <h3 class="text-sm font-semibold text-gray-200 mb-2">Tokens je Tag</h3>
           <div class="h-56"><Bar :data="tokenChart" :options="stackedOptions" /></div>
         </section>
-        <section class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <section class="edge-card rounded-xl bg-gray-700/50 p-4">
           <h3 class="text-sm font-semibold text-gray-200 mb-2">Latenz je Tag (ms, Mittel)</h3>
           <div class="h-56"><Line :data="latencyChart" :options="baseOptions" /></div>
         </section>
       </template>
 
       <div class="grid md:grid-cols-3 gap-4">
-        <section class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <section class="edge-card rounded-xl bg-gray-700/50 p-4">
           <h3 class="text-sm font-semibold text-gray-200 mb-3">Modelle</h3>
           <p v-if="!data.models.length" class="text-sm text-gray-500">Keine</p>
           <ul v-else class="space-y-2 text-sm">
@@ -163,7 +163,7 @@ const stackedOptions = { ...baseOptions, scales: { x: { ...baseOptions.scales.x,
           </ul>
         </section>
 
-        <section class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <section class="edge-card rounded-xl bg-gray-700/50 p-4">
           <h3 class="text-sm font-semibold text-gray-200 mb-3">Fehler</h3>
           <p v-if="!data.errors.length" class="text-sm text-gray-500">Keine Fehler im Zeitraum</p>
           <ul v-else class="space-y-2 text-sm">
@@ -174,7 +174,7 @@ const stackedOptions = { ...baseOptions, scales: { x: { ...baseOptions.scales.x,
           </ul>
         </section>
 
-        <section class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <section class="edge-card rounded-xl bg-gray-700/50 p-4">
           <h3 class="text-sm font-semibold text-gray-200 mb-3">Top-Nutzer</h3>
           <p v-if="!data.topUsers.length" class="text-sm text-gray-500">Keine</p>
           <ul v-else class="space-y-2 text-sm">

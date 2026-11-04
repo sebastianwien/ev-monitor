@@ -484,7 +484,7 @@ const router = createRouter({
             path: '/admin',
             name: 'admin',
             component: () => import('../views/AdminView.vue'),
-            meta: { requiresAuth: true, requiresAdmin: true }
+            meta: { requiresAuth: true, requiresAdmin: true, plainBackground: true, workspaceFrame: true }
         },
         { path: '/admin/webhooks', redirect: { path: '/admin', query: { tab: 'webhooks' } } },
         { path: '/admin/umfragen', redirect: { path: '/admin', query: { tab: 'surveys' } } },

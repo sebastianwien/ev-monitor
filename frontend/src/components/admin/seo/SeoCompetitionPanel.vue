@@ -118,7 +118,7 @@ const ideaColumns: SeoColumn<SeoIdeaRow>[] = [
         </div>
       </section>
 
-      <details class="bg-gray-900 rounded-sm border border-gray-800 p-4">
+      <details class="edge-card rounded-xl bg-gray-700/50 p-4">
         <summary class="cursor-pointer text-sm font-semibold text-gray-200">Domains in den Top 10</summary>
         <p class="text-xs text-gray-500 mt-2 mb-2">Alle fremden Domains bei unseren beobachteten Keywords. Oben die, die uns am häufigsten überholen. Plattformen wie YouTube oder Wikipedia sind kaum angreifbar, aussagekräftiger ist die SERP je Keyword oben.</p>
         <SeoDataTable :columns="competitorColumns" :rows="view.competitors" :row-key="r => r.domain" :search-keys="['domain']"

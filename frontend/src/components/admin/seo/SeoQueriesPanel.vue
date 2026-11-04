@@ -143,7 +143,7 @@ const trendOptions = {
 
 <template>
   <div class="space-y-3" :class="{ 'opacity-60': loading }">
-    <details class="bg-gray-900 rounded-sm border border-gray-800 p-4">
+    <details class="edge-card rounded-xl bg-gray-700/50 p-4">
       <summary class="cursor-pointer text-sm font-semibold text-gray-200">Brand-Suchen je Woche: Wird EV Monitor bekannter?</summary>
       <p class="text-xs text-gray-500 mt-2 mb-2">Letzte 26 Wochen, alle Märkte. Steigt die Kurve, suchen mehr Menschen gezielt nach uns, etwa nach einem Forum-Beitrag oder einer Erwähnung. Kampagnenstarts hier gegenlesen.</p>
       <div v-if="trend.length" class="h-56"><Line :data="trendData" :options="trendOptions" /></div>

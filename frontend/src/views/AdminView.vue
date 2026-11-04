@@ -34,6 +34,7 @@ import AdminSpecsTab from '../components/admin/AdminSpecsTab.vue'
 import AdminSpecSuggestionsTab from '../components/admin/AdminSpecSuggestionsTab.vue'
 import AdminTariffsTab from '../components/admin/AdminTariffsTab.vue'
 import AdminSeoTab from '../components/admin/AdminSeoTab.vue'
+import ChoiceChip from '../components/shared/ChoiceChip.vue'
 import { adminRatingService } from '../api/adminRatingService'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
@@ -385,8 +386,9 @@ const onResizeUp = () => {
 </script>
 
 <template>
-  <div class="text-gray-100 min-h-screen bg-gray-900">
-    <div class="px-3 py-3 sm:px-4">
+  <!-- Backoffice: immer dunkel (dark-Klasse), damit die Admin-Tabs mit ihren festen Dunkelfarben passen; Kopf kommt aus WorkspaceFrame -->
+  <div class="dark text-gray-100 min-h-screen bg-gray-900">
+    <div class="mx-auto max-w-7xl px-3 py-4 sm:px-6">
       <!-- Header -->
       <div class="mb-6">
         <h1 class="text-2xl font-bold text-white">Admin Dashboard</h1>
@@ -394,8 +396,8 @@ const onResizeUp = () => {
       </div>
 
       <!-- Tabs -->
-      <div class="flex gap-1 mb-6 bg-gray-900 rounded-sm p-1 w-fit max-w-full overflow-x-auto">
-        <button
+      <div class="flex flex-wrap gap-2 mb-6">
+        <ChoiceChip
           v-for="tab in ([
             { key: 'users', label: 'User' },
             { key: 'growth', label: 'User-Wachstum' },
@@ -414,16 +416,12 @@ const onResizeUp = () => {
             { key: 'wartung', label: 'Wartung' },
           ] as { key: Tab; label: string }[])"
           :key="tab.key"
+          size="sm"
+          :active="activeTab === tab.key"
           @click="setTab(tab.key)"
-          :class="[
-            'px-4 py-2 rounded-sm text-sm font-medium transition',
-            activeTab === tab.key
-              ? 'bg-indigo-600 text-white'
-              : 'text-gray-400 hover:text-gray-200 hover:bg-gray-800'
-          ]"
         >
           {{ tab.label }}
-        </button>
+        </ChoiceChip>
       </div>
 
       <!-- Tab: User Table -->
@@ -443,7 +441,7 @@ const onResizeUp = () => {
 
         <div v-if="usersLoading" class="text-gray-400 text-sm py-8 text-center">Lade...</div>
         <div v-else-if="usersError" class="text-red-400 text-sm py-4">{{ usersError }}</div>
-        <div v-else class="overflow-x-auto rounded-sm border border-gray-800">
+        <div v-else class="overflow-x-auto edge-card rounded-xl">
           <table class="text-sm text-left" :style="{ tableLayout: 'fixed', width: tableWidth }">
             <colgroup>
               <col v-for="(w, i) in colWidths" :key="i" :style="{ width: w + 'px', minWidth: '60px' }" />
@@ -546,18 +544,18 @@ const onResizeUp = () => {
         <h2 class="text-lg font-semibold text-white mb-4">User-Wachstum</h2>
         <div v-if="growthLoading" class="text-gray-400 text-sm py-8 text-center">Lade...</div>
         <div v-else-if="growthError" class="text-red-400 text-sm py-4">{{ growthError }}</div>
-        <div v-else class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <div v-else class="edge-card rounded-xl bg-gray-700/50 p-4">
           <div class="h-96">
             <Line :data="growthChartData" :options="growthChartOptions" />
           </div>
         </div>
         <!-- Summary -->
         <div class="mt-4 flex gap-4 flex-wrap">
-          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="edge-card rounded-xl bg-gray-700/50 px-5 py-4 flex-1 min-w-40">
             <div class="text-2xl font-bold text-indigo-400">{{ growthData.length > 0 ? growthData[growthData.length - 1].cumulativeUsers : 0 }}</div>
             <div class="text-xs text-gray-400 mt-1">User gesamt</div>
           </div>
-          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="edge-card rounded-xl bg-gray-700/50 px-5 py-4 flex-1 min-w-40">
             <div class="text-2xl font-bold text-emerald-400">{{ growthData.reduce((s, r) => s + r.newUsers, 0) }}</div>
             <div class="text-xs text-gray-400 mt-1">Aktivierungstage total</div>
           </div>
@@ -595,22 +593,22 @@ const onResizeUp = () => {
         </div>
         <div v-if="activityLoading" class="text-gray-400 text-sm py-8 text-center">Lade...</div>
         <div v-else-if="activityError" class="text-red-400 text-sm py-4">{{ activityError }}</div>
-        <div v-else class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+        <div v-else class="edge-card rounded-xl bg-gray-700/50 p-4">
           <div class="h-96">
             <Line :data="activityChartData" :options="activityChartOptions" />
           </div>
         </div>
         <!-- Summary -->
         <div class="mt-4 flex gap-4 flex-wrap">
-          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="edge-card rounded-xl bg-gray-700/50 px-5 py-4 flex-1 min-w-40">
             <div class="text-2xl font-bold text-amber-400">{{ filteredActivityData.reduce((s, r) => s + r.chargeCount, 0) }}</div>
             <div class="text-xs text-gray-400 mt-1">Ladevorgange im Zeitraum</div>
           </div>
-          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="edge-card rounded-xl bg-gray-700/50 px-5 py-4 flex-1 min-w-40">
             <div class="text-2xl font-bold text-blue-400">{{ filteredActivityData.reduce((s, r) => s + Number(r.kwhTotal), 0).toFixed(1) }}</div>
             <div class="text-xs text-gray-400 mt-1">kWh im Zeitraum</div>
           </div>
-          <div class="bg-gray-900 rounded-sm px-5 py-4 border border-gray-800 flex-1 min-w-40">
+          <div class="edge-card rounded-xl bg-gray-700/50 px-5 py-4 flex-1 min-w-40">
             <div class="text-2xl font-bold text-emerald-400">{{ filteredActivityData.reduce((s, r) => s + Number(r.costTotal), 0).toFixed(2) }} €</div>
             <div class="text-xs text-gray-400 mt-1">Kosten im Zeitraum</div>
           </div>
@@ -643,7 +641,7 @@ const onResizeUp = () => {
       <!-- Tab: Wartung -->
       <div v-else-if="activeTab === 'wartung'">
         <h2 class="text-lg font-semibold text-white mb-4">Wartung</h2>
-        <div class="max-w-md bg-gray-900 rounded-sm p-6 border border-gray-800">
+        <div class="max-w-md edge-card rounded-xl bg-gray-700/50 p-6">
           <h3 class="text-base font-semibold text-white mb-1">Telemetrie-Config neu pushen</h3>
           <p class="text-sm text-gray-400 mb-5">
             Schickt das aktuelle Feldset an alle Fahrzeuge, die bereits auf Telemetrie laufen.
@@ -683,7 +681,7 @@ const onResizeUp = () => {
 
       <div v-else-if="activeTab === 'impersonate'">
         <h2 class="text-lg font-semibold text-white mb-4">Als User einloggen</h2>
-        <div class="max-w-md bg-gray-900 rounded-sm p-6 border border-gray-800">
+        <div class="max-w-md edge-card rounded-xl bg-gray-700/50 p-6">
           <p class="text-sm text-gray-400 mb-5">Generiert ein 1h-Token fur den Ziel-User.</p>
 
           <div v-if="impersonateError" class="mb-4 p-3 bg-red-900/40 border border-red-700 text-red-300 text-sm rounded-sm">

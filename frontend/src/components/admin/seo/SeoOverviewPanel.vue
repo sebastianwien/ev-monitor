@@ -200,7 +200,7 @@ const sign = (n: number) => `${n > 0 ? '+' : ''}${num(n)}`
         Für den Zeitraum davor fehlen Daten, deshalb gibt es keine Veränderung in Prozent. Wähle einen kürzeren Zeitraum für einen Vergleich.
       </p>
 
-      <section v-if="tasks.length" class="bg-gray-900 rounded-sm border border-gray-800 p-4" aria-labelledby="seo-tasks">
+      <section v-if="tasks.length" class="edge-card rounded-xl bg-gray-700/50 p-4" aria-labelledby="seo-tasks">
         <h3 id="seo-tasks" class="text-sm font-semibold text-gray-100">Top-Aufgaben</h3>
         <p class="text-xs text-gray-400 mt-0.5 mb-3">Sortiert nach Klick-Potenzial: geschätzte zusätzliche Klicks in {{ overview.periodDays }} Tagen. Klick führt zur Zeile.</p>
         <ul class="divide-y divide-gray-800">
@@ -229,7 +229,7 @@ const sign = (n: number) => `${n > 0 ? '+' : ''}${num(n)}`
       <section v-for="g in groups" :key="g.title" :aria-label="g.title">
         <h3 class="text-sm font-semibold text-gray-200">{{ g.title }} <span class="font-normal text-xs text-gray-500">{{ g.hint }}</span></h3>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-2">
-          <div v-for="t in g.tiles" :key="t.label" class="bg-gray-900 rounded-sm px-4 py-3 border border-gray-800">
+          <div v-for="t in g.tiles" :key="t.label" class="edge-card rounded-xl bg-gray-700/50 px-4 py-3">
             <div class="text-xl font-bold tabular-nums text-indigo-300">{{ t.value }}</div>
             <div class="text-xs text-gray-300 mt-1">{{ t.label }}</div>
             <div :class="['text-xs', t.up === null ? 'text-gray-500' : t.up ? 'text-emerald-400' : 'text-red-400']">{{ t.delta }}</div>
@@ -242,7 +242,7 @@ const sign = (n: number) => `${n > 0 ? '+' : ''}${num(n)}`
         <h3 id="seo-movers" class="text-sm font-semibold text-gray-200">Gewinner und Verlierer <span class="font-normal text-xs text-gray-500">Landingpages nach Klicks zum Vorzeitraum</span></h3>
         <div class="grid md:grid-cols-2 gap-3 mt-2">
           <div v-for="list in [{ title: 'Gewinner', rows: moved.winners, cls: 'text-emerald-300' }, { title: 'Verlierer', rows: moved.losers, cls: 'text-red-300' }]" :key="list.title"
-               class="bg-gray-900 rounded-sm border border-gray-800 p-3">
+               class="edge-card rounded-xl bg-gray-700/50 p-3">
             <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1">{{ list.title }}</h4>
             <p v-if="!list.rows.length" class="text-xs text-gray-500">Keine Landingpage.</p>
             <ul class="space-y-1">
@@ -261,7 +261,7 @@ const sign = (n: number) => `${n > 0 ? '+' : ''}${num(n)}`
         <SeoChannelTable :rows="campaigns" />
       </section>
 
-      <details v-if="findings.length" class="bg-gray-900 rounded-sm border border-gray-800 p-4">
+      <details v-if="findings.length" class="edge-card rounded-xl bg-gray-700/50 p-4">
         <summary class="cursor-pointer text-sm font-semibold text-gray-200">Alle Befunde</summary>
         <ul class="divide-y divide-gray-800 mt-2">
           <li v-for="a in findings" :key="a.key">
@@ -278,7 +278,7 @@ const sign = (n: number) => `${n > 0 ? '+' : ''}${num(n)}`
         </ul>
       </details>
 
-      <section class="bg-gray-900 rounded-sm p-4 border border-gray-800">
+      <section class="edge-card rounded-xl bg-gray-700/50 p-4">
         <h3 class="text-sm font-semibold text-gray-200 mb-1">Verlauf je Tag</h3>
         <p class="text-xs text-gray-500 mb-2">{{ date(overview.from) }} bis {{ date(overview.to) }}, Impressionen und Klicks aus der Search Console.</p>
         <div class="h-64"><Line :data="chartData" :options="chartOptions" /></div>
