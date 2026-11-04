@@ -189,7 +189,10 @@ const selectedId = computed(() => {
 
 <template>
   <BottomSheet ref="sheet" :label="`${date.weekday}, ${date.long}`" testid="story-day-sheet" edge
-    panel-class="h-[88dvh] sm:max-w-xl lg:h-[82vh] lg:max-w-5xl" @close="emit('close')">
+    :panel-class="`${detail && !wide ? 'h-[88dvh]' : 'min-h-[50dvh]'} sm:max-w-xl lg:h-[82vh] lg:max-w-5xl`" @close="emit('close')">
+    <!-- Höhe: der Tag so hoch wie sein Inhalt (mindestens halb, damit Laden und Tageswechsel nicht springen),
+         ein geöffneter Eintrag bekommt das volle Blatt -->
+
     <div class="relative flex min-h-0 flex-1 bg-white dark:bg-gray-900 lg:grid lg:grid-cols-2">
       <!-- Ebene 1: der Tag -->
       <section class="flex min-h-0 min-w-0 flex-1 flex-col" :inert="!wide && !!detail" data-testid="day-pane">
