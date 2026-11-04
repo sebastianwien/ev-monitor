@@ -63,6 +63,12 @@ html[data-ci="v1"]:not(.dark) :is(.edge-card, .edge-box) {
   border-width: 1px;
   box-shadow: var(--ci-shadow);
 }
+@media (min-width: 768px) {
+  html[data-ci="v1"]:not(.dark) :is(.md\:edge-card, .md\:edge-box) { border-width: 1px; box-shadow: var(--ci-shadow); }
+}
+@media (min-width: 1024px) {
+  html[data-ci="v1"]:not(.dark) .lg\:edge-box { border-width: 1px; box-shadow: var(--ci-shadow); }
+}
 
 /* Knöpfe ohne harten Versatz-Schatten, beim Drücken leicht kleiner */
 html[data-ci="v1"]:not(.dark) .btn-3d {
@@ -80,4 +86,23 @@ html[data-ci="v1"]:not(.dark) .ci-selected {
   background-color: var(--ci-violet);
   border-color: var(--ci-violet);
   color: #fff;
+}
+
+/* Variante edge1 (?ci=edge1): App-CI unverändert, nur der harte Schatten 1 px statt 2 px, Drücken sinkt 1 px */
+html[data-ci="edge1"]:not(.dark) :is(.edge-card, .edge-box) {
+  box-shadow: 1px 1px 0 0 var(--color-edge);
+}
+@media (min-width: 768px) {
+  html[data-ci="edge1"]:not(.dark) :is(.md\:edge-card, .md\:edge-box) { box-shadow: 1px 1px 0 0 var(--color-edge); }
+}
+@media (min-width: 1024px) {
+  html[data-ci="edge1"]:not(.dark) .lg\:edge-box { box-shadow: 1px 1px 0 0 var(--color-edge); }
+}
+html[data-ci="edge1"]:not(.dark) .btn-3d {
+  box-shadow: 1px 1px 0 0 var(--btn-shadow-color, var(--color-edge));
+}
+html[data-ci="edge1"]:not(.dark) .btn-3d:active,
+html[data-ci="edge1"]:not(.dark) .btn-3d.active {
+  box-shadow: 0 0 0 0 var(--btn-shadow-color, var(--color-edge));
+  transform: translate(1px, 1px);
 }

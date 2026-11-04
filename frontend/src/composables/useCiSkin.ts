@@ -3,14 +3,18 @@
 import type { LocationQuery, RouteRecordNameGeneric } from 'vue-router'
 
 export const CI_SKIN_KEY = 'ci-skin'
-export type CiSkin = 'v1'
+// v1: Marketing-Entwurf; edge1: App-CI mit 1 px statt 2 px Schatten an der Kante
+const SKINS = ['v1', 'edge1'] as const
+export type CiSkin = typeof SKINS[number]
 
 const SKIN_ROUTES = new Set<RouteRecordNameGeneric>(['story'])
 
+const isSkin = (v: unknown): v is CiSkin => SKINS.includes(v as CiSkin)
+
 export function resolveCiSkin(query: unknown, stored: string | null): CiSkin | null {
-  if (query === 'v1') return 'v1'
+  if (isSkin(query)) return query
   if (query === 'off') return null
-  return stored === 'v1' ? 'v1' : null
+  return isSkin(stored) ? stored : null
 }
 
 function readStored(): string | null {
@@ -27,7 +31,7 @@ function writeStored(skin: CiSkin | null) {
 export function applyCiSkin(to: { name?: RouteRecordNameGeneric; query: LocationQuery }) {
   const param = to.query.ci
   const skin = resolveCiSkin(param, readStored())
-  if (param === 'v1' || param === 'off') writeStored(skin)
+  if (isSkin(param) || param === 'off') writeStored(skin)
   const root = document.documentElement
   if (skin && SKIN_ROUTES.has(to.name)) root.dataset.ci = skin
   else delete root.dataset.ci
