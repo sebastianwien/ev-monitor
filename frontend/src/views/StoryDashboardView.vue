@@ -505,7 +505,7 @@ onUnmounted(() => unregisterReload?.())
             <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
               {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
             </p>
-            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :key="`${month.year}-${month.month}`" class="story-in" style="--story-delay: 60ms" :days="days" @open-day="onOpenDay" @intent-day="onIntentDay" />
+            <DataQualityLine v-if="hasActivity && heroMode !== 'live'" :key="`${month.year}-${month.month}`" class="story-in" style="--story-delay: 60ms" :days="days" @open-day="onOpenDay" @intent-day="onIntentDay" />
             <StoryLatestCards v-if="story.latest.value" class="story-in" style="--story-delay: 60ms" :latest="story.latest.value" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
             <StoryFeed
               v-if="narrow && showFeed"

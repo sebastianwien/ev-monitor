@@ -149,6 +149,13 @@ describe('DataQualityLine', () => {
     expect(text(host)).toContain('Tag antippen für Details')
   })
 
+  it('Monat nur mit Fahrten: Säulen stehen, Legende nennt nur "gefahren"', () => {
+    const host = mount(days([], 25, [2, 3]))
+    expect(host.querySelectorAll('[data-role="km"]')).toHaveLength(2)
+    const legend = [...host.querySelectorAll('[data-testid="story-days-legend"] > span')].map(x => x.textContent!.trim())
+    expect(legend).toEqual(['gefahren'])
+  })
+
   it('Tagesanzeige nennt Fahrten mit km', async () => {
     const host = mount(days([16], 25, [16]))
     await settle()

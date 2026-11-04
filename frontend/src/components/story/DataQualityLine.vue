@@ -89,6 +89,7 @@ const tip = computed(() => {
 /** Höchste km eines Tages: Maßstab der Fahrt-Säulen. */
 const maxKm = computed(() => Math.max(0, ...props.days.map(d => d.tripKm)))
 const hasTrips = computed(() => props.days.some(d => d.trips > 0))
+const hasCharges = computed(() => props.days.some(d => d.charges > 0))
 /** Säulenhöhe in Prozent; eine Fahrt ohne km bleibt als Strich sichtbar. */
 const kmHeight = (d: DayCoverage) => maxKm.value > 0 ? `${Math.max(12, Math.round((d.tripKm / maxKm.value) * 100))}%` : '12%'
 /** Mitte des Felds in Prozent. */
@@ -152,7 +153,7 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.leng
     </div>
     <!-- Legende: nur, was im Monat vorkommt -->
     <div data-testid="story-days-legend" class="-mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
-      <span class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-green-700 dark:bg-green-400" />{{ t('story.days_legend_charged') }}</span>
+      <span v-if="hasCharges" class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-green-700 dark:bg-green-400" />{{ t('story.days_legend_charged') }}</span>
       <span v-if="hasTrips" class="inline-flex items-center gap-1"><i class="h-2 w-2.5 rounded-[2px] bg-sky-500 dark:bg-sky-400" />{{ t('story.days_legend_drove') }}</span>
       <small data-testid="story-days-hint" class="ml-auto text-[11px] text-gray-500 dark:text-gray-400"><span class="md:hidden">{{ t('story.days_tap_hint') }}</span><span class="hidden md:inline">{{ t('story.days_click_hint') }}</span></small>
     </div>
