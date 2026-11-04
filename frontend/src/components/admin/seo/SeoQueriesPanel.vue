@@ -15,19 +15,28 @@ import { GLOSSARY } from './seoGlossary'
 import { num, pct, pos } from './seoFormat'
 import type { SeoColumn } from './seoTable'
 import { usd, visibilityShare } from './seoCompetition'
+import { keywordTopic, summarizeTopics, TOPIC_LABELS, type KeywordTopic } from './seoAnalysis'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler)
 
-const props = defineProps<{ days: SeoPeriod; market: SeoMarket }>()
+const props = defineProps<{ days: SeoPeriod; market: SeoMarket; search: string }>()
 const filter = defineModel<SeoQueryFilter>('filter', { required: true })
 const brand = defineModel<SeoBrandFilter>('brand', { required: true })
 
 const FILTERS: SeoQueryFilter[] = ['ALL', 'STRIKING_DISTANCE', 'CANNIBALIZED', 'ADWORDS']
 const BRANDS: { key: SeoBrandFilter; label: string }[] = [
-  { key: 'ALL', label: 'Alle Begriffe' }, { key: 'NON_BRAND', label: 'Ohne Markennamen' }, { key: 'BRAND', label: 'Mit Markennamen' },
+  { key: 'ALL', label: 'Alle Keywords' }, { key: 'NON_BRAND', label: 'Non-Brand' }, { key: 'BRAND', label: 'Brand' },
 ]
 
 const rows = ref<SeoQueryRow[]>([])
+const topic = ref<KeywordTopic | 'ALL'>('ALL')
+const topics = computed(() => summarizeTopics(rows.value))
+const visibleRows = computed(() => (topic.value === 'ALL' ? rows.value : rows.value.filter(r => keywordTopic(r.query, r.brand) === topic.value)))
+const hasDelta = computed(() => rows.value.some(r => r.clicksPrevious != null))
+const hasPotential = computed(() => rows.value.some(r => r.potentialClicks !== undefined))
+const delta = (r: SeoQueryRow) => (r.clicksPrevious == null ? null : r.clicks - r.clicksPrevious)
+const deltaText = (r: SeoQueryRow) => { const d = delta(r); return !d ? '-' : `${d > 0 ? '+' : ''}${num(d)}` }
+const deltaClass = (r: SeoQueryRow) => { const d = delta(r) ?? 0; return d > 0 ? 'text-emerald-300' : d < 0 ? 'text-red-300' : 'text-gray-500' }
 const trend = ref<SeoBrandWeek[]>([])
 const loading = ref(false)
 const error = ref('')
@@ -42,7 +51,7 @@ async function load() {
   try {
     rows.value = await getSeoQueries(props.days, brand.value, filter.value, props.market)
   } catch {
-    error.value = 'Die Suchbegriffe konnten nicht geladen werden.'
+    error.value = 'Die Keywords konnten nicht geladen werden.'
   } finally {
     loading.value = false
   }
@@ -82,14 +91,18 @@ onMounted(() => {
 
 const g = (k: string) => `${GLOSSARY[k].term}: ${GLOSSARY[k].text}`
 const columns = computed<SeoColumn<SeoQueryRow>[]>(() => [
-  { key: 'query', label: 'Suchbegriff', value: r => r.query },
-  { key: 'impressions', label: 'Impressionen', hint: g('impressions'), numeric: true, value: r => r.impressions, format: r => num(r.impressions) },
-  { key: 'clicks', label: 'Klicks', hint: g('clicks'), numeric: true, value: r => r.clicks, format: r => num(r.clicks) },
-  { key: 'ctr', label: 'Klickrate', hint: g('ctr'), numeric: true, value: r => r.ctr, format: r => pct(r.ctr), csv: r => r.ctr * 100 },
-  { key: 'position', label: 'Position', hint: g('position'), numeric: true, value: r => r.avgPosition || null, format: r => pos(r.avgPosition) },
+  { key: 'query', label: 'Keyword', value: r => r.query },
+  { key: 'topic', label: 'Cluster', hint: g('topic'), value: r => TOPIC_LABELS[keywordTopic(r.query, r.brand)] },
+  { key: 'impressions', label: 'Impressionen', hint: g('impressions'), source: 'GSC', numeric: true, value: r => r.impressions, format: r => num(r.impressions) },
+  { key: 'clicks', label: 'Klicks', hint: g('clicks'), source: 'GSC', numeric: true, value: r => r.clicks, format: r => num(r.clicks) },
+  ...(hasDelta.value ? [{ key: 'delta', label: 'Δ Klicks', hint: g('clicksDelta'), numeric: true, value: delta, format: deltaText }] : []),
+  { key: 'ctr', label: 'CTR', hint: g('ctr'), source: 'GSC', numeric: true, value: r => r.ctr, format: r => pct(r.ctr), csv: r => r.ctr * 100 },
+  { key: 'position', label: 'Ø Position', hint: g('position'), source: 'GSC', numeric: true, value: r => r.avgPosition || null, format: r => pos(r.avgPosition) },
+  ...(hasPotential.value ? [{ key: 'potential', label: 'Klick-Potenzial', hint: g('potential'), numeric: true, value: (r: SeoQueryRow) => r.potentialClicks || null,
+    format: (r: SeoQueryRow) => (r.potentialClicks ? `+${num(r.potentialClicks)}` : '-') }] : []),
   ...(metrics.value.size ? volumeColumns() : []),
-  { key: 'topPath', label: 'Beste Seite', hint: 'Unsere Seite mit den meisten Klicks für den Begriff', value: r => r.topPath },
-  { key: 'pages', label: 'Seiten', hint: 'Wie viele unserer Seiten für den Begriff erschienen sind', numeric: true, value: r => r.pageCount },
+  { key: 'topPath', label: 'Beste Landingpage', hint: 'Unsere Seite mit den meisten Klicks für das Keyword', value: r => r.topPath },
+  { key: 'pages', label: 'Seiten', hint: 'Wie viele unserer Seiten für das Keyword ranken', source: 'GSC', numeric: true, value: r => r.pageCount },
   { key: 'finding', label: 'Befund', value: r => [r.finding ? FINDINGS[r.finding]?.label : '', r.adwordsCandidate ? FINDINGS.ADWORDS.label : ''].filter(Boolean).join(', ') || null },
 ])
 
@@ -97,9 +110,9 @@ function volumeColumns(): SeoColumn<SeoQueryRow>[] {
   const vol = (r: SeoQueryRow) => metrics.value.get(r.query)?.volume ?? null
   const share = (r: SeoQueryRow) => visibilityShare(r.impressions, props.days, vol(r))
   return [
-    { key: 'volume', label: 'Suchvolumen', hint: g('volume'), numeric: true, value: vol, format: r => (vol(r) == null ? '-' : num(vol(r) as number)) },
-    { key: 'share', label: 'Sichtbarkeit', hint: g('share'), numeric: true, value: share, format: r => (share(r) == null ? '-' : pct(share(r) as number, 0)), csv: r => (share(r) == null ? null : (share(r) as number) * 100) },
-    { key: 'cpc', label: 'CPC', hint: g('cpc'), numeric: true, value: r => metrics.value.get(r.query)?.cpc ?? null, format: r => usd(metrics.value.get(r.query)?.cpc) },
+    { key: 'volume', label: 'Suchvolumen', hint: g('volume'), source: 'DataForSEO', numeric: true, value: vol, format: r => (vol(r) == null ? '-' : num(vol(r) as number)) },
+    { key: 'share', label: 'Impression Share', hint: g('share'), numeric: true, value: share, format: r => (share(r) == null ? '-' : pct(share(r) as number, 0)), csv: r => (share(r) == null ? null : (share(r) as number) * 100) },
+    { key: 'cpc', label: 'CPC', hint: g('cpc'), source: 'DataForSEO', numeric: true, value: r => metrics.value.get(r.query)?.cpc ?? null, format: r => usd(metrics.value.get(r.query)?.cpc) },
   ]
 }
 
@@ -112,8 +125,8 @@ const btn = (active: boolean) => [
 const trendData = computed(() => ({
   labels: trend.value.map(w => new Date(w.weekStart).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' })),
   datasets: [
-    { label: 'Suchen mit Markennamen (Impressionen)', data: trend.value.map(w => w.brandImpressions), borderColor: 'rgb(52, 211, 153)', backgroundColor: 'rgba(52, 211, 153, 0.15)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y' },
-    { label: 'davon Klicks', data: trend.value.map(w => w.brandClicks), borderColor: 'rgb(251, 191, 36)', backgroundColor: 'rgba(251, 191, 36, 0.1)', fill: false, tension: 0.3, pointRadius: 2, yAxisID: 'y' },
+    { label: 'Brand-Impressionen', data: trend.value.map(w => w.brandImpressions), borderColor: 'rgb(52, 211, 153)', backgroundColor: 'rgba(52, 211, 153, 0.15)', fill: true, tension: 0.3, pointRadius: 2, yAxisID: 'y' },
+    { label: 'Brand-Klicks', data: trend.value.map(w => w.brandClicks), borderColor: 'rgb(251, 191, 36)', backgroundColor: 'rgba(251, 191, 36, 0.1)', fill: false, tension: 0.3, pointRadius: 2, yAxisID: 'y' },
   ],
 }))
 const trendOptions = {
@@ -131,14 +144,27 @@ const trendOptions = {
 <template>
   <div class="space-y-3" :class="{ 'opacity-60': loading }">
     <details class="bg-gray-900 rounded-sm border border-gray-800 p-4">
-      <summary class="cursor-pointer text-sm font-semibold text-gray-200">Wird EV Monitor bekannter? Suchen mit unserem Namen je Woche</summary>
+      <summary class="cursor-pointer text-sm font-semibold text-gray-200">Brand-Suchen je Woche: Wird EV Monitor bekannter?</summary>
       <p class="text-xs text-gray-500 mt-2 mb-2">Letzte 26 Wochen, alle Märkte. Steigt die Kurve, suchen mehr Menschen gezielt nach uns, etwa nach einem Forum-Beitrag oder einer Erwähnung. Kampagnenstarts hier gegenlesen.</p>
       <div v-if="trend.length" class="h-56"><Line :data="trendData" :options="trendOptions" /></div>
-      <p v-else class="text-xs text-gray-500">Noch keine Suchen mit unserem Namen im Datenbestand.</p>
+      <p v-else class="text-xs text-gray-500">Im Datenbestand gibt es keine Brand-Suchen.</p>
     </details>
 
+    <section v-if="topics.length > 1" aria-labelledby="seo-topics">
+      <h3 id="seo-topics" class="text-sm font-semibold text-gray-200">Keyword-Cluster <span class="font-normal text-xs text-gray-500">nach Suchintention, Klick filtert die Tabelle</span></h3>
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-2 mt-2" role="group" aria-label="Keyword-Cluster">
+        <button v-for="t in topics" :key="t.topic" type="button" :aria-pressed="topic === t.topic"
+                :class="['text-left rounded-sm px-3 py-2 border focus:outline-none focus:ring-2 focus:ring-indigo-500', topic === t.topic ? 'border-indigo-500 bg-indigo-950/40' : 'border-gray-800 bg-gray-900 hover:border-gray-600']"
+                @click="topic = topic === t.topic ? 'ALL' : t.topic">
+          <span class="block text-xs font-semibold text-gray-100">{{ t.label }}</span>
+          <span class="block text-xs text-gray-400 tabular-nums">{{ num(t.clicks) }} Klicks</span>
+          <span class="block text-xs text-gray-500 tabular-nums">{{ num(t.impressions) }} Impr., {{ num(t.count) }} Keywords</span>
+        </button>
+      </div>
+    </section>
+
     <div class="flex gap-3 flex-wrap">
-      <div class="flex gap-1" role="group" aria-label="Markenname">
+      <div class="flex gap-1" role="group" aria-label="Brand / Non-Brand">
         <button v-for="b in BRANDS" :key="b.key" type="button" :class="btn(brand === b.key)" :aria-pressed="brand === b.key" @click="brand = b.key">{{ b.label }}</button>
       </div>
       <div class="flex gap-1 flex-wrap" role="group" aria-label="Befund">
@@ -147,11 +173,14 @@ const trendOptions = {
     </div>
     <SeoFindingNote :finding="filter === 'ALL' ? null : filter === 'ADWORDS' ? 'ADWORDS' : filter" />
     <p v-if="error" class="text-red-400 text-sm">{{ error }}</p>
-    <SeoDataTable v-else :columns="columns" :rows="rows" :row-key="r => r.query" :search-keys="['query', 'topPath']" search-placeholder="Begriff oder Seite suchen"
-                  csv-name="seo-suchbegriffe" expandable empty="Keine Suchbegriffe im Zeitraum." @expand="loadPages">
+    <SeoDataTable v-else :columns="columns" :rows="visibleRows" :row-key="r => r.query" :search-keys="['query', 'topPath']" search-placeholder="Keyword oder Landingpage suchen"
+                  :initial-search="search" csv-name="seo-keywords" expandable empty="Keine Keywords im Zeitraum." @expand="loadPages">
       <template #cell-query="{ row }">
         <span class="whitespace-normal">{{ row.query }}</span>
-        <span v-if="row.brand" class="ml-1 text-xs text-gray-500">Marke</span>
+        <span v-if="row.brand" class="ml-1 text-xs text-gray-500">Brand</span>
+      </template>
+      <template #cell-delta="{ row }">
+        <span :class="deltaClass(row)">{{ deltaText(row) }}</span>
       </template>
       <template #cell-topPath="{ row }">
         <a v-if="row.topPath" :href="row.topPath" target="_blank" rel="noopener" class="font-mono text-gray-400 hover:underline" @click.stop>{{ row.topPath }}</a>
@@ -162,7 +191,7 @@ const trendOptions = {
       </template>
       <template #expand="{ row }">
         <SeoBreakdownList :rows="pages[row.query]" key-label="Seite" links
-                          intro="Diese unserer Seiten hat Google für den Begriff angezeigt. Mehr als eine heißt: Sie machen sich Konkurrenz." />
+                          intro="Diese unserer Seiten ranken für das Keyword. Mehr als eine heißt: Keyword-Kannibalisierung." />
       </template>
     </SeoDataTable>
   </div>

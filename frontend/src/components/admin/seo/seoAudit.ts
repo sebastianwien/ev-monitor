@@ -7,18 +7,18 @@ export const CHECK_ORDER: SeoAuditCheck[] = ['STATUS', 'NOINDEX', 'PRERENDER', '
     'DESCRIPTION', 'TITLE', 'H1', 'NOINDEX_LINK', 'ORPHAN', 'CWV']
 
 export const CHECK_LABELS: Record<SeoAuditCheck, { label: string; hint: string }> = {
-    STATUS: { label: 'Nicht erreichbar', hint: 'Die Seite antwortet Google nicht mit "alles in Ordnung" (HTTP 200). Sie kann so nicht in der Suche erscheinen.' },
-    NOINDEX: { label: 'Gesperrt (noindex)', hint: 'Die Seite steht in der Sitemap, verbietet Google aber die Aufnahme. Beides zusammen widerspricht sich: entweder aus der Sitemap nehmen oder freigeben.' },
-    PRERENDER: { label: 'Google-Fassung', hint: 'Google bekommt eine vorab erzeugte Fassung der Modellseite. Darin fehlt der Modellname im Titel, der Verbrauch in kWh/100 km, oder es stehen Meilen bzw. Dollar drin.' },
+    STATUS: { label: 'HTTP-Status', hint: 'Die Seite antwortet Google nicht mit "alles in Ordnung" (HTTP 200). Sie kann so nicht in der Suche erscheinen.' },
+    NOINDEX: { label: 'noindex in Sitemap', hint: 'Die Seite steht in der Sitemap, verbietet Google aber die Aufnahme. Beides zusammen widerspricht sich: entweder aus der Sitemap nehmen oder freigeben.' },
+    PRERENDER: { label: 'Prerendering', hint: 'Google bekommt eine vorab erzeugte Fassung der Modellseite (Prerendering). Darin fehlt der Modellname im Titel, der Verbrauch in kWh/100 km, oder es stehen Meilen bzw. Dollar drin.' },
     CANONICAL: { label: 'Canonical', hint: 'Die Seite muss genau einen Canonical-Hinweis haben, der auf sie selbst zeigt. Sonst gibt Google ihre Sichtbarkeit an eine andere Adresse weiter.' },
-    JSONLD: { label: 'Strukturierte Daten', hint: 'Maschinenlesbare Angaben für Google. Fehler: ein Block ist unlesbar, oder ein Produkt hat weder Bewertung noch Preis und wird von Google verworfen. Hinweis: Brotkrumen oder Liste fehlen, das kostet nur ein erweitertes Suchergebnis. Ein Produkt-Block ist keine Pflicht, Modellseiten setzen ihn nur mit Fahrerbewertungen.' },
-    BROKEN_LINK: { label: 'Kaputter Link', hint: 'Die Seite verlinkt eine eigene Seite, die nicht antwortet oder einen Fehler meldet.' },
-    DESCRIPTION: { label: 'Beschreibung', hint: 'Der Text unter dem Titel in den Suchergebnissen fehlt oder hat nicht 70 bis 155 Zeichen. Zu lang wird abgeschnitten, zu kurz verschenkt Platz.' },
-    TITLE: { label: 'Titel', hint: 'Die blaue Überschrift im Suchergebnis fehlt oder hat nicht 30 bis 60 Zeichen. Längere Titel schneidet Google ab.' },
-    H1: { label: 'Hauptüberschrift', hint: 'Die Seite sollte genau eine Hauptüberschrift (H1) haben.' },
-    NOINDEX_LINK: { label: 'Link auf gesperrte Seite', hint: 'Die Seite verlinkt eine eigene Seite, die nicht in den Index soll. Kein Fehler, aber der Link gibt keine Sichtbarkeit weiter.' },
-    ORPHAN: { label: 'Ohne interne Links', hint: 'Keine andere Seite der Sitemap verlinkt hierher. Google findet und gewichtet solche Seiten schlechter.' },
-    CWV: { label: 'Ladezeit', hint: 'Auf dem Handy lädt die Seite zu langsam oder springt beim Laden (Core Web Vitals über dem Grenzwert).' },
+    JSONLD: { label: 'Structured Data', hint: 'Maschinenlesbare Angaben für Google. Fehler: ein Block ist unlesbar, oder ein Produkt hat weder Bewertung noch Preis und wird von Google verworfen. Hinweis: Brotkrumen oder Liste fehlen, das kostet nur ein erweitertes Suchergebnis. Ein Produkt-Block ist keine Pflicht, Modellseiten setzen ihn nur mit Fahrerbewertungen.' },
+    BROKEN_LINK: { label: 'Broken Link', hint: 'Die Seite verlinkt eine eigene Seite, die nicht antwortet oder einen Fehler meldet.' },
+    DESCRIPTION: { label: 'Meta Description', hint: 'Der Text unter dem Titel in den Suchergebnissen fehlt oder hat nicht 70 bis 155 Zeichen. Zu lang wird abgeschnitten, zu kurz verschenkt Platz.' },
+    TITLE: { label: 'Title-Tag', hint: 'Die blaue Überschrift im Suchergebnis fehlt oder hat nicht 30 bis 60 Zeichen. Längere Titel schneidet Google ab.' },
+    H1: { label: 'H1', hint: 'Die Seite sollte genau eine Hauptüberschrift (H1) haben.' },
+    NOINDEX_LINK: { label: 'Link auf noindex', hint: 'Die Seite verlinkt eine eigene Seite, die nicht in den Index soll. Kein Fehler, aber der Link gibt keine Sichtbarkeit weiter.' },
+    ORPHAN: { label: 'Orphan Page', hint: 'Keine andere Seite der Sitemap verlinkt hierher. Google findet und gewichtet solche Seiten schlechter.' },
+    CWV: { label: 'Core Web Vitals', hint: 'Auf dem Handy lädt die Seite zu langsam oder springt beim Laden (Core Web Vitals über dem Grenzwert).' },
 }
 
 export function filterAuditRows(rows: SeoAuditRow[], filter: SeoAuditFilter): SeoAuditRow[] {

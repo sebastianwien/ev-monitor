@@ -37,13 +37,13 @@ const g = (k: string) => `${GLOSSARY[k].term}: ${GLOSSARY[k].text}`
 const columns = computed<SeoColumn<SeoModelRow>[]>(() => [
   { key: 'brand', label: 'Marke', value: r => r.brand },
   ...(level.value === 'MODEL' ? [{ key: 'model', label: 'Modell', value: (r: SeoModelRow) => r.model }] : []),
-  { key: 'impressions', label: 'Impressionen', hint: g('impressions'), numeric: true, value: r => r.impressions, format: r => num(r.impressions) },
-  { key: 'clicks', label: 'Klicks', hint: g('clicks'), numeric: true, value: r => r.clicks, format: r => num(r.clicks) },
-  { key: 'ctr', label: 'Klickrate', hint: g('ctr'), numeric: true, value: r => (r.impressions ? r.ctr : null), format: r => (r.impressions ? pct(r.ctr) : '-'), csv: r => (r.impressions ? r.ctr * 100 : null) },
-  { key: 'position', label: 'Position', hint: g('position'), numeric: true, value: r => r.avgPosition || null, format: r => pos(r.avgPosition) },
-  { key: 'registrations', label: 'Registr.', hint: g('registrations'), numeric: true, value: r => r.registrations, format: r => (r.registrations ? num(r.registrations) : '-') },
-  { key: 'cars', label: 'Autos', hint: 'Aktive Autos dieses Modells bei uns', numeric: true, value: r => r.cars, format: r => num(r.cars) },
-  { key: 'logs', label: 'Ladevorgänge', hint: 'Ladevorgänge in der Statistik, gesamt seit Start', numeric: true, value: r => r.logs, format: r => num(r.logs) },
+  { key: 'impressions', label: 'Impressionen', hint: g('impressions'), source: 'GSC', numeric: true, value: r => r.impressions, format: r => num(r.impressions) },
+  { key: 'clicks', label: 'Klicks', hint: g('clicks'), source: 'GSC', numeric: true, value: r => r.clicks, format: r => num(r.clicks) },
+  { key: 'ctr', label: 'CTR', hint: g('ctr'), source: 'GSC', numeric: true, value: r => (r.impressions ? r.ctr : null), format: r => (r.impressions ? pct(r.ctr) : '-'), csv: r => (r.impressions ? r.ctr * 100 : null) },
+  { key: 'position', label: 'Ø Position', hint: g('position'), source: 'GSC', numeric: true, value: r => r.avgPosition || null, format: r => pos(r.avgPosition) },
+  { key: 'registrations', label: 'Sign-ups', hint: g('registrations'), source: 'DB', numeric: true, value: r => r.registrations, format: r => (r.registrations ? num(r.registrations) : '-') },
+  { key: 'cars', label: 'Autos', hint: 'Aktive Autos dieses Modells bei uns', source: 'DB', numeric: true, value: r => r.cars, format: r => num(r.cars) },
+  { key: 'logs', label: 'Ladevorgänge', hint: 'Ladevorgänge in der Statistik, gesamt seit Start', source: 'DB', numeric: true, value: r => r.logs, format: r => num(r.logs) },
   { key: 'finding', label: 'Befund', value: r => (r.finding ? FINDINGS[r.finding]?.label ?? r.finding : null) },
 ])
 
@@ -65,7 +65,7 @@ const btn = (active: boolean) => [
       </div>
     </div>
     <SeoFindingNote :finding="level === 'MODEL' && filter !== 'ALL' ? filter : null" />
-    <p class="text-xs text-gray-500">Nur die deutsche Website. Autos und Ladevorgänge zählen alle echten Nutzer seit Start, unabhängig vom Zeitraum.<template v-if="level === 'BRAND'"> Je Marke zählen alle Modellseiten plus die Markenseite.</template></p>
+    <p class="text-xs text-gray-500">Suchnachfrage je Modell neben unserer Datenbasis. Varianten einer Adresse (Groß-/Kleinschreibung) sind zusammengefasst. Autos und Ladevorgänge zählen alle echten Nutzer seit Start, unabhängig vom Zeitraum.<template v-if="level === 'BRAND'"> Je Marke zählen alle Modellseiten plus die Markenseite.</template></p>
     <p v-if="error" class="text-red-400 text-sm">{{ error }}</p>
     <SeoDataTable v-else :columns="columns" :rows="rows" :row-key="r => r.path" :search-keys="['brand', 'model']" search-placeholder="Marke oder Modell suchen"
                   :csv-name="level === 'MODEL' ? 'seo-modellseiten' : 'seo-marken'" empty="Keine Modellseiten im Zeitraum.">

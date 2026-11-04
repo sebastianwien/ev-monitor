@@ -38,8 +38,8 @@ const field = 'w-full bg-gray-950 border border-gray-700 rounded-sm px-2 py-1.5 
 
 <template>
   <details class="bg-gray-900 rounded-sm border border-gray-800 p-4">
-    <summary class="cursor-pointer text-sm font-semibold text-gray-200">Kampagnen-Link bauen</summary>
-    <p class="text-xs text-gray-400 mt-2">Jeder Link auf ev-monitor.net, den wir irgendwo posten oder verschicken, braucht diese Zusätze. Nur dann erscheint die Kampagne unten mit Registrierungen.</p>
+    <summary class="cursor-pointer text-sm font-semibold text-gray-200">UTM-Builder: Kampagnen-Link bauen</summary>
+    <p class="text-xs text-gray-400 mt-2">Jeder Link auf ev-monitor.net, den wir irgendwo posten oder verschicken, braucht diese Zusätze. Nur dann erscheint die Kampagne unten mit Sign-ups.</p>
     <div class="grid md:grid-cols-2 gap-3 mt-3">
       <label class="block text-xs text-gray-300">Ziel-Seite
         <input v-model="url" type="url" :class="field" class="mt-1 font-mono" />

@@ -18,6 +18,8 @@ const props = withDefaults(defineProps<{
   expandable?: boolean
   canExpand?: (row: T) => boolean
   initialSort?: { key: string; dir: SortDir } | null
+  /** Vorbelegte Suche, z. B. beim Sprung aus den Top-Aufgaben. */
+  initialSearch?: string
   empty?: string
 }>(), {
   searchKeys: () => [],
@@ -25,12 +27,13 @@ const props = withDefaults(defineProps<{
   expandable: false,
   canExpand: () => true,
   initialSort: null,
+  initialSearch: '',
   empty: 'Keine Zeilen.',
 })
 
 const emit = defineEmits<{ expand: [row: T] }>()
 
-const term = ref('')
+const term = ref(props.initialSearch)
 const sortKey = ref<string | null>(props.initialSort?.key ?? null)
 const sortDir = ref<SortDir>(props.initialSort?.dir ?? 'desc')
 const open = ref<Set<string>>(new Set())
@@ -105,10 +108,13 @@ const colspan = computed(() => props.columns.length + (props.expandable ? 1 : 0)
                       class="inline-flex items-center gap-1 hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-sm"
                       @click="sortBy(c.key)">
                 <span :class="{ 'underline decoration-dotted underline-offset-2': c.hint }">{{ c.label }}</span>
+                <span v-if="c.source" class="text-[10px] font-normal text-gray-500 border border-gray-700 rounded-sm px-1">{{ c.source }}</span>
                 <ArrowUpIcon v-if="sortKey === c.key && sortDir === 'asc'" class="h-3 w-3" aria-hidden="true" />
                 <ArrowDownIcon v-else-if="sortKey === c.key" class="h-3 w-3" aria-hidden="true" />
               </button>
-              <span v-else :title="c.hint">{{ c.label }}</span>
+              <span v-else :title="c.hint">{{ c.label }}
+                <span v-if="c.source" class="text-[10px] font-normal text-gray-500 border border-gray-700 rounded-sm px-1">{{ c.source }}</span>
+              </span>
             </th>
           </tr>
         </thead>
