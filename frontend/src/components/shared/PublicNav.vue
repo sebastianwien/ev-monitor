@@ -11,8 +11,15 @@
       <div class="public-nav-row flex justify-between items-center h-16">
         <div class="flex min-w-0 items-center gap-5">
           <a href="/" class="flex items-center gap-2 shrink-0 whitespace-nowrap">
-            <BoltLogo class="h-7 w-7" />
-            <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
+            <!-- Zwei Logos, der Probe-Skin v1 (styles/ci-v1.css) blendet um; das verborgene zählt nicht als Linktext -->
+            <span class="ci-logo-default flex items-center gap-2">
+              <BoltLogo class="h-7 w-7" />
+              <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
+            </span>
+            <span class="ci-logo-v1 items-center gap-2">
+              <span class="ci-logo-badge grid h-8 w-8 place-items-center rounded-full"><BoltLogo class="h-5 w-5" /></span>
+              <span class="ci-logo-word text-[22px] text-gray-900"><b class="font-bold">ev</b><span class="text-green-500">.</span>monitor</span>
+            </span>
           </a>
           <!-- Bereiche des eingeloggten Bereichs (WorkspaceFrame, ab md): stehen nur hier, wenn sie neben die rechte
                Gruppe passen, sonst unsichtbar und der Frame zeigt die Chip-Reihe (navFits) -->
@@ -130,7 +137,7 @@ const registerPath = computed(() => isEn.value ? '/en/register' : '/register')
 const loginPath = computed(() => isEn.value ? '/en/login' : '/login')
 const pricingPath = computed(() => isEn.value ? '/pricing' : '/preise')
 // Ohne display: mobil Link, ab md Knopf der Konto-Zeile; ein inline-flex hier schlüge das hidden des jeweils anderen
-const profileButton = 'h-10 w-10 items-center justify-center rounded-full border-2 border-gray-900 text-white dark:border-edge transition-colors hover:bg-green-700'
+const profileButton = 'ci-avatar h-10 w-10 items-center justify-center rounded-full border-2 border-gray-900 text-white dark:border-edge transition-colors hover:bg-green-700'
 // Hover der rechten Gruppe (Watt, Feedback; ThemeToggle und LocaleSwitcher tragen denselben selbst)
 const navItem = 'h-10 items-center justify-center rounded-full text-gray-600 transition-colors hover:bg-black/10 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-white/10 dark:hover:text-white'
 // Wie die Bereiche: Text statt Kachel, beim Hover wächst ein Unterstrich von links herein

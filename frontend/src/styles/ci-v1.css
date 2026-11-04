@@ -100,3 +100,19 @@ html[data-ci="v1"]:not(.dark) .ci-selected {
   color: #fff;
   box-shadow: none !important;
 }
+
+/* Logo: v1-Wortmarke nur im Skin, sonst das App-Logo */
+.ci-logo-v1 { display: none; }
+html[data-ci="v1"]:not(.dark) .ci-logo-default { display: none; }
+html[data-ci="v1"]:not(.dark) .ci-logo-v1 { display: flex; }
+html[data-ci="v1"]:not(.dark) .ci-logo-badge { background-color: #c8f2e3; }
+html[data-ci="v1"]:not(.dark) .ci-logo-word { font-family: var(--ci-heading); font-weight: 400; letter-spacing: -0.02em; }
+
+/* Avatar: Mint-Fläche ohne Ring, Ink-Symbol wie im Entwurf */
+html[data-ci="v1"]:not(.dark) .ci-avatar {
+  background-color: #c8f2e3;
+  border-color: transparent;
+  color: #063a31;
+}
+html[data-ci="v1"]:not(.dark) .ci-avatar:hover,
+html[data-ci="v1"]:not(.dark) .ci-avatar[aria-expanded="true"] { background-color: #9eead2; }
