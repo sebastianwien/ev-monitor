@@ -452,11 +452,11 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   }
 
   /**
-   * Nach dem ersten Paint nacheinander vorladen, was als Nächstes kommt: die Monate des Schalters und die Nachbarn des
-   * gezeigten (Wischen auf dem Hero, ältere Monate aus dem Raster). Der Wechsel steht dann sofort.
+   * Nach dem ersten Paint den Vormonat des gezeigten vorladen (Wischen auf dem Hero, Schalter). Weitere Monate kommen
+   * erst beim Wechsel: jeder Monat kostet rund acht Abfragen, drei davon rechnen über die ganze Historie.
    */
   async function prefetchMonths(carId: string, shown: number) {
-    const next = new Set<number>([...STORY_MONTH_OFFSETS, shown - 1, shown + 1])
+    const next = [shown - 1]
     for (const o of next) {
       if (o > 0 || o < minOffset.value) continue
       const m = monthAt(o)

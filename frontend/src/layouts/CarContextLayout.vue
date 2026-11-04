@@ -45,6 +45,8 @@ const {
 } = provideCarContext({
   // Das Logbuch lädt monatsweise; die gespeicherte Ansicht der alten Liste bleibt unberührt
   fixedFeedResolution: computed(() => storyDesign.value ? 'cycle' : null),
+  // Vormonat und laufenden Monat liest nur das alte Dashboard (Smart Insights)
+  insightStats: computed(() => !storyDesign.value),
 })
 
 const activeIndex = useStickyTabIndex(tabPaths)

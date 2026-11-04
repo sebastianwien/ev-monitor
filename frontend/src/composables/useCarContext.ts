@@ -35,8 +35,8 @@ const CAR_CONTEXT: InjectionKey<CarContext> = Symbol('car-context')
  * Im Layout aufrufen: erzeugt die geteilten Instanzen + zentrale Orchestrierung.
  * `fixedFeedResolution`: das Logbuch lädt monatsweise, ohne die Wahl der alten Liste zu überschreiben.
  */
-export function provideCarContext(options: { fixedFeedResolution?: Ref<FeedResolution | null> } = {}): CarContext {
-  const dash = useDashboardStats()
+export function provideCarContext(options: { fixedFeedResolution?: Ref<FeedResolution | null>; insightStats?: Ref<boolean> } = {}): CarContext {
+  const dash = useDashboardStats({ insightStats: options.insightStats })
   const logsSection = ref<HTMLElement | null>(null)
   const logs = useLogList(dash.selectedCarId, dash.cars, logsSection, options.fixedFeedResolution)
 

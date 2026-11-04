@@ -60,6 +60,19 @@ describe('useDashboardStory - Monats-Cache', () => {
     expect(story.monthStats.value!.totalCostEur).not.toBe(firstCost)
   })
 
+  it('laedt nach dem ersten Paint nur den Vormonat vor, nicht alle Monate des Schalters', async () => {
+    const story = useDashboardStory(ref<string | null>('car-1'), ctx)
+    await flush()
+    await flush()
+    const starts = getMock.mock.calls
+      .map(([url]) => String(url))
+      .filter(u => u.includes('/logs/statistics') && u.includes('groupBy=DAY'))
+      .map(u => new URLSearchParams(u.split('?')[1]).get('startDate'))
+    expect(starts).toContain(monthWindow(story.month.value.year, story.month.value.month, 0).start)
+    expect(starts).toContain(monthWindow(story.month.value.year, story.month.value.month, -1).start)
+    expect(starts).not.toContain(monthWindow(story.month.value.year, story.month.value.month, -2).start)
+  })
+
   it('trennt den Cache nach Auto', async () => {
     const carId = ref<string | null>('car-1')
     const story = useDashboardStory(carId, ctx)
@@ -300,7 +313,7 @@ describe('useDashboardStory - Monatswechsel aus einem Guss', () => {
     expect(story.switching.value).toBe(false)
   })
 
-  it('lädt die anderen Monate des Schalters vor: der Wechsel steht sofort', async () => {
+  it('lädt den Vormonat vor: der Wechsel dorthin steht sofort, zwei Monate zurück erst beim Wechsel', async () => {
     getMock.mockImplementation((url: string) => {
       if (url.includes('/logs/statistics')) return Promise.resolve({ data: stats(10) })
       return Promise.resolve({ data: [] })
@@ -309,9 +322,14 @@ describe('useDashboardStory - Monatswechsel aus einem Guss', () => {
     await flush()
     await flush()
 
-    story.setOffset(-2)
-    expect(story.month.value.offset).toBe(-2)
+    story.setOffset(-1)
+    expect(story.month.value.offset).toBe(-1)
     expect(story.loading.value).toBe(false)
+
+    story.setOffset(-2)
+    expect(story.switching.value).toBe(true)
+    await flush()
+    expect(story.month.value.offset).toBe(-2)
   })
 
   it('die Ladeorte des Teasers gehören zum Monat und wechseln mit ihm', async () => {

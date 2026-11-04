@@ -1,4 +1,4 @@
-import { ref, watch, computed, onUnmounted } from 'vue'
+import { ref, watch, computed, onUnmounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTimeRangeOptions } from './useTimeRangeOptions'
 import api from '../api/axios'
@@ -257,8 +257,14 @@ export function resolveCostMode(preferred: CostMode, hasFixedData: boolean): Cos
   return preferred
 }
 
-export function useDashboardStats() {
+export interface DashboardStatsOptions {
+  /** Vormonat und laufenden Monat mitladen (Smart Insights des alten Dashboards). Das neue Design liest sie nicht. */
+  insightStats?: Ref<boolean>
+}
+
+export function useDashboardStats(options: DashboardStatsOptions = {}) {
   const { t } = useI18n()
+  const withInsightStats = () => options.insightStats?.value ?? true
   const carStore = useCarStore()
   const authStore = useAuthStore()
 
@@ -455,8 +461,10 @@ export function useDashboardStats() {
       }
       const [response, lastMonthResponse, thisMonthResponse] = await Promise.all([
         api.get(`/logs/statistics?${params}`),
-        api.get(`/logs/statistics?carId=${selectedCarId.value}&timeRange=LAST_MONTH&groupBy=MONTH`).catch(() => null),
-        selectedTimeRange.value !== 'THIS_MONTH'
+        withInsightStats()
+          ? api.get(`/logs/statistics?carId=${selectedCarId.value}&timeRange=LAST_MONTH&groupBy=MONTH`).catch(() => null)
+          : Promise.resolve(null),
+        withInsightStats() && selectedTimeRange.value !== 'THIS_MONTH'
           ? api.get(`/logs/statistics?carId=${selectedCarId.value}&timeRange=THIS_MONTH&groupBy=MONTH`).catch(() => null)
           : Promise.resolve(null),
       ])
