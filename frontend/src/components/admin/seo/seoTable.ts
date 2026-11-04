@@ -10,7 +10,11 @@ export interface SeoColumn<T> {
     /** Abweichender CSV-Wert, z. B. Prozent statt Anteil. */
     csv?: (row: T) => string | number | null | undefined
     sortable?: boolean
+    /** Datenquelle der Spalte, als Kürzel im Spaltenkopf. */
+    source?: SeoSource
 }
+
+export type SeoSource = 'GSC' | 'Plausible' | 'DB' | 'DataForSEO' | 'Crawl'
 
 export type SortDir = 'asc' | 'desc'
 

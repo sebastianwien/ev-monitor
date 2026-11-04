@@ -38,7 +38,20 @@ export interface SeoOverview {
     current: SeoTotals
     previous: SeoTotals
     days: SeoDayPoint[]
+    /** Brand gegen Non-Brand aus der Keyword-Tabelle, alle Märkte; fehlt bei älterem Backend. */
+    brand?: SeoBrandSplit
+    brandPrevious?: SeoBrandSplit
 }
+
+export interface SeoBrandSplit {
+    brandImpressions: number
+    brandClicks: number
+    nonBrandImpressions: number
+    nonBrandClicks: number
+}
+
+/** Seitentyp aus dem Pfad (Backend SeoPageType); App-Seiten liefert das Backend nicht aus. */
+export type SeoPageType = 'HOME' | 'MODEL_LIST' | 'BRAND' | 'MODEL' | 'CONTENT' | 'CONVERSION' | 'LEGAL' | 'OTHER'
 
 export interface SeoPageRow {
     path: string
@@ -51,6 +64,12 @@ export interface SeoPageRow {
     ctaRate: number
     registrations: number
     finding: 'UNDERRATED' | 'DEAD' | 'LEAK' | 'MONEY' | null
+    /** Neuere Felder: fehlen, solange das Backend älter ist. */
+    pageType?: SeoPageType
+    /** null: Vorzeitraum nicht vollständig im Datenbestand, ein Vergleich wäre irreführend. */
+    clicksPrevious?: number | null
+    /** Zusätzliche Klicks im Zeitraum bei üblicher CTR der Position. */
+    potentialClicks?: number
 }
 
 export interface SeoQueryRow {
@@ -64,6 +83,9 @@ export interface SeoQueryRow {
     pageCount: number
     adwordsCandidate: boolean
     finding: 'STRIKING_DISTANCE' | 'CANNIBALIZED' | null
+    clicksPrevious?: number | null
+    /** Striking Distance: zusätzliche Klicks auf Platz 3; sonst bei üblicher CTR der Position. */
+    potentialClicks?: number
 }
 
 /** Quelle x Medium x Kampagne aus Plausible; registrations/trials nur bei attributed (UTM oder Google organisch). */
@@ -231,6 +253,17 @@ export interface SeoOpportunities {
     adwords: number
     contentGap: number
     invisible: number
+    /** Top-Aufgaben nach Klick-Potenzial; fehlt bei älterem Backend. */
+    tasks?: SeoTask[]
+}
+
+export interface SeoTask {
+    type: 'UNDERRATED' | 'STRIKING_DISTANCE'
+    /** Pfad (Low CTR) oder Keyword (Striking Distance). */
+    key: string
+    /** Landingpage, an der gearbeitet wird. */
+    path: string | null
+    potentialClicks: number
 }
 
 export async function getSeoPageQueries(days: SeoPeriod, path: string): Promise<SeoBreakdown[]> {

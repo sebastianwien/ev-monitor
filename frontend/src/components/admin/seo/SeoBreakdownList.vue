@@ -10,15 +10,15 @@ defineProps<{ rows: SeoBreakdown[] | undefined; keyLabel: string; links?: boolea
   <div>
     <p class="text-xs text-gray-400 mb-2">{{ intro }}</p>
     <p v-if="!rows" class="text-xs text-gray-500">Lädt...</p>
-    <p v-else-if="!rows.length" class="text-xs text-gray-500">Im Zeitraum keine Suchbegriffe von Google gemeldet. Google meldet seltene Suchen aus Datenschutzgründen nicht einzeln.</p>
+    <p v-else-if="!rows.length" class="text-xs text-gray-500">Im Zeitraum keine Keywords von Google gemeldet. Google meldet seltene Suchanfragen aus Datenschutzgründen nicht einzeln (anonymisierte Queries).</p>
     <table v-else class="text-xs w-full max-w-3xl">
       <thead>
         <tr class="text-gray-500">
           <th scope="col" class="text-left font-medium py-1 pr-3">{{ keyLabel }}</th>
           <th scope="col" class="text-right font-medium py-1 px-3">Impressionen</th>
           <th scope="col" class="text-right font-medium py-1 px-3">Klicks</th>
-          <th scope="col" class="text-right font-medium py-1 px-3">Klickrate</th>
-          <th scope="col" class="text-right font-medium py-1 pl-3">Position</th>
+          <th scope="col" class="text-right font-medium py-1 px-3">CTR</th>
+          <th scope="col" class="text-right font-medium py-1 pl-3">Ø Position</th>
         </tr>
       </thead>
       <tbody>
