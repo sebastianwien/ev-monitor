@@ -23,7 +23,7 @@ export const TOPIC_HELP: Record<SeoTopic, TopicHelp> = {
       'Verlierer prüfen: Site Audit (technischer Fehler?) und Keywords der Seite (Ranking verloren?).',
       'Notiere vor jeder Änderung, welche Zahl sich bewegen soll, und prüfe sie 28 Tage später mit demselben Zeitraum.',
     ],
-    terms: ['potential', 'impressions', 'clicks', 'ctr', 'position', 'brand', 'googleEntries', 'registrations', 'organicCr', 'channel'],
+    terms: ['potential', 'impressions', 'clicks', 'ctr', 'position', 'brand', 'googleEntries', 'searchEntries', 'registrations', 'organicCr', 'channel'],
   },
   landingpages: {
     question: 'Welche Landingpage verdient als Nächstes Arbeit?',

@@ -73,7 +73,7 @@ export const CHANNEL_LABELS: Record<Channel, string> = {
     REFERRAL: 'Referral: sonstige',
 }
 
-const SEARCH = new Set(['google', 'bing', 'duckduckgo', 'ecosia', 'yahoo!', 'yahoo', 'qwant', 'startpage', 'brave', 'yandex', 'baidu', 'ecosia.org'])
+const SEARCH = new Set(['google', 'bing', 'duckduckgo', 'ecosia', 'yahoo!', 'yahoo', 'qwant', 'startpage', 'startpage.com', 'brave', 'yandex', 'baidu', 'ecosia.org'])
 const SOCIAL = new Set(['facebook', 'instagram', 'linkedin', 'reddit', 'x', 'twitter', 'youtube', 'tiktok', 'mastodon', 'threads', 'pinterest'])
 const AI = new Set(['chatgpt', 'perplexity', 'gemini', 'claude', 'copilot'])
 

@@ -54,8 +54,8 @@ const status: SeoStatus = {
 }
 const overview: SeoOverview = {
     periodDays: 28, from: '2026-09-19', to: '2026-10-16', market: 'DE', previousComplete: true,
-    current: { impressions: 184200, clicks: 6410, ctr: 0.0348, avgPosition: 14.2, visitors: 3100, googleEntries: 1800, registrations: 37, organicRegistrations: 21 },
-    previous: { impressions: 164500, clicks: 5930, ctr: 0.036, avgPosition: 15.3, visitors: 2900, googleEntries: 1700, registrations: 30, organicRegistrations: 18 },
+    current: { impressions: 184200, clicks: 6410, ctr: 0.0348, avgPosition: 14.2, visitors: 3100, googleEntries: 1800, registrations: 37, organicRegistrations: 21, searchEntries: 2100 },
+    previous: { impressions: 164500, clicks: 5930, ctr: 0.036, avgPosition: 15.3, visitors: 2900, googleEntries: 1700, registrations: 30, organicRegistrations: 18, searchEntries: 2000 },
     days: [{ day: '2026-10-15', impressions: 100, clicks: 3, visitors: 110, googleEntries: 60 }, { day: '2026-10-16', impressions: 120, clicks: 4, visitors: 130, googleEntries: 70 }],
     brand: { brandImpressions: 900, brandClicks: 120, nonBrandImpressions: 90000, nonBrandClicks: 360 },
     brandPrevious: { brandImpressions: 800, brandClicks: 100, nonBrandImpressions: 80000, nonBrandClicks: 300 },
@@ -176,9 +176,11 @@ describe('AdminSeoTab', () => {
         // Brand / Non-Brand: 360 statt 300 Non-Brand-Klicks = +20 %
         expect(text).toContain('Non-Brand-Klicks')
         expect(text).toContain('+20 % zum Vorzeitraum')
-        // Organic Conversion Rate: 21 / 1 800
+        // Organic Conversion Rate über alle Suchmaschinen: 21 / 2 100
+        expect(text).toContain('Organische Sitzungen (alle Suchmaschinen)')
+        expect(text).toContain('2.100')
         expect(text).toContain('Organic Conversion Rate')
-        expect(text).toContain('1,2 %')
+        expect(text).toContain('1,0 %')
         // kein Markt-Schalter mehr
         expect(text).not.toContain('International')
         expect(text).toContain('Was ist diese Woche zu tun')

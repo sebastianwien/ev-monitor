@@ -18,6 +18,8 @@ export interface SeoTotals {
     googleEntries: number
     registrations: number
     organicRegistrations: number
+    /** Sitzungen von allen Suchmaschinen; fehlt bei älterem Backend. */
+    searchEntries?: number
 }
 
 export interface SeoDayPoint {
