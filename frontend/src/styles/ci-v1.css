@@ -38,7 +38,9 @@ html[data-ci="v1"]:not(.dark) {
   --color-amber-800: #5e3900;
 
   --color-edge: #d5e3de;
-  --color-edge-shadow: transparent;
+  /* Schatten wie im App-CI (weich, nur nach unten), in der Skin-Stufe gray-800 */
+  --color-edge-shadow: color-mix(in srgb, var(--color-gray-800) 50%, transparent);
+  --ci-lift: var(--edge-lift) var(--color-edge-shadow);
   --btn-shadow-color: transparent;
 
   --radius-xl: 12px;
@@ -46,7 +48,7 @@ html[data-ci="v1"]:not(.dark) {
   --radius-3xl: 18px;
 
   --ci-line: inset 0 0 0 0.5px #d5e3de;
-  --ci-shadow: var(--ci-line), 0 14px 26px -20px rgb(6 58 49 / 0.35);
+  --ci-shadow: var(--ci-line), var(--ci-lift);
   --ci-violet: #6252f0;
 }
 
@@ -73,10 +75,10 @@ html[data-ci="v1"]:not(.dark) :is(.edge-card, .edge-box) {
   html[data-ci="v1"]:not(.dark) .lg\:edge-box { border-width: 1px; box-shadow: var(--ci-shadow); }
 }
 
-/* Knöpfe ohne harten Versatz-Schatten, beim Drücken leicht kleiner */
+/* Knöpfe mit dem weichen Schatten des App-CI, beim Drücken ohne Schatten und leicht kleiner */
 html[data-ci="v1"]:not(.dark) .btn-3d {
   border-width: 1px;
-  box-shadow: var(--ci-line);
+  box-shadow: var(--ci-shadow);
 }
 html[data-ci="v1"]:not(.dark) .btn-3d:active,
 html[data-ci="v1"]:not(.dark) .btn-3d.active {
@@ -85,12 +87,15 @@ html[data-ci="v1"]:not(.dark) .btn-3d.active {
 }
 /* Farbige Knöpfe ohne helle Innenlinie, sonst steht ein heller Ring in der Fläche */
 html[data-ci="v1"]:not(.dark) .btn-3d:is([class*="bg-green-"], [class*="bg-gray-900"]) {
+  box-shadow: var(--ci-lift);
+}
+html[data-ci="v1"]:not(.dark) .btn-3d:is([class*="bg-green-"], [class*="bg-gray-900"]):is(:active, .active) {
   box-shadow: none;
 }
 
 /* Chips tragen ihren Schatten mit !important (cta-shadow-sm), deshalb hier ebenso */
 html[data-ci="v1"]:not(.dark) .cta-shadow-sm {
-  box-shadow: var(--ci-line) !important;
+  box-shadow: var(--ci-shadow) !important;
 }
 
 /* Auswahl violett (Chips, Monatsraster, Monatskapsel), ohne helle Innenlinie */
@@ -105,13 +110,16 @@ html[data-ci="v1"]:not(.dark) .ci-selected {
 .ci-logo-v1 { display: none; }
 html[data-ci="v1"]:not(.dark) .ci-logo-default { display: none; }
 html[data-ci="v1"]:not(.dark) .ci-logo-v1 { display: flex; }
-html[data-ci="v1"]:not(.dark) .ci-logo-badge { background-color: #c8f2e3; }
+/* Logo-Kreis und Avatar mit Rahmen: 1 px Rand plus 0,5 px innen wie die Karten, eine Stufe dunkler, damit er auf Mint steht */
+html[data-ci="v1"]:not(.dark) .ci-logo-badge { background-color: #c8f2e3; border: 1px solid var(--color-gray-500); box-shadow: inset 0 0 0 0.5px var(--color-gray-500); }
 html[data-ci="v1"]:not(.dark) .ci-logo-word { font-family: var(--ci-heading); font-weight: 400; letter-spacing: -0.02em; }
 
-/* Avatar: Mint-Fläche ohne Ring, Ink-Symbol wie im Entwurf */
+/* Avatar: Mint-Fläche mit Rahmen wie der Logo-Kreis, Ink-Symbol wie im Entwurf */
 html[data-ci="v1"]:not(.dark) .ci-avatar {
   background-color: #c8f2e3;
-  border-color: transparent;
+  border-width: 1px;
+  border-color: var(--color-gray-500);
+  box-shadow: inset 0 0 0 0.5px var(--color-gray-500);
   color: #063a31;
 }
 html[data-ci="v1"]:not(.dark) .ci-avatar:hover,
