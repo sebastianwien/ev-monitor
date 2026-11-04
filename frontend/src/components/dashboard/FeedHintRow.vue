@@ -28,13 +28,13 @@ const tag = computed(() => (props.plain ? 'div' : props.to ? RouterLink : 'butto
       :class="plain ? '' : 'group rounded-2xl transition-colors duration-75 touch-manipulation hover:bg-gray-50 active:bg-gray-100 dark:active:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-story-accent dark:hover:bg-white/5'"
       @click="!plain && emit('open')">
       <span class="grid h-8 w-8 shrink-0 place-items-center rounded-full"
-        :class="task ? 'bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300' : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300'">
+        :class="task ? 'ci-missing bg-amber-100 text-amber-800 dark:bg-amber-400/15 dark:text-amber-300' : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300'">
         <component :is="icon" class="h-[18px] w-[18px]" aria-hidden="true" />
       </span>
       <span class="min-w-0 flex-1">
         <span class="block text-[14px] leading-snug text-pretty text-gray-900 dark:text-gray-100"><slot /></span>
         <span v-if="$slots.sub" class="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-[12.5px] tabular-nums"
-          :class="task ? 'font-semibold text-amber-800 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'"><slot name="sub" /></span>
+          :class="task ? 'ci-missing-text font-semibold text-amber-800 dark:text-amber-300' : 'text-gray-500 dark:text-gray-400'"><slot name="sub" /></span>
       </span>
       <ChevronRightIcon v-if="!plain" class="h-4 w-4 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5 group-active:translate-x-1" aria-hidden="true" />
     </component>

@@ -7,7 +7,7 @@ export const CI_SKIN_KEY = 'ci-skin'
 const SKINS = ['v1'] as const
 export type CiSkin = typeof SKINS[number]
 
-const SKIN_ROUTES = new Set<RouteRecordNameGeneric>(['story'])
+const SKIN_ROUTES = new Set<RouteRecordNameGeneric>(['story', 'logs'])
 
 const isSkin = (v: unknown): v is CiSkin => SKINS.includes(v as CiSkin)
 

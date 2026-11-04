@@ -23,13 +23,16 @@ describe('applyCiSkin', () => {
     delete document.documentElement.dataset.ci
   })
 
-  it('setzt data-ci nur auf /story und merkt sich die Wahl', () => {
+  it('setzt data-ci nur auf /story und /logs und merkt sich die Wahl', () => {
     applyCiSkin({ name: 'story', query: { ci: 'v1' } })
     expect(document.documentElement.dataset.ci).toBe('v1')
     expect(localStorage.getItem(CI_SKIN_KEY)).toBe('v1')
 
-    applyCiSkin({ name: 'logs', query: {} })
+    applyCiSkin({ name: 'cars', query: {} })
     expect(document.documentElement.dataset.ci).toBeUndefined()
+
+    applyCiSkin({ name: 'logs', query: {} })
+    expect(document.documentElement.dataset.ci).toBe('v1')
 
     applyCiSkin(story)
     expect(document.documentElement.dataset.ci).toBe('v1')
