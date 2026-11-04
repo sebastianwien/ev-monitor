@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   XMarkIcon, TruckIcon, CreditCardIcon, ArrowsRightLeftIcon, ArrowDownTrayIcon,
@@ -19,6 +20,10 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{ close: []; logout: [] }>()
+
+/** Schließen von außen (Tipp auf "Mehr" bei offenem Menü): fährt wie das X nach unten, statt per v-if zu verschwinden. */
+const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
+defineExpose({ requestClose: () => sheet.value?.requestClose() })
 
 const { t } = useI18n()
 const { haptic } = useHaptic()
@@ -47,7 +52,7 @@ function onLogout() {
 </script>
 
 <template>
-  <BottomSheet edge :label="t('nav.bottom.more')" testid="more-sheet" panel-class="sm:max-w-md" @close="emit('close')">
+  <BottomSheet ref="sheet" edge :label="t('nav.bottom.more')" testid="more-sheet" panel-class="sm:max-w-md" @close="emit('close')">
     <template #default="{ close }">
       <div class="flex shrink-0 items-center justify-between pl-5 pr-2 pt-3 pb-1">
         <h2 class="text-base font-bold text-gray-900 dark:text-gray-100">{{ t('nav.bottom.more') }}</h2>

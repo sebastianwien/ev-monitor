@@ -174,6 +174,12 @@ const capture = useLogCapture()
 const { open: captureOpen, minimized: captureMinimized } = capture
 // Bottom-Nav "Mehr"-Sheet (nur Mobile)
 const moreOpen = ref(false)
+const moreSheet = ref<InstanceType<typeof MoreSheet> | null>(null)
+// Offen schließt der Tipp über das Sheet, damit es nach unten fährt; moreOpen fällt erst nach der Animation (close).
+const toggleMore = () => {
+  if (moreOpen.value) moreSheet.value?.requestClose()
+  else moreOpen.value = true
+}
 const balanceBumping = ref(false)
 const balanceInitialized = ref(false)
 
@@ -535,10 +541,11 @@ const handleBottomLogout = () => {
       :watt-balance="coinStore.balance"
       :is-demo="authStore.isDemoAccount"
       @record="handleBottomRecord"
-      @toggle-more="moreOpen = !moreOpen"
+      @toggle-more="toggleMore"
     />
     <MoreSheet
       v-if="moreOpen"
+      ref="moreSheet"
       :feedback-mailto="feedbackMailto"
       :is-demo="authStore.isDemoAccount"
       :is-native="isNative"
