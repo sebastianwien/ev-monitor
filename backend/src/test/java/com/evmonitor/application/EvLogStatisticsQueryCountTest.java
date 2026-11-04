@@ -51,10 +51,16 @@ class EvLogStatisticsQueryCountTest extends AbstractServiceTest {
         evLogStatisticsService.getStatistics(car.getId(), user.getId(),
                 LocalDate.of(2026, 3, 1), LocalDate.of(2026, 3, 31), "DAY");
 
-        long executions = Arrays.stream(stats.getQueries())
+        long byCar = Arrays.stream(stats.getQueries())
                 .filter(LOGS_BY_CAR::equals)
                 .mapToLong(q -> stats.getQueryStatistics(q).getExecutionCount())
                 .sum();
-        assertEquals(1, executions, "Ladungen des Autos je Statistik-Aufruf einmal laden");
+        assertEquals(1, byCar, "Ladungen des Autos je Statistik-Aufruf einmal laden");
+        // Auch die Saisonwerte (Sommer/Winter) rechnen mit der schon geladenen Liste statt neu zu laden
+        long anyLogQuery = Arrays.stream(stats.getQueries())
+                .filter(q -> q.contains("EvLogEntity"))
+                .mapToLong(q -> stats.getQueryStatistics(q).getExecutionCount())
+                .sum();
+        assertEquals(1, anyLogQuery, "keine zweite Abfrage der Ladungen, auch nicht für die Saisonwerte: " + Arrays.toString(stats.getQueries()));
     }
 }

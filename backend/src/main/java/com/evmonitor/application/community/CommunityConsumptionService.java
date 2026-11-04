@@ -249,9 +249,18 @@ public class CommunityConsumptionService {
      */
     public SeasonalConsumptionResult calculateSeasonalConsumption(List<Car> cars, boolean isSeedUser) {
         if (cars.isEmpty()) return new SeasonalConsumptionResult(null, null, null, 0, 0, 0, 0);
-
         List<UUID> carIds = cars.stream().map(Car::getId).toList();
-        Map<UUID, List<EvLog>> logsByCarId = evLogRepository.findAllByCarIds(carIds).stream()
+        return calculateSeasonalConsumption(cars, evLogRepository.findAllByCarIds(carIds), isSeedUser);
+    }
+
+    /**
+     * Wie {@link #calculateSeasonalConsumption(List, boolean)}, mit schon geladenen Ladungen: die Statistik
+     * eines Autos hat seine Historie bereits in der Hand und lädt sie nicht ein zweites Mal.
+     */
+    public SeasonalConsumptionResult calculateSeasonalConsumption(List<Car> cars, List<EvLog> logs, boolean isSeedUser) {
+        if (cars.isEmpty()) return new SeasonalConsumptionResult(null, null, null, 0, 0, 0, 0);
+
+        Map<UUID, List<EvLog>> logsByCarId = logs.stream()
                 .sorted(Comparator.comparing(EvLog::getLoggedAt))
                 .collect(Collectors.groupingBy(EvLog::getCarId));
 
