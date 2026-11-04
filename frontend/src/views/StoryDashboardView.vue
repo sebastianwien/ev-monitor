@@ -408,7 +408,7 @@ onUnmounted(() => unregisterReload?.())
         <header v-if="cars.length > 1" class="flex items-center lg:col-span-12">
           <CarSwitch v-model="selectedCarId" :cars="cars" :car-image-urls="carImageUrls" />
         </header>
-        <div ref="monthMain" class="grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7" :class="switching ? monthWaiting : ''">
+        <div ref="monthMain" class="relative grid min-w-0 grid-cols-1 content-start gap-4 lg:col-span-7" :class="switching ? monthWaiting : ''">
           <!-- Monatspfeile neben dem Monatssatz; ohne ihn (leer, Laden, Fehler, Live) als eigene Zeile mit Monat -->
           <div v-if="!monthHero && !liveHero && !recapOnTop" class="flex justify-end">
             <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
@@ -423,20 +423,31 @@ onUnmounted(() => unregisterReload?.())
             <button type="button" class="-my-2 min-h-[44px] font-semibold underline" @click="dismissNote">OK</button>
           </div>
 
-          <div v-if="loading && !monthStats" class="animate-pulse" aria-busy="true">
-            <div class="h-8 w-72 max-w-full rounded bg-gray-200 dark:bg-gray-700" />
-            <div class="mt-2 h-4 w-56 max-w-full rounded bg-gray-200 dark:bg-gray-700" />
-            <div class="mt-6 grid gap-2 md:grid-cols-2">
-              <div v-for="i in 2" :key="i" class="h-12 rounded-xl bg-gray-200 dark:bg-gray-700" />
+          <!-- Skeleton in der Form des Monats (Satz, Zuletzt-Karten, Kachelreihe): beim Einblenden springt nichts.
+               Es blendet an Ort und Stelle aus (absolut, 150 ms), während der Inhalt darunter mit "story-in" kommt. -->
+          <Transition name="story-skeleton">
+            <div v-if="loading && !monthStats" class="grid gap-4 motion-safe:animate-pulse" aria-busy="true" data-testid="story-skeleton">
+              <div class="grid gap-2">
+                <div class="h-7 w-11/12 rounded bg-gray-200 md:h-9 dark:bg-gray-700" />
+                <div class="h-7 w-2/3 rounded bg-gray-200 md:h-9 dark:bg-gray-700" />
+                <div class="mt-1 h-4 w-40 rounded bg-gray-200 dark:bg-gray-700" />
+              </div>
+              <div class="grid grid-cols-1 gap-2 md:grid-cols-2">
+                <div v-for="i in 2" :key="i" class="h-14 rounded-xl bg-gray-200 dark:bg-gray-700" />
+              </div>
+              <div class="-mx-4 flex gap-2.5 overflow-hidden px-4 md:m-0 md:grid md:grid-cols-2 md:gap-3 md:p-0">
+                <div v-for="i in 3" :key="i" class="h-20 w-40 shrink-0 rounded-xl bg-gray-200 md:w-auto dark:bg-gray-700" :class="i === 3 ? 'md:hidden' : ''" />
+              </div>
             </div>
-          </div>
+          </Transition>
 
+          <template v-if="loading && !monthStats" />
           <div v-else-if="error" class="text-sm text-rose-700 dark:text-rose-300">
             {{ t('story.error') }}
             <button type="button" class="ml-2 min-h-[44px] font-semibold underline" @click="story.reload()">{{ t('story.retry') }}</button>
           </div>
 
-          <div v-else-if="!hasActivity && heroMode === 'month'" class="grid gap-4" :class="recapOnTop ? '' : 'py-2'">
+          <div v-else-if="!hasActivity && heroMode === 'month'" class="story-in grid gap-4" :class="recapOnTop ? '' : 'py-2'">
             <StoryRecapHero v-if="recapHero" :moment="recapHero" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapHero!, id)">
               <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" @select="selectMonth" />
               <!-- Mit Rückblick steht der Ausblick direkt unter den Zahlen -->
@@ -466,7 +477,8 @@ onUnmounted(() => unregisterReload?.())
           </div>
 
           <template v-else>
-            <div>
+            <!-- Kaskade nach dem Skeleton: Hero sofort, Zuletzt-Karten 60 ms, Feed und Kacheln 120 ms später -->
+            <div class="story-in">
               <Transition name="story-hero" mode="out-in">
                 <StoryLiveHero v-if="heroMode === 'live' && live" key="live" :live="live">
                   <template #nav>
@@ -492,16 +504,17 @@ onUnmounted(() => unregisterReload?.())
             <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
               {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
             </p>
-            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :key="`${month.year}-${month.month}`" :days="days" @open-day="onOpenDay" @intent-day="onIntentDay" />
-            <StoryLatestCards v-if="story.latest.value" :latest="story.latest.value" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
+            <DataQualityLine v-if="hasCharges && heroMode !== 'live'" :key="`${month.year}-${month.month}`" class="story-in" style="--story-delay: 60ms" :days="days" @open-day="onOpenDay" @intent-day="onIntentDay" />
+            <StoryLatestCards v-if="story.latest.value" class="story-in" style="--story-delay: 60ms" :latest="story.latest.value" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
             <StoryFeed
               v-if="narrow && showFeed"
+              class="story-in" style="--story-delay: 120ms"
               :feed="feed" :model-name="modelName" :sheets="sheetIds"
               :places-teaser="placesTeaser" :places-rows="teaserRows" :month-name="monthLabel(month)" :running-month="month.offset === 0"
               @open="openSheet" @map="openPlaces" @charge="openCharge" @priceless="showPriceless = true" @prices="openFeedPrices" />
-            <StoryTileRow v-if="hasCharges" :tiles="tiles" :selected="paneTile?.id ?? null" :model-name="modelName" @open="openSheet" />
+            <StoryTileRow v-if="hasCharges" class="story-in" style="--story-delay: 120ms" :tiles="tiles" :selected="paneTile?.id ?? null" :model-name="modelName" @open="openSheet" />
             <!-- Erst der laufende Monat, dann der Vormonat: Rückblick und Community-Block stehen zusammen -->
-            <StoryRecapHero v-if="recapStage" secondary class="pt-2" :moment="recapStage" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapStage!, id)" />
+            <StoryRecapHero v-if="recapStage" secondary class="story-in pt-2" style="--story-delay: 120ms" :moment="recapStage" :car-id="selectedCarId" :car-name="carName" @act="id => onNewsAct(recapStage!, id)" />
           </template>
           <StoryCommunityMonth
             v-if="communityMonth && !error"
@@ -598,7 +611,15 @@ onUnmounted(() => unregisterReload?.())
 .story-hero-enter-active, .story-hero-leave-active { transition: opacity 260ms ease, transform 260ms ease; }
 .story-hero-enter-from { opacity: 0; transform: translateY(8px); }
 .story-hero-leave-to { opacity: 0; transform: translateY(-8px); }
+/* Erster Paint nach dem Skeleton: dieselbe Bewegung wie der Monatswechsel (Deckkraft und Hub), gestaffelt über --story-delay */
+.story-in { animation: story-in 260ms ease both; animation-delay: var(--story-delay, 0ms); }
+@keyframes story-in { from { opacity: 0; transform: translateY(14px); } }
+/* absolut ohne top: bleibt an seiner bisherigen Stelle (Stepper und Hinweis stehen darüber), nimmt keinen Platz mehr ein */
+.story-skeleton-leave-active { position: absolute; left: 0; right: 0; transition: opacity 150ms ease; }
+.story-skeleton-leave-to { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
   .story-hero-enter-active, .story-hero-leave-active { transition: none; }
+  .story-in { animation-name: story-fade; }
+  @keyframes story-fade { from { opacity: 0; } }
 }
 </style>
