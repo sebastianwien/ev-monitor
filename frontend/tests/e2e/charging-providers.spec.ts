@@ -65,14 +65,20 @@ test.describe('Fuhrpark-Tabs: Fahrzeuge <-> Ladekarten', () => {
   test('Desktop: Ladekarten und zurueck zum Dashboard in je einem Klick', async ({ page, isMobile }) => {
     test.skip(!!isMobile, 'Die Workspace-Leiste gibt es nur ab 768px - mobil geht es ueber das Mehr-Menue.');
 
+    const errors: string[] = [];
+    page.on('pageerror', err => errors.push(err.message));
     await page.waitForLoadState('networkidle');
 
     await areaTab(page, 'Meine Ladekarten').click();
     await expect(page).toHaveURL(/\/charging-providers/);
     await expect(page.locator('h1:has-text("Meine Ladekarten")')).toBeVisible();
 
+    // Zurück in ein gecachtes Layout: bricht das Zurückholen (KeepAlive), bleiben alle Bereiche danach leer
     await areaTab(page, 'Dashboard').click();
     await expect(page).toHaveURL(/\/dashboard/);
+    await areaTab(page, 'Meine Fahrzeuge').click();
+    await expect(page.locator('h1:has-text("Meine Fahrzeuge")')).toBeAttached();
+    expect(errors).toEqual([]);
   });
 
   test('Ladekarte im Tab anlegen', async ({ page }) => {

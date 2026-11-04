@@ -16,7 +16,11 @@ const view = computed(() => route.path === '/charging-providers' ? ChargingProvi
 </script>
 
 <template>
-  <KeepAlive>
-    <component :is="view" />
-  </KeepAlive>
+  <!-- Ein Element als Wurzel: liegt das innere KeepAlive direkt an der Wurzel dieses (selbst gecachten) Layouts,
+       verliert Vue beim Zurückholen den Ankerknoten (insertBefore-Fehler, Navigation bleibt leer) -->
+  <div>
+    <KeepAlive>
+      <component :is="view" />
+    </KeepAlive>
+  </div>
 </template>
