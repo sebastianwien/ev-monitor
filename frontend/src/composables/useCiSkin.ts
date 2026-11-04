@@ -4,8 +4,8 @@ import { ref } from 'vue'
 import type { LocationQuery, RouteRecordNameGeneric } from 'vue-router'
 
 export const CI_SKIN_KEY = 'ci-skin'
-// v1: Marketing-Entwurf; k1 bis k7: Vergleich leichterer Kanten im App-CI (styles/ci-edge-variants.css)
-const SKINS = ['v1', 'k1', 'k2', 'k3', 'k4', 'k5', 'k6', 'k7'] as const
+// v1: Marketing-Entwurf
+const SKINS = ['v1'] as const
 export type CiSkin = typeof SKINS[number]
 
 const SKIN_ROUTES = new Set<RouteRecordNameGeneric>(['story', 'logs'])
