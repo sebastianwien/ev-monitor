@@ -543,6 +543,7 @@ const handleBottomLogout = () => {
       :is-demo="authStore.isDemoAccount"
       @record="handleBottomRecord"
       @toggle-more="toggleMore"
+      @close-more="moreSheet?.requestClose()"
     />
     <MoreSheet
       v-if="moreOpen"

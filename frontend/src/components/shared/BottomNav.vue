@@ -21,6 +21,8 @@ const emit = defineEmits<{
   record: []
   /** Mehr-Tab: Sheet oeffnen/schliessen. */
   toggleMore: []
+  /** Ein anderer Eintrag bei offenem Mehr-Sheet: das Sheet soll zufahren. */
+  closeMore: []
 }>()
 
 const route = useRoute()
@@ -48,14 +50,17 @@ const tabClass = (tab: string) =>
 const row = ref<HTMLElement | null>(null)
 const line = useActiveIndicator(row, '[data-active]', activeTab)
 
-/** Tippt man den bereits aktiven Tab erneut, an den Seitenanfang scrollen (Standard-Pattern). */
+/** Tippt man den bereits aktiven Tab erneut, an den Seitenanfang scrollen (Standard-Pattern). Ist Mehr offen, schließt der
+ *  Tipp nur das Sheet und navigiert wie gewohnt, ohne zu scrollen. */
 function onTabClick(active: boolean) {
   haptic()
+  if (props.moreOpen) { emit('closeMore'); return }
   if (active) window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function onRecord() {
   haptic()
+  if (props.moreOpen) emit('closeMore')
   emit('record')
 }
 
@@ -97,7 +102,8 @@ function onMore() {
       </div>
 
       <!-- Zentraler FAB: Erfassen -->
-      <div class="relative w-20 flex justify-center">
+      <!-- z-10: der Knopf steht über dem gleitenden Strich -->
+      <div class="relative z-10 w-20 flex justify-center">
         <button
           type="button"
           class="btn-3d absolute -top-5 flex items-center justify-center w-14 h-14 rounded-full bg-green-600 text-white border-2 border-edge active:bg-green-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gray-900 dark:focus-visible:outline-gray-100"
