@@ -15,9 +15,11 @@ describe('resolveCiSkin', () => {
     expect(resolveCiSkin(undefined, 'xyz')).toBeNull()
   })
 
-  it('kennt die Kanten-Varianten k1 bis k3', () => {
+  it('kennt die Kanten-Varianten k1 bis k5', () => {
     expect(resolveCiSkin('k1', null)).toBe('k1')
     expect(resolveCiSkin(undefined, 'k3')).toBe('k3')
+    expect(resolveCiSkin('k4', null)).toBe('k4')
+    expect(resolveCiSkin(undefined, 'k5')).toBe('k5')
   })
 })
 
