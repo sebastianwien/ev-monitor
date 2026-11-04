@@ -12,6 +12,17 @@
       <h2 :class="['flex-1 min-w-0 truncate text-[17px] font-bold text-gray-900 dark:text-gray-50', overMap && 'opacity-0']">
         {{ section ? t(sectionTitles[section]) : t('dashboard.edit_title') }}
       </h2>
+      <!-- Löschen oben rechts wie bei der Fahrt: ein Tipp macht den Mülleimer zum roten Knopf, nach 3 s ohne Bestätigung wieder zurück -->
+      <template v-if="!section">
+        <button v-if="!confirmingDelete" type="button" data-testid="edit-delete" :aria-label="t('logform.delete_title')" @click="armDelete" v-haptic :class="iconButton">
+          <TrashIcon class="h-5 w-5 text-red-600 dark:text-red-400" aria-hidden="true" />
+        </button>
+        <button v-else type="button" data-testid="edit-delete-confirm" @click="deleteLog" v-haptic :disabled="loading"
+          class="pointer-events-auto btn-3d flex min-h-11 items-center gap-2 rounded-full border-2 border-edge bg-red-600 px-4 text-[15px] font-semibold text-white hover:bg-red-700 disabled:opacity-40">
+          <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          {{ t('dashboard.action_delete') }}
+        </button>
+      </template>
       <button v-if="dismiss === 'close'" type="button" :aria-label="t('common.cancel')" @click="emit('cancel')" :class="[iconButton, '-mr-2']">
         <XMarkIcon class="w-5 h-5" />
       </button>
@@ -29,7 +40,7 @@
         <input ref="timeInput" id="wizard-time" v-model="formData.loggedAt" type="datetime-local" :max="nowLocal()"
           :aria-label="t('logfields.timestamp')" class="sr-only" tabindex="-1" />
         <!-- Sprache: nur Handy, Knopf in der Fußleiste neben Speichern; danach Vorher/Nachher mit Rückgängig hier oben -->
-        <VoiceCapture v-if="showVoice && !confirmingDelete" entry="edit" variant="footer" :host="footerId" :car-id="log.carId" @draft="onVoiceDraft" />
+        <VoiceCapture v-if="showVoice" entry="edit" variant="footer" :host="footerId" :car-id="log.carId" @draft="onVoiceDraft" />
         <div v-if="voiceChanges" class="edge-box rounded-xl bg-white dark:bg-gray-700/50 p-3 space-y-2" data-testid="edit-voice-changes" aria-live="polite">
           <p v-if="voiceNothing" class="text-sm text-gray-700 dark:text-gray-200">{{ t('voicelog.edit_nothing') }}</p>
           <template v-if="voiceChanges.length">
@@ -108,31 +119,14 @@
         class="flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700">
         {{ t('logwizard.done') }}
       </button>
-      <!-- Loeschen: zweistufig im Sheet statt window.confirm (in der App unzuverlaessig) -->
-      <template v-else-if="confirmingDelete">
-        <span class="flex-1 text-[14px] font-semibold text-gray-900 dark:text-gray-100">{{ t('logform.delete_confirm') }}</span>
-        <button type="button" data-testid="edit-delete-cancel" @click="confirmingDelete = false" v-haptic
-          class="min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
-          {{ t('common.cancel') }}
-        </button>
-        <button type="button" data-testid="edit-delete-confirm" @click="deleteLog" v-haptic :disabled="loading"
-          class="btn-3d min-h-12 rounded-xl border-2 border-edge bg-red-600 px-4 text-[15px] font-semibold text-white hover:bg-red-700 disabled:opacity-40 flex items-center gap-2">
-          <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          {{ t('dashboard.action_delete') }}
-        </button>
-      </template>
       <template v-else>
-        <button type="button" data-testid="edit-delete" :aria-label="t('logform.delete_title')" @click="confirmingDelete = true" v-haptic
-          class="-ml-1 grid h-12 w-12 shrink-0 place-items-center rounded-full text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
-          <TrashIcon class="w-5 h-5" />
-        </button>
         <!-- Abbrechen erst ab 640 px: auf dem Handy fuehrt der Pfeil oder das X oben zurueck, Speichern bekommt die Breite -->
         <button type="button" @click="emit('cancel')" v-haptic class="hidden sm:inline-flex sm:items-center min-h-12 rounded-full px-3 text-[15px] font-semibold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-white/10">
           {{ t('common.cancel') }}
         </button>
       </template>
       <div :id="`${footerId}-footer-lead`" class="contents" />
-      <button v-if="!section && !confirmingDelete" type="button" data-testid="edit-save" @click="save" v-haptic :disabled="loading || !isFormValid"
+      <button v-if="!section" type="button" data-testid="edit-save" @click="save" v-haptic :disabled="loading || !isFormValid"
         class="flex-1 btn-3d min-h-12 rounded-xl border-2 border-edge bg-green-600 px-3 text-[15px] font-semibold text-white hover:bg-green-700 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
         <span v-if="loading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
         {{ t('logfields.save') }}
@@ -143,7 +137,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch, defineAsyncComponent, useId } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch, defineAsyncComponent, useId } from 'vue'
 import type { PickedPlace } from '../../composables/useLocationSearch'
 import { XMarkIcon, ChevronLeftIcon, TrashIcon } from '@heroicons/vue/24/outline'
 import { useI18n } from 'vue-i18n'
@@ -228,7 +222,16 @@ const confirmingDelete = ref(false)
 /** Ziele der Spracheingabe in der Fußleiste, eindeutig je Panel */
 const footerId = useId()
 const { deleteWithUndo } = useLogUndo()
+let disarm: ReturnType<typeof setTimeout> | null = null
+function armDelete() {
+  confirmingDelete.value = true
+  if (disarm) clearTimeout(disarm)
+  disarm = setTimeout(() => { confirmingDelete.value = false }, 3000)
+}
+onBeforeUnmount(() => { if (disarm) clearTimeout(disarm) })
+
 async function deleteLog() {
+  if (disarm) clearTimeout(disarm)
   errorMsg.value = ''
   loading.value = true
   try {

@@ -80,14 +80,27 @@ describe('EditLogModal - Ladevorgang loeschen', () => {
     expect(q('[data-testid="edit-log-modal"]')).not.toBeNull()
   })
 
-  it('Abbrechen der Nachfrage loescht nichts', async () => {
+  it('der Mülleimer sitzt oben rechts im Kopf, wie bei der Fahrt', async () => {
     mountModal()
     await nextTick()
-    q('[data-testid="edit-delete"]')!.click()
-    await nextTick()
-    q('[data-testid="edit-delete-cancel"]')!.click()
-    await nextTick()
-    expect(q('[data-testid="edit-delete-confirm"]')).toBeNull()
-    expect(api.delete).not.toHaveBeenCalled()
+    expect(q('[data-testid="edit-head"] [data-testid="edit-delete"]')).not.toBeNull()
+  })
+
+  it('die Nachfrage verfällt nach 3 s, ohne zu löschen', async () => {
+    vi.useFakeTimers()
+    try {
+      mountModal()
+      await nextTick()
+      q('[data-testid="edit-delete"]')!.click()
+      await nextTick()
+      expect(q('[data-testid="edit-delete-confirm"]')).not.toBeNull()
+      vi.advanceTimersByTime(3000)
+      await nextTick()
+      expect(q('[data-testid="edit-delete-confirm"]')).toBeNull()
+      expect(q('[data-testid="edit-delete"]')).not.toBeNull()
+      expect(api.delete).not.toHaveBeenCalled()
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
