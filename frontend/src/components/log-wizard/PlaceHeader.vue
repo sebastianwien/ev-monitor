@@ -20,7 +20,9 @@ export interface NumbersContext { title: string; address: string | null; card: s
 /** grow: height ist die Mindesthöhe, der Kopf wächst im Flex-Layout des Aufrufers mit */
 const props = withDefaults(defineProps<{ context: NumbersContext; height?: number; clickable?: boolean; map?: boolean; time?: string | null; grow?: boolean
   /** Kartennennung steht beim Aufrufer unter dem Inhalt */
-  noCredit?: boolean }>(), { height: 0, map: true, time: null, grow: false })
+  noCredit?: boolean
+  /** randlos bis an den Rand des Panels, auch ab md (Bearbeiten neben dem Logbuch) */
+  bleed?: boolean }>(), { height: 0, map: true, time: null, grow: false })
 const emit = defineEmits<{ click: []; time: [] }>()
 const hasMap = computed(() => props.map && props.context.lat != null && props.context.lon != null)
 const wholeTarget = computed(() => props.clickable && !props.time)
@@ -30,7 +32,7 @@ const { t } = useI18n()
 
 <template>
     <!-- Klickbar (Prüfung: Tipp springt zum Ort) auch per Tastatur: role, tabindex und Enter/Leertaste -->
-    <div data-testid="numbers-context" :class="['relative', clickable && 'cursor-pointer']" @click="emit('click')" class=" -mx-4 md:mx-0 md:rounded-xl overflow-hidden"
+    <div data-testid="numbers-context" :class="['relative -mx-4 overflow-hidden', clickable && 'cursor-pointer', !bleed && 'md:mx-0 md:rounded-xl']" @click="emit('click')"
       :role="wholeTarget ? 'button' : undefined" :tabindex="wholeTarget ? 0 : undefined" @keydown.enter.self.prevent="wholeTarget && emit('click')" @keydown.space.self.prevent="wholeTarget && emit('click')"
       :style="hasMap ? { [grow ? 'minHeight' : 'height']: `${height}px` } : undefined">
       <!-- Die Karte ist immer so hoch wie der größte Kopf und mittig verankert: der Rahmen wächst und schrumpft animiert,

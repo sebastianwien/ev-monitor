@@ -93,7 +93,7 @@ const speed = computed(() => {
       <LogbookBundle v-else-if="selection.kind === 'bundle'" :key="key" :parts="selection.parts" can-amend :can-reassign="canReassign"
         @cancel="dismiss" @amend="log => emit('amend', log)" @reassign="emit('reassign')"
         @select="openPart" />
-      <LogEditPanel v-else-if="selection.kind === 'charge'" :key="key" :log="selection.log" :dismiss="selection.bundleId ? 'back' : 'close'"
+      <LogEditPanel v-else-if="selection.kind === 'charge'" :key="key" :log="selection.log" :dismiss="selection.bundleId ? 'back' : wide ? 'none' : 'close'"
         @cancel="selection.bundleId ? emit('back') : dismiss()" @saved="done" @deleted="done">
         <template #extra>
           <div v-if="curve.available(selection.log) || canReassign"
@@ -121,7 +121,7 @@ const speed = computed(() => {
           </template>
         </template>
       </LogEditPanel>
-      <DayTripPanel v-else :key="key" :trip="selection.trip" :car-id="carId" :new-end="new Date()" :dismiss="wide ? 'back' : 'none'"
+      <DayTripPanel v-else :key="key" :trip="selection.trip" :car-id="carId" :new-end="new Date()" dismiss="none"
         @back="dismiss" @saved="done" @deleted="done" @changed="emit('changed')">
         <template #facts>
           <p v-if="speed" class="mb-3 text-[13px] tabular-nums md:hidden text-gray-600 dark:text-gray-300" data-testid="logbook-trip-speed">{{ speed }}</p>

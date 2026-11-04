@@ -15,8 +15,8 @@ const ready = ref(false)
 let map: L.Map | null = null
 let mark: L.CircleMarker | L.Rectangle | null = null
 const bounds = (a: MinimapArea): L.LatLngBoundsExpression => [[a.south, a.west], [a.north, a.east]]
-/** Pins auf Karten tragen die Textfarbe der App-CI: gray-900, im Dunkelmodus (invertierte Karte) gray-100. */
-const pinColor = () => document.documentElement.classList.contains('dark') ? '#f3f4f6' : '#111827'
+/** Pins tragen die Textfarbe der App-CI (gray-900); die Kacheln bleiben auch im Dunkelmodus hell wie die Fahrtkarte. */
+const pinColor = () => '#111827'
 
 onMounted(() => {
   if (!container.value) return
@@ -52,6 +52,3 @@ onUnmounted(() => { map?.remove(); map = null })
   </div>
 </template>
 
-<style scoped>
-.dark .minimap :deep(.leaflet-tile) { filter: grayscale(1) invert(1) contrast(0.8) brightness(0.75); }
-</style>

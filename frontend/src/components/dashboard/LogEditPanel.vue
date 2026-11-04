@@ -23,7 +23,7 @@
       <template v-if="!section">
         <!-- Erst die Ladung sehen: der Ort als Kartenkopf wie auf der Prüfseite des Wizards, ein Tipp darauf bearbeitet ihn -->
         <!-- Der Zeitpunkt steht im Kopf statt als fünfte Kachel: das Raster bleibt 2x2 wie auf der Prüfseite -->
-        <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" grow no-credit :time="timeLabel" clickable :class="['-mt-4', overMap && 'shrink basis-56']" data-testid="summary-place"
+        <PlaceHeader :context="placeContext" :height="PLACE_MAP_PX" grow bleed no-credit :time="timeLabel" clickable :class="['-mt-4', overMap && 'shrink basis-56']" data-testid="summary-place"
           @click="section = 'place'" @time="openNativePicker(timeInput)" />
         <!-- Tipp auf die Zeit öffnet direkt den Picker des Geräts, wie "Wählen" im Wizard; das Feld selbst bleibt unsichtbar -->
         <input ref="timeInput" id="wizard-time" v-model="formData.loggedAt" type="datetime-local" :max="nowLocal()"
@@ -217,7 +217,8 @@ const props = withDefaults(defineProps<{
   /** Direkt in einer Unteransicht öffnen, z. B. "place" für "Betreiber eintragen" auf der Ladekarte. */
   startSection?: SummarySection
   /** Kopf oben: Schließen-Kreuz (eigenes Sheet) oder Zurück-Pfeil (Ebene in einem anderen Sheet). */
-  dismiss?: 'close' | 'back'
+  /** none: neben dem Logbuch auf Desktop, das Panel schließt nicht selbst */
+  dismiss?: 'close' | 'back' | 'none'
 }>(), { dismiss: 'close' })
 const emit = defineEmits<{ cancel: []; saved: [log: EvLogResponse]; deleted: [logId: string] }>()
 const { t, locale } = useI18n()

@@ -141,7 +141,7 @@ async function remove() {
     <div class="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
       <!-- Karte oben randlos wie der Ort bei der Ladung, unten Verlauf ins Formular, darauf die Fakten.
            Höchstens 224 px; fehlt Platz, schrumpft sie bis 144 px, bevor die Ansicht scrollen muss. -->
-      <div v-if="withMap" class="relative -mx-4 -mt-4 mb-4 min-h-36 shrink basis-56 overflow-hidden md:mx-0 md:rounded-xl" data-testid="day-trip-map">
+      <div v-if="withMap" class="relative -mx-4 -mt-4 mb-4 min-h-36 shrink basis-56 overflow-hidden" data-testid="day-trip-map">
         <ActivityLocationMap variant="panel" no-credit :label="t('dashboard.trip_map_alt')"
           :start-geohash="trip!.locationStartGeohash" :end-geohash="trip!.locationEndGeohash"
           :route-polyline="trip!.routePolyline" :route-kind="trip!.routeKind" :trace-polyline="trip!.tracePolyline" />
