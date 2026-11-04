@@ -572,7 +572,7 @@ onUnmounted(() => unregisterReload?.())
       v-if="operatorLog"
       :log="operatorLog"
       :start-section="operatorSection"
-      stacked
+      :stacked="openMap"
       @close="closeOperator(false)"
       @saved="closeOperator(true)"
       @deleted="closeOperator(true)" />
