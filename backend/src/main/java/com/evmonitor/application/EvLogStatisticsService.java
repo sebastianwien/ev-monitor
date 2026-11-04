@@ -159,7 +159,7 @@ public class EvLogStatisticsService {
                     ? fixedCostService.calculateTotalsForPeriod(carId, startDate, endDate)
                     : FixedCostTotals.ZERO;
             BigDecimal distanceFromTrips = (startDate != null || endDate != null)
-                    ? computeOdometerDeltaDistance(carId, startDate, endDate)
+                    ? computeOdometerDeltaDistance(carId, allLogsForCar, startDate, endDate)
                     : null;
             // Ohne Ladung im Zeitraum bleiben Sommer und Winter aller Jahre die eigene Basis (Stufe 3)
             SeasonalConsumptionResult allYears = community.calculateSeasonalConsumption(List.of(car), isSeedUser);
@@ -273,7 +273,7 @@ public class EvLogStatisticsService {
         // For all-time views: legacy chain-based approach via totalDistAll (conservative, avoids
         // counting odometer gaps from broken chains like TESLA_FLEET_IMPORT without odometer).
         BigDecimal totalDistanceKm = (startDate != null || endDate != null)
-                ? computeOdometerDeltaDistance(carId, startDate, endDate)
+                ? computeOdometerDeltaDistance(carId, allLogsForCar, startDate, endDate)
                 : (totalDistAll > 0 ? BigDecimal.valueOf(totalDistAll) : null);
 
         BigDecimal avgConsumptionKwhPer100km = ConsumptionMath.weightedAverage(totalWeighted, totalDist);
@@ -924,13 +924,14 @@ public class EvLogStatisticsService {
      * Returns null if no odometer-bearing datapoint exists inside the period.
      * If from/to is null (all-time view), returns the raw delta across all datapoints.
      */
-    BigDecimal computeOdometerDeltaDistance(UUID carId, LocalDate from, LocalDate to) {
+    BigDecimal computeOdometerDeltaDistance(UUID carId, List<EvLog> logs, LocalDate from, LocalDate to) {
         // Build unified list of (timestamp, odometerKm) from ev_log + ev_trip
         record OdoPoint(OffsetDateTime ts, BigDecimal odo) {}
 
         List<OdoPoint> points = new ArrayList<>();
 
-        evLogRepository.findAllByCarId(carId).stream()
+        // Die Ladungen hat der Aufrufer schon geladen: je Statistik-Aufruf nur eine Abfrage der Historie
+        logs.stream()
                 .filter(l -> l.getOdometerKm() != null)
                 .forEach(l -> points.add(new OdoPoint(
                         l.getLoggedAt().atOffset(ZoneOffset.UTC), BigDecimal.valueOf(l.getOdometerKm()))));
