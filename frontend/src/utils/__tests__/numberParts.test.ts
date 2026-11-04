@@ -41,6 +41,7 @@ describe('numberParts', () => {
     expect(money('151\u00a0€ für 11 Ladungen.')).toEqual(['151\u00a0€'])
     expect(money('151\u00a0€ für 11 Ladungen.', true)).toEqual(['151\u00a0€'])
     expect(money('€151 for 11 charges')).toEqual(['€151'])
+    expect(money('€151 for 11 charges', true)).toEqual(['€151'])
     expect(money('Preis 39,5 ct je kWh, 45 kWh geladen')).toEqual(['39,5 ct'])
     expect(money('472 km mit 17,2 kWh')).toEqual([])
     expect(money('Für 5 € 3 Stopps')).toEqual(['5 €'])
