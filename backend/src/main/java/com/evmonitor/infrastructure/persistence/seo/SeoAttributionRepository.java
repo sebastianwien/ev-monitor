@@ -5,13 +5,16 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * DB-Seite des SEO-Tabs: Registrierungen je Landing-Seite aus app_user (First-Touch-Attribution) und die
- * Datenbasis je Modell. Zählt nur Konten ohne Seed-Daten; "organisch" heißt: Verweis von einer Google-Domain
- * ohne bezahltes Medium.
+ * Datenbasis je Modell. Zählt nur Konten ohne Seed-Daten; "organisch" heißt: Verweis von einer Suchmaschine
+ * ({@link SearchEngine}) ohne bezahltes Medium.
  */
 @Repository
 public class SeoAttributionRepository {
@@ -29,8 +32,14 @@ public class SeoAttributionRepository {
         public static final DataBasis EMPTY = new DataBasis(0, 0);
     }
 
-    private static final String ORGANIC =
-            "referrer_source LIKE '%google.%' AND (utm_medium IS NULL OR utm_medium NOT IN ('cpc', 'paid'))";
+    private static final String ORGANIC = "(" + Arrays.stream(SearchEngine.values())
+            .map(e -> "referrer_source LIKE '" + e.referrerLike() + "'")
+            .collect(Collectors.joining(" OR ")) + ") AND (utm_medium IS NULL OR utm_medium NOT IN ('cpc', 'paid'))";
+
+    /** Suchmaschine je Konto aus dem Verweis, erste passende gewinnt. */
+    private static final String ENGINE = "CASE " + Arrays.stream(SearchEngine.values())
+            .map(e -> "WHEN referrer_source LIKE '" + e.referrerLike() + "' THEN '" + e.name() + "'")
+            .collect(Collectors.joining(" ")) + " END";
 
     private final JdbcTemplate jdbc;
 
@@ -63,6 +72,16 @@ public class SeoAttributionRepository {
                         + "FROM app_user WHERE is_seed_data = FALSE AND created_at >= ? AND created_at < ?",
                 (rs, i) -> new RegistrationTotals(rs.getLong("n"), rs.getLong("organic")),
                 start(from), end(to));
+    }
+
+    /** Organische Registrierungen je Suchmaschine (Verweis von deren Domain, kein bezahltes Medium). */
+    public Map<SearchEngine, Long> organicRegistrationsByEngine(LocalDate from, LocalDate to) {
+        Map<SearchEngine, Long> result = new EnumMap<>(SearchEngine.class);
+        jdbc.query("SELECT " + ENGINE + " AS engine, count(*) AS n FROM app_user WHERE is_seed_data = FALSE "
+                        + "AND created_at >= ? AND created_at < ? AND " + ORGANIC + " GROUP BY " + ENGINE,
+                rs -> { result.put(SearchEngine.valueOf(rs.getString("engine")), rs.getLong("n")); },
+                start(from), end(to));
+        return result;
     }
 
     public Map<String, UtmTotals> registrationsByUtm(LocalDate from, LocalDate to) {
