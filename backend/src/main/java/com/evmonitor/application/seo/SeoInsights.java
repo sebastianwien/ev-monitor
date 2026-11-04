@@ -36,7 +36,15 @@ public final class SeoInsights {
      * die ganze Website. previousComplete: der Vorzeitraum liegt vollständig im Datenbestand, Deltas sind vergleichbar.
      */
     public record Overview(int periodDays, LocalDate from, LocalDate to, SeoMarket market, boolean previousComplete,
-                           Totals current, Totals previous, List<DayPoint> days) {
+                           Totals current, Totals previous, List<DayPoint> days, BrandSplit brand, BrandSplit brandPrevious) {
+    }
+
+    /**
+     * Brand- gegen Non-Brand-Suchen im Zeitraum, aus der Suchbegriff-Tabelle über alle Märkte. Google anonymisiert
+     * seltene Suchbegriffe, die Summen liegen deshalb unter den Seitensummen.
+     */
+    public record BrandSplit(long brandImpressions, long brandClicks, long nonBrandImpressions, long nonBrandClicks) {
+        public static final BrandSplit EMPTY = new BrandSplit(0, 0, 0, 0);
     }
 
     /** Eine Zeile beim Aufklappen: Suchbegriffe einer Seite (key = Begriff) oder Seiten eines Begriffs (key = Pfad). */
@@ -50,23 +58,34 @@ public final class SeoInsights {
 
     /** Anzahl Zeilen je Befund im Zeitraum, für "Was du jetzt tun kannst" im Überblick. */
     public record Opportunities(int underrated, int leak, int dead, int money, int striking, int cannibalized, int adwords,
-                                int contentGap, int invisible) {
+                                int contentGap, int invisible, List<Task> tasks) {
+    }
+
+    /**
+     * Eine Aufgabe mit geschätztem Ertrag: type UNDERRATED (key = Pfad) oder STRIKING_DISTANCE (key = Suchbegriff),
+     * path = Seite, an der gearbeitet wird, potentialClicks = zusätzliche Klicks im Zeitraum.
+     */
+    public record Task(String type, String key, String path, long potentialClicks) {
     }
 
     /**
      * finding: UNDERRATED, DEAD, LEAK, MONEY oder null. entries/bounceRate/ctaRate aus Plausible (Einstiegsseite),
-     * registrations: Konten, deren erste Seite dieser Pfad war.
+     * registrations: Konten, deren erste Seite dieser Pfad war. pageType: {@link SeoPageType}; clicksPrevious: Klicks
+     * im gleich langen Zeitraum davor, null, wenn der Vorzeitraum nicht vollständig im Datenbestand liegt; potentialClicks: zusätzliche Klicks bei üblicher CTR der Position ({@link CtrBenchmark}).
      */
     public record PageRow(String path, long impressions, long clicks, double ctr, double avgPosition,
-                          long entries, double bounceRate, double ctaRate, long registrations, String finding) {
+                          long entries, double bounceRate, double ctaRate, long registrations, String finding,
+                          String pageType, Long clicksPrevious, long potentialClicks) {
     }
 
     /**
      * finding: STRIKING_DISTANCE, CANNIBALIZED oder null; topPath = Seite mit den meisten Klicks;
-     * adwordsCandidate: Non-Brand, schlecht platziert, Zielseite konvertiert organisch gut.
+     * adwordsCandidate: Non-Brand, schlecht platziert, Zielseite konvertiert organisch gut. clicksPrevious: Klicks im
+     * Zeitraum davor, null bei unvollständigem Vorzeitraum; potentialClicks: bei Striking Distance zusätzliche Klicks auf Platz 3, sonst bei üblicher CTR der Position.
      */
     public record QueryRow(String query, boolean brand, long impressions, long clicks, double ctr, double avgPosition,
-                           String topPath, int pageCount, boolean adwordsCandidate, String finding) {
+                           String topPath, int pageCount, boolean adwordsCandidate, String finding,
+                           Long clicksPrevious, long potentialClicks) {
     }
 
     /**

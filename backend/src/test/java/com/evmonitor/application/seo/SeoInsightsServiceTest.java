@@ -478,6 +478,125 @@ class SeoInsightsServiceTest {
         assertThat(o.adwords()).isZero();
     }
 
+    // --- CTR-Potenzial, App-Seiten, Vorzeitraum je Zeile, Aufgaben, Brand-Split ---
+
+    @Test
+    void lowCtrComparesWithExpectedCtrOfThePositionEvenWhenMostPagesHaveNoClicks() {
+        // Regression: Mit Median-CTR 0 (die meisten Seiten ohne Klick) schlug der Befund nie an
+        when(repository.pageTotals(any(), any())).thenReturn(List.of(
+                new PageTotals("/modelle/Tesla/Model_Y", 3, 916, 7.9),      // 0,3 % auf Platz 8, üblich ~3 %
+                new PageTotals("/modelle/A/One", 0, 400, 9.0),
+                new PageTotals("/modelle/B/Two", 0, 300, 12.0),
+                new PageTotals("/modelle/C/Three", 0, 200, 14.0),
+                new PageTotals("/modelle/D/Four", 40, 1000, 7.0)));        // 4 % auf Platz 7: normal
+        when(repository.pathsWithImpressions(any(), any())).thenReturn(List.of());
+
+        List<String> lowCtr = service.pages(28, PageFilter.UNDERRATED, SeoMarket.DE).stream().map(PageRow::path).toList();
+
+        assertThat(lowCtr).contains("/modelle/Tesla/Model_Y").doesNotContain("/modelle/D/Four");
+    }
+
+    @Test
+    void appPagesAreNoLandingpagesAndRowsCarryTheirPageType() {
+        when(repository.pageTotals(any(), any())).thenReturn(List.of(
+                new PageTotals("/modelle/Tesla/Model_3", 6, 887, 7.9),
+                new PageTotals("/blog/ladeverluste", 1, 15, 15.7)));
+        when(repository.pathsWithImpressions(any(), any())).thenReturn(List.of("/swagger-ui/index.html"));
+        when(plausible.pageTotals(any(), any())).thenReturn(List.of(
+                new PlausibleDailyRepository.PageTotals("/dashboard", 400, 500, 487, 4.0, 60),
+                new PlausibleDailyRepository.PageTotals("/cars/123/bewerten", 1, 1, 1, 0.0, 5),
+                new PlausibleDailyRepository.PageTotals("/stories", 9, 9, 9, 10.0, 60)));
+
+        List<PageRow> rows = service.pages(28, PageFilter.ALL, SeoMarket.DE);
+
+        assertThat(rows).extracting(PageRow::path).containsExactly("/modelle/Tesla/Model_3", "/blog/ladeverluste", "/stories");
+        assertThat(rows).extracting(PageRow::pageType).containsExactly("MODEL", "CONTENT", "CONTENT");
+        assertThat(service.opportunities(28, SeoMarket.DE).dead()).isZero();
+    }
+
+    @Test
+    void pageRowsCarryPreviousClicksAndClickPotential() {
+        LocalDate from = LATEST.minusDays(27);
+        when(repository.pageTotals(from, LATEST)).thenReturn(List.of(new PageTotals("/modelle/Tesla/Model_Y", 3, 1000, 8.0)));
+        when(repository.pageTotals(from.minusDays(28), from.minusDays(1))).thenReturn(List.of(new PageTotals("/modelle/Tesla/Model_Y", 10, 900, 8.0)));
+        when(repository.pathsWithImpressions(any(), any())).thenReturn(List.of());
+        when(repository.earliestDay()).thenReturn(Optional.of(from.minusDays(28)));
+
+        PageRow row = service.pages(28, PageFilter.ALL, SeoMarket.DE).get(0);
+
+        assertThat(row.clicksPrevious()).isEqualTo(10);
+        // erwartete CTR auf Platz 8: 3 % -> 30 Klicks, 3 erreicht
+        assertThat(row.potentialClicks()).isEqualTo(27);
+    }
+
+    @Test
+    void queryRowsCarryPreviousClicksAndStrikingPotentialTowardsTopThree() {
+        LocalDate from = LATEST.minusDays(27);
+        when(repository.queryPathTotals(from, LATEST)).thenReturn(List.of(row("testauto reichweite", "/modelle/A", 1, 500, 9.7, false)));
+        when(repository.queryPathTotals(from.minusDays(28), from.minusDays(1))).thenReturn(List.of(row("testauto reichweite", "/modelle/A", 4, 400, 9.0, false)));
+        when(repository.earliestDay()).thenReturn(Optional.of(from.minusDays(28)));
+
+        QueryRow q = service.queries(28, BrandFilter.ALL, QueryFilter.ALL, SeoMarket.DE).get(0);
+
+        assertThat(q.finding()).isEqualTo("STRIKING_DISTANCE");
+        assertThat(q.clicksPrevious()).isEqualTo(4);
+        // Platz 3 bringt üblich 11 % -> 55 Klicks, 1 erreicht
+        assertThat(q.potentialClicks()).isEqualTo(54);
+    }
+
+    @Test
+    void previousClicksAreUnknownWhenThePreviousWindowIsNotFullyInTheData() {
+        LocalDate from = LATEST.minusDays(27);
+        when(repository.pageTotals(any(), any())).thenReturn(List.of(new PageTotals("/modelle/Tesla/Model_Y", 3, 1000, 8.0)));
+        when(repository.pathsWithImpressions(any(), any())).thenReturn(List.of());
+        when(repository.queryPathTotals(any(), any())).thenReturn(List.of(row("testauto reichweite", "/modelle/A", 1, 500, 9.7, false)));
+        // Daten beginnen mitten im Vorzeitraum: ein Delta wäre ein Scheinanstieg
+        when(repository.earliestDay()).thenReturn(Optional.of(from.minusDays(10)));
+
+        assertThat(service.pages(28, PageFilter.ALL, SeoMarket.DE).get(0).clicksPrevious()).isNull();
+        assertThat(service.queries(28, BrandFilter.ALL, QueryFilter.ALL, SeoMarket.DE).get(0).clicksPrevious()).isNull();
+    }
+
+    @Test
+    void opportunitiesListTopTasksByClickPotential() {
+        when(repository.pageTotals(any(), any())).thenReturn(List.of(
+                new PageTotals("/modelle/Tesla/Model_Y", 3, 1000, 8.0),
+                new PageTotals("/modelle/A/One", 0, 400, 9.0),
+                new PageTotals("/modelle/B/Two", 0, 20, 12.0)));
+        when(repository.pathsWithImpressions(any(), any())).thenReturn(List.of());
+        when(repository.queryPathTotals(any(), any())).thenReturn(List.of(row("testauto reichweite", "/modelle/A/One", 1, 500, 9.7, false)));
+
+        List<SeoInsights.Task> tasks = service.opportunities(28, SeoMarket.DE).tasks();
+
+        assertThat(tasks).extracting(SeoInsights.Task::key).startsWith("testauto reichweite", "/modelle/Tesla/Model_Y");
+        assertThat(tasks.get(0).type()).isEqualTo("STRIKING_DISTANCE");
+        assertThat(tasks.get(0).path()).isEqualTo("/modelle/A/One");
+        assertThat(tasks.get(0).potentialClicks()).isEqualTo(54);
+        assertThat(tasks).hasSizeLessThanOrEqualTo(5);
+        assertThat(tasks).isSortedAccordingTo((a, b) -> Long.compare(b.potentialClicks(), a.potentialClicks()));
+    }
+
+    @Test
+    void overviewSplitsBrandAndNonBrandSearches() {
+        when(repository.pageDays(any(), any())).thenReturn(List.of());
+        LocalDate from = LATEST.minusDays(6);
+        when(repository.brandDayTotals(from, LATEST)).thenReturn(List.of(
+                new GscDailyRepository.BrandDay(from, true, 100, 30),
+                new GscDailyRepository.BrandDay(from, false, 900, 20),
+                new GscDailyRepository.BrandDay(from.plusDays(1), false, 100, 5)));
+        when(repository.brandDayTotals(from.minusDays(7), from.minusDays(1))).thenReturn(List.of(
+                new GscDailyRepository.BrandDay(from.minusDays(2), true, 50, 10)));
+
+        Overview o = service.overview(7, SeoMarket.DE);
+
+        assertThat(o.brand().brandClicks()).isEqualTo(30);
+        assertThat(o.brand().brandImpressions()).isEqualTo(100);
+        assertThat(o.brand().nonBrandClicks()).isEqualTo(25);
+        assertThat(o.brand().nonBrandImpressions()).isEqualTo(1000);
+        assertThat(o.brandPrevious().brandClicks()).isEqualTo(10);
+        assertThat(o.brandPrevious().nonBrandClicks()).isZero();
+    }
+
     @Test
     void brandQueryOnSeveralPagesIsNotCannibalized() {
         // Bei Markensuchen zeigt Google mehrere eigene Seiten (Sitelinks), das ist keine Konkurrenz im eigenen Haus

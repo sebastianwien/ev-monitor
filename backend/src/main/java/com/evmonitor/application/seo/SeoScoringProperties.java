@@ -21,6 +21,8 @@ public class SeoScoringProperties {
     /** "Unterschätzt": Seite rankt sichtbar, bekommt aber unterdurchschnittlich Klicks. */
     private double underratedMinPosition = 4.0;
     private double underratedMaxPosition = 15.0;
+    /** "Low CTR": CTR unter diesem Anteil der üblichen CTR der Position (CtrBenchmark). */
+    private double underratedCtrShare = 0.5;
 
     /** "Striking Distance": Suchbegriff knapp hinter der ersten Seite. */
     private double strikingMinPosition = 5.0;
