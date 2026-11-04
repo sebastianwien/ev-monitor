@@ -42,6 +42,7 @@ import ThemeToggle from './components/shared/ThemeToggle.vue'
 import LocaleSwitcher from './components/shared/LocaleSwitcher.vue'
 import { useTickerState } from './composables/useTickerState'
 import { usePullToRefresh } from './composables/usePullToRefresh'
+import { useResumeReload } from './composables/useResumeReload'
 import { useSwipeBack } from './composables/useSwipeBack'
 import { useStatusBarTheme } from './composables/useStatusBarTheme'
 import { useCountryStore } from './stores/country'
@@ -96,6 +97,8 @@ const statusbarFillerClass = computed(() =>
 
 // Pull-to-Refresh (nur nativ): am Seitenanfang nach unten ziehen => Reload.
 const { pull: ptrPull, refreshing: ptrRefreshing, armed: ptrArmed } = usePullToRefresh()
+// Zurück aus dem Hintergrund nach 15 Minuten oder am nächsten Tag: offene Seite lädt still neu.
+useResumeReload()
 
 // Die Ticker-Aufklapp-Lasche haengt unter das Band; der Content muss sie freihalten,
 // sonst ragt sie in die erste Card (siehe LeaderboardTicker.vue).

@@ -32,6 +32,11 @@ export function registerSoftReload(fn: SoftReload): () => void {
   return () => { if (softReload === fn) softReload = null }
 }
 
+/** Nur der weiche Reload, falls angemeldet; sonst nichts. */
+export async function runSoftReload(): Promise<void> {
+  if (softReload) await softReload()
+}
+
 /** Weicher Reload, falls angemeldet, sonst harter Seiten-Reload. */
 export async function runReload(hardReload: () => void = () => window.location.reload()): Promise<void> {
   if (softReload) await softReload()
