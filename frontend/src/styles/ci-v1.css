@@ -116,3 +116,39 @@ html[data-ci="v1"]:not(.dark) .ci-avatar {
 }
 html[data-ci="v1"]:not(.dark) .ci-avatar:hover,
 html[data-ci="v1"]:not(.dark) .ci-avatar[aria-expanded="true"] { background-color: #9eead2; }
+
+/* Farbregeln des Entwurfs (~/private/app-ci/ci-v1-farbregeln.md): Amber = Geld, Violett = Verbrauch und Auswahl.
+   Das Thema setzt data-ci-topic (composables/ciTopic.ts), Geldbeträge in Sätzen markiert numberParts (ci-money). */
+html[data-ci="v1"]:not(.dark) {
+  --ci-amber: #ffb547;
+  --ci-violet-ink: #3f31b8;
+  --ci-violet-soft: #ece9ff;
+  --ci-lime: #6af5d0;
+  --ci-brand: #00b08c;
+}
+
+/* Geld: Textmarker hinter der Zahl, Schrift bleibt Ink */
+html[data-ci="v1"]:not(.dark) :is(.ci-money, [data-ci-topic="money"] .ci-value) {
+  color: var(--color-gray-900);
+  background-image: linear-gradient(transparent 52%, var(--ci-amber) 52%, var(--ci-amber) 92%, transparent 92%);
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  padding-inline: 0.08em;
+}
+/* Verbrauch: Zahl violett */
+html[data-ci="v1"]:not(.dark) [data-ci-topic="energy"] .ci-value { color: var(--ci-violet-ink); }
+
+/* Eigener Wert im Vergleichsbalken nach Thema, sonst bleibt er wie im App-CI */
+html[data-ci="v1"]:not(.dark) [data-ci-topic="money"] .ci-own { background-color: var(--ci-amber); }
+html[data-ci="v1"]:not(.dark) [data-ci-topic="energy"] .ci-own { background-color: var(--ci-violet); }
+
+/* "fehlt" ist eine Handlung: violett wie ein Link, Amber bleibt dem Geld */
+html[data-ci="v1"]:not(.dark) .ci-missing {
+  background-color: var(--ci-violet-soft);
+  color: var(--ci-violet-ink);
+}
+
+/* Diagrammreihen: zweite Reihe (DC, öffentlich) Markengrün, Ladeverluste Lime; Fahrten bleiben blau */
+html[data-ci="v1"]:not(.dark) .ci-s2 { background-color: var(--ci-brand); }
+html[data-ci="v1"]:not(.dark) .ci-loss { background-color: var(--ci-lime); }
+html[data-ci="v1"]:not(.dark) .ci-loss-text { color: var(--color-gray-500); }

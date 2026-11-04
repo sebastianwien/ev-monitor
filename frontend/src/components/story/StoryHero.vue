@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BoldNumbers from './BoldNumbers.vue'
 import { ref, watch, computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronDownIcon } from '@heroicons/vue/24/outline'
@@ -82,7 +83,7 @@ watch(() => props.monthLabel, () => { layersOpen.value = false })
       <div v-if="$slots.nav" class="float-right -mb-2 -mt-2 ml-3 md:-mb-1 md:-mt-0.5"><slot name="nav" /></div>
       <h1 class="text-pretty text-[26px] font-bold leading-[1.1] tracking-tight text-gray-900 tabular-nums md:text-[36px] dark:text-gray-50">
         <span data-testid="story-hero-value" class="block">
-          <template v-if="sentenceParts.month">{{ `${sentenceParts.month} ` }}</template><span class="whitespace-nowrap">{{ sentenceParts.rest }}</span>
+          <template v-if="sentenceParts.month">{{ `${sentenceParts.month} ` }}</template><span class="whitespace-nowrap"><BoldNumbers :text="sentenceParts.rest" units /></span>
         </span>
       </h1>
     </div>

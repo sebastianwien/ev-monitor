@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ciTopic } from '../../composables/ciTopic'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronRightIcon } from '@heroicons/vue/24/outline'
@@ -157,12 +158,13 @@ function go() {
     :is="tag"
     :type="target ? 'button' : undefined"
     :data-testid="`story-feed-${item.id}`"
+    :data-ci-topic="ciTopic(item.id)"
     class="story-feed-item grid w-full gap-1.5 rounded-xl bg-white px-3.5 py-3 text-left edge-card dark:bg-gray-700/50"
     :class="target ? 'group transition-[transform,box-shadow,background-color] md:hover:bg-gray-50 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent md:dark:hover:bg-gray-700/70' : ''"
     @click="go">
     <span class="flex items-start justify-between gap-3">
       <span class="min-w-0 flex-1">
-        <span class="block text-[15px] leading-snug text-pretty text-gray-900 dark:text-gray-100" :class="sub ? 'font-bold' : ''"><template v-for="(x, i) in parts" :key="i"><b v-if="x.bold" class="font-bold" :class="numberClass">{{ x.text }}</b><template v-else>{{ x.text }}</template></template></span>
+        <span class="block text-[15px] leading-snug text-pretty text-gray-900 dark:text-gray-100" :class="sub ? 'font-bold' : ''"><template v-for="(x, i) in parts" :key="i"><b v-if="x.bold" class="ci-value font-bold" :class="numberClass">{{ x.text }}</b><template v-else>{{ x.text }}</template></template></span>
         <span v-if="sub" class="mt-0.5 block text-[13px] leading-snug text-gray-600 dark:text-gray-300">{{ sub }}</span>
       </span>
       <span v-if="target" data-testid="story-feed-chevron" class="-ml-1 mt-0.5 shrink-0 text-gray-400 transition-transform group-hover:translate-x-0.5" aria-hidden="true"><ChevronRightIcon class="h-4 w-4" /></span>

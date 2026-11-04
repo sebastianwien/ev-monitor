@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ciTopic } from '../../composables/ciTopic'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Spark from './Spark.vue'
@@ -155,7 +156,7 @@ const chargingSegments = computed(() => {
   const dc = Math.round((c.dcKwh / total) * 100)
   return [
     { key: 'AC', label: t('story.charging_ac'), pct: 100 - dc, cls: 'bg-green-700 dark:bg-green-400', text: 'text-green-700 dark:text-green-400' },
-    { key: 'DC', label: t('story.charging_dc'), pct: dc, cls: 'bg-sky-500', text: 'text-sky-700 dark:text-sky-400' },
+    { key: 'DC', label: t('story.charging_dc'), pct: dc, cls: 'ci-s2 bg-sky-500', text: 'text-sky-700 dark:text-sky-400' },
   ].filter(s => s.pct > 0)
 })
 
@@ -177,6 +178,7 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
   <button
     type="button"
     :data-testid="`story-tile-${tile.id}`"
+    :data-ci-topic="ciTopic(tile.id)"
     class="story-tile flex h-[150px] w-[85%] min-w-0 shrink-0 snap-start flex-col gap-1 rounded-2xl bg-white p-3.5 text-left edge-card md:h-[160px] md:w-auto
            dark:bg-gray-700/50 md:hover:bg-gray-50 md:dark:hover:bg-gray-700/70 transition-[transform,box-shadow,background-color] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none focus:outline-none focus-visible:ring-2 focus-visible:ring-story-accent"
     :class="selected && 'outline-2 outline-offset-2 outline-green-600 dark:outline-green-400'"
@@ -185,7 +187,7 @@ const endLabel = computed(() => props.tile.id === 'cost' ? formatCurrency(props.
     @click="emit('open', tile.id)">
     <span class="line-clamp-2 text-[11.5px] font-semibold uppercase leading-tight tracking-[0.06em] text-gray-500 dark:text-gray-400">{{ label }}</span>
     <span class="flex items-baseline gap-1 leading-none">
-      <b class="text-[26px] font-extrabold tracking-tight text-gray-900 tabular-nums dark:text-gray-50">{{ value.n }}</b>
+      <b class="ci-value text-[26px] font-extrabold tracking-tight text-gray-900 tabular-nums dark:text-gray-50">{{ value.n }}</b>
       <span class="text-[13px] font-semibold text-gray-500 dark:text-gray-400">{{ value.unit }}</span>
       <!-- Schätzwert: in der Zeile der Zahl, in der Schrift der Einheit -->
       <span v-if="tile.id === 'battery' && tile.estimated" class="ml-1 text-[13px] font-semibold text-amber-700 dark:text-amber-400">{{ t('story.estimated_badge') }}</span>
