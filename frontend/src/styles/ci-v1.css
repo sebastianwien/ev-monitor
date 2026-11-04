@@ -128,7 +128,11 @@ html[data-ci="v1"]:not(.dark) {
 }
 
 /* Geld: Textmarker hinter der Zahl, Schrift bleibt Ink */
-html[data-ci="v1"]:not(.dark) :is(.ci-money, [data-ci-topic="money"] .ci-value) {
+html[data-ci="v1"]:not(.dark) :is(.ci-money, .ci-money-text, [data-ci-topic="money"] .ci-value) {
+  display: inline;
+  border-radius: 0;
+  background-color: transparent;
+  line-height: inherit;
   color: var(--color-gray-900);
   background-image: linear-gradient(transparent 52%, var(--ci-amber) 52%, var(--ci-amber) 92%, transparent 92%);
   -webkit-box-decoration-break: clone;
@@ -144,6 +148,7 @@ html[data-ci="v1"]:not(.dark) [data-ci-topic="energy"] .ci-own { background-colo
 
 /* "fehlt" ist eine Handlung: violett wie ein Link, Amber bleibt dem Geld */
 html[data-ci="v1"]:not(.dark) .ci-missing {
+  border: 0;
   background-color: var(--ci-violet-soft);
   color: var(--ci-violet-ink);
 }

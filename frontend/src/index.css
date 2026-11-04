@@ -388,3 +388,27 @@ body {
   from { opacity: 0.2; transform: translateY(14px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* Semantische Farben der App-CI (docs/design/ci.md). Hooks im Markup, damit Skins (styles/ci-v1.css) sie umdeuten können.
+   Geld ist Amber: freistehende Beträge als Kapsel, Beträge im Satz und große Kachelzahlen als Amber-Schrift.
+   "fehlt" ist eine Handlung und deshalb nicht Amber: gestrichelte graue Kapsel, dunkle Schrift. */
+.ci-money {
+  display: inline-block;
+  padding: 0 0.4em;
+  border-radius: 9999px;
+  background-color: var(--color-amber-100);
+  color: var(--color-amber-900);
+  line-height: 1.35;
+}
+.dark .ci-money { background-color: rgb(251 191 36 / 0.15); color: var(--color-amber-300); }
+.ci-money-text, [data-ci-topic="money"] .ci-value { color: var(--color-amber-700); }
+.dark :is(.ci-money-text, [data-ci-topic="money"] .ci-value) { color: var(--color-amber-400); }
+
+.ci-missing {
+  background-color: transparent;
+  border: 1.5px dashed var(--color-gray-400);
+  color: var(--color-gray-900);
+}
+.dark .ci-missing { border-color: var(--color-gray-500); color: var(--color-gray-100); }
+.ci-missing-text { color: var(--color-gray-900); }
+.dark .ci-missing-text { color: var(--color-gray-100); }

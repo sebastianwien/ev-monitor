@@ -45,7 +45,7 @@ const segment = (active: boolean) => `relative z-10 min-h-8 rounded-full text-[1
     <!-- Rand: umschließt die Monate, aufgeklappt auch den Kalender (32 px Kalender plus 10 px Abstand) -->
     <span v-if="framed" aria-hidden="true" class="absolute inset-y-0 right-0 rounded-full border-2 border-edge bg-white transition-[left] duration-300 motion-reduce:transition-none dark:bg-gray-900"
       :class="calendar && !expanded ? 'left-[42px] ease-in' : 'left-0 ease-out'" />
-    <span aria-hidden="true" class="ci-selected pointer-events-none absolute inset-y-1 left-0 z-[1] rounded-full bg-gray-900 dark:bg-gray-100"
+    <span aria-hidden="true" class="ci-selected pointer-events-none absolute inset-y-1 left-0 z-[1] rounded-full bg-indigo-600 dark:bg-indigo-400"
       :class="[pill.glide.value ? 'transition-[transform,width] duration-300 ease-out motion-reduce:transition-none' : '', pill.visible.value ? '' : 'opacity-0']"
       :style="pill.style.value" />
     <button v-if="calendar" ref="calendarButton" type="button"

@@ -174,7 +174,7 @@ function monthName(year: number, month: number): string {
             :aria-current="c.offset === offset ? 'true' : undefined"
             class="min-h-11 rounded-full text-[13.5px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-green-600"
             :class="c.offset === offset
-              ? 'ci-selected bg-gray-900 text-white dark:bg-gray-100 dark:text-gray-900'
+              ? 'ci-selected bg-indigo-600 text-white dark:bg-indigo-400 dark:text-gray-900'
               : c.enabled
                 ? 'text-gray-800 hover:bg-gray-100 dark:text-gray-100 dark:hover:bg-white/10'
                 : 'cursor-default text-gray-300 dark:text-gray-600'"
