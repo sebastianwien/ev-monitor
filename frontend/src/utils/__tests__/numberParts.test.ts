@@ -6,7 +6,7 @@ const bold = (text: string) => numberParts(text).filter(p => p.number).map(p => 
 describe('numberParts', () => {
   it('markiert Zahlen mit Tausenderpunkt, Dezimalkomma und Prozent', () => {
     expect(bold('44.617 kWh in 2.758 Ladevorgängen geladen')).toEqual(['44.617', '2.758'])
-    expect(bold('25.795 € gespart (Benzin 2,24 €/L)')).toEqual(['25.795', '2,24'])
+    expect(bold('25.795 € gespart (Benzin 2,24 €/L)')).toEqual(['25.795 €', '2,24 €'])
     expect(bold('63% aller Ladevorgänge zu Hause')).toEqual(['63%'])
   })
 
@@ -38,11 +38,11 @@ describe('numberParts', () => {
 
   it('markiert Geldbeträge (€ oder ct davor oder dahinter), sonst nicht', () => {
     const money = (text: string, units = false) => numberParts(text, { units }).filter(p => p.money).map(p => p.text)
-    expect(money('151\u00a0€ für 11 Ladungen.')).toEqual(['151'])
+    expect(money('151\u00a0€ für 11 Ladungen.')).toEqual(['151\u00a0€'])
     expect(money('151\u00a0€ für 11 Ladungen.', true)).toEqual(['151\u00a0€'])
-    expect(money('€151 for 11 charges')).toEqual(['151'])
-    expect(money('Preis 39,5 ct je kWh, 45 kWh geladen')).toEqual(['39,5'])
+    expect(money('€151 for 11 charges')).toEqual(['€151'])
+    expect(money('Preis 39,5 ct je kWh, 45 kWh geladen')).toEqual(['39,5 ct'])
     expect(money('472 km mit 17,2 kWh')).toEqual([])
-    expect(money('Für 5 € 3 Stopps')).toEqual(['5'])
+    expect(money('Für 5 € 3 Stopps')).toEqual(['5 €'])
   })
 })

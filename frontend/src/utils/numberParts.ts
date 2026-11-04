@@ -1,7 +1,7 @@
 export interface TextPart {
     text: string
     number: boolean
-    /** Geldbetrag: € oder ct direkt davor oder dahinter. Färbt nur der Probe-Skin v1 (ci-money). */
+    /** Geldbetrag: € oder ct direkt davor oder dahinter, das Zeichen gehört dann zum Text. */
     money?: boolean
 }
 
@@ -9,6 +9,7 @@ export interface TextPart {
 const MONEY_BEFORE = /(?:^|[^\d \u00a0\u202f])[ \u00a0\u202f]?€[ \u00a0\u202f]?$/
 const MONEY_AFTER = /^[ \u00a0\u202f]?(?:€|ct(?!\p{L}))/u
 const MONEY_UNIT = /(?:€|ct)$/
+const MONEY_PREFIX = /€[ \u00a0\u202f]?$/
 
 // Zahl mit Tausender- und Dezimaltrennern, optional mit Minus davor und Prozent dahinter; nicht als Teil eines Worts (CO2) und kein Bindestrich zwischen Zahlen (2-3).
 const NUMBER = /(?<![\p{L}\d])[-\u2212]?\d+(?:[.,  ]\d+)*%?/gu
@@ -20,10 +21,17 @@ export function numberParts(text: string, opts?: { units?: boolean }): TextPart[
     const parts: TextPart[] = []
     let last = 0
     for (const m of text.matchAll(opts?.units ? NUMBER_WITH_UNIT : NUMBER)) {
-        if (m.index > last) parts.push({ text: text.slice(last, m.index), number: false })
-        const money = MONEY_UNIT.test(m[0]) || MONEY_BEFORE.test(text.slice(0, m.index)) || MONEY_AFTER.test(text.slice(m.index + m[0].length))
-        parts.push(money ? { text: m[0], number: true, money } : { text: m[0], number: true })
-        last = m.index + m[0].length
+        let start = m.index
+        let end = m.index + m[0].length
+        const before = MONEY_BEFORE.test(text.slice(0, start))
+        const after = MONEY_UNIT.test(m[0]) ? null : text.slice(end).match(MONEY_AFTER)
+        const money = MONEY_UNIT.test(m[0]) || before || !!after
+        // Ein Geldbetrag nimmt sein Währungszeichen mit, damit "28 €" als Ganzes amber wird
+        if (before) start = Math.max(last, start - text.slice(0, start).match(MONEY_PREFIX)![0].length)
+        else if (after) end += after[0].length
+        if (start > last) parts.push({ text: text.slice(last, start), number: false })
+        parts.push(money ? { text: text.slice(start, end), number: true, money } : { text: m[0], number: true })
+        last = end
     }
     if (last < text.length || !parts.length) parts.push({ text: text.slice(last), number: false })
     return parts

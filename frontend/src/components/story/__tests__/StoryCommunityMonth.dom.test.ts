@@ -54,7 +54,7 @@ describe('StoryCommunityMonth', () => {
     ])
     expect(lines.join(' ')).not.toMatch(/Oktober|Community/)
     const bold = [...host.querySelectorAll('[data-testid="story-community-line"] strong')].map(text)
-    expect(bold).toEqual(['48.300', '2.140', '12.000', '1,75', '16'])
+    expect(bold).toEqual(['48.300', '2.140', '12.000 €', '1,75 €', '16'])
     const link = host.querySelector('a[href="/leaderboard"]')!
     expect(text(link)).toBe('Rangliste ansehen')
     ;(link as HTMLElement).click()
