@@ -419,7 +419,7 @@ body {
   color: var(--color-amber-900);
   line-height: 1.35;
 }
-.dark .ci-money { background-color: rgb(251 191 36 / 0.15); color: var(--color-amber-300); }
+.dark .ci-money { background-color: rgb(251 191 36 / 0.15); color: var(--color-amber-400); }
 .ci-money-text, [data-ci-topic="money"] .ci-value { color: var(--color-amber-700); }
 .dark :is(.ci-money-text, [data-ci-topic="money"] .ci-value) { color: var(--color-amber-400); }
 

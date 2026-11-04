@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { XMarkIcon, ShareIcon, ChevronRightIcon, TrophyIcon, BoltIcon, BanknotesIcon } from '@heroicons/vue/24/outline'
 import WeatherIcon from '../icons/WeatherIcon.vue'
+import BoldNumbers from './BoldNumbers.vue'
 import type { Moment } from '../../composables/storyMoments'
 import { useMomentView, type MomentAction } from '../../composables/useMomentView'
 import { keepUnits } from '../../utils/modelStory'
@@ -43,7 +44,7 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
       </span>
     </div>
     <p class="text-pretty text-[20px] font-bold leading-tight tracking-tight text-gray-900 tabular-nums md:text-[22px] dark:text-gray-50" data-testid="story-news-sentence">
-      {{ keepUnits(view.sentence) }}
+      <BoldNumbers :text="keepUnits(view.sentence)" units />
       <span v-if="view.badge" class="ml-1 inline-block rounded-full border border-gray-300 px-2 py-0.5 align-middle text-[12px] font-semibold tracking-normal text-gray-600 dark:border-gray-600 dark:text-gray-300">{{ view.badge }}</span>
     </p>
     <section v-if="view.forecast" class="mt-1 grid gap-1.5" data-testid="story-news-forecast">
@@ -60,12 +61,12 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
         </li>
       </ul>
     </section>
-    <p v-if="view.sub" class="text-pretty text-[14px] text-gray-600 tabular-nums dark:text-gray-300">{{ keepUnits(view.sub) }}<template v-if="view.cheer">{{ ` ${view.cheer}` }}</template></p>
+    <p v-if="view.sub" class="text-pretty text-[14px] text-gray-600 tabular-nums dark:text-gray-300"><BoldNumbers :text="keepUnits(view.sub)" units /><template v-if="view.cheer">{{ ` ${view.cheer}` }}</template></p>
     <!-- Monatsrückblick: Platz und Modellvergleich als Zeilen mit Symbol, Pokal für den Platz, Blitz für den Verbrauch, Scheine für Euro -->
     <ul v-if="view.details?.length" class="grid gap-1.5" data-testid="story-news-details">
       <li v-for="d in view.details" :key="d.id" class="flex items-start gap-2 text-pretty text-[15px] font-semibold text-gray-900 tabular-nums dark:text-gray-50">
         <component :is="d.id === 'rank' ? TrophyIcon : d.id === 'cost' ? BanknotesIcon : BoltIcon" class="mt-0.5 h-4 w-4 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
-        <span>{{ keepUnits(d.text) }}</span>
+        <BoldNumbers :text="keepUnits(d.text)" units />
       </li>
     </ul>
     <div v-if="primary || view.secondary || view.dismiss || $slots.more" class="mt-1 grid gap-1" :class="primary && !primaryIsView ? '' : 'justify-items-start'">
