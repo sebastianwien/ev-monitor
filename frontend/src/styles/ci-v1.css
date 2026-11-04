@@ -1,0 +1,83 @@
+/* Probe-CI "v1" (Marketing-Entwurf app-design-v1): Skin über dem App-CI, nur hell, nur wo
+   composables/useCiSkin.ts data-ci="v1" setzt (?ci=v1). Die Vue-Dateien bleiben unverändert: Tailwind 4
+   baut seine Klassen aus diesen Variablen, deshalb färbt das Umstellen der Palette die ganze Seite um.
+   Ohne Layer, damit es die Utilities (edge-card, btn-3d) aus index.css überschreibt.
+   Entwurfs-Tokens: Ink #063A31, Grau #4A6B63, Linie #D5E3DE, Mint #F3FBF8/#DFF7EF, Grün #00B08C/#00755F,
+   Amber #FFF1D6/#7A4A00, Violett #6252F0/#ECE9FF. */
+
+html[data-ci="v1"]:not(.dark) {
+  --font-sans: 'Manrope Variable', system-ui, sans-serif;
+  --ci-heading: 'Sora Variable', 'Manrope Variable', system-ui, sans-serif;
+
+  --color-gray-50: #f3fbf8;
+  --color-gray-100: #dff7ef;
+  --color-gray-200: #d5e3de;
+  --color-gray-300: #bcd1ca;
+  --color-gray-400: #86a29a;
+  /* Labels: Entwurfsgrau, 5,9:1 gegen Weiß */
+  --color-gray-500: #4a6b63;
+  --color-gray-600: #3e5f57;
+  --color-gray-700: #2a4d45;
+  --color-gray-800: #16423a;
+  --color-gray-900: #063a31;
+
+  --color-green-50: #dff7ef;
+  --color-green-100: #c8f2e3;
+  --color-green-200: #9eead2;
+  --color-green-500: #00b08c;
+  /* Knopfgrün dunkler als das Entwurfsgrün #00B08C: weiße Schrift braucht 4,5:1, #00B08C hat nur 2,6:1 */
+  --color-green-600: #00755f;
+  --color-green-700: #00604e;
+  --color-story-accent: #00755f;
+
+  --color-amber-50: #fff8ea;
+  --color-amber-100: #fff1d6;
+  --color-amber-400: #ffb547;
+  --color-amber-500: #ffb547;
+  --color-amber-700: #7a4a00;
+  --color-amber-800: #5e3900;
+
+  --color-edge: #d5e3de;
+  --btn-shadow-color: transparent;
+
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-3xl: 18px;
+
+  --ci-shadow: 0 14px 26px -20px rgb(6 58 49 / 0.35);
+  --ci-violet: #6252f0;
+}
+
+/* index.css setzt die Schrift auf body fest, ohne Variable, deshalb direkt */
+html[data-ci="v1"]:not(.dark) body {
+  font-family: var(--font-sans);
+}
+
+html[data-ci="v1"]:not(.dark) :is(h1, h2, h3) {
+  font-family: var(--ci-heading);
+  letter-spacing: -0.01em;
+}
+
+/* Kante wird Haarlinie mit weichem Schatten */
+html[data-ci="v1"]:not(.dark) :is(.edge-card, .edge-box) {
+  border-width: 1px;
+  box-shadow: var(--ci-shadow);
+}
+
+/* Knöpfe ohne harten Versatz-Schatten, beim Drücken leicht kleiner */
+html[data-ci="v1"]:not(.dark) .btn-3d {
+  border-width: 1px;
+  box-shadow: none;
+}
+html[data-ci="v1"]:not(.dark) .btn-3d:active,
+html[data-ci="v1"]:not(.dark) .btn-3d.active {
+  box-shadow: none;
+  transform: scale(0.97);
+}
+
+/* Auswahl violett (Chips, Monatsraster, Monatskapsel) */
+html[data-ci="v1"]:not(.dark) .ci-selected {
+  background-color: var(--ci-violet);
+  border-color: var(--ci-violet);
+  color: #fff;
+}

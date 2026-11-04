@@ -1,7 +1,12 @@
 import { createApp } from 'vue'
 import './index.css'
+// Probe-CI v1 (?ci=v1): Fonts laden erst, wenn der Skin sie nutzt
+import '@fontsource-variable/manrope'
+import '@fontsource-variable/sora'
+import './styles/ci-v1.css'
 import App from './App.vue'
 import router from './router'
+import { applyCiSkin } from './composables/useCiSkin'
 import { createPinia } from 'pinia'
 import { createHead } from '@unhead/vue/client'
 import { i18n, getSavedLocale, loadLocaleMessages } from './i18n'
@@ -57,6 +62,7 @@ app.directive('haptic', {
 
 app.use(createPinia())
 app.use(router)
+router.afterEach((to) => applyCiSkin(to))
 app.use(createHead())
 app.use(i18n)
 
