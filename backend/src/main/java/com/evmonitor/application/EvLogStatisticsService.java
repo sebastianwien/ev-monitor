@@ -162,7 +162,7 @@ public class EvLogStatisticsService {
                     ? computeOdometerDeltaDistance(carId, allLogsForCar, startDate, endDate)
                     : null;
             // Ohne Ladung im Zeitraum bleiben Sommer und Winter aller Jahre die eigene Basis (Stufe 3)
-            SeasonalConsumptionResult allYears = community.calculateSeasonalConsumption(List.of(car), isSeedUser);
+            SeasonalConsumptionResult allYears = community.calculateSeasonalConsumption(List.of(car), allLogsForCar, isSeedUser);
             return withDriveAndRange(createEmptyStatisticsWithFixedCostAndDistance(fixedCosts, distanceFromTrips),
                     car, user, new DriveConsumptionService.Period(startDate, endDate),
                     new RangeEstimateService.OwnCharges(null, allYears.summerConsumptionKwhPer100km(), allYears.winterConsumptionKwhPer100km()));
@@ -292,7 +292,7 @@ public class EvLogStatisticsService {
         }
 
         // Seasonal consumption - uses ALL logs (not time-filtered) for best signal
-        SeasonalConsumptionResult seasonal = community.calculateSeasonalConsumption(List.of(car), isSeedUser);
+        SeasonalConsumptionResult seasonal = community.calculateSeasonalConsumption(List.of(car), allLogsForCar, isSeedUser);
 
         // Peer benchmark - only when car has a vehicle spec linked
         EvLogStatisticsResponse.PeerBenchmark peerBenchmark = null;
