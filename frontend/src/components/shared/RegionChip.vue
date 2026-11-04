@@ -47,7 +47,7 @@ onBeforeUnmount(() => document.removeEventListener('click', handleOutsideClick))
     <!-- Dropdown - opens upward so it doesn't go off-screen in footer -->
     <div
       v-if="open"
-      class="absolute z-50 bottom-full mb-1 right-0 w-64 bg-white dark:bg-gray-800 rounded-sm shadow-[5px_5px_0_rgba(0,0,0,0.35)] dark:shadow-[5px_5px_0_rgba(255,255,255,0.35)] border border-gray-200 dark:border-gray-700 p-3"
+      class="absolute z-50 bottom-full mb-1 right-0 w-64 bg-white dark:bg-gray-800 rounded-sm border border-gray-200 dark:border-gray-700 p-3 edge-lift"
     >
       <div class="flex items-center justify-between mb-2.5">
         <span class="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wide">

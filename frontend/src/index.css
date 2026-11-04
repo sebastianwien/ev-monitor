@@ -183,7 +183,7 @@ html {
 
 /* Dark Mode: heller Bodenschatten für die ganze 3D-Familie. Elemente mit eigener
    --btn-shadow-color (Ladekarten, Banner) überschreiben ihn wie gehabt. */
-.dark { --btn-shadow-color: rgba(255, 255, 255, 0.30); }
+.dark { --btn-shadow-color: rgba(255, 255, 255, 0.20); }
 
 /* Global press effect: the edge shadow (--edge-lift), a press sinks by --edge-press (docs/design/ci.md) */
 .btn-3d {
@@ -210,12 +210,17 @@ html {
    Dark mode: only what you press keeps the edge (buttons, chips via border-edge). Cards drop it for a
    1 px hairline (20 % white, about 1.9:1 against the card), so a dense page does not turn into a grid; the border stays transparent so nothing shifts.
    The hairline gets a 1 px hard shadow (--edge-dark-shadow), a small echo of the light edge. */
-.dark { --color-edge: rgb(255 255 255 / 0.35); --color-edge-shadow: rgb(255 255 255 / 0.35); --edge-shadow-base: rgb(255 255 255 / 0.35); --edge-shadow-mix: 100%; --edge-lift: 2px 2px 0 0; --edge-press-x: 2px; --edge-press-y: 2px; --edge-dark-shadow: 1px 1px 0 0 rgb(255 255 255 / 0.20); }
+/* Ein Schatten für alles im Dunkelmodus: Knöpfe, Chips und Karten tragen denselben harten 1-px-Schatten (20 % Weiß); ein Druck sinkt um 1 px */
+.dark { --color-edge: rgb(255 255 255 / 0.35); --color-edge-shadow: rgb(255 255 255 / 0.20); --edge-shadow-base: rgb(255 255 255 / 0.20); --edge-shadow-mix: 100%; --edge-lift: 1px 1px 0 0; --edge-press-x: 1px; --edge-press-y: 1px; --edge-dark-shadow: 1px 1px 0 0 rgb(255 255 255 / 0.20); }
 @utility edge-card {
   border: 1px solid var(--color-edge);
   --edge-line: inset 0 0 0 0.5px var(--color-edge);
   box-shadow: var(--edge-line), var(--edge-lift) var(--color-edge-shadow);
   @variant dark { border-color: transparent; box-shadow: var(--edge-dark-shadow, none); outline: 1px solid rgb(255 255 255 / 0.20); outline-offset: -1px; }
+}
+/* Nur der CI-Schatten, ohne Rand: für Overlays mit eigenem Rand (Toast, Banner, Popover) */
+@utility edge-lift {
+  box-shadow: var(--edge-lift) var(--color-edge-shadow);
 }
 @utility edge-box {
   border: 1px solid var(--color-edge);

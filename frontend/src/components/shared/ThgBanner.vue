@@ -25,7 +25,7 @@ function handleDismiss(e: Event) {
     href="https://Geld-fuer-eAuto.de/ref/evmonitor"
     target="_blank"
     rel="noopener sponsored"
-    class="relative flex items-center justify-between gap-3 bg-green-50 dark:bg-green-900/20 border-2 border-gray-900 dark:border-gray-100 rounded-lg px-4 py-3 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors group mb-4 shadow-[4px_4px_0_0_#bbf7d0] dark:shadow-[4px_4px_0_0_rgba(74,222,128,0.25)]"
+    class="relative flex items-center justify-between gap-3 bg-green-50 dark:bg-green-900/20 border-2 border-gray-900 dark:border-gray-100 rounded-lg px-4 py-3 hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors group mb-4 edge-lift"
     @click="handleClick"
   >
     <div class="flex items-center gap-3 min-w-0">

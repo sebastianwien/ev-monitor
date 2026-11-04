@@ -38,7 +38,7 @@ function reject() {
       leave-to-class="translate-y-full">
       <div
         v-if="showBanner"
-        class="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white shadow-[6px_6px_0_rgba(0,0,0,0.40)] dark:shadow-[6px_6px_0_rgba(255,255,255,0.40)] border-t border-gray-700">
+        class="fixed bottom-0 left-0 right-0 z-50 bg-gray-900 text-white border-t border-gray-700 edge-lift">
         <div class="max-w-6xl mx-auto px-4 py-4">
           <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <!-- Text -->
@@ -67,7 +67,7 @@ function reject() {
               </button>
               <button
                 @click="accept"
-                class="flex-1 sm:flex-none px-6 py-2.5 text-sm bg-green-600 rounded-sm hover:bg-green-700 font-medium transition shadow-[4px_4px_0_rgba(0,0,0,0.30)] dark:shadow-[4px_4px_0_rgba(255,255,255,0.30)]">
+                class="flex-1 sm:flex-none px-6 py-2.5 text-sm bg-green-600 rounded-sm hover:bg-green-700 font-medium transition edge-lift">
                 Akzeptieren
               </button>
             </div>
