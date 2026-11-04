@@ -425,7 +425,8 @@ onUnmounted(() => unregisterReload?.())
 
           <!-- Skeleton in der Form des Monats (Satz, Zuletzt-Karten, Kachelreihe): beim Einblenden springt nichts.
                Es blendet an Ort und Stelle aus (absolut, 150 ms), während der Inhalt darunter mit "story-in" kommt. -->
-          <Transition name="story-skeleton">
+          <!-- type="transition": sonst wartet Vue auf die 2-s-Pulsanimation statt auf die 150-ms-Überblendung -->
+          <Transition name="story-skeleton" type="transition">
             <div v-if="loading && !monthStats" class="grid gap-4 motion-safe:animate-pulse" aria-busy="true" data-testid="story-skeleton">
               <div class="grid gap-2">
                 <div class="h-7 w-11/12 rounded bg-gray-200 md:h-9 dark:bg-gray-700" />
