@@ -156,6 +156,12 @@ describe('DataQualityLine', () => {
     expect(legend).toEqual(['gefahren'])
   })
 
+  it('Monat nur mit Fahrten: beim Öffnen ist der letzte Fahrtag gewählt', async () => {
+    const host = mount(days([], 25, [2, 3]))
+    await settle()
+    expect(tip(host)).toBe('3.: 2 Fahrten, 42 km')
+  })
+
   it('Tagesanzeige nennt Fahrten mit km', async () => {
     const host = mount(days([16], 25, [16]))
     await settle()

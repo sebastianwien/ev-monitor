@@ -30,10 +30,13 @@ const cellClass = (d: DayCoverage) => {
   return 'bg-gray-200 dark:bg-gray-600'
 }
 
-/** Der letzte Ladetag: beim Öffnen gewählt, und wieder, sobald Zeiger oder Fokus gehen. */
+/** Der letzte Ladetag, im Monat ohne Ladung der letzte Fahrtag: beim Öffnen gewählt, und wieder, sobald Zeiger oder Fokus gehen. */
 const lastCharged = computed<number | null>(() => {
-  for (let i = props.days.length - 1; i >= 0; i--) if (props.days[i].charges > 0 && !props.days[i].future) return i
-  return null
+  const last = (has: (d: DayCoverage) => boolean) => {
+    for (let i = props.days.length - 1; i >= 0; i--) if (has(props.days[i]) && !props.days[i].future) return i
+    return null
+  }
+  return last(d => d.charges > 0) ?? last(d => d.trips > 0)
 })
 /** Der zuletzt geöffnete Tag ersetzt den Ladetag als Ruhestellung: das Tagesblatt nimmt den Fokus. */
 const opened = ref<number | null>(null)
