@@ -187,22 +187,22 @@ html {
 
 /* Global press effect: the edge shadow (--edge-lift), a press sinks by --edge-press (docs/design/ci.md) */
 .btn-3d {
-  box-shadow: var(--edge-lift) color-mix(in srgb, var(--btn-shadow-color, var(--edge-shadow-base)) var(--edge-shadow-mix), transparent);
+  box-shadow: var(--edge-line), var(--edge-lift) color-mix(in srgb, var(--btn-shadow-color, var(--edge-shadow-base)) var(--edge-shadow-mix), transparent);
   transform: translate(0, 0);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   touch-action: manipulation;
 }
 .btn-3d:active {
-  box-shadow: none;
+  box-shadow: var(--edge-line);
   transform: translate(var(--edge-press-x), var(--edge-press-y));
   transition: transform 0.05s ease, box-shadow 0.05s ease;
 }
 .btn-3d:disabled {
-  box-shadow: none;
+  box-shadow: var(--edge-line);
   transform: none;
 }
 .btn-3d.active {
-  box-shadow: none;
+  box-shadow: var(--edge-line);
   transform: translate(var(--edge-press-x), var(--edge-press-y));
 }
 /* The app's edge look (header, ranking tiles): outline and a hard shadow in the edge colour. As utilities,
@@ -212,13 +212,15 @@ html {
    The hairline gets a 1 px hard shadow (--edge-dark-shadow), a small echo of the light edge. */
 .dark { --color-edge: rgb(255 255 255 / 0.35); --color-edge-shadow: rgb(255 255 255 / 0.35); --edge-shadow-base: rgb(255 255 255 / 0.35); --edge-shadow-mix: 100%; --edge-lift: 2px 2px 0 0; --edge-press-x: 2px; --edge-press-y: 2px; --edge-dark-shadow: 1px 1px 0 0 rgb(255 255 255 / 0.20); }
 @utility edge-card {
-  border: 2px solid var(--color-edge);
-  box-shadow: var(--edge-lift) var(--color-edge-shadow);
+  border: 1px solid var(--color-edge);
+  --edge-line: inset 0 0 0 0.5px var(--color-edge);
+  box-shadow: var(--edge-line), var(--edge-lift) var(--color-edge-shadow);
   @variant dark { border-color: transparent; box-shadow: var(--edge-dark-shadow, none); outline: 1px solid rgb(255 255 255 / 0.20); outline-offset: -1px; }
 }
 @utility edge-box {
-  border: 2px solid var(--color-edge);
-  box-shadow: var(--edge-lift) var(--color-edge-shadow);
+  border: 1px solid var(--color-edge);
+  --edge-line: inset 0 0 0 0.5px var(--color-edge);
+  box-shadow: var(--edge-line), var(--edge-lift) var(--color-edge-shadow);
   @variant dark { border-color: transparent; box-shadow: var(--edge-dark-shadow, none); outline: 1px solid rgb(255 255 255 / 0.20); outline-offset: -1px; }
 }
 /* Landing CTA: force the crisp bottom-right 3D shadow (overrides btn-3d default,
@@ -228,12 +230,21 @@ html {
 .cta-shadow:active { box-shadow: 1px 1px 0 0 #111827 !important; }
 .dark .cta-shadow:active { box-shadow: 1px 1px 0 0 #000000 !important; }
 /* The same in the app's edge look: the edge shadow, a press sinks by --edge-press */
-.cta-shadow-sm { box-shadow: var(--edge-lift) var(--color-edge-shadow) !important; }
-.cta-shadow-sm:active { box-shadow: none !important; transform: translate(var(--edge-press-x), var(--edge-press-y)); }
+.cta-shadow-sm { box-shadow: var(--edge-line), var(--edge-lift) var(--color-edge-shadow) !important; }
+.cta-shadow-sm:active { box-shadow: var(--edge-line) !important; transform: translate(var(--edge-press-x), var(--edge-press-y)); }
+/* Rand der Kante wirkt 1,5 px: Chrome rundet Randbreiten auf ganze Pixel, deshalb 1 px Rand plus 0,5 px Linie innen
+   (--edge-line, ein Inset-Schatten in Randfarbe). Gilt für edge-* (oben) und was im Markup border-2 in border-edge trägt,
+   außerdem den gewählten Chip (Linie in seinem Indigo). --edge-line steht je Element, damit es nicht an Kinder erbt;
+   alle anderen tragen einen leeren Schatten. Rahmen ohne eigenen Schatten bekommen die Linie direkt. */
+@layer base { * { --edge-line: 0 0 #0000; } }
+:is([class~="border-edge"], .cta-shadow-sm.ci-selected).border-2 { border-width: 1px; --edge-line: inset 0 0 0 0.5px var(--edge-line-color, var(--color-edge)); }
+.ci-selected { --edge-line-color: var(--color-indigo-600); }
+.dark .ci-selected { --edge-line-color: var(--color-indigo-400); }
+[class~="border-edge"].border-2:not(.btn-3d, .cta-shadow-sm, [class*="shadow"]) { box-shadow: var(--edge-line); }
 /* Disabled like btn-3d: no shadow, no press (the !important above would otherwise win) */
-.cta-shadow-sm:disabled { box-shadow: none !important; transform: none; }
+.cta-shadow-sm:disabled { box-shadow: var(--edge-line) !important; transform: none; }
 /* A chosen chip stays pressed in (ChoiceChip) */
-.cta-shadow-sm.active { box-shadow: none !important; transform: translate(var(--edge-press-x), var(--edge-press-y)); }
+.cta-shadow-sm.active { box-shadow: var(--edge-line) !important; transform: translate(var(--edge-press-x), var(--edge-press-y)); }
 /* Clickable 3D card (model tiles): cta shadow + hover-lift + press.
    Use together with .no-press so the legacy section-button rule doesn't fight it. */
 .cta-card {
