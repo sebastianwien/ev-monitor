@@ -12,9 +12,12 @@
   /* Kante der App-CI. Rand hell gray-600 (7,6:1 gegen Weiß), darunter ein weicher Schatten in gray-800 (50 %), der nur nach
      unten fällt; ein Druck senkt um 1 px. Dunkel bleibt der harte Schatten 2 px nach rechts unten, Rand und Schatten 35 % Weiß
      (rund 3:1 gegen gray-900), weil ein weicher dunkler Schatten auf dunklem Grund verschwindet.
-     --edge-lift ist die Form ohne Farbe, die Farbe kommt aus --color-edge-shadow oder --btn-shadow-color. */
+     --edge-lift ist die Form ohne Farbe. Die Farbe ist --edge-shadow-base (oder die eigene --btn-shadow-color eines Knopfs),
+     hell mit 50 % Deckkraft (--edge-shadow-mix), dunkel voll. */
   --color-edge: var(--color-gray-600);
-  --color-edge-shadow: color-mix(in srgb, var(--color-gray-800) 50%, transparent);
+  --edge-shadow-base: var(--color-gray-800);
+  --edge-shadow-mix: 50%;
+  --color-edge-shadow: color-mix(in srgb, var(--edge-shadow-base) var(--edge-shadow-mix), transparent);
   --edge-lift: 0 2px 8px -2px;
   --edge-press-x: 0px;
   --edge-press-y: 1px;
@@ -184,7 +187,7 @@ html {
 
 /* Global press effect: the edge shadow (--edge-lift), a press sinks by --edge-press (docs/design/ci.md) */
 .btn-3d {
-  box-shadow: var(--edge-lift) var(--btn-shadow-color, var(--color-edge-shadow));
+  box-shadow: var(--edge-lift) color-mix(in srgb, var(--btn-shadow-color, var(--edge-shadow-base)) var(--edge-shadow-mix), transparent);
   transform: translate(0, 0);
   transition: transform 0.08s ease, box-shadow 0.08s ease;
   touch-action: manipulation;
@@ -207,7 +210,7 @@ html {
    Dark mode: only what you press keeps the edge (buttons, chips via border-edge). Cards drop it for a
    1 px hairline (20 % white, about 1.9:1 against the card), so a dense page does not turn into a grid; the border stays transparent so nothing shifts.
    The hairline gets a 1 px hard shadow (--edge-dark-shadow), a small echo of the light edge. */
-.dark { --color-edge: rgb(255 255 255 / 0.35); --color-edge-shadow: rgb(255 255 255 / 0.35); --edge-lift: 2px 2px 0 0; --edge-press-x: 2px; --edge-press-y: 2px; --edge-dark-shadow: 1px 1px 0 0 rgb(255 255 255 / 0.20); }
+.dark { --color-edge: rgb(255 255 255 / 0.35); --color-edge-shadow: rgb(255 255 255 / 0.35); --edge-shadow-base: rgb(255 255 255 / 0.35); --edge-shadow-mix: 100%; --edge-lift: 2px 2px 0 0; --edge-press-x: 2px; --edge-press-y: 2px; --edge-dark-shadow: 1px 1px 0 0 rgb(255 255 255 / 0.20); }
 @utility edge-card {
   border: 2px solid var(--color-edge);
   box-shadow: var(--edge-lift) var(--color-edge-shadow);

@@ -92,6 +92,8 @@ html[data-ci="v1"]:not(.dark) .btn-3d:is([class*="bg-green-"], [class*="bg-gray-
 html[data-ci="v1"]:not(.dark) .btn-3d:is([class*="bg-green-"], [class*="bg-gray-900"]):is(:active, .active) {
   box-shadow: none;
 }
+/* Gesperrt ohne Schatten wie im App-CI */
+html[data-ci="v1"]:not(.dark) .btn-3d:disabled { box-shadow: none; transform: none; }
 
 /* Chips tragen ihren Schatten mit !important (cta-shadow-sm), deshalb hier ebenso */
 html[data-ci="v1"]:not(.dark) .cta-shadow-sm {
