@@ -13,6 +13,7 @@ import { useCarStore } from './stores/car'
 import SpritMonitorImport from './components/imports/SpritMonitorImport.vue'
 import SupportPopover from './components/settings/SupportPopover.vue'
 import PreviewFeedbackButton from './components/shared/PreviewFeedbackButton.vue'
+import CiSkinToggle from './components/shared/CiSkinToggle.vue'
 import { isPreviewHost } from './utils/previewHost'
 import LeaderboardTicker from './components/shared/LeaderboardTicker.vue'
 import { useIsMobile } from './composables/useIsMobile'
@@ -641,6 +642,8 @@ const handleBottomLogout = () => {
     <LogUndoToast />
     <DemoWelcomeModal v-if="authStore.isDemoAccount" />
     <!-- Vorschau: Tester schicken Feedback als vorausgefüllte Mail -->
+    <!-- Admins auf der Vorschau: App-CI und Probe-CI v1 vergleichen -->
+    <CiSkinToggle v-if="previewFeedback && authStore.isAdmin && !mobileFullscreen" />
     <PreviewFeedbackButton v-if="previewFeedback && authStore.isAuthenticated() && (!captureOpen || captureMinimized) && !mobileFullscreen" :above-capture-bar="captureOpen && captureMinimized" />
   </div>
 </template>

@@ -1,5 +1,6 @@
 // Probe-CI "v1" (Marketing-Entwurf) als Skin über dem App-CI, umschaltbar per URL: ?ci=v1 an, ?ci=off aus.
 // Die Wahl bleibt im Browser gemerkt. Der Skin gilt nur auf den Routen unten; die Farben stehen in styles/ci-v1.css.
+import { ref } from 'vue'
 import type { LocationQuery, RouteRecordNameGeneric } from 'vue-router'
 
 export const CI_SKIN_KEY = 'ci-skin'
@@ -28,11 +29,29 @@ function writeStored(skin: CiSkin | null) {
   } catch { /* privater Modus: Skin gilt dann nur für diesen Aufruf */ }
 }
 
-export function applyCiSkin(to: { name?: RouteRecordNameGeneric; query: LocationQuery }) {
+type SkinRoute = { name?: RouteRecordNameGeneric; query: LocationQuery }
+
+/** Die gewählte Skin, unabhängig von der Route (für den Admin-Umschalter). */
+export const ciSkin = ref<CiSkin | null>(null)
+
+export const isSkinRoute = (name: RouteRecordNameGeneric | undefined) => SKIN_ROUTES.has(name)
+
+function paint(skin: CiSkin | null, to: SkinRoute) {
+  ciSkin.value = skin
+  const root = document.documentElement
+  if (skin && isSkinRoute(to.name)) root.dataset.ci = skin
+  else delete root.dataset.ci
+}
+
+export function applyCiSkin(to: SkinRoute) {
   const param = to.query.ci
   const skin = resolveCiSkin(param, readStored())
   if (isSkin(param) || param === 'off') writeStored(skin)
-  const root = document.documentElement
-  if (skin && SKIN_ROUTES.has(to.name)) root.dataset.ci = skin
-  else delete root.dataset.ci
+  paint(skin, to)
+}
+
+/** Umschalten ohne URL-Parameter (Admin-Umschalter auf der Vorschau). */
+export function setCiSkin(skin: CiSkin | null, to: SkinRoute) {
+  writeStored(skin)
+  paint(skin, to)
 }

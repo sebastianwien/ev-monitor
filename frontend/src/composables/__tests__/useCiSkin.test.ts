@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest'
-import { resolveCiSkin, applyCiSkin, CI_SKIN_KEY } from '../useCiSkin'
+import { resolveCiSkin, applyCiSkin, setCiSkin, ciSkin, isSkinRoute, CI_SKIN_KEY } from '../useCiSkin'
 
 describe('resolveCiSkin', () => {
   it('schaltet mit ?ci=v1 ein und mit ?ci=off aus', () => {
@@ -43,5 +43,22 @@ describe('applyCiSkin', () => {
     applyCiSkin({ name: 'story', query: { ci: 'off' } })
     expect(document.documentElement.dataset.ci).toBeUndefined()
     expect(localStorage.getItem(CI_SKIN_KEY)).toBeNull()
+  })
+
+  it('setCiSkin schaltet von außen um (Admin-Umschalter) und merkt sich die Wahl', () => {
+    setCiSkin('v1', { name: 'story', query: {} })
+    expect(document.documentElement.dataset.ci).toBe('v1')
+    expect(ciSkin.value).toBe('v1')
+    expect(localStorage.getItem(CI_SKIN_KEY)).toBe('v1')
+
+    setCiSkin(null, { name: 'story', query: {} })
+    expect(document.documentElement.dataset.ci).toBeUndefined()
+    expect(ciSkin.value).toBeNull()
+    expect(localStorage.getItem(CI_SKIN_KEY)).toBeNull()
+  })
+
+  it('isSkinRoute kennt die Routen des Skins', () => {
+    expect(isSkinRoute('story')).toBe(true)
+    expect(isSkinRoute('cars')).toBe(false)
   })
 })
