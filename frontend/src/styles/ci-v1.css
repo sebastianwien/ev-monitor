@@ -45,7 +45,8 @@ html[data-ci="v1"]:not(.dark) {
   --radius-2xl: 14px;
   --radius-3xl: 18px;
 
-  --ci-shadow: 0 14px 26px -20px rgb(6 58 49 / 0.35);
+  --ci-line: inset 0 0 0 0.5px #d5e3de;
+  --ci-shadow: var(--ci-line), 0 14px 26px -20px rgb(6 58 49 / 0.35);
   --ci-violet: #6252f0;
 }
 
@@ -59,7 +60,8 @@ html[data-ci="v1"]:not(.dark) :is(h1, h2, h3) {
   letter-spacing: -0.01em;
 }
 
-/* Kante wird Haarlinie mit weichem Schatten */
+/* Kante wird feine Linie mit weichem Schatten. 1,5 px als Rand würde Chrome auf 1 px runden,
+   deshalb 1 px Rand plus 0,5 px innen als Schatten (--ci-line), der nicht gerundet wird. */
 html[data-ci="v1"]:not(.dark) :is(.edge-card, .edge-box) {
   border-width: 1px;
   box-shadow: var(--ci-shadow);
@@ -74,17 +76,27 @@ html[data-ci="v1"]:not(.dark) :is(.edge-card, .edge-box) {
 /* Knöpfe ohne harten Versatz-Schatten, beim Drücken leicht kleiner */
 html[data-ci="v1"]:not(.dark) .btn-3d {
   border-width: 1px;
-  box-shadow: none;
+  box-shadow: var(--ci-line);
 }
 html[data-ci="v1"]:not(.dark) .btn-3d:active,
 html[data-ci="v1"]:not(.dark) .btn-3d.active {
-  box-shadow: none;
+  box-shadow: var(--ci-line);
   transform: scale(0.97);
 }
+/* Farbige Knöpfe ohne helle Innenlinie, sonst steht ein heller Ring in der Fläche */
+html[data-ci="v1"]:not(.dark) .btn-3d:is([class*="bg-green-"], [class*="bg-gray-900"]) {
+  box-shadow: none;
+}
 
-/* Auswahl violett (Chips, Monatsraster, Monatskapsel) */
+/* Chips tragen ihren Schatten mit !important (cta-shadow-sm), deshalb hier ebenso */
+html[data-ci="v1"]:not(.dark) .cta-shadow-sm {
+  box-shadow: var(--ci-line) !important;
+}
+
+/* Auswahl violett (Chips, Monatsraster, Monatskapsel), ohne helle Innenlinie */
 html[data-ci="v1"]:not(.dark) .ci-selected {
   background-color: var(--ci-violet);
   border-color: var(--ci-violet);
   color: #fff;
+  box-shadow: none !important;
 }
