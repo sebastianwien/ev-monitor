@@ -30,7 +30,7 @@ import java.util.Optional;
 public class OpenRouteServiceClient {
 
     private static final String DIRECTIONS_URL =
-            "https://api.openrouteservice.org/v2/directions/driving-car";
+            "https://api.heigit.org/openrouteservice/v2/directions/driving-car";
 
     /** Grenze des Dienstes: mehr Wegpunkte quittiert er mit Fehler 2004. */
     public static final int MAX_WAYPOINTS = 50;
