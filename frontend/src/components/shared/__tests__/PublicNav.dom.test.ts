@@ -71,6 +71,14 @@ describe('PublicNav', () => {
     expect(host.querySelector('[data-testid="public-nav-watt"]')).not.toBeNull()
   })
 
+  it('home: only an admin gets the shortcut to the admin dashboard', async () => {
+    const host = await mount(true, true, { home: true })
+    expect(host.querySelector('[data-testid="public-nav-admin"]')).toBeNull()
+    useAuthStore().user = { userId: 'u1', role: 'ADMIN' } as never
+    await nextTick()
+    expect(host.querySelector('[data-testid="public-nav-admin"]')?.getAttribute('href')).toBe('/admin')
+  })
+
   it('member at home on the phone too: the profile opens the account row instead of jumping to the settings', async () => {
     const host = await mount(true, true, { home: true })
     expect(host.querySelector('[data-testid="public-nav-settings"]')).toBeNull()

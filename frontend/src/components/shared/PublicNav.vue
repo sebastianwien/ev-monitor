@@ -55,6 +55,11 @@
                          class="btn-3d [--btn-shadow-color:#111827] dark:[--btn-shadow-color:#000000] inline-flex items-center gap-1.5 text-sm font-medium bg-green-600 text-white border-2 border-gray-900 dark:border-gray-100 px-3 sm:px-4 py-2 rounded-sm hover:bg-green-700 transition whitespace-nowrap">
               <HomeIcon class="h-4 w-4" aria-hidden="true" />{{ t('nav.dashboard') }}
             </router-link>
+            <!-- Nur für Admins: Abkürzung ins Backoffice; der Schutz liegt im Backend (/api/admin/** nur ROLE_ADMIN) -->
+            <router-link v-if="home && authStore.isAdmin" to="/admin" data-testid="public-nav-admin" aria-label="Admin" title="Admin"
+                         :class="[navItem, 'hidden sm:inline-flex w-10']">
+              <WrenchScrewdriverIcon class="h-5 w-5" aria-hidden="true" />
+            </router-link>
           </template>
           <a
             v-if="!member"
@@ -111,6 +116,7 @@ import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import {
   HomeIcon, BoltIcon, XMarkIcon, ChatBubbleLeftEllipsisIcon, Cog6ToothIcon, UserIcon, ArrowDownTrayIcon, ArrowsRightLeftIcon, ArrowRightOnRectangleIcon,
+  WrenchScrewdriverIcon,
 } from '@heroicons/vue/24/outline'
 import { useAuthStore } from '../../stores/auth'
 import { useCoinStore } from '../../stores/coins'
