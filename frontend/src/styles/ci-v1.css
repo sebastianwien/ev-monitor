@@ -106,3 +106,18 @@ html[data-ci="edge1"]:not(.dark) .btn-3d.active {
   box-shadow: 0 0 0 0 var(--btn-shadow-color, var(--color-edge));
   transform: translate(1px, 1px);
 }
+
+/* Variante edge2 (?ci=edge2): Rand bleibt gray-500 (trägt den Kontrast), nur der harte Schatten heller in gray-400.
+   Elemente mit eigener --btn-shadow-color (Ladekarten, Banner) behalten ihre. */
+html[data-ci="edge2"]:not(.dark) {
+  --btn-shadow-color: var(--color-gray-400);
+}
+html[data-ci="edge2"]:not(.dark) :is(.edge-card, .edge-box) {
+  box-shadow: 2px 2px 0 0 var(--color-gray-400);
+}
+@media (min-width: 768px) {
+  html[data-ci="edge2"]:not(.dark) :is(.md\:edge-card, .md\:edge-box) { box-shadow: 2px 2px 0 0 var(--color-gray-400); }
+}
+@media (min-width: 1024px) {
+  html[data-ci="edge2"]:not(.dark) .lg\:edge-box { box-shadow: 2px 2px 0 0 var(--color-gray-400); }
+}

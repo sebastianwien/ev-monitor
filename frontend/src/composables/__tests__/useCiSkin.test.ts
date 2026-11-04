@@ -18,6 +18,7 @@ describe('resolveCiSkin', () => {
   it('kennt die Variante edge1 (leichtere Kante)', () => {
     expect(resolveCiSkin('edge1', 'v1')).toBe('edge1')
     expect(resolveCiSkin(undefined, 'edge1')).toBe('edge1')
+    expect(resolveCiSkin('edge2', null)).toBe('edge2')
   })
 })
 
