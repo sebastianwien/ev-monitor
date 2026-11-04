@@ -18,6 +18,7 @@ import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.Pag
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.SourceGoalTotals;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.SourceTotals;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository;
+import com.evmonitor.infrastructure.persistence.seo.SearchEngine;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.DataBasis;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.RegistrationTotals;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.UtmTotals;
@@ -55,6 +56,7 @@ class SeoInsightsServiceTest {
         when(attribution.registrationTotals(any(), any())).thenReturn(RegistrationTotals.EMPTY);
         when(attribution.registrationsByLandingPath(any(), any())).thenReturn(Map.of());
         when(attribution.registrationsByUtm(any(), any())).thenReturn(Map.of());
+        when(attribution.organicRegistrationsByEngine(any(), any())).thenReturn(Map.of());
         when(attribution.dataBasisByModel()).thenReturn(Map.of());
         when(plausible.dayTotals(any(), any())).thenReturn(List.of());
         when(plausible.googleVisitsByDay(any(), any())).thenReturn(Map.of());
@@ -78,6 +80,11 @@ class SeoInsightsServiceTest {
         when(plausible.dayTotals(from, LATEST)).thenReturn(List.of(
                 new DayRow(from, 50, 60, 200, 40, 120), new DayRow(from.plusDays(1), 70, 80, 300, 30, 100)));
         when(plausible.googleVisitsByDay(from, LATEST)).thenReturn(Map.of(from, 12L, from.plusDays(1), 18L));
+        when(plausible.sourceTotals(from, LATEST)).thenReturn(List.of(
+                new SourceTotals("Google", "", "", 28, 30),
+                new SourceTotals("Ecosia", "", "", 4, 5),
+                new SourceTotals("Google", "cpc", "test", 9, 9),
+                new SourceTotals("Google Gemini", "", "", 2, 2)));
 
         Overview o = service.overview(7, SeoMarket.ALL);
 
@@ -95,6 +102,8 @@ class SeoInsightsServiceTest {
         assertThat(o.previous().registrations()).isEqualTo(4);
         assertThat(o.current().visitors()).isEqualTo(120);
         assertThat(o.current().googleEntries()).isEqualTo(30);
+        // alle Suchmaschinen ohne Kampagne: Google 30 + Ecosia 5, ohne bezahlt und ohne KI-Assistent
+        assertThat(o.current().searchEntries()).isEqualTo(35);
         assertThat(o.days().get(1).visitors()).isEqualTo(70);
         assertThat(o.days().get(1).googleEntries()).isEqualTo(18);
         assertThat(o.days().get(2).visitors()).isZero();
@@ -175,22 +184,25 @@ class SeoInsightsServiceTest {
     }
 
     @Test
-    void campaignsJoinDbByUtmAndGoogleOrganicByReferrer() {
+    void campaignsJoinDbByUtmAndSearchEnginesByReferrer() {
         LocalDate from = LATEST.minusDays(27);
         when(plausible.sourceTotals(from, LATEST)).thenReturn(List.of(
                 new SourceTotals("Google", "", "", 500, 560),
                 new SourceTotals("vw-forum", "forum", "Vorstellung", 40, 44),
-                new SourceTotals("Direct / None", "", "", 300, 320)));
+                new SourceTotals("Direct / None", "", "", 300, 320),
+                new SourceTotals("DuckDuckGo", "", "", 90, 95),
+                new SourceTotals("Bing", "", "", 80, 85)));
         when(plausible.sourceGoalTotals(from, LATEST)).thenReturn(List.of(
                 new SourceGoalTotals("vw-forum", "forum", "Vorstellung", "gate_code_verified", 4),
                 new SourceGoalTotals("vw-forum", "forum", "Vorstellung", "dashboard_viewed", 30),
                 new SourceGoalTotals("Google", "", "", "cta_register_clicked", 25)));
         when(attribution.registrationsByUtm(from, LATEST)).thenReturn(Map.of("vw-forum|forum|vorstellung", new UtmTotals(3, 1)));
-        when(attribution.registrationTotals(from, LATEST)).thenReturn(new RegistrationTotals(40, 11));
+        when(attribution.organicRegistrationsByEngine(from, LATEST))
+                .thenReturn(Map.of(SearchEngine.GOOGLE, 11L, SearchEngine.DUCKDUCKGO, 2L));
 
         List<CampaignRow> rows = service.campaigns(28);
 
-        assertThat(rows).extracting(CampaignRow::source).containsExactly("Google", "Direct / None", "vw-forum");
+        assertThat(rows).extracting(CampaignRow::source).containsExactly("Google", "Direct / None", "DuckDuckGo", "Bing", "vw-forum");
         CampaignRow google = rows.get(0);
         assertThat(google.ctaRate()).isEqualTo(0.05);
         assertThat(google.registrations()).isEqualTo(11);
@@ -198,12 +210,33 @@ class SeoInsightsServiceTest {
         CampaignRow direct = rows.get(1);
         assertThat(direct.registrations()).isZero();
         assertThat(direct.attributed()).isFalse();
-        CampaignRow forum = rows.get(2);
+        assertThat(rows.get(2).registrations()).isEqualTo(2);
+        assertThat(rows.get(2).attributed()).isTrue();
+        // Suchmaschine ohne Sign-up: zugeordnet mit 0, nicht "unbekannt"
+        assertThat(rows.get(3).registrations()).isZero();
+        assertThat(rows.get(3).attributed()).isTrue();
+        CampaignRow forum = rows.get(4);
         assertThat(forum.ctaVisitors()).isEqualTo(4);
         assertThat(forum.ctaRate()).isEqualTo(0.1);
         assertThat(forum.registrations()).isEqualTo(3);
         assertThat(forum.trials()).isEqualTo(1);
         assertThat(forum.attributed()).isTrue();
+    }
+
+    @Test
+    void searchEngineSignupsCountOnceWhenPlausibleNamesTheEngineTwice() {
+        LocalDate from = LATEST.minusDays(27);
+        when(plausible.sourceTotals(from, LATEST)).thenReturn(List.of(
+                new SourceTotals("ecosia.org", "", "", 5, 5),
+                new SourceTotals("Ecosia", "", "", 50, 55)));
+        when(attribution.organicRegistrationsByEngine(from, LATEST)).thenReturn(Map.of(SearchEngine.ECOSIA, 3L));
+
+        List<CampaignRow> rows = service.campaigns(28);
+
+        // die Zeile mit den meisten Besuchern bekommt die Sign-ups, die zweite 0
+        assertThat(rows).extracting(CampaignRow::source, CampaignRow::registrations)
+                .containsExactly(org.assertj.core.groups.Tuple.tuple("Ecosia", 3L), org.assertj.core.groups.Tuple.tuple("ecosia.org", 0L));
+        assertThat(rows).allMatch(CampaignRow::attributed);
     }
 
     @Test

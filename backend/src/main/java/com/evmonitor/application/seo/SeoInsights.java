@@ -21,11 +21,13 @@ public final class SeoInsights {
 
     /**
      * visitors: Plausible-Besucher (Tagessumme), googleEntries: Visits mit Quelle Google; registrations: angelegte
-     * Konten (DB), organicRegistrations: davon mit Google-Verweis ohne bezahltes Medium.
+     * Konten (DB), organicRegistrations: davon mit Verweis von einer Suchmaschine ohne bezahltes Medium;
+     * searchEntries: Visits von allen Suchmaschinen ohne Kampagne, Nenner der Organic Conversion Rate.
      */
     public record Totals(long impressions, long clicks, double ctr, double avgPosition,
-                         long visitors, long googleEntries, long registrations, long organicRegistrations) {
-        public static final Totals EMPTY = new Totals(0, 0, 0, 0, 0, 0, 0, 0);
+                         long visitors, long googleEntries, long registrations, long organicRegistrations,
+                         long searchEntries) {
+        public static final Totals EMPTY = new Totals(0, 0, 0, 0, 0, 0, 0, 0, 0);
     }
 
     public record DayPoint(LocalDate day, long impressions, long clicks, long visitors, long googleEntries) {

@@ -24,6 +24,7 @@ import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.DayRow;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.SourceGoalTotals;
 import com.evmonitor.infrastructure.persistence.seo.PlausibleDailyRepository.SourceTotals;
+import com.evmonitor.infrastructure.persistence.seo.SearchEngine;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.DataBasis;
 import com.evmonitor.infrastructure.persistence.seo.SeoAttributionRepository.RegistrationTotals;
@@ -37,6 +38,7 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -69,7 +71,6 @@ public class SeoInsightsService {
     static final String FINDING_INVISIBLE = "INVISIBLE";
     private static final Pattern MODEL_PATH = Pattern.compile("^/modelle/([^/]+)/([^/]+)$");
     private static final Pattern BRAND_PATH = Pattern.compile("^/modelle/([^/]+)$");
-    static final String GOOGLE_SOURCE = "Google";
     private static final int FALLBACK_LAG_DAYS = 2;
     private static final int MAX_TASKS = 5;
     /** Ziel bei Striking Distance: Platz 3, darunter fällt die CTR steil ab. */
@@ -349,7 +350,7 @@ public class SeoInsightsService {
         return brand != BrandFilter.NON_BRAND || !r.brand();
     }
 
-    /** Quelle x Medium x Kampagne aus Plausible, DB-Registrierungen über das UTM-Tripel, Google organisch aus dem Verweis. */
+    /** Quelle x Medium x Kampagne aus Plausible, DB-Registrierungen über das UTM-Tripel, Suchmaschinen organisch aus dem Verweis. */
     public List<CampaignRow> campaigns(int days) {
         Window w = window(days);
         Map<String, Long> ctaBySource = new HashMap<>();
@@ -358,18 +359,24 @@ public class SeoInsightsService {
             ctaBySource.merge(SeoAttributionRepository.utmKey(g.source(), g.utmMedium(), g.utmCampaign()), g.visitors(), Long::sum);
         }
         Map<String, UtmTotals> byUtm = attribution.registrationsByUtm(w.from, w.to);
-        RegistrationTotals organic = attribution.registrationTotals(w.from, w.to);
+        Map<SearchEngine, Long> organic = attribution.organicRegistrationsByEngine(w.from, w.to);
 
         List<CampaignRow> rows = new ArrayList<>();
-        for (SourceTotals s : plausible.sourceTotals(w.from, w.to)) {
+        // nennt Plausible eine Suchmaschine unter zwei Namen, bekommt die Zeile mit den meisten Besuchern die Sign-ups
+        Set<SearchEngine> assigned = EnumSet.noneOf(SearchEngine.class);
+        List<SourceTotals> sources = plausible.sourceTotals(w.from, w.to).stream()
+                .sorted(Comparator.comparingLong(SourceTotals::visitors).reversed()).toList();
+        for (SourceTotals s : sources) {
             String key = SeoAttributionRepository.utmKey(s.source(), s.utmMedium(), s.utmCampaign());
             long cta = ctaBySource.getOrDefault(key, 0L);
             boolean hasUtm = !s.utmMedium().isEmpty() || !s.utmCampaign().isEmpty();
-            boolean googleOrganic = GOOGLE_SOURCE.equals(s.source()) && !hasUtm;
+            Optional<SearchEngine> engine = hasUtm ? Optional.empty() : SearchEngine.ofPlausibleSource(s.source());
             UtmTotals db = byUtm.get(key);
-            long registrations = googleOrganic ? organic.organic() : db == null ? 0 : db.registrations();
+            long registrations = engine.isPresent()
+                    ? (assigned.add(engine.get()) ? organic.getOrDefault(engine.get(), 0L) : 0)
+                    : db == null ? 0 : db.registrations();
             long trials = db == null ? 0 : db.trials();
-            boolean attributed = hasUtm || googleOrganic || db != null;
+            boolean attributed = hasUtm || engine.isPresent() || db != null;
             rows.add(new CampaignRow(s.source(), s.utmMedium(), s.utmCampaign(), s.visitors(), s.visits(), cta,
                     s.visitors() == 0 ? 0 : round4((double) cta / s.visitors()), registrations, trials, attributed));
         }
@@ -622,10 +629,13 @@ public class SeoInsightsService {
         }
         long visitors = plausible.dayTotals(w.from, w.to).stream().mapToLong(DayRow::visitors).sum();
         long google = plausible.googleVisitsByDay(w.from, w.to).values().stream().mapToLong(Long::longValue).sum();
+        long search = plausible.sourceTotals(w.from, w.to).stream()
+                .filter(s -> s.utmMedium().isEmpty() && s.utmCampaign().isEmpty() && SearchEngine.ofPlausibleSource(s.source()).isPresent())
+                .mapToLong(SourceTotals::visits).sum();
         RegistrationTotals reg = registrations(w, market);
         if (impressions == 0 && clicks == 0 && visitors == 0 && reg.registrations() == 0) return Totals.EMPTY;
         return new Totals(impressions, clicks, ctr(clicks, impressions), impressions > 0 ? round2(weighted / impressions) : 0,
-                visitors, google, reg.registrations(), reg.organic());
+                visitors, google, reg.registrations(), reg.organic(), search);
     }
 
     /** Alle Märkte: jedes Konto; ein Markt: nur Konten mit bekannter erster Seite in diesem Markt. */
