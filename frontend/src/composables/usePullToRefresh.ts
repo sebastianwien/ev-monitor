@@ -26,10 +26,18 @@ type SoftReload = () => Promise<void> | void
  * Die Abmelde-Funktion loescht nur die eigene Anmeldung, nie eine neuere.
  */
 let softReload: SoftReload | null = null
+let loadedAtOf: (() => number | null) | null = null
 
-export function registerSoftReload(fn: SoftReload): () => void {
+/** loadedAt: wann die Seite zuletzt frische Daten hatte, damit die Rückkehr aus dem Hintergrund das Alter kennt. */
+export function registerSoftReload(fn: SoftReload, loadedAt: () => number | null = () => null): () => void {
   softReload = fn
-  return () => { if (softReload === fn) softReload = null }
+  loadedAtOf = loadedAt
+  return () => { if (softReload === fn) { softReload = null; loadedAtOf = null } }
+}
+
+/** Ladezeitpunkt der angemeldeten Seite, ohne Anmeldung null. */
+export function softReloadLoadedAt(): number | null {
+  return loadedAtOf?.() ?? null
 }
 
 /** Nur der weiche Reload, falls angemeldet; sonst nichts. */

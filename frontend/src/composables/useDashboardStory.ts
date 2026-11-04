@@ -400,6 +400,8 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const benchmark = ref<ChargingBenchmark | null>(null)
   const { seen } = useMomentSeen()
   const loading = ref(true)
+  /** Wann der gezeigte Monat zuletzt frisch vom Server kam (nicht aus dem Cache). */
+  const loadedAt = ref<number | null>(null)
   const error = ref(false)
 
   let requestId = 0
@@ -447,6 +449,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     await carReady
     if (id !== requestId) return
     apply(bundle, m)
+    loadedAt.value = Date.now()
     loading.value = false
     prefetchMonths(carId, m.offset)
   }
@@ -724,6 +727,6 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     offset, month, months, setOffset, switching, placeRows, dataMonths, minOffset,
     monthStats, previousStats, tripCount: computed(() => trips.value.length), tiles, feed, days, hasCharges, loading, error,
     layers, hasFixedCosts, loadMonthlyCosts, quality, temperature, modelPeers: peers, sohHistory, petrol, latest, recentTrips, cards, monthRecap, range, weather, benchmark,
-    reload, markPriceUnknown, savingsAccess,
+    reload, loadedAt, markPriceUnknown, savingsAccess,
   }
 }

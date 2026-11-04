@@ -392,7 +392,7 @@ const route = useRoute()
 let unregisterReload: (() => void) | null = null
 watch(() => route.path === '/story', (open) => {
   unregisterReload?.()
-  unregisterReload = open ? registerSoftReload(() => story.reload()) : null
+  unregisterReload = open ? registerSoftReload(() => story.reload(), () => story.loadedAt.value) : null
   if (open) analytics.track('story_viewed')
 }, { immediate: true })
 onUnmounted(() => unregisterReload?.())
