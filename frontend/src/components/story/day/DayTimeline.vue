@@ -243,9 +243,9 @@ const items = computed<Item[]>(() => {
               :route-polyline="e.trip.routePolyline" :route-kind="e.trip.routeKind" :trace-polyline="e.trip.tracePolyline" />
           </span>
           <span v-else-if="e.kind === 'charge'" class="shrink-0 pt-2 text-right tabular-nums">
-            <span class="block text-[15px] font-bold leading-snug">{{ costOf(e) != null ? formatCurrency(costOf(e)!) : '' }}</span>
+            <span class="block text-[15px] font-bold leading-snug"><span v-if="costOf(e) != null" class="ci-money">{{ formatCurrency(costOf(e)!) }}</span></span>
             <span class="block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400">{{ chargeSide(e) }}</span>
-            <span v-if="pricePerKwh(e)" class="block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400" data-testid="day-price-kwh">{{ pricePerKwh(e) }}</span>
+            <span v-if="pricePerKwh(e)" class="ci-price-pill block whitespace-nowrap text-[12px] text-gray-500 dark:text-gray-400" data-testid="day-price-kwh">{{ pricePerKwh(e) }}</span>
           </span>
           <ChevronRightIcon class="-ml-1 mt-2.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
         </button>

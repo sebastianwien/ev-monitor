@@ -152,3 +152,14 @@ html[data-ci="v1"]:not(.dark) .ci-missing {
 html[data-ci="v1"]:not(.dark) .ci-s2 { background-color: var(--ci-brand); }
 html[data-ci="v1"]:not(.dark) .ci-loss { background-color: var(--ci-lime); }
 html[data-ci="v1"]:not(.dark) .ci-loss-text { color: var(--color-gray-500); }
+
+/* Preis je kWh als Amber-Pille (Tagesblatt), wie die Preis-Pillen im Entwurf */
+html[data-ci="v1"]:not(.dark) .ci-price-pill {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  background-color: #fff1d6;
+  color: #7a4a00;
+  font-weight: 600;
+}

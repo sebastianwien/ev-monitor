@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MoneyMarks from './MoneyMarks.vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { BoltIcon, MapIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
@@ -82,11 +83,11 @@ const plain = `${row} h-12 bg-white edge-card dark:bg-gray-700/50`
         <BoltIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
         <span class="min-w-0 flex-1 leading-tight">
           <span class="flex items-center gap-2">
-            <span class="truncate text-[15px] font-bold text-gray-900 tabular-nums dark:text-gray-50">{{ charge.title }}</span>
+            <span class="truncate text-[15px] font-bold text-gray-900 tabular-nums dark:text-gray-50"><MoneyMarks :text="charge.title" /></span>
             <span class="shrink-0 rounded-full bg-green-700 px-2 py-0.5 text-[11px] font-bold text-white dark:bg-green-400 dark:text-gray-900">{{ t('story.latest_new') }}</span>
           </span>
           <span v-if="charge.battery" class="mt-0.5 block text-[14px] text-gray-800 tabular-nums dark:text-gray-200">{{ charge.battery }}</span>
-          <span v-if="charge.sub" class="block truncate text-[12px] text-gray-500 tabular-nums dark:text-gray-400">{{ charge.sub }}</span>
+          <span v-if="charge.sub" class="block truncate text-[12px] text-gray-500 tabular-nums dark:text-gray-400"><MoneyMarks :text="charge.sub" /></span>
         </span>
         <ChevronRightIcon class="h-4 w-4 shrink-0 text-gray-400" aria-hidden="true" />
       </button>
@@ -97,8 +98,8 @@ const plain = `${row} h-12 bg-white edge-card dark:bg-gray-700/50`
     <button v-else-if="charge" type="button" :class="plain" data-testid="story-latest-charge" @click="emit('open-charge', charge.id, charge.missingPrice)">
       <BoltIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
       <span class="min-w-0 flex-1 leading-tight">
-        <span class="block truncate text-[14px] font-semibold text-gray-900 tabular-nums dark:text-gray-50">{{ charge.title }}</span>
-        <span v-if="charge.sub" class="block truncate text-[12px] text-gray-500 tabular-nums dark:text-gray-400" :class="chip ? 'md:hidden' : ''">{{ charge.sub }}</span>
+        <span class="block truncate text-[14px] font-semibold text-gray-900 tabular-nums dark:text-gray-50"><MoneyMarks :text="charge.title" /></span>
+        <span v-if="charge.sub" class="block truncate text-[12px] text-gray-500 tabular-nums dark:text-gray-400" :class="chip ? 'md:hidden' : ''"><MoneyMarks :text="charge.sub" /></span>
         <!-- Ab md (zwei Zeilen nebeneinander) nimmt der Chip den Platz der Unterzeile, damit der Titel lesbar bleibt. -->
         <span v-if="chip" class="ci-missing mt-0.5 hidden rounded-sm bg-amber-100 px-1.5 text-[12px] font-semibold text-amber-800 md:inline-block dark:bg-amber-900/40 dark:text-amber-300">{{ t('story.latest_missing_price') }}</span>
       </span>

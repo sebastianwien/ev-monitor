@@ -223,7 +223,7 @@ const selectedId = computed(() => {
               {{ t('storyday.pill_trips', { n: summary.trips }, summary.trips) }} · {{ formatDistance(summary.km, { round: true }) }}
             </span>
             <span v-if="summary.charges" class="rounded-full bg-gray-100 px-2.5 py-1 dark:bg-white/10">
-              {{ t('storyday.pill_charges', { n: summary.charges }, summary.charges) }}<template v-if="summary.kwh"> · {{ formatDecimal(summary.kwh, 0) }} kWh</template><template v-if="summary.eur"> · {{ formatCurrency(summary.eur) }}</template>
+              {{ t('storyday.pill_charges', { n: summary.charges }, summary.charges) }}<template v-if="summary.kwh"> · {{ formatDecimal(summary.kwh, 0) }} kWh</template><template v-if="summary.eur"> · <span class="ci-money">{{ formatCurrency(summary.eur) }}</span></template>
             </span>
           </div>
         </header>
