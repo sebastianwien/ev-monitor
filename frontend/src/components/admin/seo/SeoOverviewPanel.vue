@@ -5,7 +5,7 @@ import { Line } from 'vue-chartjs'
 import { ArrowRightIcon } from '@heroicons/vue/24/outline'
 import {
   getSeoAudit, getSeoCampaigns, getSeoOpportunities, getSeoOverview, getSeoPages,
-  type SeoBrandSplit, type SeoCampaignRow, type SeoMarket, type SeoOpportunities, type SeoOverview, type SeoPageRow, type SeoPeriod, type SeoTask,
+  type SeoBrandSplit, type SeoCampaignRow, type SeoMarket, type SeoOpportunities, type SeoOverview, type SeoPageRow, type SeoPeriod, type SeoTask, type SeoTotals,
 } from '../../../api/seoService'
 import SeoChannelTable from './SeoChannelTable.vue'
 import { FINDINGS } from './seoHelp'
@@ -69,6 +69,8 @@ function pointDelta(cur: number, prev: number, comparable: boolean): { text: str
 }
 
 const organicCr = (organic: number, sessions: number) => (sessions ? organic / sessions : 0)
+/** Sitzungen aller Suchmaschinen; älteres Backend liefert nur Google. */
+const search = (t: SeoTotals) => t.searchEntries ?? t.googleEntries
 
 const groups = computed<{ title: string; hint: string; tiles: Tile[] }[]>(() => {
   const o = overview.value
@@ -114,6 +116,7 @@ const groups = computed<{ title: string; hint: string; tiles: Tile[] }[]>(() => 
       tiles: [
         tile('Besucher', num(c.visitors), d(c.visitors, p.visitors), siteNote),
         tile('Organische Sitzungen (Google)', num(c.googleEntries), d(c.googleEntries, p.googleEntries), siteNote),
+        tile('Organische Sitzungen (alle Suchmaschinen)', num(search(c)), d(search(c), search(p)), siteNote),
       ],
     },
     {
@@ -121,8 +124,8 @@ const groups = computed<{ title: string; hint: string; tiles: Tile[] }[]>(() => 
       tiles: [
         tile('Sign-ups', num(c.registrations), d(c.registrations, p.registrations), 'nur Konten mit bekannter erster Seite'),
         tile('davon Organic Search', num(c.organicRegistrations), d(c.organicRegistrations, p.organicRegistrations), 'nur Konten mit bekannter erster Seite'),
-        tile('Organic Conversion Rate', pct(organicCr(c.organicRegistrations, c.googleEntries)),
-          pointDelta(organicCr(c.organicRegistrations, c.googleEntries), organicCr(p.organicRegistrations, p.googleEntries), ok)),
+        tile('Organic Conversion Rate', pct(organicCr(c.organicRegistrations, search(c))),
+          pointDelta(organicCr(c.organicRegistrations, search(c)), organicCr(p.organicRegistrations, search(p)), ok)),
       ],
     },
   )

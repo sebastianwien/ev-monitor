@@ -32,6 +32,7 @@ describe('channelOf', () => {
     it('gruppiert Quellen wie die Default Channel Group', () => {
         expect(channelOf('Google', '')).toBe('ORGANIC_SEARCH')
         expect(channelOf('DuckDuckGo', '')).toBe('ORGANIC_SEARCH')
+        expect(channelOf('startpage.com', '')).toBe('ORGANIC_SEARCH')
         expect(channelOf('Google', 'cpc')).toBe('PAID_SEARCH')
         expect(channelOf('Direct / None', '')).toBe('DIRECT')
         expect(channelOf('email', 'lifecycle')).toBe('EMAIL')
