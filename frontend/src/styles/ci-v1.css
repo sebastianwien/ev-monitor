@@ -163,3 +163,14 @@ html[data-ci="v1"]:not(.dark) .ci-price-pill {
   color: #7a4a00;
   font-weight: 600;
 }
+
+/* "fehlt" als reiner Text (Kachel "Offen"): violett wie ein Link */
+html[data-ci="v1"]:not(.dark) .ci-missing-text { color: var(--ci-violet-ink); }
+
+/* Sheets: die feine Linie der Karten reicht nicht gegen die abgedunkelte Seite. 2 px Rand in Petrol-Grau
+   (wie die Kante im App-CI, ohne harten Schatten) und ein weicher Schatten nach oben. */
+html[data-ci="v1"]:not(.dark) .sheet-panel {
+  border-width: 2px;
+  border-color: var(--color-gray-500);
+  box-shadow: 0 -10px 30px -12px rgb(6 58 49 / 0.35);
+}
