@@ -3,23 +3,26 @@
    k1 Tastenkante: Rand bleibt, harter Schatten nur nach unten, 2 px gray-400.
    k2 Weich: Rand bleibt, statt hartem Versatz ein weicher Schatten.
    k3 Leiser: Rand 1,5 px (1 px plus 0,5 px innen, Chrome rundet Ränder), harter Schatten 2 px gray-300.
-   k4/k5 Weich satt: wie k2, Schatten in gray-700 bzw. gray-800 und deckender. */
+   k4/k5 Weich satt: wie k2, Schatten in gray-700 bzw. gray-800 und deckender.
+   k6/k7: wie k5, gray-800 mit 60 bzw. 70 Prozent. */
 
 html[data-ci="k1"]:not(.dark) { --k-shadow: 0 2px 0 0 var(--color-gray-400); --k-press: translate(0, 2px); }
 html[data-ci="k2"]:not(.dark) { --k-shadow: 0 2px 8px -2px rgb(17 24 39 / 0.22); --k-press: translate(0, 1px); }
 html[data-ci="k4"]:not(.dark) { --k-shadow: 0 2px 8px -2px color-mix(in srgb, var(--color-gray-700) 50%, transparent); --k-press: translate(0, 1px); }
 html[data-ci="k5"]:not(.dark) { --k-shadow: 0 2px 8px -2px color-mix(in srgb, var(--color-gray-800) 50%, transparent); --k-press: translate(0, 1px); }
+html[data-ci="k6"]:not(.dark) { --k-shadow: 0 2px 8px -2px color-mix(in srgb, var(--color-gray-800) 60%, transparent); --k-press: translate(0, 1px); }
+html[data-ci="k7"]:not(.dark) { --k-shadow: 0 2px 8px -2px color-mix(in srgb, var(--color-gray-800) 70%, transparent); --k-press: translate(0, 1px); }
 html[data-ci="k3"]:not(.dark) { --k-shadow: inset 0 0 0 0.5px var(--color-edge), 2px 2px 0 0 var(--color-gray-300); --k-press: translate(2px, 2px); }
 html[data-ci="k3"]:not(.dark) :is(.edge-card, .edge-box, .btn-3d, [class*="border-edge"]) { border-width: 1px; }
 @media (min-width: 768px) { html[data-ci="k3"]:not(.dark) :is(.md\:edge-card, .md\:edge-box) { border-width: 1px; } }
 
-html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"]):not(.dark) :is(.edge-card, .edge-box, .btn-3d) { box-shadow: var(--k-shadow); }
-html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"]):not(.dark) .cta-shadow-sm { box-shadow: var(--k-shadow) !important; }
+html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"], [data-ci="k6"], [data-ci="k7"]):not(.dark) :is(.edge-card, .edge-box, .btn-3d) { box-shadow: var(--k-shadow); }
+html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"], [data-ci="k6"], [data-ci="k7"]):not(.dark) .cta-shadow-sm { box-shadow: var(--k-shadow) !important; }
 @media (min-width: 768px) {
-  html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"]):not(.dark) :is(.md\:edge-card, .md\:edge-box) { box-shadow: var(--k-shadow); }
+  html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"], [data-ci="k6"], [data-ci="k7"]):not(.dark) :is(.md\:edge-card, .md\:edge-box) { box-shadow: var(--k-shadow); }
 }
 @media (min-width: 1024px) {
-  html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"]):not(.dark) .lg\:edge-box { box-shadow: var(--k-shadow); }
+  html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"], [data-ci="k6"], [data-ci="k7"]):not(.dark) .lg\:edge-box { box-shadow: var(--k-shadow); }
 }
-html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"]):not(.dark) :is(.btn-3d:active, .btn-3d.active) { box-shadow: none; transform: var(--k-press); }
-html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"]):not(.dark) :is(.cta-shadow-sm:active, .cta-shadow-sm.active) { box-shadow: none !important; transform: var(--k-press); }
+html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"], [data-ci="k6"], [data-ci="k7"]):not(.dark) :is(.btn-3d:active, .btn-3d.active) { box-shadow: none; transform: var(--k-press); }
+html:is([data-ci="k1"], [data-ci="k2"], [data-ci="k3"], [data-ci="k4"], [data-ci="k5"], [data-ci="k6"], [data-ci="k7"]):not(.dark) :is(.cta-shadow-sm:active, .cta-shadow-sm.active) { box-shadow: none !important; transform: var(--k-press); }
