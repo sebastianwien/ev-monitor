@@ -1725,7 +1725,7 @@ function toggleAllFeed() {
                     </button>
                     <span v-if="item.entry.costEur != null && logKwhBasis(item.entry)" class="text-right"
                       :title="isNettoOnlyCostLog(item.entry) ? t('dashboard.cost_pill_netto_title') : undefined">
-                      <b class="font-semibold text-gray-900 dark:text-gray-100">{{ formatCurrency(item.entry.costEur) }}</b>
+                      <b class="font-semibold text-gray-900 dark:text-gray-100"><span class="ci-money">{{ formatCurrency(item.entry.costEur) }}</span></b>
                       <span class="ml-1 text-[12px] text-gray-500 dark:text-gray-400">{{ formatCostPerKwh(item.entry.costEur / logKwhBasis(item.entry)!) }}</span>
                     </span>
                     <button v-else-if="sourceInfo(item.entry.dataSource) && item.entry.id" type="button" data-testid="charge-price-chip"
@@ -1861,7 +1861,7 @@ function toggleAllFeed() {
                   <div class="flex justify-end whitespace-nowrap">
                     <span v-if="item.entry._totalCostEur != null && item.entry._costBasisKwh && item.entry._isFullyPriced"
                       :title="item.entry._costIsNettoOnly ? t('dashboard.cost_pill_netto_title') : undefined">
-                      <b class="font-semibold text-gray-900 dark:text-gray-100">{{ formatCurrency(item.entry._totalCostEur) }}</b>
+                      <b class="font-semibold text-gray-900 dark:text-gray-100"><span class="ci-money">{{ formatCurrency(item.entry._totalCostEur) }}</span></b>
                       <span class="ml-1 text-[12px] text-gray-500 dark:text-gray-400">{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costBasisKwh) }}</span>
                     </span>
                     <!-- Teilweise bepreist: eine Rate aus einem Bruchteil der Energie waere irrefuehrend. -->
@@ -1957,7 +1957,7 @@ function toggleAllFeed() {
                       <!-- Jede Teilladung zeigt ihren eigenen Preis-Status. -->
                       <div class="flex justify-end whitespace-nowrap">
                         <span v-if="topUp.costEur != null && costBasisKwh(topUp)">
-                          <b class="font-semibold text-gray-900 dark:text-gray-100">{{ formatCurrency(topUp.costEur) }}</b>
+                          <b class="font-semibold text-gray-900 dark:text-gray-100"><span class="ci-money">{{ formatCurrency(topUp.costEur) }}</span></b>
                           <span class="ml-1 text-[12px] text-gray-500 dark:text-gray-400">{{ formatCostPerKwh(topUp.costEur / costBasisKwh(topUp)!) }}</span>
                         </span>
                         <button v-else-if="costBasisKwh(topUp)" type="button" data-testid="topup-price-chip"
@@ -2002,10 +2002,10 @@ function toggleAllFeed() {
                   <template #right>
                     <template v-if="item.entry.costEur != null && logKwhBasis(item.entry)">
                       <b class="block text-[15px] font-bold text-gray-900 dark:text-gray-50"
-                        :title="isNettoOnlyCostLog(item.entry) ? t('dashboard.cost_pill_netto_title') : undefined">{{ formatCurrency(item.entry.costEur) }}</b>
+                        :title="isNettoOnlyCostLog(item.entry) ? t('dashboard.cost_pill_netto_title') : undefined"><span class="ci-money">{{ formatCurrency(item.entry.costEur) }}</span></b>
                       <span class="block text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ formatCostPerKwh(item.entry.costEur / logKwhBasis(item.entry)!) }}</span>
                     </template>
-                    <b v-else-if="item.entry.costEur != null" class="block text-[15px] font-bold text-gray-900 dark:text-gray-50">{{ formatCurrency(item.entry.costEur) }}</b>
+                    <b v-else-if="item.entry.costEur != null" class="block text-[15px] font-bold text-gray-900 dark:text-gray-50"><span class="ci-money">{{ formatCurrency(item.entry.costEur) }}</span></b>
                     <button v-else-if="sourceInfo(item.entry.dataSource) && item.entry.id" type="button" data-testid="charge-price-chip"
                       :aria-label="t('priceamend.chip_aria')" :class="PRICE_CHIP" @click.stop="priceAmendingLog = item.entry">
                       {{ t('priceamend.chip') }}
@@ -2156,7 +2156,7 @@ function toggleAllFeed() {
                   <template #right>
                     <template v-if="item.entry._totalCostEur != null && item.entry._costBasisKwh && item.entry._isFullyPriced">
                       <b class="block text-[15px] font-bold text-gray-900 dark:text-gray-50"
-                        :title="item.entry._costIsNettoOnly ? t('dashboard.cost_pill_netto_title') : undefined">{{ formatCurrency(item.entry._totalCostEur) }}</b>
+                        :title="item.entry._costIsNettoOnly ? t('dashboard.cost_pill_netto_title') : undefined"><span class="ci-money">{{ formatCurrency(item.entry._totalCostEur) }}</span></b>
                       <span class="block text-[12px] font-semibold text-gray-500 dark:text-gray-400">{{ formatCostPerKwh(item.entry._totalCostEur / item.entry._costBasisKwh) }}</span>
                     </template>
                     <!-- Teilweise bepreist: eine Rate aus einem Bruchteil der Energie waere irrefuehrend. -->
@@ -2242,7 +2242,7 @@ function toggleAllFeed() {
                           <ChartBarSquareIcon class="h-5 w-5" aria-hidden="true" />
                         </button>
                         <span v-if="topUp.costEur != null && costBasisKwh(topUp)" class="shrink-0 text-right">
-                          <b class="block font-semibold text-gray-900 dark:text-gray-100">{{ formatCurrency(topUp.costEur) }}</b>
+                          <b class="block font-semibold text-gray-900 dark:text-gray-100"><span class="ci-money">{{ formatCurrency(topUp.costEur) }}</span></b>
                           <span class="block text-[11.5px] text-gray-500 dark:text-gray-400">{{ formatCostPerKwh(topUp.costEur / costBasisKwh(topUp)!) }}</span>
                         </span>
                         <button v-else-if="costBasisKwh(topUp)" type="button" data-testid="topup-price-chip"

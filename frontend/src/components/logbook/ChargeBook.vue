@@ -91,7 +91,7 @@ const stretchHeight = (days: number) => `${Math.min(150, 44 + days * 11)}px`
                 <span class="block text-[13px] tabular-nums text-gray-500 dark:text-gray-400">{{ chargeSub(e) }}</span>
               </span>
               <span v-if="costOf(e) != null" class="shrink-0 pt-0.5 text-right tabular-nums">
-                <b class="block text-[15px] font-semibold">{{ formatCurrency(costOf(e)!) }}</b>
+                <b class="block text-[15px] font-semibold"><span class="ci-money">{{ formatCurrency(costOf(e)!) }}</span></b>
                 <span v-if="pricePerKwh(e)" class="block text-[12px] text-gray-500 dark:text-gray-400">{{ pricePerKwh(e) }}</span>
               </span>
             </button>

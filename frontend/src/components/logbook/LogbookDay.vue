@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MoneyMarks from '../story/MoneyMarks.vue'
 import { computed, ref } from 'vue'
 import { useIsMobile } from '../../composables/useIsMobile'
 import { useI18n } from 'vue-i18n'
@@ -95,7 +96,7 @@ const sum = computed(() => {
       :style="stickyTop" data-testid="logbook-day-head">
       <div class="flex items-baseline justify-between gap-3">
         <h3 class="text-[15px] font-bold">{{ label }}</h3>
-        <span class="text-right text-[12px] tabular-nums text-gray-500 dark:text-gray-400">{{ sum }}</span>
+        <span class="text-right text-[12px] tabular-nums text-gray-500 dark:text-gray-400"><MoneyMarks :text="sum" /></span>
       </div>
       <!-- Desktop: das Diagramm klebt mit dem Tageskopf, Hover über einer Zeile hebt ihre Balken hervor -->
       <DayRibbon v-if="showRibbon && md" :highlight-ids="hoveredIds" :events="events" :selected-id="selectedId" :interactive="wide" @select="emit('select', $event)" />

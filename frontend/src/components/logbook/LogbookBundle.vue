@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MoneyMarks from '../story/MoneyMarks.vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { ChevronLeftIcon, XMarkIcon, PencilSquareIcon, ArrowsRightLeftIcon } from '@heroicons/vue/24/outline'
@@ -54,7 +55,7 @@ const pick = (e: DayEvent) => { if (e.kind === 'charge') emit('select', e.log) }
 
     <div class="flex-1 overflow-y-auto p-4">
       <p class="text-[16px] font-bold text-gray-900 dark:text-gray-50">{{ place }}</p>
-      <p class="mt-0.5 text-[14px] tabular-nums text-gray-600 dark:text-gray-300" data-testid="bundle-sum">{{ line }}</p>
+      <p class="mt-0.5 text-[14px] tabular-nums text-gray-600 dark:text-gray-300" data-testid="bundle-sum"><MoneyMarks :text="line" /></p>
       <div v-if="(canAmend && totals.priceless.length) || canReassign" class="mt-3 flex flex-wrap items-center gap-2">
         <button v-if="canAmend && totals.priceless.length" type="button" :class="AMBER_CHIP" data-testid="bundle-amend"
           @click="emit('amend', totals.priceless[0])">

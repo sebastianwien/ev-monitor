@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import MoneyMarks from '../story/MoneyMarks.vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { monthName } from '../../utils/logbook'
@@ -15,7 +16,7 @@ const name = computed(() => monthName(props.monthKey, locale.value))
       <h2 class="text-[19px] font-bold tracking-tight">{{ name }}</h2>
       <span v-if="right" class="text-[13px] font-semibold tabular-nums">{{ right }}</span>
     </div>
-    <p v-if="line" class="text-[13px] tabular-nums text-gray-600 dark:text-gray-300">{{ line }}</p>
+    <p v-if="line" class="text-[13px] tabular-nums text-gray-600 dark:text-gray-300"><MoneyMarks :text="line" /></p>
     <slot />
   </header>
 </template>
