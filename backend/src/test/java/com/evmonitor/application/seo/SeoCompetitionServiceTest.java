@@ -59,7 +59,7 @@ class SeoCompetitionServiceTest {
     private SeoCompetitionService service;
 
     private static QueryRow q(String query, long impressions, boolean brand) {
-        return new QueryRow(query, brand, impressions, 1, 0.01, 8.0, "/modelle/A", 1, false, null);
+        return new QueryRow(query, brand, impressions, 1, 0.01, 8.0, "/modelle/A", 1, false, null, 0L, 0);
     }
 
     @BeforeEach
