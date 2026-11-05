@@ -153,12 +153,12 @@ describe('StoryHero', () => {
     expect(host.querySelector('[data-testid="story-hero-meta"]')).toBeNull()
     expect(text(host.querySelector('[data-testid="story-hero-layers"]'))).toBe('Alle Kosten 196 €')
   })
-  it('laufender Monat: graue Zeile nennt Fahrten und vergangene Tage', () => {
-    const host = mount({ distanceKm: 4, energyCostEur: null, charges: 0, soFar: { trips: 1, days: 3 } })
-    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toBe('1 Fahrt in 3 Tagen')
+  it('laufender Monat: graue Zeile nennt Fahrten bis zum heutigen Datum', () => {
+    const host = mount({ distanceKm: 4, energyCostEur: null, charges: 0, soFar: { trips: 1, until: new Date(2026, 10, 5) } })
+    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toBe('1 Fahrt bis 5. Nov.')
   })
   it('laufender Monat mit Kosten: Fahrten vor Euro je 100 km', () => {
-    const host = mount({ soFar: { trips: 12, days: 1 } })
-    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toMatch(/^12 Fahrten in 1 Tag · /)
+    const host = mount({ soFar: { trips: 12, until: new Date(2026, 10, 1) } })
+    expect(text(host.querySelector('[data-testid="story-hero-meta"]'))).toMatch(/^12 Fahrten bis 1\. Nov\. · /)
   })
 })

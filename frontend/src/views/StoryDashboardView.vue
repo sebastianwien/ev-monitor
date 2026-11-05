@@ -494,7 +494,7 @@ onUnmounted(() => unregisterReload?.())
                   :energy-cost-eur="monthStats?.energyCostEur ?? null"
                   :charges="monthStats?.totalCharges ?? 0"
                   :layers="layers"
-                  :so-far="month.offset === 0 ? { trips: story.tripCount.value, days: new Date().getDate() } : null"
+                  :so-far="month.offset === 0 ? { trips: story.tripCount.value, until: new Date() } : null"
                   @layers="(open) => open && analytics.track('story_layers_opened')">
                   <template #nav>
                     <StoryMonthStepper :offset="offset" :label-of="monthLabelShort" :min-offset="story.minOffset.value" :labelled="false" @select="selectMonth" />
@@ -505,7 +505,7 @@ onUnmounted(() => unregisterReload?.())
             <p v-if="shareStatus === 'copied' || shareStatus === 'failed'" class="text-sm text-gray-600 dark:text-gray-300" role="status">
               {{ shareStatus === 'copied' ? t('story.moment_copied') : t('story.moment_share_failed') }}
             </p>
-            <DataQualityLine v-if="hasActivity && heroMode !== 'live'" :key="`${month.year}-${month.month}`" class="story-in" style="--story-delay: 60ms" :days="days" @open-day="onOpenDay" @intent-day="onIntentDay" />
+            <DataQualityLine v-if="hasActivity && heroMode !== 'live'" :key="`${month.year}-${month.month}`" class="story-in" style="--story-delay: 60ms" :days="days" :today="month.offset === 0 ? new Date().getDate() : null" @open-day="onOpenDay" @intent-day="onIntentDay" />
             <StoryLatestCards v-if="story.latest.value" class="story-in" style="--story-delay: 60ms" :latest="story.latest.value" @open-charge="openLatestCharge" @open-trip="openLatestTrip" />
             <StoryFeed
               v-if="narrow && showFeed"

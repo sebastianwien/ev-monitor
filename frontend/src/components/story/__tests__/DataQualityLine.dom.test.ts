@@ -21,10 +21,10 @@ function days(withData: number[], today = 31, tripDays: number[] = []): DayCover
   })
 }
 
-function mount(d: DayCoverage[], onOpenDay?: (day: number) => void) {
+function mount(d: DayCoverage[], onOpenDay?: (day: number) => void, today?: number) {
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(DataQualityLine, { days: d, onOpenDay })
+  app = createApp(DataQualityLine, { days: d, onOpenDay, today })
   app.component('router-link', RouterLink)
   app.use(createPinia()).use(i18n)
   app.mount(host)
@@ -63,6 +63,20 @@ describe('DataQualityLine', () => {
   it('Achse: Tage 1, 8, 15, 22 und 29 unter der Leiste', () => {
     const host = mount(days([1]))
     expect([...host.querySelectorAll('[data-role="tick"]')].map(x => x.textContent)).toEqual(['1.', '8.', '15.', '22.', '29.'])
+    expect(host.querySelector('[data-role="tick-today"]')).toBeNull()
+  })
+
+  it('laufender Monat: heute fett auf der Achse, feste Marken daneben weichen', () => {
+    const host = mount(days([1], 9), undefined, 9)
+    const ticks = [...host.querySelectorAll('[data-role="tick"], [data-role="tick-today"]')].map(x => x.textContent)
+    expect(ticks).toEqual(['1.', '15.', '22.', '29.', '9.'])
+    expect(host.querySelector('[data-role="tick-today"]')!.className).toContain('font-bold')
+  })
+
+  it('heute auf einer festen Marke: nur einmal, fett', () => {
+    const host = mount(days([1], 15), undefined, 15)
+    expect([...host.querySelectorAll('[data-role="tick"]')].map(x => x.textContent)).toEqual(['1.', '8.', '22.', '29.'])
+    expect(host.querySelector('[data-role="tick-today"]')!.textContent).toBe('15.')
   })
 
   it('Tagesanzeige per Tastatur: Pfeile wandern, Satz nennt Ladungen und kWh; Blur kehrt zum Ladetag zurück', async () => {

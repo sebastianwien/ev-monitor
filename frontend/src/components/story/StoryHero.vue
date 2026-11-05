@@ -25,12 +25,12 @@ const props = defineProps<{
   energyCostEur: number | null
   charges: number
   layers: CostLayer[] | null
-  /** Nur im laufenden Monat: Fahrten bisher und vergangene Tage, damit eine kleine Zahl am Monatsanfang lesbar ist. */
-  soFar?: { trips: number; days: number } | null
+  /** Nur im laufenden Monat: Fahrten bisher und das heutige Datum, damit eine kleine Zahl am Monatsanfang lesbar ist und der Stand sichtbar. */
+  soFar?: { trips: number; until: Date } | null
 }>()
 const emit = defineEmits<{ layers: [open: boolean] }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { formatCurrency, formatDistance, convertDistance, distanceUnitLabel } = useLocaleFormat()
 
 const line = computed(() => heroLine(props))
@@ -51,7 +51,7 @@ const meta = computed(() => [
   props.soFar
     ? t('story.hero_so_far', {
       trips: t('story.hero_trips', { n: props.soFar.trips }, props.soFar.trips),
-      days: t('story.hero_days', { n: props.soFar.days }, props.soFar.days),
+      date: props.soFar.until.toLocaleDateString(locale.value, { day: 'numeric', month: 'short' }),
     })
     : null,
   // Je 100 km aus dem Satz selbst, damit Nachrechnen aufgeht; nur wenn er km und Euro nennt.

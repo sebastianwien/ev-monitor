@@ -11,7 +11,8 @@ import { useLocaleFormat } from '../../composables/useLocaleFormat'
  * Zeitstrahl mit Spitze zum Tag. Überfahren, Antippen oder Pfeiltasten wählen einen anderen Tag,
  * Klick, Tipp oder Enter öffnen das Tagesblatt; der geöffnete Tag bleibt danach gewählt.
  */
-const props = defineProps<{ days: DayCoverage[] }>()
+/** `today`: Tag im laufenden Monat, steht fett auf der Achse; in vergangenen Monaten null. */
+const props = defineProps<{ days: DayCoverage[]; today?: number | null }>()
 /** Klick, Tap oder Enter auf einen Tag bis heute: Tagesblatt öffnen */
 const emit = defineEmits<{
   'open-day': [day: number]
@@ -117,7 +118,10 @@ function placeTip() {
   arrowLeft.value = `${Math.round(center * barWidth - left)}px`
 }
 watch([active, tip], async () => { await nextTick(); placeTip() }, { immediate: true })
-const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.length))
+/** Feste Marken; neben dem heutigen Tag (unter 3 Tage Abstand) weichen sie, damit sich nichts überlappt. */
+const todayTick = computed(() => props.today && props.today <= props.days.length ? props.today : null)
+const ticks = computed(() => [1, 8, 15, 22, 29]
+  .filter(d => d <= props.days.length && (todayTick.value == null || Math.abs(d - todayTick.value) >= 3)))
 </script>
 
 <template>
@@ -143,6 +147,7 @@ const ticks = computed(() => [1, 8, 15, 22, 29].filter(d => d <= props.days.leng
       </div>
       <div class="relative mt-1 h-3.5 text-[10.5px] text-gray-500 tabular-nums dark:text-gray-400" aria-hidden="true">
         <span v-for="d in ticks" :key="d" data-role="tick" class="absolute -translate-x-1/2" :style="{ left: pos(d - 1) }">{{ d }}.</span>
+        <span v-if="todayTick" data-role="tick-today" class="absolute -translate-x-1/2 font-bold text-gray-900 dark:text-gray-100" :style="{ left: pos(todayTick - 1) }">{{ todayTick }}.</span>
       </div>
       <!-- Sprechblase unter der Achse, Spitze zum Tag; eigene Zeile, damit sie die Legende nicht verdeckt -->
       <div class="relative h-8">
