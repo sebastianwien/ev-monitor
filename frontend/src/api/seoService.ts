@@ -395,3 +395,12 @@ export async function triggerSeoCompetition(): Promise<boolean> {
     const res = await apiClient.post('/admin/seo/competition/run', null, { validateStatus: s => s === 202 || s === 409 })
     return res.status === 202
 }
+
+/** Reiter "Events": Events und angelegte Goals der letzten 30 Tage, live aus Plausible. */
+export interface SeoEventStat { name: string; visitors: number; events: number; goal: boolean }
+export interface SeoEventStats { enabled: boolean; from: string; to: string; events: SeoEventStat[] }
+
+export async function getSeoEvents(): Promise<SeoEventStats> {
+    const { data } = await apiClient.get<SeoEventStats>('/admin/seo/events')
+    return data
+}

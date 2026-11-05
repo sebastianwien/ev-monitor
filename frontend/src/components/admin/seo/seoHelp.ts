@@ -1,5 +1,5 @@
 /** Anleitung je Ansicht und Erklärung je Befund, mit SEO-Standardbegriffen. Zielgruppe: Marketing. */
-export type SeoTopic = 'overview' | 'keywords' | 'landingpages' | 'acquisition' | 'audit' | 'serp'
+export type SeoTopic = 'overview' | 'keywords' | 'landingpages' | 'acquisition' | 'audit' | 'serp' | 'events'
 
 export interface TopicHelp {
   /** Die eine Frage, die die Ansicht beantwortet. */
@@ -11,6 +11,19 @@ export interface TopicHelp {
 }
 
 export const TOPIC_HELP: Record<SeoTopic, TopicHelp> = {
+  events: {
+    question: 'Was bedeutet welches Event, und kommt es noch an?',
+    read: [
+      'Jedes Event, das die App an Plausible schickt, mit lesbarem Namen, der Frage dahinter und wo es ausgelöst wird. Darunter klein der technische Name, wie er in Plausible steht.',
+      'Besucher sind die letzten 30 Tage. "kein Goal": kommt an, ist in Plausible aber nicht angelegt. "still": 30 Tage nichts. "unbekannt": kommt an, steht aber nicht im Katalog.',
+    ],
+    act: [
+      '"kein Goal" in Plausible unter Site Settings > Goals mit genau dem technischen Namen anlegen.',
+      '"still" prüfen: seltenes Ereignis oder kaputtes Tracking? "unbekannt" sind meist Altlasten, in Plausible als Goal löschen.',
+      'Events nie umbenennen: Plausible zählt einen neuen Namen als neues Event, die Historie reißt ab.',
+    ],
+    terms: ['visitors'],
+  },
   overview: {
     question: 'Was ist diese Woche zu tun, und wohin entwickelt sich der Traffic?',
     read: [
