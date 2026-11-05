@@ -9,6 +9,7 @@ import SeoCampaignsPanel from './seo/SeoCampaignsPanel.vue'
 import SeoTechPanel from './seo/SeoTechPanel.vue'
 import SeoCompetitionPanel from './seo/SeoCompetitionPanel.vue'
 import SeoSourcesPanel from './seo/SeoSourcesPanel.vue'
+import SeoEventsPanel from './seo/SeoEventsPanel.vue'
 import { date } from './seo/seoFormat'
 import type { SeoNavigation, SeoSub } from './seo/seoNavigation'
 
@@ -24,6 +25,7 @@ const SUBS: { key: SeoSub; label: string }[] = [
   { key: 'acquisition', label: 'Akquisition' },
   { key: 'audit', label: 'Site Audit' },
   { key: 'serp', label: 'SERP & Wettbewerb' },
+  { key: 'events', label: 'Events' },
 ]
 const PERIODS: SeoPeriod[] = [7, 28, 90]
 const PERIOD_SUBS: SeoSub[] = ['overview', 'keywords', 'landingpages', 'acquisition', 'serp']
@@ -116,6 +118,7 @@ const btn = (active: boolean) => [
     <SeoCampaignsPanel v-else-if="sub === 'acquisition'" :days="days" />
     <SeoTechPanel v-else-if="sub === 'audit'" />
     <SeoCompetitionPanel v-else-if="sub === 'serp'" :days="days" />
+    <SeoEventsPanel v-else-if="sub === 'events'" />
 
     <SeoSourcesPanel :status="status" @synced="loadStatus" />
   </div>
