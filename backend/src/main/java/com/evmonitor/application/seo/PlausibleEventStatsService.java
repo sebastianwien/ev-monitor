@@ -41,8 +41,11 @@ public class PlausibleEventStatsService {
         EventStats c = cached;
         if (c != null && System.currentTimeMillis() - cachedAt < TTL_MS) return c;
         EventStats fresh = load();
-        cached = fresh;
-        cachedAt = System.currentTimeMillis();
+        // Ohne Key nicht puffern: sobald er gesetzt ist, sollen die Zahlen sofort kommen.
+        if (fresh.enabled()) {
+            cached = fresh;
+            cachedAt = System.currentTimeMillis();
+        }
         return fresh;
     }
 

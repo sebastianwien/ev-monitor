@@ -114,7 +114,6 @@ public class AdminSeoController {
         return insights.brandTrend(weeks);
     }
 
-    /** Abrufe durch Such- und KI-Crawler in den letzten {@code days} Tagen, KI-Crawler zuerst. */
     /** Reiter "Events": alle Events und angelegten Goals der letzten 30 Tage, live aus Plausible (1 h gepuffert). */
     @GetMapping("/events")
     @PreAuthorize("hasRole('ADMIN')")
@@ -122,6 +121,7 @@ public class AdminSeoController {
         return eventStats.last30Days();
     }
 
+    /** Abrufe durch Such- und KI-Crawler in den letzten {@code days} Tagen, KI-Crawler zuerst. */
     @GetMapping("/bots")
     @PreAuthorize("hasRole('ADMIN')")
     public List<BotHitService.BotSummary> bots(@RequestParam(defaultValue = "28") int days) {

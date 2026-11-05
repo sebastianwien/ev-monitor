@@ -59,7 +59,17 @@ class PlausibleEventStatsServiceTest extends AbstractIntegrationTest {
         service.last30Days();
         service.last30Days();
 
+        // Ein Laden = zwei Abfragen (Events und Goals); ohne Puffer wären es vier.
         verify(plausibleClient, times(2)).query(any(Query.class));
+    }
+
+    @Test
+    void withoutKey_notCached_soANewKeyWorksAtOnce() {
+        when(plausibleClient.isEnabled()).thenReturn(false, true);
+        when(plausibleClient.query(any(Query.class))).thenReturn(List.of());
+
+        assertThat(service.last30Days().enabled()).isFalse();
+        assertThat(service.last30Days().enabled()).isTrue();
     }
 
     @Test
