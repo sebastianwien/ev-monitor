@@ -246,6 +246,41 @@ class CpoPriceBenchmarkServiceTest {
                 .containsExactly("Tariff L", "Tariff M", "A", "Tariff S", "B");
     }
 
+    @Test
+    void tariffs_needNoDrivers_cheapestFirst_ownNetworkMarkedDirect() {
+        tariffs.add(tariff("ADAC e-Charge", "Standard", "EnBW", null, "0.55", "0"));
+        tariffs.add(tariff("EnBW", "Tariff L", null, null, "0.39", "11.99"));
+        tariffs.add(tariff("IONITY", "Power", null, null, "0.39", "11.99"));
+
+        CpoTariffs t = service.tariffs("enbw", ChargingType.DC).orElseThrow();
+
+        assertThat(t.cpoName()).isEqualTo("EnBW");
+        assertThat(t.chargingType()).isEqualTo(ChargingType.DC);
+        assertThat(t.tariffs()).extracting(CpoTariffs.Tariff::name, CpoTariffs.Tariff::direct)
+                .containsExactly(
+                        org.assertj.core.groups.Tuple.tuple("EnBW", true),
+                        org.assertj.core.groups.Tuple.tuple("ADAC e-Charge", false));
+        assertThat(t.tariffs().get(0).monthlyFeeEur()).isEqualByComparingTo("11.99");
+        assertThat(t.tariffs().get(0).verifiedOn()).isEqualTo(VERIFIED.toLocalDate());
+    }
+
+    @Test
+    void tariffs_otherDriversPricesNeverCount() {
+        drivers("EnBW", ChargingType.DC, "0.22", "0.22", "0.22", "0.22", "0.22");
+        IntStream.range(0, 3).forEach(i -> rows.add(card(UUID.randomUUID(), "EnBW", "EnBW", "0.22")));
+
+        assertThat(service.tariffs("EnBW", ChargingType.DC)).isEmpty();
+    }
+
+    @Test
+    void tariffs_dynamicLeftOut_unknownOperatorOrTypeEmpty() {
+        tariffs.add(tariff("EnBW", "Tariff L", null, null, "0.39", "11.99").toBuilder().dynamicPricing(true).build());
+
+        assertThat(service.tariffs("EnBW", ChargingType.DC)).isEmpty();
+        assertThat(service.tariffs("Unbekannt", ChargingType.DC)).isEmpty();
+        assertThat(service.tariffs("EnBW", ChargingType.UNKNOWN)).isEmpty();
+    }
+
     /** One driver per price, each with one session. */
     private void drivers(String cpo, ChargingType type, String... prices) {
         for (String p : prices) rows.add(price(UUID.randomUUID(), cpo, type, p));

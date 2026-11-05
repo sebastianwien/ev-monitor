@@ -76,6 +76,22 @@ public class CpoPriceBenchmarkService {
                 cards(operator, type, others)));
     }
 
+    /**
+     * Heute gültige, nicht dynamische Katalog-Tarife an diesem Betreiber, günstigste zuerst.
+     * Unabhängig von Fahrerdaten: der Vergleich "was hätte ich mit einer anderen Karte gezahlt"
+     * braucht belegte Preise, keine Mediane aus Aktionswochen.
+     */
+    public Optional<CpoTariffs> tariffs(String cpo, ChargingType type) {
+        String operator = cpoNameNormalizer.canonicalOperator(cpo);
+        if (operator == null || type == null || type == ChargingType.UNKNOWN) return Optional.empty();
+        List<CpoTariffs.Tariff> list = curatedOffers(operator, type).stream()
+                .sorted(Comparator.comparing(CardOffer::pricePerKwh).thenComparing(CardOffer::name))
+                .map(c -> new CpoTariffs.Tariff(c.name(), c.variant(), c.pricePerKwh(), c.monthlyFeeEur(),
+                        c.verifiedOn(), operator.equals(c.name())))
+                .toList();
+        return list.isEmpty() ? Optional.empty() : Optional.of(new CpoTariffs(operator, type, list));
+    }
+
     /** Gepflegt ersetzt die Fahrerkarte desselben Anbieters - der Tarif kennt Variante und Grundgebuehr. */
     private List<CardOffer> cards(String operator, ChargingType type, List<PublicChargePrice> others) {
         List<CardOffer> curated = curatedOffers(operator, type);

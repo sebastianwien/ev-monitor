@@ -2,6 +2,7 @@ package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.CpoPriceBenchmark;
 import com.evmonitor.application.CpoPriceBenchmarkService;
+import com.evmonitor.application.CpoTariffs;
 import com.evmonitor.application.tariff.savings.CardSavingsService;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.infrastructure.security.UserPrincipal;
@@ -40,6 +41,17 @@ public class ChargingBenchmarkController {
         }
         var requester = ((UserPrincipal) authentication.getPrincipal()).getUser().getId();
         return service.benchmark(cpo, type, requester)
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.noContent().build());
+    }
+
+    /** Gepflegte, heute gültige Tarife an einem Betreiber. 204: unbekannter Betreiber oder kein Tarif. */
+    @GetMapping("/tariffs")
+    public ResponseEntity<CpoTariffs> tariffs(@RequestParam String cpo, @RequestParam ChargingType type) {
+        if (cpo.isBlank() || cpo.length() > CPO_MAX || type == ChargingType.UNKNOWN) {
+            return ResponseEntity.badRequest().build();
+        }
+        return service.tariffs(cpo, type)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.noContent().build());
     }
