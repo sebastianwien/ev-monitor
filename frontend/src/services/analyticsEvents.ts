@@ -6,7 +6,7 @@
  */
 
 export type EventArea =
-  | 'akquise' | 'modelle' | 'anmeldung' | 'onboarding' | 'nutzung' | 'daten' | 'geld' | 'partner' | 'community' | 'plausible'
+  | 'akquise' | 'modelle' | 'anmeldung' | 'onboarding' | 'nutzung' | 'story' | 'daten' | 'geld' | 'partner' | 'community' | 'plausible'
 
 export const EVENT_AREAS: Record<EventArea, string> = {
   akquise: 'Startseite und Demo',
@@ -14,6 +14,7 @@ export const EVENT_AREAS: Record<EventArea, string> = {
   anmeldung: 'Registrierung und Login',
   onboarding: 'Einstieg und Aktivierung',
   nutzung: 'App-Nutzung',
+  story: 'Story und Logbuch',
   daten: 'Import und Verbindungen',
   geld: 'Abo und Unterstützung',
   partner: 'Partner und Werbung',
@@ -102,6 +103,33 @@ export const ANALYTICS_EVENTS = {
   ticker_pause: { area: 'nutzung', title: 'Ticker angehalten', question: 'Wird der Ticker angehalten?', where: 'Ticker' },
   ticker_toggle: { area: 'nutzung', title: 'Ticker ein-/ausgeklappt', question: 'Stört der Ticker?', where: 'Ticker', props: { state: 'collapsed oder expanded' } },
 
+  // Story und Logbuch
+  story_viewed: { area: 'story', title: 'Story angesehen', question: 'Wie viele öffnen die Story?', where: '/story' },
+  story_opt_in: { area: 'story', title: 'Story ein-/ausgeschaltet', question: 'Wer schaltet die neue Ansicht ein oder aus?', where: 'Einstellungen', props: { enabled: 'an ja/nein' } },
+  story_month_changed: { area: 'story', title: 'Story: Monat gewechselt', question: 'Schauen Nutzer in frühere Monate?', where: '/story', props: { offset: 'Monate zurück' } },
+  story_tile_opened: { area: 'story', title: 'Story: Kachel geöffnet', question: 'Welche Kacheln interessieren?', where: '/story', props: { tile: 'Kachel' } },
+  story_layers_opened: { area: 'story', title: 'Story: Kostenaufteilung geöffnet', question: 'Wer will wissen, woraus die Kosten bestehen?', where: '/story' },
+  story_cost_fixed_on: { area: 'story', title: 'Story: Fixkosten eingerechnet', question: 'Wer rechnet Fixkosten mit ein?', where: '/story, Kosten' },
+  story_live_shown: { area: 'story', title: 'Story: Live-Ladung gezeigt', question: 'Wie oft sieht jemand eine laufende Ladung?', where: '/story' },
+  story_day_open: { area: 'story', title: 'Story: Tag geöffnet', question: 'Werden einzelne Tage angesehen?', where: '/story, Tagesblatt', props: { has_entries: 'ja/nein' } },
+  story_day_action: { area: 'story', title: 'Story: Handlung am Tag', question: 'Was tun Nutzer im Tagesblatt?', where: '/story, Tagesblatt', props: { action: 'Handlung' } },
+  story_moment_shown: { area: 'story', title: 'Neuigkeit gezeigt', question: 'Welche Neuigkeiten-Karten sehen Nutzer? (einmal je Karte)', where: '/story, Neuigkeiten', props: { moment: 'Art der Karte' } },
+  story_moment_tapped: { area: 'story', title: 'Neuigkeit angetippt', question: 'Welche Karten führen zu einer Handlung?', where: '/story, Neuigkeiten', props: { moment: 'Art der Karte', action: 'Handlung' } },
+  story_moment_dismissed: { area: 'story', title: 'Neuigkeit erledigt', question: 'Welche Karten werden weggeklickt?', where: '/story, Neuigkeiten', props: { moment: 'Art der Karte' } },
+  story_news_collapsed: { area: 'story', title: 'Neuigkeiten eingeklappt', question: 'Stört der Kartenstapel?', where: '/story' },
+  story_news_expanded: { area: 'story', title: 'Neuigkeiten aufgeklappt', question: 'Holen Nutzer den Stapel zurück?', where: '/story' },
+  story_news_list_opened: { area: 'story', title: 'Alle Neuigkeiten geöffnet', question: 'Wer will alle Karten sehen?', where: '/story' },
+  story_community_month_rank: { area: 'story', title: 'Story: Rangliste angetippt', question: 'Interessiert der eigene Platz im Monat?', where: '/story, Community-Monat' },
+  story_empty_autosync: { area: 'story', title: 'Leere Story: AutoSync geklickt', question: 'Wählen neue Nutzer ohne Daten AutoSync?', where: '/story, leer' },
+  logbook_open: { area: 'story', title: 'Logbuch geöffnet', question: 'Wie oft wird das Logbuch geöffnet?', where: '/logs', props: { book: 'tage oder ladungen' } },
+  logbook_detail: { area: 'story', title: 'Logbuch: Eintrag geöffnet', question: 'Welche Einträge werden angesehen?', where: '/logs', props: { kind: 'ladung, fahrt oder luecke' } },
+  logbook_older: { area: 'story', title: 'Logbuch: ältere geladen', question: 'Blättern Nutzer zurück?', where: '/logs' },
+  logbook_connect: { area: 'story', title: 'Logbuch: Verbinden geklickt', question: 'Wirkt der Verbinden-Hinweis im Logbuch?', where: '/logs, Hinweis', props: { brand: 'Marke' } },
+  site_question_opened: { area: 'story', title: 'Ladeort-Frage geöffnet', question: 'Öffnen Nutzer die Frage nach ihrem Ladeort?', where: '/logs, Hinweis', props: { places: 'offene Orte' } },
+  site_question_answered: { area: 'story', title: 'Ladeort-Frage beantwortet', question: 'Wie viele Ladungen werden so einem Ort zugeordnet?', where: 'Ladeort-Fragen', props: { logs: 'zugeordnete Ladungen' } },
+  site_question_unknown: { area: 'story', title: 'Ladeort unbekannt', question: 'Wie oft kennen Nutzer den Ort nicht?', where: 'Ladeort-Fragen' },
+  ticker_hidden: { area: 'nutzung', title: 'Ticker aus-/eingeblendet', question: 'Wer blendet den Ticker ganz aus?', where: 'Einstellungen', props: { state: 'shown oder hidden' } },
+
   // Import und Verbindungen
   import_tab_clicked: { area: 'daten', title: 'Import-Reiter geklickt', question: 'Welche Integrationen werden angeklickt?', where: '/imports', props: { tab: 'Reiter' } },
   import_completed: { area: 'daten', title: 'Import abgeschlossen', question: 'Klappt der Import, mit wie vielen Einträgen? (Conversion-Goal im SEO-Tab)', where: '/imports', props: { source: 'Quelle', count: 'Einträge' } },
@@ -121,7 +149,7 @@ export const ANALYTICS_EVENTS = {
   paypal_clicked: { area: 'geld', title: 'PayPal geklickt', question: 'Wer will per PayPal unterstützen?', where: 'Unterstützen-Popover' },
 
   // Partner und Werbung
-  thg_banner_clicked: { area: 'partner', title: 'THG-Banner geklickt', question: 'Wie oft wird die THG-Prämie über uns beantragt?', where: 'Dashboard, /modelle' },
+  thg_banner_clicked: { area: 'partner', title: 'THG-Banner geklickt', question: 'Wie oft wird die THG-Prämie über uns beantragt, und von wo?', where: 'Dashboard, /modelle, Onboarding, Story', props: { placement: 'dashboard, modelle, onboarding oder story' } },
   enbw_banner_clicked: { area: 'partner', title: 'EnBW-Banner geklickt', question: 'Wie oft wird die EnBW-Ladekarte angeklickt?', where: 'Affiliate-Banner (derzeit aus)' },
   partner_banner_click: { area: 'partner', title: 'Partner-Hinweis geklickt', question: 'Wirken Kooperations-Hinweise auf Modellseiten?', where: 'Modellseite', props: { partner: 'Partner' } },
 
