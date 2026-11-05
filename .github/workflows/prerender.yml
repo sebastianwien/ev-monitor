@@ -31,7 +31,9 @@ jobs:
         id: image
         run: |
           TAG=$(git rev-parse HEAD:prerender)
-          docker build --pull -t "$PRERENDER_IMAGE:$TAG" prerender
+          docker build --pull -t "$PRERENDER_IMAGE:$TAG" \
+            --label "org.opencontainers.image.source=https://github.com/${{ github.repository }}" \
+            --label "org.opencontainers.image.revision=${{ github.sha }}" prerender
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
 
       - name: Render smoke test
