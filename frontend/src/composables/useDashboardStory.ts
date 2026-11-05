@@ -21,7 +21,7 @@ import type { TripForSummary } from '../utils/tripMonthSummary'
 import type { OdometerGap } from './storyDay'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, recapFacts, detectBattery,
-  detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate, pickCards,
+  detectSilence, detectGap, detectThg, detectMilestone, detectExpensive, expensiveCandidate, pickCards,
   type Moment, type MomentLog, type MomentTrip, type MomentPoint, type ScoredMoment,
   recapPlaces, type PeerLine,
 } from './storyMoments'
@@ -60,6 +60,8 @@ export interface StoryCarContext {
   autoSync: boolean
   /** Daten kommen gratis, kein Abo, Kaufen möglich: Meilenstein bittet ums Supporter-Pack. */
   supporterAsk: boolean
+  /** Land des Nutzers: die THG-Karte gibt es nur in Deutschland. */
+  country?: string | null
 }
 
 export const STORY_MONTH_OFFSETS = [-2, -1, 0] as const
@@ -693,6 +695,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
       detectSilence({ log: lastLog, now, autoSync: c.autoSync }),
       withSupport(detectMilestone({ series: lifetimeSeries.value, now }), c.supporterAsk),
       detectGap({ logs: pricelessLogs.value, now, skipLogId: today }),
+      detectThg({ now, country: c.country ?? null }),
     ].filter((m): m is Moment => m != null)
     return pickCards(candidates, now, seen.value)
   })

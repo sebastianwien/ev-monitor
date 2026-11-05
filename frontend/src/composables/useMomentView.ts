@@ -4,13 +4,15 @@ import { useLocaleFormat, RANGE_STEP } from './useLocaleFormat'
 import { heroLine } from './storyModel'
 import { DAY, type Moment, type RankPlace } from './storyMoments'
 import { CAT_LABEL } from './useTickerItems'
+import { thgCopy, THG_URL } from '../utils/thgOffer'
 import { fetchDestinationForecast, type DayForecast, type WeatherKind } from '../utils/destinationForecast'
 
 /**
  * Text und Handlung je Moment, geteilt von Moment-Hero und Feed. Links fuehren selbst weiter
  * (to), alles andere (Sheet, Teilen) ist eine Handlung, die der View ausfuehrt.
  */
-export interface MomentAction { id: string; label: string; to?: string }
+/** to: Route in der App; href: externe Seite (neuer Tab, als Werbung gekennzeichnet). */
+export interface MomentAction { id: string; label: string; to?: string; href?: string }
 export interface MomentView {
   eyebrow: string
   sentence: string
@@ -25,6 +27,8 @@ export interface MomentView {
   details?: Array<{ id: 'rank' | 'peer' | 'cost'; text: string }>
   /** Wetter am Ziel einer langen Fahrt: Satz für Screenreader, Kacheln fürs Auge. */
   forecast?: { sentence: string; days: Array<{ label: string; range: string; kind: WeatherKind; state: string }> }
+  /** Partner-Angebot: kleine Kennzeichnung "Affiliate-Link" an der Karte. */
+  sponsored?: boolean
 }
 
 export function useMomentView(props: { moment: Moment; carId: string | null; carName: string; now?: number }): ComputedRef<MomentView> {
@@ -176,6 +180,16 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
             : undefined,
           // Je Eintrag: bei mehreren entscheidet der Nutzer in der Liste.
           secondary: m.count === 1 ? { id: 'price_unknown', label: t('story.moment_action_price_unknown') } : undefined,
+        }
+      }
+      case 'thg': {
+        const copy = thgCopy(m)
+        return {
+          eyebrow: `THG-Prämie ${m.year}`,
+          sentence: copy.title,
+          sub: copy.text,
+          action: { id: 'thg', label: copy.cta, href: THG_URL },
+          sponsored: true,
         }
       }
       default:

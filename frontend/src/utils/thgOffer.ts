@@ -37,7 +37,7 @@ export function thgSeason(now: Date): ThgSeason | null {
   return THG_SEASONS.find(s => s.from <= day && day <= s.until) ?? null
 }
 
-export function thgCopy(season: ThgSeason): { title: string; text: string; cta: string } {
+export function thgCopy(season: Pick<ThgSeason, 'year' | 'amountEur'>): { title: string; text: string; cta: string } {
   return {
     title: season.amountEur != null
       ? `${season.amountEur} € für dein E-Auto, einmal im Jahr.`

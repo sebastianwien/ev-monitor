@@ -101,4 +101,19 @@ describe('StoryNewsCard', () => {
     host = mount(ms)
     expect(host.querySelector('a[href^="/supporter"]')).toBeNull()
   })
+
+  it('THG: externer Link zum Partner mit Kennzeichnung, Klick meldet die Handlung', () => {
+    const events: unknown[][] = []
+    const host = mount({ ...base, kind: 'thg', key: 'thg:2027', actionable: true, dismissible: true, year: 2027, amountEur: 230 }, events)
+    const a = host.querySelector<HTMLAnchorElement>('a.bg-green-600')!
+    expect(text(a)).toBe('Prämie beantragen')
+    expect(a.getAttribute('href')).toContain('Geld-fuer-eAuto.de')
+    expect(a.getAttribute('target')).toBe('_blank')
+    expect(a.getAttribute('rel')).toContain('sponsored')
+    expect(text(host.querySelector('[data-testid="story-news-sentence"]'))).toBe('230 € für dein E-Auto, einmal im Jahr.')
+    expect(text(host)).toContain('Affiliate-Link')
+    a.addEventListener('click', e => e.preventDefault())
+    a.click()
+    expect(events).toEqual([['act', 'thg']])
+  })
 })

@@ -5,6 +5,7 @@ import { SHORT_TRIP_KM } from './storyDay'
 import { geohashDistanceKm } from '../utils/tripMap'
 import { weatherKind, type DayForecast } from '../utils/destinationForecast'
 import type { CardSavings } from '../api/chargingBenchmarkService'
+import { thgSeason } from '../utils/thgOffer'
 
 /**
  * Der Moment-Hero: was gerade passiert ist, als ein Satz mit einer Handlung. Kein Modell,
@@ -16,7 +17,7 @@ export const HOUR = 3_600_000
 export const DAY = 24 * HOUR
 
 export type MomentKind =
-  | 'expensive' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'silence' | 'gap' | 'milestone'
+  | 'expensive' | 'long_trip' | 'first_frost' | 'month_change' | 'battery' | 'silence' | 'gap' | 'milestone' | 'thg'
 
 interface MomentBase {
   /** Zustand plus Ereignis-ID: Schluessel fuer "gesehen" und "weggeklickt". */
@@ -43,6 +44,7 @@ export type MomentData =
   | { kind: 'battery'; sohPercent: number; estimated: boolean; previousSohPercent: number | null; previousAt: number | null }
   | { kind: 'silence'; days: number; kwh: number | null; autoSync: boolean }
   | { kind: 'gap'; logId: string; count: number; kwh: number | null; since: number }
+  | { kind: 'thg'; year: number; amountEur: number }
   | { kind: 'milestone'; metric: MilestoneMetric; value: number; charges: number; km: number; co2Kg: number | null; /** Bitte ums Supporter-Pack mitzeigen */ support?: boolean }
 
 export type Moment = MomentBase & MomentData
@@ -434,8 +436,22 @@ export function detectMilestone(input: { series: MomentPoint[]; now: number }): 
   }
 }
 
+/**
+ * THG-Prämie fürs Quotenjahr, nur Deutschland und nur, wenn der Partner einen Betrag freigegeben
+ * hat (Sperrfrist). Ein Schlüssel je Jahr: weggeklickt bleibt sie für dieses Jahr weg.
+ */
+export function detectThg(input: { now: number; country: string | null }): Moment | null {
+  if (input.country !== 'DE') return null
+  const season = thgSeason(new Date(input.now))
+  if (!season || season.amountEur == null) return null
+  return {
+    ...base(`thg:${season.year}`, new Date(`${season.from}T00:00:00`).getTime(), Infinity, true, true),
+    kind: 'thg', year: season.year, amountEur: season.amountEur,
+  }
+}
+
 const BASE: Record<MomentKind, number> = {
-  expensive: 85, long_trip: 80, first_frost: 75, month_change: 70, milestone: 65, battery: 60, silence: 50, gap: 40,
+  expensive: 85, long_trip: 80, first_frost: 75, month_change: 70, milestone: 65, battery: 60, silence: 50, gap: 40, thg: 30,
 }
 const ACTION_BONUS = 20
 

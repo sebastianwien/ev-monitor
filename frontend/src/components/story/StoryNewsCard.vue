@@ -72,7 +72,8 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
     <div v-if="primary || view.secondary || view.dismiss || $slots.more" class="mt-1 grid gap-1" :class="primary && !primaryIsView ? '' : 'justify-items-start'">
       <!-- Link-Aktion und "more" (Stapel: alle Neuigkeiten) teilen sich eine Zeile: more links, Link rechts -->
       <div v-if="primary" :class="primaryIsView && $slots.more ? 'flex w-full flex-row-reverse items-center justify-between gap-4' : 'contents'">
-        <router-link v-if="primary.to" :to="primary.to" :class="primaryIsView ? link : button" @click="emit('act', primary.id)">{{ primary.label }}<ChevronRightIcon v-if="primaryIsView" class="h-4 w-4" aria-hidden="true" /></router-link>
+        <a v-if="primary.href" :href="primary.href" target="_blank" rel="noopener sponsored" :class="button" @click="emit('act', primary.id)">{{ primary.label }}</a>
+        <router-link v-else-if="primary.to" :to="primary.to" :class="primaryIsView ? link : button" @click="emit('act', primary.id)">{{ primary.label }}<ChevronRightIcon v-if="primaryIsView" class="h-4 w-4" aria-hidden="true" /></router-link>
         <button v-else type="button" :class="primaryIsView ? link : button" @click="emit('act', primary.id)">{{ primary.label }}<ChevronRightIcon v-if="primaryIsView" class="h-4 w-4" aria-hidden="true" /></button>
         <slot v-if="primaryIsView" name="more" />
       </div>
@@ -85,5 +86,6 @@ const quiet = 'inline-flex min-h-11 items-center text-sm font-semibold text-gray
       </div>
       <slot v-if="!primaryIsView" name="more" />
     </div>
+    <p v-if="view.sponsored" class="text-right text-[11px] text-gray-500 dark:text-gray-400">Affiliate-Link</p>
   </article>
 </template>

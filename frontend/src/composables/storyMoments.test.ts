@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   detectLongTrip, detectFirstFrost, detectMonthChange, detectBattery,
-  recapPlaces, detectSilence, detectGap, detectMilestone, detectExpensive, expensiveCandidate,
+  recapPlaces, detectSilence, detectGap, detectThg, detectMilestone, detectExpensive, expensiveCandidate,
   momentScore, pickCards, winterOutlook, weekOutlook, recapFacts, HOUR, DAY, type MomentSeen, type Moment,
 } from './storyMoments'
 import type { CardSavingOffer, CardSavings } from '../api/chargingBenchmarkService'
@@ -381,5 +381,28 @@ describe('recapFacts', () => {
     expect(recapFacts({ ...prev, co2: null })).toMatchObject({ co2Kg: null })
     expect(recapFacts({ ...prev, co2: undefined })).toMatchObject({ co2Kg: null })
     expect(recapFacts({ ...prev, co2: { ...prev.co2, savedKg: -3 } })).toMatchObject({ co2Kg: null })
+  })
+})
+
+describe('detectThg', () => {
+  const nov = (d: number) => new Date(2026, 10, d, 12).getTime()
+
+  it('in Deutschland mit Saison: Karte fürs Quotenjahr, bleibt bis zum Wegklicken', () => {
+    expect(detectThg({ now: nov(8), country: 'DE' })).toMatchObject({
+      kind: 'thg', key: 'thg:2027', year: 2027, amountEur: 230, actionable: true, dismissible: true, lifetimeMs: Infinity,
+    })
+  })
+
+  it('außerhalb Deutschlands keine Karte', () => {
+    expect(detectThg({ now: nov(8), country: 'AT' })).toBeNull()
+  })
+
+  it('ohne Betrag (Saisonende 2026) keine Karte', () => {
+    expect(detectThg({ now: nov(5), country: 'DE' })).toBeNull()
+  })
+
+  it('weggeklickt bleibt sie weg', () => {
+    const m = detectThg({ now: nov(8), country: 'DE' })!
+    expect(pickCards([m], nov(9), { shown: {}, dismissed: { 'thg:2027': nov(9) + 300 * DAY } })).toEqual([])
   })
 })

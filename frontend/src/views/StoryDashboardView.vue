@@ -26,6 +26,7 @@ import StoryRecapHero from '../components/story/StoryRecapHero.vue'
 import StoryWinterOutlook from '../components/story/StoryWinterOutlook.vue'
 import { useMomentSeen } from '../composables/useMomentSeen'
 import StoryNewsStack from '../components/story/StoryNewsStack.vue'
+import { useCountryStore } from '../stores/country'
 import StoryNewsList from '../components/story/StoryNewsList.vue'
 import StoryCommunityMonth from '../components/story/StoryCommunityMonth.vue'
 import StoryHero from '../components/story/StoryHero.vue'
@@ -97,6 +98,7 @@ watch(liveActive, (v) => { if (v) analytics.track('story_live_shown') })
 // AutoSync-Satz im Stille-Moment und im leeren Monat: Marke hat einen Weg, dieses Auto ist nicht verbunden.
 const autoSyncOffer = computed(() => autoSyncOfferFor(selectedCar.value, smartcarStatus.value, teslaStatus.value))
 
+const countryStore = useCountryStore()
 const storyCtx = (): StoryCarContext => ({
   wltpConsumption: wltp.value?.officialConsumptionKwhPer100km ?? null,
   sohPercent: sohPercent.value,
@@ -107,6 +109,7 @@ const storyCtx = (): StoryCarContext => ({
   canViewEnergySplit: authStore.canViewEnergySplit,
   autoSync: autoSyncOffer.value,
   supporterAsk: supporterAsk.value,
+  country: countryStore.country,
 })
 const story = useDashboardStory(selectedCarId, storyCtx)
 const { month, offset, tiles, feed, days, monthStats, hasCharges, loading, error, layers, switching } = story
@@ -290,6 +293,7 @@ function onNewsAct(m: Moment, id: string) {
     share(v.title, v.text)
     if (m.kind === 'month_change') dismiss(m.key, Date.now(), 365 * DAY)
   }
+  else if (id === 'thg') analytics.trackAffiliateBannerClicked('thg', 'story')
   else if (id === 'winter') openSheet('range')
   // Rückblick: der Vormonat steht mit allen Kacheln und Insights eine Seite zurück, die Karte bleibt offen.
   else if (id === 'prev_month') selectMonth(offset.value - 1)
@@ -303,7 +307,8 @@ function onNewsAct(m: Moment, id: string) {
 }
 function onNewsDismiss(m: Moment) {
   analytics.track('story_moment_dismissed', { moment: m.kind })
-  dismiss(m.key, Date.now(), (m.kind === 'month_change' ? 365 : 30) * DAY)
+  // Rückblick und THG gelten fürs Jahr, der Rest kommt nach 30 Tagen wieder
+  dismiss(m.key, Date.now(), (m.kind === 'month_change' || m.kind === 'thg' ? 365 : 30) * DAY)
 }
 /** Text zum Teilen: Satz und Unterzeile der Karte. */
 function newsText(m: Moment): { title: string; text: string } {
