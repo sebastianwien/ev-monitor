@@ -22,7 +22,7 @@ function dur(min: number) {
   <template v-if="kwh != null">
     <span class="whitespace-nowrap">{{ dur(props.minutes) }}</span>·
     <span class="inline-flex items-center gap-1.5 whitespace-nowrap" data-testid="day-drain">
-      <i class="inline-block h-2 w-2 shrink-0 rounded-[2px] bg-amber-400" aria-hidden="true" /><b class="font-medium text-gray-600 dark:text-gray-300">{{ formatDecimal(kwh, 2) }} kWh</b> {{ t('dashboard.phantom_drain_word') }}<template v-if="eur != null"> ≈ {{ formatCurrency(eur) }}</template>
+      <i class="inline-block h-2 w-2 shrink-0 rounded-[2px] bg-amber-400" aria-hidden="true" /><b class="font-medium text-gray-600 dark:text-gray-300">{{ formatDecimal(kwh, 2) }} kWh</b> {{ t('dashboard.phantom_drain_word') }}<template v-if="eur != null"> ≈ <span class="ci-money">{{ formatCurrency(eur) }}</span></template>
     </span>
     <router-link v-if="unlockTo" :to="unlockTo" class="font-semibold text-gray-900 underline underline-offset-2 dark:text-gray-100">{{ t('dashboard.phantom_teaser_unlock') }}</router-link>
   </template>
