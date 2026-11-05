@@ -335,9 +335,10 @@ import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
 const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
-// Stand der Zahlen: die Seite rechnet beim Aufruf mit Live-Daten, also gilt der Abruftag
-const asOfIso = new Date().toISOString().slice(0, 10)
-const asOfLabel = computed(() => new Intl.DateTimeFormat(locale.value, { month: 'long', year: 'numeric' }).format(new Date(asOfIso)))
+// Stand der Zahlen: die Seite rechnet beim Aufruf mit Live-Daten, also gilt der Abruftag (Ortszeit, nicht UTC)
+const asOf = new Date()
+const asOfIso = `${asOf.getFullYear()}-${String(asOf.getMonth() + 1).padStart(2, '0')}-${String(asOf.getDate()).padStart(2, '0')}`
+const asOfLabel = computed(() => new Intl.DateTimeFormat(locale.value, { month: 'long', year: 'numeric' }).format(asOf))
 const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, marketUrl, robots } = useMarketRoute()
 const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
