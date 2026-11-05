@@ -26,6 +26,20 @@ class AdminSeoControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void events_nonAdminForbidden_adminGetsDisabledWithoutKey() {
+        User user = createAndSaveUser("seo-user-" + System.nanoTime() + "@example.com");
+        ResponseEntity<String> forbidden = restTemplate.exchange("/api/admin/seo/events", HttpMethod.GET,
+                createAuthRequest(user.getId(), user.getEmail()), String.class);
+        assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        User admin = createAndSaveAdminUser("seo-admin-" + System.nanoTime() + "@example.com");
+        ResponseEntity<String> res = restTemplate.exchange("/api/admin/seo/events", HttpMethod.GET,
+                createAuthRequest(admin.getId(), admin.getEmail()), String.class);
+        assertThat(res.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(res.getBody()).contains("\"enabled\":false").contains("\"events\":[]");
+    }
+
+    @Test
     void admin_getsStatusOverviewPagesAndQueries() {
         User admin = createAndSaveAdminUser("seo-admin-" + System.nanoTime() + "@example.com");
 

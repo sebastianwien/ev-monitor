@@ -1,6 +1,7 @@
 package com.evmonitor.infrastructure.web;
 
 import com.evmonitor.application.seo.BotHitService;
+import com.evmonitor.application.seo.PlausibleEventStatsService;
 import com.evmonitor.application.seo.PlausibleSyncService;
 import com.evmonitor.application.seo.SeoInsights;
 import com.evmonitor.application.seo.SeoInsightsService;
@@ -39,6 +40,7 @@ public class AdminSeoController {
     private final SeoSyncRunRepository runs;
     private final PlausibleSyncService plausibleSync;
     private final BotHitService bots;
+    private final PlausibleEventStatsService eventStats;
 
     public record SyncRunDto(UUID id, String source, LocalDateTime startedAt, LocalDateTime finishedAt, String status,
                              int rowCount, LocalDate fromDay, LocalDate toDay, String error) {
@@ -113,6 +115,13 @@ public class AdminSeoController {
     }
 
     /** Abrufe durch Such- und KI-Crawler in den letzten {@code days} Tagen, KI-Crawler zuerst. */
+    /** Reiter "Events": alle Events und angelegten Goals der letzten 30 Tage, live aus Plausible (1 h gepuffert). */
+    @GetMapping("/events")
+    @PreAuthorize("hasRole('ADMIN')")
+    public PlausibleEventStatsService.EventStats events() {
+        return eventStats.last30Days();
+    }
+
     @GetMapping("/bots")
     @PreAuthorize("hasRole('ADMIN')")
     public List<BotHitService.BotSummary> bots(@RequestParam(defaultValue = "28") int days) {
