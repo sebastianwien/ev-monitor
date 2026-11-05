@@ -1,9 +1,9 @@
-import type { SeoAuditCheck, SeoAuditRow } from '../../../api/seoService'
+import type { SeoAuditCheck, SeoAuditRow, SeoIndexInfo } from '../../../api/seoService'
 
 export type SeoAuditFilter = 'ALL' | 'ERRORS' | SeoAuditCheck
 
 /** Reihenfolge der Filter-Chips: schwerste Prüfungen zuerst. */
-export const CHECK_ORDER: SeoAuditCheck[] = ['STATUS', 'NOINDEX', 'PRERENDER', 'CANONICAL', 'JSONLD', 'BROKEN_LINK',
+export const CHECK_ORDER: SeoAuditCheck[] = ['STATUS', 'INDEX', 'NOINDEX', 'PRERENDER', 'CANONICAL', 'JSONLD', 'BROKEN_LINK',
     'DESCRIPTION', 'TITLE', 'H1', 'NOINDEX_LINK', 'ORPHAN', 'CWV']
 
 export const CHECK_LABELS: Record<SeoAuditCheck, { label: string; hint: string }> = {
@@ -18,6 +18,7 @@ export const CHECK_LABELS: Record<SeoAuditCheck, { label: string; hint: string }
     H1: { label: 'H1', hint: 'Die Seite sollte genau eine Hauptüberschrift (H1) haben.' },
     NOINDEX_LINK: { label: 'Link auf noindex', hint: 'Die Seite verlinkt eine eigene Seite, die nicht in den Index soll. Kein Fehler, aber der Link gibt keine Sichtbarkeit weiter.' },
     ORPHAN: { label: 'Orphan Page', hint: 'Keine andere Seite der Sitemap verlinkt hierher. Google findet und gewichtet solche Seiten schlechter.' },
+    INDEX: { label: 'Google-Index', hint: 'Google hat die Seite laut Search Console nicht im Index, oder Google wählt eine andere Adresse als Canonical. Ursache steht im Befund. In Search Console prüfen und dort die Indexierung beantragen.' },
     CWV: { label: 'Core Web Vitals', hint: 'Auf dem Handy lädt die Seite zu langsam oder springt beim Laden (Core Web Vitals über dem Grenzwert).' },
 }
 
@@ -35,4 +36,19 @@ export function checksPresent(rows: SeoAuditRow[]): SeoAuditCheck[] {
 
 export function auditCountsByPath(rows: SeoAuditRow[]): Map<string, { errors: number; warnings: number }> {
     return new Map(rows.map(r => [r.path, { errors: r.errors, warnings: r.warnings }]))
+}
+
+const GSC_PROPERTY = 'sc-domain:ev-monitor.net'
+const SITE = 'https://ev-monitor.net'
+
+/** Search-Console-Prüfung einer Seite; dort führt ein Klick zu "Indexierung beantragen". */
+export function gscInspectUrl(path: string): string {
+    return `https://search.google.com/search-console/inspect?resource_id=${encodeURIComponent(GSC_PROPERTY)}&id=${encodeURIComponent(new URL(path, SITE).href)}`
+}
+
+export type IndexState = 'INDEXED' | 'NOT_INDEXED' | 'UNKNOWN'
+
+export function indexState(index: SeoIndexInfo | null | undefined): IndexState {
+    if (!index?.checkedAt || !index.verdict) return 'UNKNOWN'
+    return index.verdict === 'PASS' ? 'INDEXED' : 'NOT_INDEXED'
 }

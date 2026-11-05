@@ -179,7 +179,7 @@ export async function triggerSeoSync(days: number): Promise<boolean> {
 }
 
 export type SeoAuditCheck = 'STATUS' | 'NOINDEX' | 'CANONICAL' | 'TITLE' | 'DESCRIPTION' | 'H1' | 'JSONLD' | 'PRERENDER'
-    | 'BROKEN_LINK' | 'NOINDEX_LINK' | 'ORPHAN' | 'CWV'
+    | 'BROKEN_LINK' | 'NOINDEX_LINK' | 'ORPHAN' | 'CWV' | 'INDEX'
 export type SeoAuditSeverity = 'ERROR' | 'WARNING'
 
 /** message enthält Seiteninhalte (Title, Linkziel): nur als Text rendern. */
@@ -197,6 +197,16 @@ export interface SeoVitals {
     source: 'FIELD' | 'LAB'
 }
 
+/** Index-Stand laut Google (URL Inspection API) und letzte IndexNow-Meldung; verdict PASS = im Index. */
+export interface SeoIndexInfo {
+    verdict: string | null
+    coverageState: string | null
+    lastCrawlAt: string | null
+    googleCanonical: string | null
+    checkedAt: string | null
+    indexnowAt: string | null
+}
+
 export interface SeoAuditRow {
     path: string
     httpStatus: number
@@ -205,6 +215,7 @@ export interface SeoAuditRow {
     warnings: number
     findings: SeoAuditFinding[]
     vitals: SeoVitals | null
+    index: SeoIndexInfo | null
 }
 
 export interface SeoAuditView {
@@ -212,12 +223,37 @@ export interface SeoAuditView {
     day: string | null
     lastRunAt: string | null
     vitalsWeek: string | null
-    summary: { checked: number; withErrors: number; prerenderFailed: number; brokenLinkPages: number; orphans: number }
+    summary: { checked: number; withErrors: number; prerenderFailed: number; brokenLinkPages: number; orphans: number; notIndexed: number }
     rows: SeoAuditRow[]
 }
 
 export async function getSeoAudit(): Promise<SeoAuditView> {
     const { data } = await apiClient.get<SeoAuditView>('/admin/seo/audit')
+    return data
+}
+
+export type SeoIndexNowResult = 'SUBMITTED' | 'DISABLED' | 'REJECTED' | 'NOT_ALLOWED'
+
+/** Meldet eine Sitemap-Seite an IndexNow (Bing, Yandex, Seznam). */
+export async function submitSeoIndexNow(path: string): Promise<SeoIndexNowResult> {
+    const res = await apiClient.post('/admin/seo/audit/indexnow', { path }, { validateStatus: s => [200, 400, 409, 502].includes(s) })
+    if (res.status === 200) return 'SUBMITTED'
+    if (res.status === 409) return 'DISABLED'
+    if (res.status === 502) return 'REJECTED'
+    return 'NOT_ALLOWED'
+}
+
+/** Abrufe eines Crawlers im Zeitraum; ai = KI-Crawler (ChatGPT, Claude, Perplexity ...). */
+export interface SeoBotSummary {
+    bot: string
+    label: string
+    ai: boolean
+    hits: number
+    topPaths: { path: string; hits: number }[]
+}
+
+export async function getSeoBots(days: number): Promise<SeoBotSummary[]> {
+    const { data } = await apiClient.get<SeoBotSummary[]>('/admin/seo/bots', { params: { days } })
     return data
 }
 

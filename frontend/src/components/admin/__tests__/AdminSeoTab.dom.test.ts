@@ -19,7 +19,11 @@ const getSeoBrandTrend = vi.fn()
 const getSeoCompetition = vi.fn()
 const getSeoKeywordMetrics = vi.fn()
 const triggerSeoCompetition = vi.fn()
+const getSeoBots = vi.fn()
+const submitSeoIndexNow = vi.fn()
 vi.mock('../../../api/seoService', () => ({
+    getSeoBots: (d: number) => getSeoBots(d),
+    submitSeoIndexNow: (p: string) => submitSeoIndexNow(p),
     getSeoCompetition: (d: number) => getSeoCompetition(d),
     getSeoKeywordMetrics: () => getSeoKeywordMetrics(),
     triggerSeoCompetition: () => triggerSeoCompetition(),
@@ -93,7 +97,7 @@ const models: SeoModelRow[] = [
 
 const noOpportunities: SeoOpportunities = { underrated: 0, leak: 0, dead: 0, money: 0, striking: 0, cannibalized: 0, adwords: 0, contentGap: 0, invisible: 0, tasks: [] }
 const emptyAudit: SeoAuditView = { enabled: false, day: null, lastRunAt: null, vitalsWeek: null,
-    summary: { checked: 0, withErrors: 0, prerenderFailed: 0, brokenLinkPages: 0, orphans: 0 }, rows: [] }
+    summary: { checked: 0, withErrors: 0, prerenderFailed: 0, brokenLinkPages: 0, orphans: 0, notIndexed: 0 }, rows: [] }
 
 let app: App | null = null
 afterEach(() => {
@@ -109,6 +113,7 @@ function defaults() {
     getSeoOverview.mockResolvedValue(overview)
     getSeoOpportunities.mockResolvedValue(noOpportunities)
     getSeoAudit.mockResolvedValue(emptyAudit)
+    getSeoBots.mockResolvedValue([])
     getSeoPages.mockResolvedValue([])
     getSeoCampaigns.mockResolvedValue([])
     getSeoQueries.mockResolvedValue([])
@@ -249,7 +254,7 @@ describe('AdminSeoTab', () => {
         getSeoPages.mockResolvedValue(pages)
         getSeoPageQueries.mockResolvedValue([{ key: 'alpha one test', brand: false, impressions: 900, clicks: 40, ctr: 0.044, avgPosition: 5.2 }])
         getSeoAudit.mockResolvedValue({ ...emptyAudit, enabled: true, day: '2026-10-19',
-            rows: [{ path: '/modelle/Alpha/One', httpStatus: 200, score: 75, errors: 1, warnings: 1, vitals: null, findings: [] }] })
+            rows: [{ path: '/modelle/Alpha/One', httpStatus: 200, score: 75, errors: 1, warnings: 1, vitals: null, index: null, findings: [] }] })
         const host = await mount()
 
         click(host, 'Landingpages')
@@ -398,24 +403,32 @@ describe('AdminSeoTab', () => {
     it('Site Audit: Kacheln, Filter, Befund-Texte als Text, Duplicate URLs, Crawl unter Datenquellen', async () => {
         const audit: SeoAuditView = {
             enabled: true, day: '2026-10-19', lastRunAt: '2026-10-19T05:00:00', vitalsWeek: null,
-            summary: { checked: 2, withErrors: 1, prerenderFailed: 1, brokenLinkPages: 0, orphans: 0 },
+            summary: { checked: 2, withErrors: 1, prerenderFailed: 1, brokenLinkPages: 0, orphans: 0, notIndexed: 1 },
             rows: [
-                { path: '/modelle/Alpha/One', httpStatus: 200, score: 55, errors: 2, warnings: 1, vitals: null, findings: [
+                { path: '/modelle/Alpha/One', httpStatus: 200, score: 55, errors: 2, warnings: 1, vitals: null, index: null, findings: [
                     { check: 'PRERENDER', severity: 'ERROR', message: 'US-Einheit oder Dollar im HTML: "mi/kWh"' },
                     { check: 'JSONLD', severity: 'ERROR', message: 'JSON-LD Product fehlt' },
                     { check: 'TITLE', severity: 'WARNING', message: 'Title hat 76 Zeichen: <b>fett</b>' }] },
-                { path: '/modelle/Beta/Two', httpStatus: 200, score: 100, errors: 0, warnings: 0, vitals: null, findings: [] },
+                { path: '/modelle/Beta/Two', httpStatus: 200, score: 100, errors: 0, warnings: 0, vitals: null, index: null, findings: [] },
             ],
         }
         defaults()
+        audit.rows[0].index = { verdict: 'NEUTRAL', coverageState: 'Gecrawlt - zurzeit nicht indexiert', lastCrawlAt: null,
+            googleCanonical: null, checkedAt: '2026-10-19T05:10:00', indexnowAt: null }
         getSeoAudit.mockResolvedValue(audit)
         getSeoPages.mockResolvedValue(pages)
         triggerSeoAudit.mockResolvedValue(false)
+        getSeoBots.mockResolvedValue([{ bot: 'GPTBOT', label: 'GPTBot (OpenAI, Training)', ai: true, hits: 42, topPaths: [{ path: '/modelle/Alpha/One', hits: 40 }] }])
+        submitSeoIndexNow.mockResolvedValue('SUBMITTED')
         const host = await mount()
 
         click(host, 'Site Audit')
         await flush()
         expect(getSeoPages).toHaveBeenLastCalledWith(90, 'ALL', 'DE')
+        expect(getSeoBots).toHaveBeenLastCalledWith(28)
+        expect(host.textContent).toContain('Nicht im Google-Index')
+        expect(host.textContent).toContain('Bot-Zugriffe')
+        expect(host.textContent).toContain('GPTBot (OpenAI, Training)')
         expect(host.textContent).toContain('Seiten gecrawlt')
         expect(host.textContent).toContain('Prerendering-Fehler')
         expect(host.textContent).toContain('Duplicate URLs')
@@ -430,6 +443,13 @@ describe('AdminSeoTab', () => {
         expect(host.textContent).toContain('JSON-LD Product fehlt')
         expect(host.textContent).toContain('<b>fett</b>')
         expect(host.querySelector('tbody b')).toBeNull()
+        expect(host.textContent).toContain('Gecrawlt - zurzeit nicht indexiert')
+        const inspect = [...host.querySelectorAll('a')].find(a => a.textContent?.includes('In Search Console prüfen'))
+        expect(inspect?.getAttribute('href')).toContain('id=https%3A%2F%2Fev-monitor.net%2Fmodelle%2FAlpha%2FOne')
+        click(host, 'Bei Bing melden')
+        await flush()
+        expect(submitSeoIndexNow).toHaveBeenCalledWith('/modelle/Alpha/One')
+        expect(host.textContent).toContain('An Bing und Co. gemeldet.')
 
         await openSources(host)
         click(host, 'Crawl jetzt starten')

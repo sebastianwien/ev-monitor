@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { getSeoAudit, getSeoPages, type SeoAuditRow, type SeoAuditView } from '../../../api/seoService'
+import { getSeoAudit, getSeoBots, getSeoPages, type SeoAuditRow, type SeoAuditView, type SeoBotSummary } from '../../../api/seoService'
 import SeoDataTable from './SeoDataTable.vue'
+import SeoIndexActions from './SeoIndexActions.vue'
 import { CHECK_LABELS, checksPresent, filterAuditRows, type SeoAuditFilter } from './seoAudit'
 import { caseVariants, type VariantGroup } from './seoAnalysis'
 import { GLOSSARY } from './seoGlossary'
@@ -11,6 +12,8 @@ import type { SeoColumn } from './seoTable'
 /** Site Audit: nächtlicher Crawl der Sitemap wie Googlebot, dazu Duplicate URLs aus der Search Console. */
 const view = ref<SeoAuditView | null>(null)
 const variants = ref<VariantGroup[]>([])
+const bots = ref<SeoBotSummary[]>([])
+const BOT_DAYS = 28
 const loading = ref(false)
 const error = ref('')
 const filter = ref<SeoAuditFilter>('ALL')
@@ -25,11 +28,9 @@ async function load() {
   } finally {
     loading.value = false
   }
-  try {
-    variants.value = caseVariants(await getSeoPages(90, 'ALL', 'DE'))
-  } catch {
-    variants.value = []
-  }
+  const [v, b] = await Promise.allSettled([getSeoPages(90, 'ALL', 'DE'), getSeoBots(BOT_DAYS)])
+  variants.value = v.status === 'fulfilled' ? caseVariants(v.value) : []
+  bots.value = b.status === 'fulfilled' ? b.value : []
 }
 
 onMounted(load)
@@ -44,6 +45,7 @@ const tiles = computed(() => {
   return [
     { label: 'Seiten gecrawlt', value: s.checked, bad: false, filter: 'ALL' as SeoAuditFilter },
     { label: 'Seiten mit Fehler', value: s.withErrors, bad: s.withErrors > 0, filter: 'ERRORS' as SeoAuditFilter },
+    { label: 'Nicht im Google-Index', value: s.notIndexed, bad: s.notIndexed > 0, filter: 'INDEX' as SeoAuditFilter },
     { label: 'Prerendering-Fehler', value: s.prerenderFailed, bad: s.prerenderFailed > 0, filter: 'PRERENDER' as SeoAuditFilter },
     { label: 'Seiten mit Broken Links', value: s.brokenLinkPages, bad: s.brokenLinkPages > 0, filter: 'BROKEN_LINK' as SeoAuditFilter },
     { label: 'Orphan Pages', value: s.orphans, bad: false, filter: 'ORPHAN' as SeoAuditFilter },
@@ -89,7 +91,7 @@ const isError = (r: SeoAuditRow, c: string) => r.findings.some(f => f.check === 
     <p v-else-if="loading && !view" class="text-gray-400 text-sm">Lädt...</p>
 
     <template v-else-if="view?.day">
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
         <button v-for="t in tiles" :key="t.label" type="button" class="text-left bg-gray-900 rounded-sm px-4 py-3 border border-gray-800 hover:border-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 @click="filter = t.filter">
           <span :class="['block text-xl font-bold tabular-nums', t.bad ? 'text-red-300' : 'text-indigo-300']">{{ t.value }}</span>
@@ -109,7 +111,7 @@ const isError = (r: SeoAuditRow, c: string) => r.findings.some(f => f.check === 
       </p>
 
       <SeoDataTable :columns="columns" :rows="rows" :row-key="r => r.path" :search-keys="['path']" search-placeholder="URL suchen"
-                    csv-name="seo-site-audit" expandable :can-expand="r => r.findings.length > 0" :initial-sort="{ key: 'score', dir: 'asc' }"
+                    csv-name="seo-site-audit" expandable :can-expand="r => r.httpStatus === 200 || r.findings.length > 0" :initial-sort="{ key: 'score', dir: 'asc' }"
                     empty="Keine Seite mit diesem Befund.">
         <template #cell-path="{ row }">
           <a :href="row.path" target="_blank" rel="noopener" class="font-mono hover:underline" @click.stop>{{ row.path }}</a>
@@ -134,6 +136,7 @@ const isError = (r: SeoAuditRow, c: string) => r.findings.some(f => f.check === 
           </span>
         </template>
         <template #expand="{ row }">
+          <SeoIndexActions v-if="row.httpStatus === 200" :path="row.path" :index="row.index" class="mb-2" />
           <ul class="space-y-1">
             <li v-for="(f, i) in row.findings" :key="i" class="text-xs flex gap-2">
               <span :class="f.severity === 'ERROR' ? 'text-red-300' : 'text-amber-300'" class="shrink-0 w-16">{{ f.severity === 'ERROR' ? 'Fehler' : 'Hinweis' }}</span>
@@ -144,6 +147,26 @@ const isError = (r: SeoAuditRow, c: string) => r.findings.some(f => f.check === 
         </template>
       </SeoDataTable>
     </template>
+
+    <section v-if="bots.length" class="bg-gray-900 rounded-sm border border-gray-800 p-4" aria-labelledby="seo-bots">
+      <h3 id="seo-bots" class="text-sm font-semibold text-gray-200">Bot-Zugriffe <span class="font-normal text-xs text-gray-500">letzte {{ BOT_DAYS }} Tage, Modellseiten und Startseite</span></h3>
+      <p class="text-xs text-gray-400 mt-1 mb-3">Wie oft Such- und KI-Crawler die öffentlichen Seiten abrufen. Ein KI-Crawler, der eine Seite nie abruft, kann sie auch nicht zitieren.</p>
+      <ul class="divide-y divide-gray-800">
+        <li v-for="b in bots" :key="b.bot" class="py-2 text-xs">
+          <div class="flex items-baseline gap-2">
+            <span class="w-16 shrink-0 text-right text-base font-bold tabular-nums text-indigo-300">{{ num(b.hits) }}</span>
+            <span class="text-gray-100">{{ b.label }}</span>
+            <span v-if="b.ai" class="rounded-full bg-indigo-900/60 px-2 py-0.5 text-indigo-200">KI</span>
+          </div>
+          <ul class="mt-1 space-y-0.5 pl-[4.5rem]">
+            <li v-for="p in b.topPaths" :key="p.path" class="flex gap-2">
+              <a :href="p.path" target="_blank" rel="noopener" class="font-mono text-gray-300 hover:underline truncate">{{ p.path }}</a>
+              <span class="text-gray-500 tabular-nums">{{ num(p.hits) }}</span>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </section>
 
     <section v-if="variants.length" class="bg-gray-900 rounded-sm border border-gray-800 p-4" aria-labelledby="seo-duplicates">
       <h3 id="seo-duplicates" class="text-sm font-semibold text-gray-200">Duplicate URLs <span class="font-normal text-xs text-gray-500">Search Console, letzte 90 Tage</span></h3>

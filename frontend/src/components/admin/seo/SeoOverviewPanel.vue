@@ -5,9 +5,10 @@ import { Line } from 'vue-chartjs'
 import { ArrowRightIcon } from '@heroicons/vue/24/outline'
 import {
   getSeoAudit, getSeoCampaigns, getSeoOpportunities, getSeoOverview, getSeoPages,
-  type SeoBrandSplit, type SeoCampaignRow, type SeoMarket, type SeoOpportunities, type SeoOverview, type SeoPageRow, type SeoPeriod, type SeoTask, type SeoTotals,
+  type SeoBrandSplit, type SeoCampaignRow, type SeoIndexInfo, type SeoMarket, type SeoOpportunities, type SeoOverview, type SeoPageRow, type SeoPeriod, type SeoTask, type SeoTotals,
 } from '../../../api/seoService'
 import SeoChannelTable from './SeoChannelTable.vue'
+import SeoIndexActions from './SeoIndexActions.vue'
 import { FINDINGS } from './seoHelp'
 import { movers } from './seoAnalysis'
 import { date, dec, num, pct, pos } from './seoFormat'
@@ -23,6 +24,7 @@ const opportunities = ref<SeoOpportunities | null>(null)
 const pages = ref<SeoPageRow[]>([])
 const campaigns = ref<SeoCampaignRow[]>([])
 const techErrors = ref<number | null>(null)
+const indexByPath = ref<Map<string, SeoIndexInfo | null>>(new Map())
 const loading = ref(false)
 const error = ref('')
 
@@ -43,6 +45,7 @@ async function load() {
   pages.value = p.status === 'fulfilled' ? p.value : []
   campaigns.value = c.status === 'fulfilled' ? c.value : []
   techErrors.value = a.status === 'fulfilled' && a.value.day ? a.value.summary.withErrors : null
+  indexByPath.value = a.status === 'fulfilled' ? new Map(a.value.rows.map(r => [r.path, r.index])) : new Map()
 }
 
 watch(() => [props.days, props.market], load)
@@ -222,6 +225,7 @@ const sign = (n: number) => `${n > 0 ? '+' : ''}${num(n)}`
               </span>
               <ArrowRightIcon class="h-4 w-4 text-gray-500 ml-auto shrink-0" aria-hidden="true" />
             </button>
+            <SeoIndexActions v-if="t.path" :path="t.path" :index="indexByPath.get(t.path)" class="pb-2 pl-2 sm:pl-[6.25rem]" />
           </li>
         </ul>
       </section>
