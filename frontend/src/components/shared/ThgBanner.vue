@@ -4,7 +4,7 @@ import { analytics } from '../../services/analytics'
 import { thgSeason, thgCopy, THG_URL } from '../../utils/thgOffer'
 
 /** THG-Prämie über den Partner, nur DE und nur in einer bekannten Saison. personal: eingeloggt, dann "Affiliate-Link" statt "Anzeige". */
-const props = defineProps<{ placement: string; personal?: boolean }>()
+const props = defineProps<{ placement: 'dashboard' | 'modelle' | 'onboarding'; personal?: boolean }>()
 
 const countryStore = useCountryStore()
 const season = thgSeason(new Date())

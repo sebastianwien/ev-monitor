@@ -203,7 +203,7 @@ class AnalyticsService {
 
   // Affiliate Events
   /** placement: wo der Hinweis stand (dashboard, modelle, onboarding, story). */
-  trackAffiliateBannerClicked(banner: 'thg' | 'enbw', placement?: string) {
+  trackAffiliateBannerClicked(banner: 'thg' | 'enbw', placement?: 'dashboard' | 'modelle' | 'onboarding' | 'story') {
     this.track(banner === 'enbw' ? 'enbw_banner_clicked' : 'thg_banner_clicked', placement ? { placement } : undefined)
   }
 }
