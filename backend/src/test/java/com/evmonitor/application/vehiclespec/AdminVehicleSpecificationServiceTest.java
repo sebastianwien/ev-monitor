@@ -382,7 +382,9 @@ class AdminVehicleSpecificationServiceTest extends AbstractServiceTest {
         assertThat(cars).extracting(AdminSpecResponses.CarForReassign::carId).containsExactly(linked.getId());
         AdminSpecResponses.CarForReassign entry = cars.get(0);
         assertThat(entry.currentSpecId()).isEqualTo(specId);
-        assertThat(entry.candidates()).extracting(AdminSpecResponses.Candidate::specId).containsExactly(otherId);
-        assertThat(entry.candidates().get(0).diffKwh()).isEqualByComparingTo("3.0");
+        // andere Testklassen hinterlassen MODEL_3-Zeilen in der geteilten DB, daher nicht containsExactly
+        assertThat(entry.candidates()).extracting(AdminSpecResponses.Candidate::specId).contains(otherId).doesNotContain(specId);
+        assertThat(entry.candidates()).filteredOn(c -> c.specId().equals(otherId)).singleElement()
+                .satisfies(c -> assertThat(c.diffKwh()).isEqualByComparingTo("3.0"));
     }
 }
