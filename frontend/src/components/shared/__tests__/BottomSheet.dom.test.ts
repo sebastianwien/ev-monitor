@@ -71,6 +71,116 @@ describe('BottomSheet', () => {
     expect(document.body.style.overflow).toBe('auto')
   })
 
+  describe('Tastatur', () => {
+    const key = (k: string, opts: KeyboardEventInit = {}, target: EventTarget = document.activeElement ?? document.body) => {
+      const e = new KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true, ...opts })
+      target.dispatchEvent(e)
+      return e
+    }
+    async function mountContent(content: () => ReturnType<typeof h>, props: Record<string, unknown> = {}) {
+      const closed = { n: 0 }
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      app = createApp(defineComponent({
+        render: () => h(BottomSheet, { label: 'Test', ...props, onClose: () => { closed.n++ } }, { default: content }),
+      }))
+      app.mount(el)
+      await nextTick()
+      await nextTick()
+      return closed
+    }
+    const buttons = () => h('div', [h('button', { 'data-testid': 'a' }, 'A'), h('button', { 'data-testid': 'b' }, 'B')])
+    const byId = (id: string) => document.querySelector<HTMLElement>(`[data-testid="${id}"]`)!
+
+    it('Escape schließt', async () => {
+      const closed = await mountContent(buttons)
+      expect(key('Escape').defaultPrevented).toBe(true)
+      await afterLeave()
+      expect(closed.n).toBe(1)
+    })
+
+    it('Escape schließt nicht, wenn gesperrt, minimiert oder ein Element darin Escape schon verbraucht hat', async () => {
+      let closed = await mountContent(buttons, { locked: true })
+      key('Escape')
+      await afterLeave()
+      expect(closed.n).toBe(0)
+      app!.unmount(); app = null
+      closed = await mountContent(buttons, { minimizable: true, minimized: true })
+      key('Escape')
+      await afterLeave()
+      expect(closed.n).toBe(0)
+      app!.unmount(); app = null
+      closed = await mountContent(() => h('input', { 'data-testid': 'field', onKeydown: (e: KeyboardEvent) => e.preventDefault() }))
+      byId('field').focus()
+      key('Escape')
+      await afterLeave()
+      expect(closed.n).toBe(0)
+    })
+
+    it('gestapelt schließt Escape nur das oberste Sheet', async () => {
+      const open = { a: ref(true), b: ref(true) }
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      app = createApp(defineComponent({
+        render: () => [
+          open.a.value ? h(BottomSheet, { key: 'a', label: 'A', testid: 'sheet-a', onClose: () => { open.a.value = false } }) : null,
+          open.b.value ? h(BottomSheet, { key: 'b', label: 'B', testid: 'sheet-b', stacked: true, onClose: () => { open.b.value = false } }) : null,
+        ],
+      }))
+      app.mount(el)
+      await nextTick()
+      key('Escape')
+      await afterLeave()
+      expect(open.b.value).toBe(false)
+      expect(open.a.value).toBe(true)
+    })
+
+    it('beim Öffnen liegt der Fokus im Sheet, Tab bleibt darin', async () => {
+      await mountContent(buttons)
+      const dialog = document.querySelector('[role="dialog"]')!
+      expect(dialog.contains(document.activeElement)).toBe(true)
+      byId('b').focus()
+      expect(key('Tab').defaultPrevented).toBe(true)
+      expect(document.activeElement).toBe(byId('a'))
+      expect(key('Tab', { shiftKey: true }).defaultPrevented).toBe(true)
+      expect(document.activeElement).toBe(byId('b'))
+      // Dazwischen bleibt Tab beim Browser
+      byId('a').focus()
+      expect(key('Tab').defaultPrevented).toBe(false)
+    })
+
+    it('Tab überspringt inerte und deaktivierte Elemente', async () => {
+      await mountContent(() => h('div', [
+        h('button', { 'data-testid': 'a' }, 'A'),
+        h('section', { inert: '' }, [h('button', { 'data-testid': 'hidden' }, 'X')]),
+        h('button', { disabled: true }, 'D'),
+      ]))
+      byId('a').focus()
+      expect(key('Tab').defaultPrevented).toBe(true)
+      expect(document.activeElement).toBe(byId('a'))
+    })
+
+    it('nach dem Schließen geht der Fokus zurück an den Auslöser', async () => {
+      const opener = document.createElement('button')
+      document.body.appendChild(opener)
+      opener.focus()
+      const open = ref(true)
+      const el = document.createElement('div')
+      document.body.appendChild(el)
+      app = createApp(defineComponent({
+        render: () => open.value ? h(BottomSheet, { label: 'Test', onClose: () => { open.value = false } }, { default: buttons }) : null,
+      }))
+      app.mount(el)
+      await nextTick()
+      await nextTick()
+      expect(document.activeElement).not.toBe(opener)
+      key('Escape')
+      await afterLeave()
+      await nextTick()
+      expect(document.activeElement).toBe(opener)
+    })
+  })
+
   describe('nach unten ziehen wie eine Karte (Handy)', () => {
     const panel = () => document.querySelector<HTMLElement>('.sheet-panel')!
     /** Touch an `el` mit Fingerpositionen in px (y), alle 16 ms ein Schritt. */

@@ -15,10 +15,17 @@ function unlockPage() {
     document.documentElement.removeAttribute('data-sheet-open')
   }
 }
+
+const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+/** Fokussierbare Elemente im Dialog in Tab-Reihenfolge, ohne inerte und unsichtbare */
+function focusables(root: HTMLElement): HTMLElement[] {
+  return Array.from(root.querySelectorAll<HTMLElement>(FOCUSABLE))
+    .filter(el => !el.closest('[inert]') && (typeof el.checkVisibility !== 'function' || el.checkVisibility()))
+}
 </script>
 
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import { useSheetDrag } from '../../composables/useSheetDrag'
 
 /**
@@ -34,6 +41,10 @@ import { useSheetDrag } from '../../composables/useSheetDrag'
  * dauerhaft ein translateX() traegt. Ein transformierter Vorfahre wird zum Containing
  * Block fuer position:fixed - das Overlay wuerde sich sonst am 200% breiten Track statt
  * am Viewport ausrichten und links aus dem Bild haengen.
+ *
+ * Tastatur: Escape schließt das oberste Sheet (nicht gesperrt, nicht minimiert, nicht schon von einem
+ * Element darin verbraucht). Beim Öffnen wandert der Fokus ins Sheet, Tab bleibt darin, nach dem
+ * Schließen geht er an den Auslöser zurück. Eigene Tasten des Inhalts kommen über `@keydown` vorher dran.
  */
 const props = withDefaults(defineProps<{
   /** Beschriftung des Dialogs fuer Screenreader. */
@@ -68,7 +79,8 @@ const props = withDefaults(defineProps<{
   minimized: false,
 })
 
-const emit = defineEmits<{ close: []; minimize: [] }>()
+/** `keydown`: Tasten aus dem Panel, für eigene Tasten des Inhalts (vor Escape und Tab des Sheets) */
+const emit = defineEmits<{ close: []; minimize: []; keydown: [e: KeyboardEvent] }>()
 
 const visible = ref(false)
 let locked = false
@@ -77,8 +89,52 @@ function setLock(on: boolean) {
   locked = on
   if (on) lockPage(); else unlockPage()
 }
-onMounted(() => { visible.value = true; setLock(!props.minimized) })
-onUnmounted(() => setLock(false))
+const root = ref<HTMLElement | null>(null)
+const panel = ref<HTMLElement | null>(null)
+// Beim Erzeugen steht der Fokus noch auf dem, was das Sheet geöffnet hat
+const opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null
+
+/** Oberster modaler Dialog: Sheets hängen in Öffnungsreihenfolge an body, ein Dialog darin liegt danach */
+function isTop(): boolean {
+  if (!visible.value || props.minimized || !root.value) return false
+  const modals = document.querySelectorAll('[aria-modal="true"]')
+  return modals[modals.length - 1] === root.value
+}
+function trapTab(e: KeyboardEvent) {
+  const items = panel.value ? focusables(panel.value) : []
+  if (!items.length) { e.preventDefault(); panel.value?.focus({ preventScroll: true }); return }
+  const first = items[0], last = items[items.length - 1]
+  const active = document.activeElement
+  const inside = !!active && panel.value!.contains(active) && active !== panel.value
+  if (e.shiftKey && (!inside || active === first)) { e.preventDefault(); last.focus() }
+  else if (!e.shiftKey && (!inside || active === last)) { e.preventDefault(); first.focus() }
+}
+function onKey(e: KeyboardEvent) {
+  if (e.defaultPrevented || e.isComposing || !isTop()) return
+  if (e.key === 'Escape') {
+    if (props.locked) return
+    e.preventDefault()
+    requestClose()
+  } else if (e.key === 'Tab') trapTab(e)
+}
+
+onMounted(() => {
+  visible.value = true
+  setLock(!props.minimized)
+  document.addEventListener('keydown', onKey)
+  // Hat der Inhalt den Fokus nicht selbst gesetzt (Titel, Feld), nimmt ihn das Panel
+  void nextTick(() => {
+    if (props.minimized || !panel.value || panel.value.contains(document.activeElement)) return
+    panel.value.focus({ preventScroll: true })
+  })
+})
+onUnmounted(() => {
+  setLock(false)
+  document.removeEventListener('keydown', onKey)
+  // Nur zurückgeben, wenn der Fokus mit dem Sheet verschwunden ist, nicht wenn er schon woanders steht
+  const active = document.activeElement
+  if (opener?.isConnected && (!active || active === document.body)) opener.focus({ preventScroll: true })
+})
 watch(() => props.minimized, m => setLock(!m))
 
 function requestClose() {
@@ -111,6 +167,7 @@ defineExpose({ requestClose })
     <Transition name="sheet" @after-leave="emit('close')">
       <div
         v-if="visible"
+        ref="root"
         class="fixed inset-0 flex items-end sm:items-center justify-center sm:p-4 max-md:bottom-[var(--bottom-nav-h,0px)]"
         :class="minimized ? 'z-30 pointer-events-none' : 'z-50'"
         role="dialog"
@@ -120,9 +177,12 @@ defineExpose({ requestClose })
         @click.self="onBackdrop">
         <div class="sheet-backdrop absolute inset-0 touch-none" :class="[stacked ? 'bg-transparent' : 'bg-black/50', minimized && 'opacity-0']" :style="drag.backdropStyle.value" @click="onBackdrop" />
         <div
+          ref="panel"
+          tabindex="-1"
+          @keydown="emit('keydown', $event)"
           :data-testid="testid"
           :data-minimized="minimized || undefined"
-          class="sheet-panel pointer-events-auto relative w-full max-h-[90vh] max-md:max-h-[calc(100dvh-var(--bottom-nav-h,0px)-4rem)] flex flex-col overflow-hidden overscroll-contain bg-white dark:bg-gray-800 rounded-t-2xl pb-[max(0px,calc(env(safe-area-inset-bottom)-var(--bottom-nav-h,0px)))] sm:pb-0"
+          class="sheet-panel pointer-events-auto relative outline-none w-full max-h-[90vh] max-md:max-h-[calc(100dvh-var(--bottom-nav-h,0px)-4rem)] flex flex-col overflow-hidden overscroll-contain bg-white dark:bg-gray-800 rounded-t-2xl pb-[max(0px,calc(env(safe-area-inset-bottom)-var(--bottom-nav-h,0px)))] sm:pb-0"
           :style="drag.style.value"
           @touchstart="drag.onTouchStart" @touchmove="drag.onTouchMove" @touchend="drag.onTouchEnd" @touchcancel="drag.onTouchEnd"
           :class="['edge-box sm:rounded-2xl', panelClass]">
@@ -151,7 +211,8 @@ defineExpose({ requestClose })
    die Dauer an ihr); nach einem Zug ist das die Dauer aus dem Fingertempo (--sheet-leave-ms). */
 .sheet-enter-active { transition: visibility 0.25s; }
 .sheet-leave-active { transition: visibility var(--sheet-leave-ms, 0.25s); }
-.sheet-enter-from,
+/* Nur beim Gehen: beim Kommen bliebe das Sheet den ersten Frame unsichtbar und damit nicht fokussierbar.
+   Unsichtbar ist es dort ohnehin, das Panel liegt außerhalb bzw. ist ausgeblendet, die Abdunklung bei 0. */
 .sheet-leave-to {
   visibility: hidden;
 }

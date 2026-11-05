@@ -50,8 +50,6 @@ const emit = defineEmits<{ close: [] }>()
 
 const { t } = useI18n()
 
-const sheetRef = ref<InstanceType<typeof BottomSheet> | null>(null)
-
 // ── Teilen ────────────────────────────────────────────────────────────────
 const { share, busy: shareBusy, error: shareError, load: loadShare, enable, revoke, shareLink, shareImage }
   = useCurveShare()
@@ -186,33 +184,18 @@ const DEMO_POINTS = [
   [868.5, 93.1], [908.5, 90.5], [938.5, 87.8], [974.5, 84.7],
 ].map(([sec, kw]) => ({ ts: sec * 1_000, kw }))
 
-/**
- * Escape schliesst das Sheet. Der Listener haengt am document, damit er auch
- * greift wenn der Fokus noch nirgends im Dialog steht.
- *
- * Die Kurve nutzt Escape ebenfalls - zum Beenden eines aktiven Scrubbings. Sie
- * stoppt die Weitergabe des Events genau dann, sodass der erste Escape den
- * Zeiger loest und erst der zweite den Dialog schliesst.
- */
-function onEscape(e: KeyboardEvent) {
-  if (e.key === 'Escape') sheetRef.value?.requestClose()
-}
-
 onMounted(() => {
-  document.addEventListener('keydown', onEscape)
   // Status still nachladen: war die Kurve schon geteilt, soll der Link sofort
   // stehen statt beim ersten Tap eine zweite Freigabe anzulegen.
   if (canShare.value && props.logId) loadShare(props.logId)
 })
 onBeforeUnmount(() => {
-  document.removeEventListener('keydown', onEscape)
   if (hintTimer) clearTimeout(hintTimer)
 })
 </script>
 
 <template>
   <BottomSheet
-    ref="sheetRef"
     :label="socOnly ? t('soc_curve.title') : t('dashboard.power_curve_title')"
     panel-class="sm:max-w-2xl"
     testid="power-curve-modal"

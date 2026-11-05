@@ -1,6 +1,6 @@
 <template>
   <BottomSheet ref="sheet" :label="t('models_ranking.assumptions.title')" panel-class="sm:max-w-md" testid="assumptions-sheet" @close="emit('close')">
-    <div ref="panel" class="flex max-h-[90vh] flex-col" @keydown="onKeydown">
+    <div class="flex max-h-[90vh] flex-col">
       <div class="flex items-center justify-between gap-3 border-b border-gray-200 px-5 py-3.5 dark:border-gray-700">
         <h2 class="text-[17px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('models_ranking.assumptions.title') }}</h2>
         <button
@@ -150,7 +150,6 @@ const { t, te } = useI18n()
 const { currencySymbol, currency, distanceUnitLabel, formatDecimal, locale } = useLocaleFormat()
 
 const sheet = ref<InstanceType<typeof BottomSheet> | null>(null)
-const panel = ref<HTMLElement | null>(null)
 const closeButton = ref<HTMLButtonElement | null>(null)
 const fuelId = useId()
 const mainId = useId()
@@ -196,30 +195,7 @@ const litersByClass = computed(() => Object.entries(COMBUSTION_LITERS_BY_CLASS)
   })
   .join(' · '))
 
-// Focus stays inside the dialog; Escape closes it. The caller returns focus to the chip on close.
-function focusable(): HTMLElement[] {
-  return Array.from(panel.value?.querySelectorAll<HTMLElement>('button, input, [tabindex]:not([tabindex="-1"])') ?? [])
-    .filter(el => !el.hasAttribute('disabled'))
-}
-function onKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    event.preventDefault()
-    sheet.value?.requestClose()
-    return
-  }
-  if (event.key !== 'Tab') return
-  const items = focusable()
-  if (!items.length) return
-  const first = items[0]
-  const last = items[items.length - 1]
-  if (event.shiftKey && document.activeElement === first) {
-    event.preventDefault()
-    last.focus()
-  } else if (!event.shiftKey && document.activeElement === last) {
-    event.preventDefault()
-    first.focus()
-  }
-}
+// Escape, Tab im Dialog und der Fokus beim Schließen kommen aus BottomSheet; der Aufrufer setzt ihn zurück auf den Chip.
 onMounted(async () => {
   await nextTick()
   closeButton.value?.focus()

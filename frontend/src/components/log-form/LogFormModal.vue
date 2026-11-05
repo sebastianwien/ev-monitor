@@ -73,12 +73,6 @@ onMounted(() => nextTick(() => applyHeight(storedHeight() ?? FALLBACK_PX)))
 onUnmounted(() => observer?.disconnect())
 const expand = () => emit('update:minimized', false)
 
-const handleEscape = (e: KeyboardEvent) => {
-  if (e.key === 'Escape' && !props.minimized) close()
-}
-onMounted(() => document.addEventListener('keydown', handleEscape))
-onUnmounted(() => document.removeEventListener('keydown', handleEscape))
-
 // Die Leiste lässt sich hochziehen: das Sheet folgt dem Finger (oder der Maus), die Abdunklung blendet mit ein.
 // Loslassen nach derselben Regel wie das Schließen der anderen Sheets (Weg oder schneller Wisch), sonst federt es
 // zur Leiste zurück. Nach unten passiert nichts, Verwerfen bleibt beim X. Pointer- statt Touch-Events: so geht es
