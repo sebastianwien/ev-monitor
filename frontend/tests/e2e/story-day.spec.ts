@@ -155,3 +155,32 @@ test.describe('Tagesblatt Teilladungen 390 px', () => {
     expect(errors).toEqual([]);
   });
 });
+
+test.describe('Tagesblatt Tastatur 1440 px', () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  test('Pfeile blättern den Tag, Escape schließt erst den Eintrag, dann das Blatt', async ({ page }) => {
+    const d = data();
+    await openStory(page, d);
+    await mockDay(page, d);
+    await openDay12(page);
+
+    await page.keyboard.press('ArrowLeft');
+    await expect(inSheet(page).getByTestId('day-title')).toContainText('11');
+    await page.keyboard.press('ArrowRight');
+    await expect(inSheet(page).getByTestId('day-title')).toContainText('12');
+
+    await inSheet(page).getByTestId('day-row-charge').click();
+    await expect(inSheet(page).getByTestId('day-detail')).toBeVisible();
+    // Mit offenem Eintrag blättern die Pfeile nicht, Escape führt zurück zum Tag
+    await page.keyboard.press('ArrowLeft');
+    await expect(inSheet(page).getByTestId('day-title')).toContainText('12');
+    await page.keyboard.press('Escape');
+    await expect(inSheet(page).getByTestId('day-detail')).toHaveCount(0);
+    await expect(page.getByTestId('story-day-sheet')).toBeVisible();
+
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('story-day-sheet')).toHaveCount(0);
+    await expect(page).toHaveURL(/\/story/);
+  });
+});

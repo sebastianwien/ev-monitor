@@ -190,6 +190,18 @@ describe('StoryNewsStack', () => {
     expect(q('[data-testid="story-news"]')).toBeNull()
   })
 
+  it('Escape gehört einem offenen Dialog darüber, der Stapel bleibt offen', async () => {
+    mount(scored(frost, silence))
+    await nextTick()
+    const dialog = document.createElement('div')
+    dialog.setAttribute('role', 'dialog')
+    dialog.setAttribute('aria-modal', 'true')
+    document.body.appendChild(dialog)
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+    await settle()
+    expect(q('[data-testid="story-news"]')).not.toBeNull()
+  })
+
   it('Konfetti beim ersten Meilenstein, nicht bei einem schon gezeigten', async () => {
     mount(scored(milestone))
     await nextTick()

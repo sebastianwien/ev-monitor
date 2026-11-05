@@ -121,6 +121,28 @@ function openDetail(d: Detail) {
   if (!had) pushLayer()
 }
 const back = () => history.back()
+
+/** Tastatur: Pfeile blättern den Tag, solange kein Eintrag offen ist; Escape schließt erst den Eintrag (wie Zurück),
+ *  das Blatt selbst schließt BottomSheet. Hängt am Panel: ein Dialog darüber liegt außerhalb, ein Eingabefeld behält seine Pfeile. */
+function onKey(e: KeyboardEvent) {
+  if (e.defaultPrevented || e.isComposing || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+  const typing = !!(e.target as HTMLElement | null)?.closest?.('input, textarea, select, [contenteditable="true"]')
+  const paging = !detail.value && !typing
+  if (e.key === 'Escape' && detail.value) back()
+  else if (e.key === 'ArrowLeft' && paging) go(-1)
+  else if (e.key === 'ArrowRight' && paging && canNext.value) go(1)
+  else return
+  e.preventDefault()
+}
+// Schließt sich ein Eintrag, verschwindet der Fokus mit ihm: zurück auf den Tag, damit Tastatur und Screenreader weiterkommen
+watch(detail, (d, was) => {
+  if (d || !was) return
+  void nextTick(() => {
+    // Auf dem Handy fährt der Eintrag noch hinaus und hält den Fokus, bis er weg ist
+    const active = document.activeElement
+    if (!active || active === document.body || active.closest('[data-testid="day-detail"]')) title.value?.focus({ preventScroll: true })
+  })
+})
 /** Handy und Tablet: eine Fahrt öffnet dasselbe Sheet wie überall (Letzte Fahrt, Logbuch), über dem Tag */
 const tripSheet = ref<DayTrip | null>(null)
 function onTripSheetChanged() {
@@ -188,7 +210,7 @@ const selectedId = computed(() => {
 </script>
 
 <template>
-  <BottomSheet ref="sheet" :label="`${date.weekday}, ${date.long}`" testid="story-day-sheet" edge
+  <BottomSheet ref="sheet" :label="`${date.weekday}, ${date.long}`" testid="story-day-sheet" edge @keydown="onKey"
     :panel-class="`${detail && !wide ? 'h-[88dvh]' : 'min-h-[50dvh]'} sm:max-w-xl lg:h-[82vh] lg:max-w-5xl`" @close="emit('close')">
     <!-- Höhe: der Tag so hoch wie sein Inhalt (mindestens halb, damit Laden und Tageswechsel nicht springen),
          ein geöffneter Eintrag bekommt das volle Blatt -->

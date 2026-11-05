@@ -101,7 +101,11 @@ const swipe = useCardSwipe({
   overlap: () => mode.value === 'stack' && count.value > 1,
 })
 function dismissAll() { for (const c of [...props.cards]) emit('dismiss', c.moment) }
-function onKey(e: KeyboardEvent) { if (e.key === 'Escape') collapse() }
+// Escape gehört einem offenen Dialog darüber (Sheet, Tagesblatt), nicht dem Stapel dahinter
+function onKey(e: KeyboardEvent) {
+  if (e.key !== 'Escape' || e.defaultPrevented || document.querySelector('[aria-modal="true"]')) return
+  collapse()
+}
 onMounted(() => document.addEventListener('keydown', onKey))
 onUnmounted(() => document.removeEventListener('keydown', onKey))
 
