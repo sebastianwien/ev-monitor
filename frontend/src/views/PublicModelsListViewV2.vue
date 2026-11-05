@@ -214,7 +214,7 @@
   </div>
 
   <div class="mx-auto grid max-w-7xl gap-7 px-4 pb-32 lg:px-6">
-    <ThgBanner v-if="!isAuthenticated && !loading" />
+    <ThgBanner v-if="!isAuthenticated && !loading" placement="modelle" />
 
     <section v-if="brands.length" :aria-label="t('models_ranking.brands_title')">
       <h2 class="mb-3 text-[22px] font-bold tracking-tight text-gray-900 dark:text-gray-100">{{ t('models_ranking.brands_title') }}</h2>

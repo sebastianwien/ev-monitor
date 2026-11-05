@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { CheckCircleIcon, MagnifyingGlassIcon } from '@heroicons/vue/24/outline'
 import { monthNames } from '../../../utils/monthNames'
 import type { useCarQuickAdd } from '../../../composables/useCarQuickAdd'
+import ThgBanner from '../../shared/ThgBanner.vue'
 
 const props = defineProps<{ flow: ReturnType<typeof useCarQuickAdd> }>()
 const { t, locale } = useI18n()
@@ -145,6 +146,8 @@ const OPTION_CLASS = 'w-full min-h-[44px] rounded-sm border border-gray-200 dark
         <CheckCircleIcon class="h-14 w-14 text-green-500" aria-hidden="true" />
         <p class="text-sm text-gray-500 dark:text-gray-400 max-w-sm">{{ t('onboarding.car_success_hint') }}</p>
       </div>
+      <!-- Frisch angelegt: die THG-Prämie gibt es für genau dieses Auto, jetzt ist sie am relevantesten -->
+      <ThgBanner placement="onboarding" personal class="mt-6 mb-0" />
     </template>
   </div>
 </template>

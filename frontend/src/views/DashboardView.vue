@@ -34,6 +34,7 @@ import DesignTeaserBanner from '../components/dashboard/DesignTeaserBanner.vue'
 import { useCountryStore } from '../stores/country'
 import { useAuthStore } from '../stores/auth'
 import { analytics } from '../services/analytics'
+import { thgSeason, thgCopy, thgDismissActive, THG_URL } from '../utils/thgOffer'
 import ImplausibleLogsModal from '../components/dashboard/ImplausibleLogsModal.vue'
 import PeerBenchmarkCard from '../components/dashboard/PeerBenchmarkCard.vue'
 import { useCarShareSheet } from '../composables/useCarShareSheet'
@@ -204,18 +205,17 @@ const isGerman     = computed(() => countryStore.country === 'DE')
 const thgDismissedAt = ref<number | null>(
   Number(localStorage.getItem('thg_banner_dismissed_at')) || null
 )
-const showThgBanner = computed(() => {
-  if (!thgDismissedAt.value) return true
-  return (Date.now() - thgDismissedAt.value) / 86_400_000 >= 90
-})
+const thg = thgSeason(new Date())
+const thgText = thg ? thgCopy(thg) : null
+const showThgBanner = computed(() => !!thg && !thgDismissActive(thgDismissedAt.value, new Date(), thg))
 function dismissThgBanner() {
   const now = Date.now()
   thgDismissedAt.value = now
   localStorage.setItem('thg_banner_dismissed_at', String(now))
 }
 function handleThgCardClick() {
-  analytics.trackAffiliateBannerClicked('thg')
-  window.open('https://Geld-fuer-eAuto.de/ref/evmonitor', '_blank', 'noopener,noreferrer')
+  analytics.trackAffiliateBannerClicked('thg', 'dashboard')
+  window.open(THG_URL, '_blank', 'noopener,noreferrer')
 }
 
 // -- Stat tile tooltips --
@@ -721,8 +721,8 @@ onUnmounted(() => {
             class="relative mt-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg overflow-hidden cursor-pointer"
             style="background: linear-gradient(90deg, rgba(34,197,94,0.12) 0%, rgba(34,197,94,0.04) 55%);">
             <div class="px-4 py-3 pr-8">
-              <p class="text-xs text-gray-700 dark:text-gray-200 font-medium">THG-Prämie schon beantragt?</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-1">Falls nicht, kannst du das hier tun und gleichzeitig den Betrieb der Seite unterstützen.</p>
+              <p class="text-sm text-gray-900 dark:text-gray-100 font-semibold">{{ thgText?.title }}</p>
+              <p class="text-xs text-gray-600 dark:text-gray-300 leading-snug mt-1">{{ thgText?.text }}</p>
             </div>
             <button @click.stop="dismissThgBanner"
               class="absolute top-2 right-2 h-5 w-5 rounded-sm bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-500 dark:text-gray-300 flex items-center justify-center"
@@ -856,8 +856,8 @@ onUnmounted(() => {
           >
             <div class="h-1 bg-green-500"></div>
             <div class="p-4 pr-8">
-              <p class="text-xs text-gray-700 dark:text-gray-200 font-medium mb-1">THG-Prämie schon beantragt?</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 leading-snug mt-1">Falls nicht, kannst du das hier tun und gleichzeitig den Betrieb der Seite unterstützen.</p>
+              <p class="text-sm text-gray-900 dark:text-gray-100 font-semibold mb-1">{{ thgText?.title }}</p>
+              <p class="text-xs text-gray-600 dark:text-gray-300 leading-snug mt-1">{{ thgText?.text }}</p>
             </div>
             <button
               @click.stop="dismissThgBanner"

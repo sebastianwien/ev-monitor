@@ -270,7 +270,7 @@
           </template>
         </PublicModelCard>
         <!-- THG banner: full-width, directly under the first row of models -->
-        <ThgBanner v-if="!isAuthenticated && i === Math.min(2, filteredModels.length - 1)" class="col-span-full" />
+        <ThgBanner v-if="!isAuthenticated && i === Math.min(2, filteredModels.length - 1)" placement="modelle" class="col-span-full" />
         </template>
 
         <!-- Fallback filler models (mobile only, no brand filter active) — no compare toggle -->
