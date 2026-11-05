@@ -9,6 +9,7 @@ import com.evmonitor.domain.EvLog;
 import com.evmonitor.domain.User;
 import com.evmonitor.domain.ChargingProviderTariff;
 import com.evmonitor.domain.ChargingProviderTariffRepository;
+import com.evmonitor.infrastructure.persistence.JpaChargingProviderTariffRepository;
 import com.evmonitor.infrastructure.persistence.ChargingNetworkEntity;
 import com.evmonitor.infrastructure.persistence.EmpEntity;
 import com.evmonitor.infrastructure.persistence.JpaEmpRepository;
@@ -44,6 +45,7 @@ class ChargingBenchmarkControllerIntegrationTest extends AbstractIntegrationTest
     @Autowired CacheManager cacheManager;
     @Autowired JpaEmpRepository empRepository;
     @Autowired ChargingProviderTariffRepository tariffRepository;
+    @Autowired JpaChargingProviderTariffRepository jpaTariffRepository;
 
     private String operator;
     private User me;
@@ -57,6 +59,8 @@ class ChargingBenchmarkControllerIntegrationTest extends AbstractIntegrationTest
         // the normalizer reads the catalog once at start-up, the charges are cached for an hour
         cpoNameNormalizer.init();
         cacheManager.getCache(ChargingBenchmarkCache.CACHE).clear();
+        // /tariffs liest alle gültigen Tarife; Tarife anderer Testklassen ohne Betreiberbindung gälten sonst auch hier
+        jpaTariffRepository.deleteAll();
         me = createAndSaveUser("bench-me-" + System.nanoTime() + "@example.com");
     }
 
