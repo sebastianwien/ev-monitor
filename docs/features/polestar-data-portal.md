@@ -76,8 +76,10 @@ die letzten 28 Tage; dryRun ist Standard und schreibt nichts.
 
 **Ladung**
 
-- Start: `chargingStatusV2` wechselt nach CHARGING. Ende: erstes Event mit anderem Status (IDLE,
-  DONE, ERROR). Zwei Läufe werden nie zusammengefasst, ein Lauf ohne SoC-Zuwachs ist kein Ladevorgang.
+- Start: der grobe Status `chargingStatus` wechselt nach CHARGING (fehlt er, `chargingStatusV2`). V2
+  teilt das Laden in Unterzustände auf, etwa bei einer Ladung über die Routenplanung
+  (CHARGING_IS_EN_ROUTE, CHARGE_LEVEL_IS_GOOD_TO_GO); die zählen mit. Ende: erstes Event mit anderem
+  Status (IDLE, DONE, ERROR). Zwei Läufe werden nie zusammengefasst, ein Lauf ohne SoC-Zuwachs ist kein Ladevorgang.
 - Typ aus einem CHARGING-Event, sonst aus dem Ende-Event, sonst aus der Rate (über 22 kW = DC).
 - Netto-kWh = SoC-Delta mal effektive Kapazität (`energy_source = SOC_INFERRED`), kein Polestar
   liefert geladene Energie. DC gilt als öffentliche Ladung, AC bleibt offen.
