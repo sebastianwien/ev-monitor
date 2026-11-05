@@ -16,6 +16,9 @@ RUN npm run build
 
 # Stage 2: nginx mit Konfiguration, ohne Frontend
 FROM nginx:1.31.7-alpine AS runtime
+# Für den Bot-Zähler (/_bot_hit) im Template. Leer, solange Compose den Token nicht setzt:
+# nginx startet dann trotzdem, das Backend lehnt die Meldung nur ab.
+ENV INTERNAL_SERVICE_TOKEN=""
 # Copy basic nginx config
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 # Copy site configuration template

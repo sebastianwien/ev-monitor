@@ -77,7 +77,10 @@ map $http_user_agent $is_bot {
     "~*telegrambot"             1;
     "~*mastodon"                1;
     "~*perplexitybot"           1;
+    "~*perplexity-user"         1;
     "~*claudebot"               1;
+    "~*claude-user"             1;
+    "~*claude-searchbot"        1;
     "~*anthropic-ai"            1;
     "~*gptbot"                  1;
     "~*chatgpt-user"            1;
@@ -134,8 +137,35 @@ server {
         return 301 https://$host/en/models$1$is_args$args;
     }
 
+    # Bot-Abrufe zählen (SEO-Tab "Bot-Zugriffe"): jeder Abruf der Prerender-Seiten wird nach
+    # /_bot_hit gespiegelt, dort endet er für Menschen sofort mit 204. Nur Bots erreichen das Backend.
+    location = /_bot_hit {
+        internal;
+        access_log off;
+        if ($is_bot = 0) {
+            return 204;
+        }
+        proxy_pass http://backend_app/api/internal/seo/bot-hit;
+        proxy_method POST;
+        proxy_pass_request_body off;
+        proxy_set_header Content-Length "";
+        proxy_set_header X-Original-URI $request_uri;
+        proxy_set_header User-Agent $http_user_agent;
+        proxy_set_header X-Internal-Token "${INTERNAL_SERVICE_TOKEN}";
+        proxy_connect_timeout 2s;
+        proxy_read_timeout 2s;
+    }
+
+    # IndexNow-Schlüsseldatei (Bing, Yandex, Seznam), 404 solange kein Schlüssel gesetzt ist
+    location = /indexnow-key.txt {
+        proxy_pass http://backend_app/api/public/seo/indexnow-key;
+        proxy_set_header Host $http_host;
+    }
+
     # Prerender for bots on public SEO pages (all markets)
     location ~* ^/(modelle|ladekurve|fahrzeug|en|gb|us|no|se) {
+        mirror /_bot_hit;
+        mirror_request_body off;
         resolver 127.0.0.11 valid=10s;
         set $prerender 0;
         if ($is_bot = 1) {
@@ -153,6 +183,8 @@ server {
 
     # Serve Frontend PWA (with Prerender for bots on landing page)
     location = / {
+        mirror /_bot_hit;
+        mirror_request_body off;
         resolver 127.0.0.11 valid=10s;
         set $prerender 0;
         if ($is_bot = 1) {

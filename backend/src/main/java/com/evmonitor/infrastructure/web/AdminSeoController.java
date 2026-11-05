@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.web;
 
+import com.evmonitor.application.seo.BotHitService;
 import com.evmonitor.application.seo.PlausibleSyncService;
 import com.evmonitor.application.seo.SeoInsights;
 import com.evmonitor.application.seo.SeoInsightsService;
@@ -37,6 +38,7 @@ public class AdminSeoController {
     private final SeoSyncScheduler scheduler;
     private final SeoSyncRunRepository runs;
     private final PlausibleSyncService plausibleSync;
+    private final BotHitService bots;
 
     public record SyncRunDto(UUID id, String source, LocalDateTime startedAt, LocalDateTime finishedAt, String status,
                              int rowCount, LocalDate fromDay, LocalDate toDay, String error) {
@@ -108,6 +110,13 @@ public class AdminSeoController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<SeoInsights.BrandWeek> brandTrend(@RequestParam(defaultValue = "26") int weeks) {
         return insights.brandTrend(weeks);
+    }
+
+    /** Abrufe durch Such- und KI-Crawler in den letzten {@code days} Tagen, KI-Crawler zuerst. */
+    @GetMapping("/bots")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<BotHitService.BotSummary> bots(@RequestParam(defaultValue = "28") int days) {
+        return bots.summary(days);
     }
 
     @GetMapping("/campaigns")
