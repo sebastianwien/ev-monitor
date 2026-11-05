@@ -11,7 +11,7 @@ import { keepUnits } from '../../utils/modelStory'
 /**
  * "Zuletzt": letzte Ladung und letzte Fahrt als je eine tippbare Zeile mit Chevron, immer da, wenn
  * es sie gibt. Am Kalendertag der Ladung ist die Ladung hervorgehoben: "Heute geladen" mit Kosten,
- * Akku und Reichweite, kWh und Zeit; fehlt der Preis, steht ein Knopf "Preis eintragen" in der Karte.
+ * Akku und Reichweite (ohne Akkustand kWh, Zeit und Ort); fehlt der Preis, steht ein Knopf "Preis eintragen" in der Karte.
  * Tippen öffnet den Eintrag zum Ansehen und Bearbeiten. Die Editoren besitzt die View.
  */
 const props = defineProps<{
@@ -51,8 +51,9 @@ const charge = computed(() => {
       : t('story.latest_soc', { soc: Math.round(c.socTo) })
     : null
   const amount = today && kwh ? (c.socFrom != null ? t('story.latest_kwh_from', { kwh, soc: Math.round(c.socFrom) }) : kwh) : null
+  // Heute: Akkustand reicht, Details öffnet der Klick. Ohne Akkustand zeigt die Detailzeile, welche Ladung gemeint ist.
   const sub = today
-    ? [amount, when(c.at), [c.cpoName, c.chargingType].filter(Boolean).join(', ') || null].filter(Boolean).join(' · ')
+    ? battery ? null : [amount, when(c.at), [c.cpoName, c.chargingType].filter(Boolean).join(', ') || null].filter(Boolean).join(' · ')
     : [when(c.at), [c.cpoName, c.chargingType].filter(Boolean).join(', ') || null, c.costEur != null ? formatCurrency(c.costEur) : null].filter(Boolean).join(' · ')
   return { id: c.id, title, battery, sub, missingPrice, today }
 })
@@ -77,8 +78,8 @@ const plain = `${row} h-12 bg-white edge-card dark:bg-gray-700/50`
 <template>
   <!-- grid-cols-1 (minmax 0): ohne feste Spalte wüchse sie auf die volle Länge der gekürzten Texte -->
   <div class="grid grid-cols-1 gap-2 md:grid-cols-2" data-testid="story-latest">
-    <!-- Heute geladen: grün hinterlegt, "Neu", drei Zeilen; die Zeile zeigt die Ladung, ohne Preis führt der Knopf darunter zum Preis -->
-    <div v-if="charge && charge.today" class="grid rounded-xl bg-green-50 edge-card dark:bg-green-900/20" :class="trip ? '' : 'md:col-span-2'" data-testid="story-latest-today">
+    <!-- Heute geladen: grün hinterlegt, "Neu", zwei Zeilen; die Zeile zeigt die Ladung, ohne Preis führt der Knopf darunter zum Preis -->
+    <div v-if="charge && charge.today" class="grid min-w-0 grid-cols-1 rounded-xl bg-green-50 edge-card dark:bg-green-900/20" :class="trip ? '' : 'md:col-span-2'" data-testid="story-latest-today">
       <button type="button" :class="row" class="min-h-16 py-2.5 rounded-b-none" data-testid="story-latest-charge" @click="emit('open-charge', charge.id, false)">
         <BoltIcon class="h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
         <span class="min-w-0 flex-1 leading-tight">

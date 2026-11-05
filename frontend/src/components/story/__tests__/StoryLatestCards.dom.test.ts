@@ -75,16 +75,23 @@ describe('StoryLatestCards', () => {
     expect(host.querySelector('[data-testid="story-latest-today"]')).toBeNull()
   })
 
-  it('heute geladen: hervorgehoben mit "Neu", Kosten, Akku und Reichweite, kWh ab Ladestand und Zeit', () => {
+  it('heute geladen: hervorgehoben mit "Neu", Kosten, Akku und Reichweite, ohne Detailzeile', () => {
     const host = mount({ charge: { id: 'l', at: '2026-10-02T11:59:30Z', kwh: 25.9, costEur: 8.55, chargingType: 'AC', socFrom: 35, socTo: 80, rangeKm: 160 }, trip: null }, now)
     const card = host.querySelector<HTMLElement>('[data-testid="story-latest-today"]')
     expect(card).not.toBeNull()
     expect(text(card)).toContain('Heute geladen · 8,55 €')
     expect(text(card)).toContain('Neu')
     expect(text(card)).toContain('Akku jetzt 80 %, reicht für etwa 160 km')
-    expect(text(card)).toContain('25,9 kWh ab 35 % · gerade eben · AC')
+    expect(text(card)).not.toContain('25,9 kWh')
     expect(host.querySelector('[data-testid="story-latest-add-price"]')).toBeNull()
     expect(text(card)).not.toContain('Preis fehlt')
+  })
+
+  it('heute geladen ohne Akkustand: Detailzeile ersetzt die Akkuzeile', () => {
+    const host = mount({ charge: { id: 'l', at: '2026-10-02T11:59:30Z', kwh: 25.9, costEur: 8.55, chargingType: 'AC', ...noSoc }, trip: null }, now)
+    const card = host.querySelector<HTMLElement>('[data-testid="story-latest-today"]')
+    expect(text(card)).not.toContain('Akku jetzt')
+    expect(text(card)).toContain('25,9 kWh · gerade eben · AC')
   })
 
   it('heute geladen ohne Preis: Knopf "Preis eintragen" in der Karte, kein Amber-Chip', () => {
