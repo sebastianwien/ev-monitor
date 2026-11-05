@@ -698,6 +698,7 @@ model:
   meta_description_no_data: "{model}: {ratingLabel} consumption, range and community data on EV Monitor. Be the first to share real measurements!"
   meta_keywords: "{model} consumption, {model} range, {model} kWh 100km, {model} WLTP real, {model} charging cost"
   seo_intro: "The {model} is an electric vehicle"
+  seo_as_of: "Last updated {date}"
   seo_wltp_range: "with an official {ratingLabel} range of up to {range}"
   seo_consumption_good: "According to real-world data from EV Monitor users, the average consumption is {consumption} - based on {sessions} charging sessions ({count} with consumption measurement)."
   seo_consumption_low: "Based on user data, consumption is {consumption} - based on {count} trips with consumption measurement."

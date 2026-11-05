@@ -218,6 +218,7 @@
                 {{ t('model.seo_no_data_cta', { model: stats.modelDisplayName }) }}
               </template>
             </p>
+            <p class="text-[13px] text-gray-500">{{ t('model.seo_as_of', { date: asOfLabel }) }}</p>
             <div v-if="stats.avgCostPerKwh">
               <h3 class="font-semibold text-gray-800 dark:text-gray-200 mb-1">{{ t('model.seo_costs_title') }}</h3>
               <p>
@@ -333,7 +334,10 @@ import { EUR_EXCHANGE_RATES, RATES_LAST_UPDATED } from '../config/exchangeRates'
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
+// Stand der Zahlen: die Seite rechnet beim Aufruf mit Live-Daten, also gilt der Abruftag
+const asOfIso = new Date().toISOString().slice(0, 10)
+const asOfLabel = computed(() => new Intl.DateTimeFormat(locale.value, { month: 'long', year: 'numeric' }).format(new Date(asOfIso)))
 const { formatConsumption, formatNumber, consumptionUnitLabel, convertConsumption, formatDistance, distanceUnitLabel, formatCurrency, formatCostPerKwh, formatCostPerDistance, isEurZone, currency, currencySymbol, unitSystem } = useLocaleFormat()
 const { currentMarket, isDE, isEN, isGB, marketUrl, robots } = useMarketRoute()
 const modelsBaseUrl = computed(() => getMarketBasePath(currentMarket.value))
@@ -830,6 +834,7 @@ useHead(computed(() => {
     name: title,
     description,
     url: canonicalUrl,
+    dateModified: asOfIso,
     author: { '@type': 'Organization', name: 'EV Monitor', url: 'https://ev-monitor.net' },
   }
   if (consumption) {

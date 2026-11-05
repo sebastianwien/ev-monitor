@@ -701,6 +701,7 @@ model:
   meta_description_no_data: "{model}: {ratingLabel}-Verbrauch, Reichweite und Community-Daten auf EV Monitor. Sei der Erste, der echte Messwerte teilt!"
   meta_keywords: "{model} Verbrauch, {model} Reichweite, {model} kWh 100km, {model} WLTP real, {model} Ladekosten"
   seo_intro: "Der {model} ist ein Elektrofahrzeug"
+  seo_as_of: "Stand: {date}"
   seo_wltp_range: "mit einer offiziellen {ratingLabel}-Reichweite von bis zu {range}"
   seo_consumption_good: "Laut realen Messdaten von EV Monitor Nutzern liegt der Durchschnittsverbrauch bei {consumption} - ermittelt aus {sessions} Ladevorgängen ({count} davon mit Verbrauchsmessung)."
   seo_consumption_low: "Laut bisherigen Nutzerdaten liegt der Verbrauch bei {consumption} - basierend auf {count} Fahrten mit Verbrauchsmessung."

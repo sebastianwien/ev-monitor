@@ -660,6 +660,7 @@ model:
   meta_description_no_data: "{model}: {ratingLabel}-forbruk, rekkevidde og brukerdata på EV Monitor. Vær den første til å dele reelle målinger!"
   meta_keywords: "{model} forbruk, {model} rekkevidde, {model} kWh/100 km, {model} WLTP reell, {model} ladekostnad"
   seo_intro: "{model}en er en elbil"
+  seo_as_of: "Sist oppdatert {date}"
   seo_wltp_range: med en offisiell {ratingLabel}-rekkevidde på opptil {range}
   seo_consumption_good: Ifølge reelle data fra brukere av EV Monitor ligger gjennomsnittsforbruket på {consumption} – basert på {sessions} ladinger ({count} med forbruksmåling).
   seo_consumption_low: Basert på brukerdata er forbruket {consumption} – basert på {count} kjøreturer med forbrukmåling.
