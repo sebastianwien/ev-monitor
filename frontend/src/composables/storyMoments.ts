@@ -4,7 +4,7 @@ import { COLD_MAX_C, type RankEntry } from './storyInsights'
 import { SHORT_TRIP_KM } from './storyDay'
 import { geohashDistanceKm } from '../utils/tripMap'
 import { weatherKind, type DayForecast } from '../utils/destinationForecast'
-import type { ChargingBenchmark } from '../api/chargingBenchmarkService'
+import type { CardSavings } from '../api/chargingBenchmarkService'
 
 /**
  * Der Moment-Hero: was gerade passiert ist, als ein Satz mit einer Handlung. Kein Modell,
@@ -32,7 +32,7 @@ interface MomentBase {
 }
 
 export type MomentData =
-  | { kind: 'expensive'; logId: string; cpoName: string; pricePerKwh: number; medianPricePerKwh: number; cardFromPricePerKwh: number | null }
+  | { kind: 'expensive'; logId: string; cpoName: string; pricePerKwh: number; savingsEur: number }
   | { kind: 'long_trip'; km: number; stops: number; costEur: number | null; /** Ziel der letzten Fahrt, für die Wetterprognose */ endGeohash?: string | null }
   | { kind: 'first_frost'; tempC: number; winterKm: number; summerKm: number }
   | { kind: 'month_change'; year: number; month: number; km: number | null; eur: number | null; charges: number;
@@ -101,8 +101,8 @@ export interface MomentTrip {
 /** Juenger als die Zuletzt-Karte ("Heute geladen") ist keine Luecke. */
 const JUST_CHARGED_MS = 2 * HOUR
 const EXPENSIVE_MS = 3 * DAY
-/** Ab so viel über dem Median anderer Fahrer gilt eine Ladung als zu teuer. */
-const EXPENSIVE_FACTOR = 1.2
+/** Ab so viel Ersparnis mit einer anderen Karte meldet sich der Moment; das Sheet zeigt schon ab 1 €. */
+const EXPENSIVE_MIN_SAVING_EUR = 2
 /** Manuell erfasst: zaehlt der Zeitpunkt des Eintragens, aber nur fuer Ladungen der letzten 24 h. */
 const LONG_TRIP_KM = 250
 /** Zielwetter nur, wenn das Ziel so weit (Luftlinie) vom Start liegt: Hin und zurück endet zu Hause. */
@@ -152,21 +152,24 @@ export function expensiveCandidate(logs: MomentLog[], now: number): { log: Momen
   return null
 }
 
-/** Mehr als 20 % über dem, was andere Fahrer beim selben Betreiber zahlen. Eine Karte nur, wenn sie günstiger ist als der gezahlte Preis. */
-export function detectExpensive(input: { logs: MomentLog[]; benchmark: ChargingBenchmark | null; now: number }): Moment | null {
-  const { benchmark } = input
+/**
+ * "Was hätte ich hier mit einer anderen Karte gezahlt?": die beste gepflegte Karte hätte bei dieser
+ * Ladung mindestens EXPENSIVE_MIN_SAVING_EUR gespart (Tarif am Ladetag, Grundgebühr anteilig, siehe
+ * CardSavingsCalculator). Was andere Fahrer zahlen, zählt nicht.
+ */
+export function detectExpensive(input: { logs: MomentLog[]; savings: CardSavings | null; now: number }): Moment | null {
+  const { savings } = input
   const c = expensiveCandidate(input.logs, input.now)
-  if (!c || !benchmark || benchmark.chargingType !== c.log.chargingType) return null
-  if (c.pricePerKwh <= benchmark.medianPricePerKwh * EXPENSIVE_FACTOR) return null
-  const card = benchmark.cards.map(k => k.pricePerKwh).filter(p => p < c.pricePerKwh).sort((a, b) => a - b)[0] ?? null
+  if (!c || !savings || savings.logId !== c.log.id) return null
+  const best = savings.offers.reduce<number | null>((m, o) => (m == null || o.chargeSavingsEur > m ? o.chargeSavingsEur : m), null)
+  if (best == null || best < EXPENSIVE_MIN_SAVING_EUR) return null
   return {
     ...base(`expensive:${c.log.id}`, ms(c.log.loggedAt)!, EXPENSIVE_MS),
     kind: 'expensive',
     logId: c.log.id,
-    cpoName: benchmark.cpoName,
+    cpoName: savings.cpoName,
     pricePerKwh: c.pricePerKwh,
-    medianPricePerKwh: benchmark.medianPricePerKwh,
-    cardFromPricePerKwh: card,
+    savingsEur: best,
   }
 }
 

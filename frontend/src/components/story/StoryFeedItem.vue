@@ -52,7 +52,7 @@ const sentence = computed(() => {
       const op = props.item.operator
       return op && t('story.feed_cpo_price', {
         cpo: op.cpoName, type: t(op.chargingType === 'DC' ? 'story.feed_cpo_dc' : 'story.feed_cpo_ac'),
-        mine: b(ct(op.pricePerKwh)), theirs: ct(op.medianPricePerKwh),
+        mine: ct(op.pricePerKwh), eur: b(eur0(Math.floor(op.extraEur))),
       })
     }
     case 'cost_trend':
@@ -83,9 +83,8 @@ const sub = computed<string>(() => {
     case 'cpo_price': {
       const c = props.item.operator?.card
       if (!c) return ''
-      const card = c.variant ? `${c.name} ${c.variant}` : c.name
-      if (c.source === 'DRIVERS') return t('story.feed_cpo_card_drivers', { card, price: ct(c.pricePerKwh) })
-      return c.monthlyFeeEur != null && c.monthlyFeeEur > 0
+      const card = c.direct ? t('story.sheet_prices_direct', { cpo: c.name }) : c.variant ? `${c.name} ${c.variant}` : c.name
+      return c.monthlyFeeEur > 0
         ? t('story.feed_cpo_card_fee', { card, price: ct(c.pricePerKwh), fee: formatCurrency(c.monthlyFeeEur) })
         : t('story.feed_cpo_card', { card, price: ct(c.pricePerKwh) })
     }

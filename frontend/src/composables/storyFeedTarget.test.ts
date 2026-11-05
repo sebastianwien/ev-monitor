@@ -27,8 +27,8 @@ describe('feedTarget: wohin eine Zeile unter "Diesen Monat" führt', () => {
   })
 
   it('teurer Betreiber: das Preis-Sheet dieses Betreibers mit deinem Preis, auch ohne Kachel-Sheet', () => {
-    const benchmark = { cpoName: 'Stadtwerke A', chargingType: 'DC', drivers: 9, medianPricePerKwh: 0.35, lowerQuartilePricePerKwh: 0.3, upperQuartilePricePerKwh: 0.4, cards: [] }
-    const it2 = { ...item('cpo_price', { extraEur: 9 }), operator: { cpoName: 'Stadtwerke A', chargingType: 'DC', pricePerKwh: 0.5, medianPricePerKwh: 0.35, extraEur: 9, card: null, benchmark } } as StoryFeedItem
+    const benchmark = { cpoName: 'Stadtwerke A', chargingType: 'DC', cards: [] }
+    const it2 = { ...item('cpo_price', { extraEur: 9 }), operator: { cpoName: 'Stadtwerke A', chargingType: 'DC', pricePerKwh: 0.5, extraEur: 9, card: { name: 'Karte X', variant: null, pricePerKwh: 0.33, monthlyFeeEur: 0, verifiedOn: null, direct: false }, benchmark } } as StoryFeedItem
     expect(feedTarget(it2, [])).toEqual({ kind: 'prices', benchmark, pricePerKwh: 0.5 })
   })
 

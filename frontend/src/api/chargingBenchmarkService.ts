@@ -1,28 +1,22 @@
 import api from './axios'
 
-/** Eine Karte mit ihrem Preis bei diesem Betreiber: von Fahrern dort bezahlt oder gepflegter Tarif. */
+/** Ein gepflegter, heute gültiger Tarif an diesem Betreiber. */
 export interface BenchmarkCard {
   name: string
   variant: string | null
   pricePerKwh: number
-  /** Nur bei gepflegten Tarifen bekannt, Fahrer tragen die Grundgebühr selten ein. */
-  monthlyFeeEur: number | null
-  source: 'DRIVERS' | 'CURATED'
-  /** Andere Fahrer, die dort mit der Karte geladen haben (nur DRIVERS). */
-  drivers: number | null
-  /** Stand des gepflegten Tarifs, ISO-Datum (nur CURATED). */
+  monthlyFeeEur: number
+  /** Stand des Tarifs, ISO-Datum. */
   verifiedOn: string | null
+  /** Der Betreiber selbst (App oder Ad-hoc), keine fremde Ladekarte. */
+  direct: boolean
 }
 
-/** Was andere Fahrer bei einem Betreiber je kWh zahlen, nur Aggregate. */
+/** Gepflegte Tarife an einem Betreiber je Ladeart: "Was hätte ich hier mit einer anderen Karte gezahlt?" */
 export interface ChargingBenchmark {
   cpoName: string
   chargingType: 'AC' | 'DC'
-  drivers: number
-  medianPricePerKwh: number
-  lowerQuartilePricePerKwh: number
-  upperQuartilePricePerKwh: number
-  /** Günstigste zuerst, höchstens fünf. */
+  /** Günstigste zuerst. */
   cards: BenchmarkCard[]
 }
 
@@ -58,9 +52,11 @@ export const chargingBenchmarkService = {
     const res = await api.get<CardSavings>('/charging-benchmarks/savings', { params: { logId } })
     return res.status === 204 ? null : res.data
   },
-  /** null bei 204: zu wenige andere Fahrer dort oder kein bekannter Betreiber. */
+  /** null bei 204: unbekannter Betreiber oder kein gepflegter Tarif dort. */
   async get(cpo: string, type: 'AC' | 'DC'): Promise<ChargingBenchmark | null> {
-    const res = await api.get<ChargingBenchmark>('/charging-benchmarks', { params: { cpo, type } })
-    return res.status === 204 ? null : res.data
+    const res = await api.get<{ cpoName: string; chargingType: 'AC' | 'DC'; tariffs: BenchmarkCard[] }>(
+      '/charging-benchmarks/tariffs', { params: { cpo, type } })
+    if (res.status === 204 || !res.data) return null
+    return { cpoName: res.data.cpoName, chargingType: res.data.chargingType, cards: res.data.tariffs ?? [] }
   },
 }

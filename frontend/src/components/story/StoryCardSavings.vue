@@ -15,7 +15,10 @@ const { t, locale } = useI18n()
 const { formatCostPerKwh, formatCurrency } = useLocaleFormat()
 
 const offers = computed<CardSavingOffer[]>(() => props.savings?.offers ?? [])
-const name = (o: CardSavingOffer) => o.variant ? `${o.name} ${o.variant}` : o.name
+/** Der Betreiber selbst ist keine Ladekarte: "Kaufland direkt". */
+const name = (o: CardSavingOffer) => o.name === props.savings?.cpoName && !o.variant
+  ? t('story.sheet_prices_direct', { cpo: o.name })
+  : o.variant ? `${o.name} ${o.variant}` : o.name
 const fee = (o: CardSavingOffer) => o.monthlyFeeEur > 0
   ? t('story.sheet_prices_card_fee', { fee: formatCurrency(o.monthlyFeeEur) })
   : t('story.sheet_prices_card_no_fee')

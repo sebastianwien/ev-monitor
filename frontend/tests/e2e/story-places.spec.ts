@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test';
 import { calmMonth, openStory, log, type StoryData } from './fixtures/story';
 
 /**
- * Ladekarte "Wo du lädst" im Story-Sheet: Orte nach Geld, Preisklassen gegen andere Fahrer,
+ * Ladekarte "Wo du lädst" im Story-Sheet: Orte nach Geld, Preisklassen gegen gepflegte Tarife,
  * Zeitraum, Fahrtlinien, Antippen mit Zoom und Rückweg. Orte, Vergleiche und Fahrten sind
  * gemockt, Kacheln kommen als leeres PNG (Fixture), nichts geht nach außen.
  */
@@ -28,12 +28,12 @@ const LINE = 'o~yeI_c`|@o}@ozDo}@_|B';
 async function openPlaces(page: Page, data: StoryData = { ...calmMonth(), places: PLACES }) {
   await openStory(page, data);
   // Nach openStory registriert: gewinnt gegen die Fixture, die Story selbst hat schon geladen.
-  await page.route(/\/api\/charging-benchmarks\?/, route => {
+  await page.route(/\/api\/charging-benchmarks\/tariffs\?/, route => {
     const ionity = new URL(route.request().url()).searchParams.get('cpo') === 'IONITY';
-    const median = ionity ? 0.52 : 0.39;
+    const cpoName = ionity ? 'IONITY' : 'Tesla Supercharger';
     return route.fulfill({ json: {
-      cpoName: ionity ? 'IONITY' : 'Tesla Supercharger', chargingType: 'DC', drivers: 15, medianPricePerKwh: median,
-      lowerQuartilePricePerKwh: median - 0.04, upperQuartilePricePerKwh: median + 0.04, cards: [],
+      cpoName, chargingType: 'DC',
+      tariffs: [{ name: cpoName, variant: null, pricePerKwh: ionity ? 0.52 : 0.39, monthlyFeeEur: 0, verifiedOn: '2026-11-01', direct: true }],
     } });
   });
   await page.route(/\/api\/logs\/places\?/, route => {
@@ -71,10 +71,10 @@ test.describe('Story-Ladekarte', () => {
   test('Liste mit Zuhause oben, dann nach Euro, Kopfsatz nennt den teuren Ort', async ({ page }) => {
     await openPlaces(page);
 
-    await expect(page.getByTestId('places-lead')).toHaveText('5 Orte in 12 Monaten, an einem zahlst du mehr als andere.');
+    await expect(page.getByTestId('places-lead')).toHaveText('5 Orte in 12 Monaten, an einem gibt es einen günstigeren Tarif.');
     expect((await names(page)).map(n => n.trim())).toEqual(['Zuhause', 'IONITY', 'Tesla Supercharger Hamburg', 'Öffentlich', 'Ladeort']);
     await expect(page.locator('.places-map .places-pin')).toHaveCount(5);
-    await expect(page.getByTestId('places-chip-high')).toHaveText(/andere zahlen 39 ct\/kWh, 15 Fahrer/);
+    await expect(page.getByTestId('places-chip-high')).toHaveText(/ohne Grundgebühr ab 39 ct\/kWh/);
   });
 
   test('Zeile antippen markiert den Punkt und zoomt hin, zweiter Tipp stellt den Ausschnitt wieder her', async ({ page }) => {
@@ -151,7 +151,7 @@ test.describe('Story-Ladekarte', () => {
     const chip = page.getByTestId('places-chip-high');
     await chip.click();
     await expect(chip).toHaveAttribute('aria-expanded', 'true');
-    await expect(page.getByTestId('places-prices')).toContainText('Andere Fahrer zahlen dort im Schnitt 39,0 ct/kWh');
+    await expect(page.getByTestId('places-prices')).toContainText('Tesla Supercharger direkt');
     await chip.click();
     await expect(chip).toHaveAttribute('aria-expanded', 'false');
     await expect(page.getByTestId('places-prices')).toBeHidden();

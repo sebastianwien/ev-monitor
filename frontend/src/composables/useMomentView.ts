@@ -69,11 +69,12 @@ export function useMomentView(props: { moment: Moment; carId: string | null; car
     switch (m.kind) {
       case 'expensive': {
         const ct = (v: number) => formatCostPerKwh(v, { subunitDecimals: 0 })
-        const p = { when: dayWord(m.at), price: ct(m.pricePerKwh), cpo: m.cpoName, median: ct(m.medianPricePerKwh), card: m.cardFromPricePerKwh != null ? ct(m.cardFromPricePerKwh) : '' }
+        // Abgerundet wie im Sheet: eine Schätzung, die eher zu wenig verspricht.
+        const p = { when: dayWord(m.at), price: ct(m.pricePerKwh), cpo: m.cpoName, eur: eur(Math.floor(m.savingsEur)) }
         return {
           eyebrow: t('story.moment_expensive_eyebrow'),
           // Kein Kartenname im Hero: die Karten stehen im Sheet, der Satz soll nicht wie Werbung klingen.
-          sentence: t(m.cardFromPricePerKwh != null ? 'story.moment_expensive_card' : 'story.moment_expensive', p),
+          sentence: t('story.moment_expensive', p),
           action: { id: 'prices', label: t('story.moment_action_prices') },
         }
       }

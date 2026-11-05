@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { MapIcon, ChevronRightIcon } from '@heroicons/vue/24/outline'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
-import { placeName, type PlaceRow, type PlacesTeaser } from '../../../composables/storyPlaces'
+import { cheapestFreeCard, placeName, type PlaceRow, type PlacesTeaser } from '../../../composables/storyPlaces'
 import StaticPlacesMap from './StaticPlacesMap.vue'
 
 /**
@@ -36,10 +36,12 @@ const sentence = computed(() => {
 const detail = computed(() => {
   const f = props.teaser?.focus
   if (!f || f.place.pricePerKwh == null) return null
+  const cheapest = cheapestFreeCard(f.benchmark)
+  if (!cheapest) return null
   return t('story.places_teaser_detail', {
     name: placeName(f.place) ?? t('story.places_kind_public'),
     price: formatCostPerKwh(f.place.pricePerKwh, { subunitDecimals: 0 }),
-    median: formatCostPerKwh(f.benchmark.medianPricePerKwh, { subunitDecimals: 0 }),
+    cheapest: formatCostPerKwh(cheapest.pricePerKwh, { subunitDecimals: 0 }),
   })
 })
 </script>

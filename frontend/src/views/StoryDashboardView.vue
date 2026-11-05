@@ -266,9 +266,13 @@ function openPlaces() {
   openMap.value = true
 }
 /** Was der Nutzer bei der Ladung gezahlt hat, die die Karte "zu teuer geladen" ausloest. */
-const expensivePrice = computed(() => {
+const expensiveMoment = computed(() => {
   const m = story.cards.value.find(c => c.moment.kind === 'expensive')?.moment
-  return m?.kind === 'expensive' ? m.pricePerKwh : null
+  return m?.kind === 'expensive' ? m : null
+})
+const expensivePrice = computed(() => {
+  const m = expensiveMoment.value
+  return m ? m.pricePerKwh : null
 })
 
 // Neuigkeiten (mobil von unten, ab lg in der Spalte): Handlungen, Erledigt (nur dieses Gerät) und Zählen.
@@ -554,7 +558,7 @@ onUnmounted(() => unregisterReload?.())
 
     <StorySheet v-if="sheetTile && narrow" :tile="sheetTile" :context="sheetContext" @close="openTile = null" />
 
-    <StoryPriceSheet v-if="openPrices && story.benchmark.value" :benchmark="story.benchmark.value" :price-per-kwh="expensivePrice" @close="openPrices = false" />
+    <StoryPriceSheet v-if="openPrices && story.benchmark.value" :benchmark="story.benchmark.value" :price-per-kwh="expensivePrice" :log-id="expensiveMoment?.logId ?? null" @close="openPrices = false" />
     <StoryPriceSheet v-if="feedPrices" :benchmark="feedPrices.benchmark" :price-per-kwh="feedPrices.pricePerKwh" @close="feedPrices = null" />
 
     <PlacesSheet

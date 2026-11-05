@@ -65,15 +65,16 @@ const CASES: Case[] = [
     name: 'teurer-als-ueblich',
     data: () => ({
       ...calmMonth(),
-      logs: [log(NOW_MID, { loggedAt: iso(NOW_MID - 20 * HOUR), createdAt: iso(NOW_MID - 20 * HOUR), kwhCharged: 40, kwhAtVehicle: 38, costEur: 31.6, isPublicCharging: true, cpoName: 'IONITY', chargingType: 'DC' })],
-      benchmark: {
-        cpoName: 'IONITY', chargingType: 'DC', drivers: 18, medianPricePerKwh: 0.52, lowerQuartilePricePerKwh: 0.39, upperQuartilePricePerKwh: 0.6,
-        cards: [{ name: 'IONITY', variant: 'Motion', pricePerKwh: 0.49, monthlyFeeEur: 5.99, source: 'CURATED', drivers: null, verifiedOn: '2026-03-25' }],
+      logs: [log(NOW_MID, { id: '00000000-0000-0000-0000-0000000e0001', loggedAt: iso(NOW_MID - 20 * HOUR), createdAt: iso(NOW_MID - 20 * HOUR), kwhCharged: 40, kwhAtVehicle: 38, costEur: 31.6, isPublicCharging: true, cpoName: 'IONITY', chargingType: 'DC' })],
+      benchmark: { cpoName: 'IONITY', chargingType: 'DC', tariffs: [{ name: 'IONITY', variant: 'Motion', pricePerKwh: 0.49, monthlyFeeEur: 5.99, verifiedOn: '2026-03-25', direct: true }] },
+      priceSavings: {
+        logId: '00000000-0000-0000-0000-0000000e0001', cpoName: 'IONITY', chargingType: 'DC', paidPerKwh: 0.79, kwh: 40,
+        offers: [{ name: 'IONITY', variant: 'Motion', pricePerKwh: 0.49, monthlyFeeEur: 5.99, verifiedOn: '2026-03-25', chargeSavingsEur: 9.4, feeShareEur: 2.6, monthSavingsEur: 14 }],
       },
     }),
     check: async (page) => {
-      await expect(sentence(page, 'expensive')).toContainText(/Gestern 79\sct\/kWh bei IONITY\. Andere Fahrer zahlen dort im Schnitt 52\sct\/kWh, mit einer Ladekarte ab 49\sct\/kWh\./);
-      await expect(card(page, 'expensive').getByRole('button', { name: 'Preise anderer Fahrer ansehen' })).toBeVisible();
+      await expect(sentence(page, 'expensive')).toContainText(/Gestern 79\sct\/kWh bei IONITY\. Mit einem anderen Tarif hättest du rund 9\s€ gespart\./);
+      await expect(card(page, 'expensive').getByRole('button', { name: 'Tarife ansehen' })).toBeVisible();
     },
   },
   {

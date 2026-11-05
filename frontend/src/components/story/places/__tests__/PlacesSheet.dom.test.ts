@@ -45,7 +45,7 @@ const PLACES: ChargingPlace[] = [
   place({ geohash: 'road', kind: 'UNKNOWN', cpoName: null, costEur: 0, pricePerKwh: null }),
 ]
 const LINE = '_p~iF~ps|U_ulLnnqC_mqNvxq`@'
-const BENCH = { drivers: 15, lowerQuartilePricePerKwh: 0.35, upperQuartilePricePerKwh: 0.45, cards: [] }
+const tariffs = (price: number) => [{ name: 'Karte', variant: null, pricePerKwh: price, monthlyFeeEur: 0, verifiedOn: '2026-11-01', direct: false }]
 
 let places: ChargingPlace[] = PLACES
 let trips: unknown[] = []
@@ -54,8 +54,8 @@ beforeEach(() => {
   trips = []
   get.mockReset().mockImplementation((url: string) => Promise.resolve({ data: url === '/logs/places' ? places : trips }))
   bench.mockReset().mockImplementation((cpo: string) => Promise.resolve(cpo === 'IONITY'
-    ? { ...BENCH, cpoName: 'IONITY', chargingType: 'DC', medianPricePerKwh: 0.52 }
-    : { ...BENCH, cpoName: 'Tesla Supercharger', chargingType: 'DC', medianPricePerKwh: 0.39 }))
+    ? { cpoName: 'IONITY', chargingType: 'DC', cards: tariffs(0.52) }
+    : { cpoName: 'Tesla Supercharger', chargingType: 'DC', cards: tariffs(0.39) }))
 })
 
 async function mount(extra: Record<string, unknown> = {}) {
@@ -75,7 +75,7 @@ describe('PlacesSheet', () => {
   it('Kopfsatz nennt Orte und teure Orte, Zuhause steht oben, dann nach Euro', async () => {
     await mount()
 
-    expect(norm($('places-lead')?.textContent)).toBe('4 Orte in 12 Monaten, an einem zahlst du mehr als andere.')
+    expect(norm($('places-lead')?.textContent)).toBe('4 Orte in 12 Monaten, an einem gibt es einen günstigeren Tarif.')
     expect(names()).toEqual(['Zuhause', 'IONITY', 'Tesla Supercharger Hamburg', 'Ladeort'])
     expect($('places-map')?.dataset.pins).toBe('4')
     expect(bench).toHaveBeenCalledTimes(2)

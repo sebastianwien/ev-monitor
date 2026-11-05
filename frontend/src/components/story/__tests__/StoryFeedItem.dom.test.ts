@@ -110,27 +110,25 @@ describe('StoryFeedItem Insights mit Vergleichsbasis und Balken', () => {
     expect(host.querySelector('[data-testid="story-insight-bars"]')).toBeNull()
   })
 
-  const benchmark = { cpoName: 'Stadtwerke A', chargingType: 'DC' as const, drivers: 9, medianPricePerKwh: 0.35, lowerQuartilePricePerKwh: 0.3, upperQuartilePricePerKwh: 0.4, cards: [] }
-  const cpo = (card: Record<string, unknown> | null) => ({ id: 'cpo_price' as const, question: 1 as const, relevance: 90, sentiment: 'neutral' as const, params: { extraEur: 9 },
-    operator: { cpoName: 'Stadtwerke A', chargingType: 'DC' as const, pricePerKwh: 0.5, medianPricePerKwh: 0.35, extraEur: 9, benchmark,
-      card: card && { name: 'Karte X', variant: null, monthlyFeeEur: null, drivers: null, verifiedOn: null, ...card } as any } })
+  const benchmark = { cpoName: 'Stadtwerke A', chargingType: 'DC' as const, cards: [] }
+  const cpo = (card: Record<string, unknown>) => ({ id: 'cpo_price' as const, question: 1 as const, relevance: 90, sentiment: 'neutral' as const, params: { extraEur: 9.7 },
+    operator: { cpoName: 'Stadtwerke A', chargingType: 'DC' as const, pricePerKwh: 0.5, extraEur: 9.7, benchmark,
+      card: { name: 'Karte X', variant: null, pricePerKwh: 0.33, monthlyFeeEur: 0, verifiedOn: null, direct: false, ...card } } })
 
-  it('teurer Betreiber mit gepflegter Karte: dein Preis fett, Median, Karte mit Grundgebühr; Tipp öffnet das Preis-Sheet', () => {
+  it('teurer Betreiber: Ersparnis fett, dein Preis, Tarif mit Grundgebühr; Tipp öffnet das Preis-Sheet', () => {
     const opened: unknown[] = []
-    const host = mount(cpo({ variant: 'Basis', pricePerKwh: 0.33, monthlyFeeEur: 4.99, source: 'CURATED' }), { onPrices: (b: unknown, p: unknown) => opened.push([b, p]) })
-    expect(text(host)).toContain('Bei Stadtwerke A (Schnellladen) zahlst du 50 ct/kWh, andere Fahrer dort 35 ct/kWh.')
-    expect(host.querySelector('b')!.textContent!.replace(/\s/g, ' ')).toBe('50 ct/kWh')
+    const host = mount(cpo({ variant: 'Basis', monthlyFeeEur: 4.99 }), { onPrices: (b: unknown, p: unknown) => opened.push([b, p]) })
+    expect(text(host)).toContain('Bei Stadtwerke A (Schnellladen) hättest du 9 € sparen können, du zahlst dort 50 ct/kWh.')
+    expect(host.querySelector('b')!.textContent!.replace(/\s/g, ' ')).toBe('9 €')
     expect(text(host)).toContain('Mit Karte X Basis kostet es dort 33 ct/kWh, dazu 4,99 € Grundgebühr im Monat.')
+    expect(text(host)).not.toContain('Fahrer')
     host.querySelector('button')!.click()
     expect(opened).toEqual([[benchmark, 0.5]])
   })
 
-  it('teurer Betreiber: Karte von anderen Fahrern heißt "zahlen andere damit", ohne Karte keine Unterzeile', () => {
-    const drivers = mount(cpo({ pricePerKwh: 0.33, source: 'DRIVERS', drivers: 4 }))
-    expect(text(drivers)).toContain('Mit Karte X zahlen andere Fahrer dort 33 ct/kWh.')
-    app!.unmount(); app = null
-    const none = mount(cpo(null))
-    expect(text(none)).not.toContain('Mit ')
+  it('der Betreiber selbst heißt "direkt", ohne Grundgebühr ohne Zusatz', () => {
+    const host = mount(cpo({ name: 'Stadtwerke A', direct: true }))
+    expect(text(host)).toContain('Mit Stadtwerke A direkt kostet es dort 33 ct/kWh.')
   })
 
   it('mehr Standverlust: sachlicher Satz mit beiden Tageswerten, mögliche Ursachen darunter, kein Amber', () => {

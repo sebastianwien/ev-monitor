@@ -20,8 +20,8 @@ function place(over: Partial<ChargingPlace>): ChargingPlace {
   }
 }
 const BENCH: ChargingBenchmark = {
-  cpoName: 'Tesla Supercharger', chargingType: 'DC', drivers: 15, medianPricePerKwh: 0.39,
-  lowerQuartilePricePerKwh: 0.35, upperQuartilePricePerKwh: 0.45, cards: [],
+  cpoName: 'Tesla Supercharger', chargingType: 'DC',
+  cards: [{ name: 'Tesla', variant: 'Abo', pricePerKwh: 0.39, monthlyFeeEur: 0, verifiedOn: '2026-11-01', direct: true }],
 }
 const ROWS: PlaceRow[] = [
   { place: place({ geohash: 'u33df', kind: 'HOME', cpoName: null, costEur: 5, pricePerKwh: 0.3 }), cls: 'home', benchmark: null },
@@ -42,8 +42,8 @@ describe('PlacesTeaser', () => {
     const onOpen = vi.fn()
     await mount({ teaser: teaserParts(ROWS), rows: ROWS, onOpen })
 
-    expect(norm($('places-teaser-sentence')?.textContent)).toBe('An 1 von 2 Orten zahlst du mehr als andere.')
-    expect(norm($('places-teaser-detail')?.textContent)).toBe('Tesla Supercharger Hamburg: 49 ct/kWh statt 39 ct/kWh')
+    expect(norm($('places-teaser-sentence')?.textContent)).toBe('An 1 von 2 Orten gibt es günstigere Tarife.')
+    expect(norm($('places-teaser-detail')?.textContent)).toBe('Tesla Supercharger Hamburg: du 49 ct/kWh, ohne Grundgebühr ab 39 ct/kWh')
     expect(document.querySelectorAll('[data-testid="places-teaser-map"] img').length).toBeGreaterThan(0)
     expect(document.querySelectorAll('[data-testid="places-teaser-pin"]')).toHaveLength(2)
     $('story-map-open')!.click()

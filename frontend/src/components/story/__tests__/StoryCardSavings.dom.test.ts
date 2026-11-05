@@ -28,11 +28,10 @@ const SAVINGS: CardSavings = {
   ],
 }
 const BENCH: ChargingBenchmark = {
-  cpoName: 'IONITY', chargingType: 'DC', drivers: 18,
-  medianPricePerKwh: 0.52, lowerQuartilePricePerKwh: 0.39, upperQuartilePricePerKwh: 0.6,
+  cpoName: 'IONITY', chargingType: 'DC',
   cards: [
-    { name: 'IONITY', variant: 'Power', pricePerKwh: 0.42, monthlyFeeEur: 11.99, source: 'CURATED', drivers: null, verifiedOn: '2026-10-20' },
-    { name: 'IONITY Passport', variant: null, pricePerKwh: 0.488, monthlyFeeEur: null, source: 'DRIVERS', drivers: 3, verifiedOn: null },
+    { name: 'IONITY', variant: 'Power', pricePerKwh: 0.42, monthlyFeeEur: 11.99, verifiedOn: '2026-10-20', direct: false },
+    { name: 'Maingau', variant: 'Standard', pricePerKwh: 0.62, monthlyFeeEur: 0, verifiedOn: '2026-10-27', direct: false },
   ],
 }
 
@@ -49,7 +48,7 @@ describe('StoryCardSavings', () => {
     mount(StoryCardSavings, { savings: SAVINGS })
     await flush()
 
-    expect(text(document.querySelector('h4'))).toBe('Mit Ladekarte an IONITY-Säulen')
+    expect(text(document.querySelector('h4'))).toBe('Günstiger an IONITY-Säulen')
     const rows = [...document.querySelectorAll('[data-testid="card-saving"]')].map(r => text(r))
     expect(rows).toHaveLength(2)
     expect(rows[0]).toContain('62 ct')
@@ -70,15 +69,20 @@ describe('StoryCardSavings', () => {
 })
 
 describe('StoryPriceDetail mit Ersparnis', () => {
-  it('zeigt die Ersparnis statt der gepflegten Karten, Fahrer-Karten bleiben gekennzeichnet', async () => {
+  it('zeigt die Ersparnis statt der Tarifliste', async () => {
     mount(StoryPriceDetail, { benchmark: BENCH, pricePerKwh: 0.89, savings: SAVINGS })
     await flush()
 
     expect(document.querySelectorAll('[data-testid="card-saving"]')).toHaveLength(2)
-    const listed = [...document.querySelectorAll('[data-testid="price-card"]')].map(r => text(r))
-    expect(listed).toHaveLength(1)
-    expect(listed[0]).toContain('IONITY Passport')
-    expect(listed[0]).toContain('von 3 Fahrern hier bezahlt')
+    expect(document.querySelectorAll('[data-testid="price-card"]')).toHaveLength(0)
+    expect(document.querySelector('[data-testid="price-cheap"]')).toBeNull()
+  })
+
+  it('der Betreiber selbst als Ersparnis heißt "direkt"', async () => {
+    const direct = { ...SAVINGS, offers: [{ ...SAVINGS.offers[0], name: 'IONITY', variant: null }] }
+    mount(StoryCardSavings, { savings: direct })
+    await flush()
+    expect(text(document.querySelector('[data-testid="card-saving"]'))).toContain('IONITY direkt')
   })
 
   it('ohne Ersparnis: Kartenliste wie bisher', async () => {

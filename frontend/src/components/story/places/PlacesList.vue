@@ -5,7 +5,7 @@ import { HomeIcon, ChevronRightIcon, ChevronDownIcon } from '@heroicons/vue/24/o
 import Collapse from '../../shared/Collapse.vue'
 import StoryPriceDetail from '../StoryPriceDetail.vue'
 import { useLocaleFormat } from '../../../composables/useLocaleFormat'
-import { placeName, needsOperator, type ChargingPlace, type PlaceRow } from '../../../composables/storyPlaces'
+import { cheapestFreeCard, placeName, needsOperator, type ChargingPlace, type PlaceRow } from '../../../composables/storyPlaces'
 import { PLACE_FILL, PIN_EDGE } from './placeStyle'
 
 /**
@@ -79,14 +79,14 @@ const AMBER = 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-
           :aria-expanded="expanded === r.place.geohash"
           :aria-controls="`places-prices-${r.place.geohash}`"
           @click="toggleExpanded(r.place.geohash)">
-          {{ t('story.places_high_chip', { price: formatCostPerKwh(r.benchmark.medianPricePerKwh, { subunitDecimals: 0 }), n: r.benchmark.drivers }) }}
+          {{ t('story.places_high_chip', { price: formatCostPerKwh(cheapestFreeCard(r.benchmark)?.pricePerKwh ?? 0, { subunitDecimals: 0 }) }) }}
           <ChevronDownIcon class="h-3 w-3 transition-transform motion-reduce:transition-none" :class="expanded === r.place.geohash ? 'rotate-180' : ''" aria-hidden="true" />
         </button>
         <span
           v-else-if="r.cls === 'low' && r.benchmark"
           data-testid="places-chip-low"
           class="mt-1 inline-block rounded-sm bg-green-100 px-1.5 py-0.5 text-[12px] font-semibold text-green-800 dark:bg-green-900/40 dark:text-green-300">
-          {{ t('story.places_low_chip', { n: r.benchmark.drivers }) }}
+          {{ t('story.places_low_chip') }}
         </span>
         <button
           v-else-if="needsOperator(r.place)"

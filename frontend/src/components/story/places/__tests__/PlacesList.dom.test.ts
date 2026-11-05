@@ -20,8 +20,8 @@ function place(over: Partial<ChargingPlace> = {}): ChargingPlace {
   }
 }
 const BENCH: ChargingBenchmark = {
-  cpoName: 'Tesla Supercharger', chargingType: 'DC', drivers: 15, medianPricePerKwh: 0.39,
-  lowerQuartilePricePerKwh: 0.35, upperQuartilePricePerKwh: 0.45, cards: [],
+  cpoName: 'Tesla Supercharger', chargingType: 'DC',
+  cards: [{ name: 'Tesla', variant: 'Abo', pricePerKwh: 0.39, monthlyFeeEur: 0, verifiedOn: '2026-11-01', direct: true }],
 }
 
 async function mount(props: Record<string, unknown>) {
@@ -69,18 +69,18 @@ describe('PlacesList', () => {
     expect(norm(c.querySelector('[data-testid="places-eur"]')?.textContent)).toBe('')
   })
 
-  it('teurer Ort: Amber-Chip mit dem Preis der anderen klappt den Vergleich in der Zeile auf und wieder zu', async () => {
+  it('teurer Ort: Amber-Chip mit dem günstigsten Tarif klappt den Vergleich in der Zeile auf und wieder zu', async () => {
     await mount({ rows: [{ place: place({ pricePerKwh: 0.49 }), cls: 'high', benchmark: BENCH }], active: null })
 
     const chip = document.querySelector('[data-testid="places-chip-high"]') as HTMLButtonElement
-    expect(norm(chip.textContent)).toBe('andere zahlen 39 ct/kWh, 15 Fahrer')
+    expect(norm(chip.textContent)).toBe('ohne Grundgebühr ab 39 ct/kWh')
     expect(chip.getAttribute('aria-expanded')).toBe('false')
     chip.click()
     await nextTick()
     expect(chip.getAttribute('aria-expanded')).toBe('true')
     const detail = document.querySelector('[data-testid="places-row"] [data-testid="places-prices"]')
     expect(norm(detail?.textContent)).toContain('Du hast 49,0 ct/kWh gezahlt.')
-    expect(norm(detail?.textContent)).toContain('Andere Fahrer zahlen dort im Schnitt 39,0 ct/kWh')
+    expect(norm(detail?.textContent)).toContain('Tesla direkt')
     chip.click()
     await nextTick()
     expect(chip.getAttribute('aria-expanded')).toBe('false')
@@ -90,7 +90,7 @@ describe('PlacesList', () => {
     await mount({ rows: [{ place: place({ pricePerKwh: 0.3 }), cls: 'low', benchmark: BENCH }], active: null })
 
     const chip = document.querySelector('[data-testid="places-chip-low"]')!
-    expect(norm(chip.textContent)).toBe('günstiger als 15 andere')
+    expect(norm(chip.textContent)).toBe('schon günstig')
     expect(chip.tagName).toBe('SPAN')
   })
 

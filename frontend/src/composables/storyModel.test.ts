@@ -603,8 +603,8 @@ describe('buildStoryFeed v2: Insights mit Vergleichsbasis, drei Plaetze', () => 
   })
 
   const gap = (extraEur: number) => ({
-    cpoName: 'Stadtwerke A', chargingType: 'DC' as const, pricePerKwh: 0.5, medianPricePerKwh: 0.35, extraEur,
-    card: null, benchmark: { cpoName: 'Stadtwerke A', chargingType: 'DC' as const, drivers: 9, medianPricePerKwh: 0.35, lowerQuartilePricePerKwh: 0.3, upperQuartilePricePerKwh: 0.4, cards: [] },
+    cpoName: 'Stadtwerke A', chargingType: 'DC' as const, pricePerKwh: 0.5, extraEur,
+    card: { name: 'Karte X', variant: null, pricePerKwh: 0.33, monthlyFeeEur: 0, verifiedOn: null, direct: false }, benchmark: { cpoName: 'Stadtwerke A', chargingType: 'DC' as const, cards: [] },
   })
 
   it('teurer Betreiber: eigene Zeile mit dem Betreiber, nach der Ersparnis und vor dem Kostentrend', () => {

@@ -35,6 +35,8 @@ export interface StoryData {
   lifetime: unknown
   live: unknown | null
   benchmark: unknown | null
+  /** Ersparnis gepflegter Karten bei der neuesten öffentlichen Ladung (Moment "zu teuer"). */
+  priceSavings?: unknown | null
   /** Antwort von /api/logs/places (Ladekarte), unabhängig vom Zeitraum. */
   places: unknown[]
 }
@@ -124,7 +126,8 @@ export async function mockStory(page: Page, data: StoryData) {
   await page.route(/\/api\/public\/leaderboard\/standings\/me/, route =>
     json(route, Object.entries(data.ranks).map(([category, r]) => ({ category, unit: r?.unit ?? '', rank: r?.rank ?? null, value: r?.value ?? null }))));
   await page.route(/\/api\/public\/leaderboard\/[A-Z_]+/, route => json(route, { ownEntry: null, entries: [] }));
-  await page.route(/\/api\/charging-benchmarks\?/, route => json(route, data.benchmark));
+  await page.route(/\/api\/charging-benchmarks\/tariffs\?/, route => json(route, data.benchmark));
+  await page.route(/\/api\/charging-benchmarks\/savings\?/, route => json(route, data.priceSavings ?? null));
   await page.route(/\/api\/logs\/places\?/, route => route.fulfill({ json: data.places }));
   await page.route(/tile\.openstreetmap\.org/, route => route.fulfill({ contentType: 'image/png', body: EMPTY_PNG }));
   // Ticker leer: sein Text wechselt im Takt und läge in Bildern langer Boxen über dem Inhalt.

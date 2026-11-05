@@ -5,7 +5,7 @@ import { peerModelComparisonService, type PeerModelComparisonResponse } from '..
 import { carService, type BatterySohEntry } from '../api/carService'
 import { fuelPriceService, type FuelPrices } from '../api/fuelPriceService'
 import { weatherService, type WeatherOutlookResponse } from '../api/weatherService'
-import { chargingBenchmarkService, type ChargingBenchmark } from '../api/chargingBenchmarkService'
+import { chargingBenchmarkService, type CardSavings, type ChargingBenchmark } from '../api/chargingBenchmarkService'
 import type { StatisticsData } from './useDashboardStats'
 import {
   buildStoryTiles, buildStoryFeed, buildDayCoverage, monthWindow, PETROL_EUR_PER_L_DE, petrolLitersPer100km,
@@ -266,6 +266,8 @@ interface CarBundle {
   recentStats: StatisticsData | null
   recentLogs: Array<LatestLogSource & MomentLog>
   benchmark: ChargingBenchmark | null
+  /** Was gepflegte Karten bei der neuesten öffentlichen Ladung gespart hätten (Moment "zu teuer"). */
+  priceSavings: CardSavings | null
   recentTrips: Array<MomentTrip & TripForSummary>
   lifetimeSeries: MomentPoint[]
   lifetimeCo2: LifetimeCo2 | null
@@ -286,19 +288,21 @@ export function wantsWeatherOutlook(now: Date): boolean {
 const carCache = new Map<string, CarBundle>()
 
 /**
- * Die letzten Ladungen und, wenn die neueste oeffentliche einen Vergleich lohnt, was andere
- * Fahrer dort zahlen. In einem Schritt, damit der Moment-Hero nicht nach dem ersten Paint wechselt.
+ * Die letzten Ladungen und, für die neueste öffentliche, was gepflegte Karten dort gespart hätten und
+ * welche Tarife dort gelten. In einem Schritt, damit der Moment-Hero nicht nach dem ersten Paint wechselt.
  */
-async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<LatestLogSource & MomentLog>; benchmark: ChargingBenchmark | null }> {
+async function recentLogsWithBenchmark(carId: string): Promise<{ logs: Array<LatestLogSource & MomentLog>; benchmark: ChargingBenchmark | null; savings: CardSavings | null }> {
   const res = await api.get<Array<LatestLogSource & MomentLog>>(`/logs?carId=${carId}&limit=${RECENT_LOGS}`)
   const logs = Array.isArray(res.data) ? res.data : []
   const c = expensiveCandidate(logs, Date.now())
   const cpo = c?.log.cpoName
   const type = c?.log.chargingType
-  const bench = cpo && (type === 'AC' || type === 'DC')
-    ? await chargingBenchmarkService.get(cpo, type).catch(() => null)
-    : null
-  return { logs, benchmark: bench }
+  if (!c || !cpo || (type !== 'AC' && type !== 'DC')) return { logs, benchmark: null, savings: null }
+  const [bench, savings] = await Promise.all([
+    chargingBenchmarkService.get(cpo, type).catch(() => null),
+    chargingBenchmarkService.savings(c.log.id).catch(() => null),
+  ])
+  return { logs, benchmark: bench, savings }
 }
 
 async function fetchCarBundle(carId: string): Promise<CarBundle> {
@@ -338,6 +342,7 @@ async function fetchCarBundle(carId: string): Promise<CarBundle> {
     recentStats: recent.status === 'fulfilled' ? recent.value : null,
     recentLogs: lastLogs.status === 'fulfilled' ? lastLogs.value.logs : [],
     benchmark: lastLogs.status === 'fulfilled' ? lastLogs.value.benchmark : null,
+    priceSavings: lastLogs.status === 'fulfilled' ? lastLogs.value.savings : null,
     recentTrips: momentTrips.status === 'fulfilled' && Array.isArray(momentTrips.value.data) ? momentTrips.value.data : [],
     lifetimeSeries: lifetime.status === 'fulfilled' ? lifetime.value.data?.chargesOverTime ?? [] : [],
     lifetimeCo2: lifetime.status === 'fulfilled' ? lifetimeCo2Of(lifetime.value.data?.co2, lifetime.value.data?.chargesOverTime ?? []) : null,
@@ -398,6 +403,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
   const lifetimeCo2 = ref<LifetimeCo2 | null>(null)
   /** Was andere Fahrer beim Betreiber der neuesten oeffentlichen Ladung zahlen, null ohne Vergleich. */
   const benchmark = ref<ChargingBenchmark | null>(null)
+  const priceSavings = ref<CardSavings | null>(null)
   const { seen } = useMomentSeen()
   const loading = ref(true)
   /** Wann der gezeigte Monat zuletzt frisch vom Server kam (nicht aus dem Cache). */
@@ -483,6 +489,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     weather.value = b.weather
     recentLogs.value = b.recentLogs
     benchmark.value = b.benchmark
+    priceSavings.value = b.priceSavings
     recentTrips.value = b.recentTrips
     lifetimeSeries.value = b.lifetimeSeries
     lifetimeCo2.value = b.lifetimeCo2
@@ -678,7 +685,7 @@ export function useDashboardStory(selectedCarId: Ref<string | null>, ctx: () => 
     const today = latest.value?.charge && new Date(latest.value.charge.at).toDateString() === new Date(now).toDateString()
       ? latest.value.charge.id : null
     const candidates = [
-      detectExpensive({ logs: recentLogs.value, benchmark: benchmark.value, now }),
+      detectExpensive({ logs: recentLogs.value, savings: priceSavings.value, now }),
       detectLongTrip({ trips: recentTrips.value, logs: recentLogs.value, now }),
       detectFirstFrost({ trips: recentTrips.value, now, range: range.value }),
       monthRecap.value,
