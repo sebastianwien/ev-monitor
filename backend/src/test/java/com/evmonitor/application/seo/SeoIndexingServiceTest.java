@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -120,6 +121,22 @@ class SeoIndexingServiceTest extends AbstractIntegrationTest {
 
         verify(gscClient, times(1)).inspect(anyString());
         verify(indexNowClient).submit(List.of("/", "/modelle"));
+    }
+
+    @Test
+    void afterAbortTheUncheckedPagesComeFirstNextRun() {
+        when(gscClient.inspect(anyString())).thenThrow(new GscClientException("GSC inspect HTTP 500"));
+        service.run();
+        doReturn(new IndexStatus("NEUTRAL", "noindex", null, null)).when(gscClient).inspect("https://example.test/noindex");
+        doReturn(new IndexStatus("PASS", "ok", null, null)).when(gscClient).inspect("https://example.test/");
+        service.run();
+        clearInvocations(gscClient);
+
+        // /noindex und / sind geprüft, /modelle nie: sie kommt im nächsten Lauf zuerst
+        service.run();
+
+        verify(gscClient, times(1)).inspect(anyString());
+        verify(gscClient).inspect("https://example.test/modelle");
     }
 
     @Test

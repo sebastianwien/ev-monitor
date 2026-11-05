@@ -89,10 +89,16 @@ public class SeoIndexingService {
         return out;
     }
 
+    /** Am längsten nicht geprüfte Seiten zuerst: bricht ein Lauf ab, kommt der Rest beim nächsten Mal dran. */
     private void inspectAll(List<AuditRow> rows) {
         if (!deps.properties().isIndexInspectionEnabled() || !gsc.isEnabled()) return;
+        Map<String, IndexRow> known = index.all();
+        List<AuditRow> ordered = rows.stream()
+                .sorted(java.util.Comparator.comparing((AuditRow r) -> Optional.ofNullable(known.get(r.path())).map(IndexRow::checkedAt).orElse(null),
+                        java.util.Comparator.nullsFirst(java.util.Comparator.naturalOrder())))
+                .toList();
         int checked = 0;
-        for (AuditRow r : rows) {
+        for (AuditRow r : ordered) {
             if (r.httpStatus() != 200) continue;
             pause();
             try {
