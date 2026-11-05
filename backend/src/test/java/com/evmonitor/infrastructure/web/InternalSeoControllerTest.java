@@ -31,6 +31,12 @@ class InternalSeoControllerTest extends AbstractIntegrationTest {
     @BeforeEach
     void clean() {
         jdbc.update("DELETE FROM seo_bot_daily");
+        jdbc.update("DELETE FROM seo_page_audit");
+        for (String path : List.of("/modelle", "/modelle/Tesla/Model_Y")) {
+            jdbc.update("INSERT INTO seo_page_audit (stat_date, path, http_status, score, error_count, warning_count, findings) "
+                    + "VALUES (DATE '2026-11-05', ?, 200, 100, 0, 0, '[]')", path);
+        }
+        bots.forgetKnownPaths();
     }
 
     private HttpEntity<Void> hit(String token, String userAgent, String uri) {
@@ -63,9 +69,17 @@ class InternalSeoControllerTest extends AbstractIntegrationTest {
                 .isEqualTo(2);
         assertThat(jdbc.queryForObject("SELECT count(*) FROM seo_bot_daily", Integer.class)).isEqualTo(3);
 
+        // Pfade außerhalb der Sitemap landen in einer Sammelzeile: ein gefälschter Bot kann die Tabelle nicht fluten
+        for (String uri : List.of("/modelle/x1", "/modelle/x2", "/modelle/x3")) {
+            restTemplate.exchange(URL, HttpMethod.POST, hit("test-internal-token", gpt, uri), String.class);
+        }
+        assertThat(jdbc.queryForObject("SELECT hits FROM seo_bot_daily WHERE bot = 'GPTBOT' AND path = ?", Integer.class,
+                BotHitService.OTHER_PATHS)).isEqualTo(3);
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM seo_bot_daily", Integer.class)).isEqualTo(4);
+
         List<BotHitService.BotSummary> summary = bots.summary(7);
         BotHitService.BotSummary gptRow = summary.stream().filter(s -> s.bot() == CrawlerBot.GPTBOT).findFirst().orElseThrow();
-        assertThat(gptRow.hits()).isEqualTo(3);
+        assertThat(gptRow.hits()).isEqualTo(6);
         assertThat(gptRow.ai()).isTrue();
         assertThat(gptRow.topPaths().get(0).path()).isEqualTo("/modelle/Tesla/Model_Y");
         assertThat(summary.get(0).bot()).as("KI-Crawler zuerst").isEqualTo(CrawlerBot.GPTBOT);

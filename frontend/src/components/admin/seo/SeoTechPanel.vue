@@ -160,7 +160,8 @@ const isError = (r: SeoAuditRow, c: string) => r.findings.some(f => f.check === 
           </div>
           <ul class="mt-1 space-y-0.5 pl-[4.5rem]">
             <li v-for="p in b.topPaths" :key="p.path" class="flex gap-2">
-              <a :href="p.path" target="_blank" rel="noopener" class="font-mono text-gray-300 hover:underline truncate">{{ p.path }}</a>
+              <a v-if="p.path.startsWith('/')" :href="p.path" target="_blank" rel="noopener" class="font-mono text-gray-300 hover:underline truncate">{{ p.path }}</a>
+              <span v-else class="text-gray-400">{{ p.path }}</span>
               <span class="text-gray-500 tabular-nums">{{ num(p.hits) }}</span>
             </li>
           </ul>
