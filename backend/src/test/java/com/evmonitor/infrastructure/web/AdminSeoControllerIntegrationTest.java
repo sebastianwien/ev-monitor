@@ -12,6 +12,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 /** Im Test ist kein Service-Account konfiguriert: Tab zeigt den Leerzustand, Sync wird abgelehnt. */
 class AdminSeoControllerIntegrationTest extends AbstractIntegrationTest {
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private org.springframework.jdbc.core.JdbcTemplate seoJdbc;
+
     @Test
     void nonAdmin_isForbidden() {
         User user = createAndSaveUser("seo-user-" + System.nanoTime() + "@example.com");
@@ -112,6 +115,37 @@ class AdminSeoControllerIntegrationTest extends AbstractIntegrationTest {
         ResponseEntity<String> run = restTemplate.exchange("/api/admin/seo/audit/run", HttpMethod.POST,
                 createAuthRequest(admin.getId(), admin.getEmail()), String.class);
         assertThat(run.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void indexNowIsAdminOnlyAndAcceptsOnlySitemapPaths() {
+        User user = createAndSaveUser("seo-user-" + System.nanoTime() + "@example.com");
+        User admin = createAndSaveAdminUser("seo-admin-" + System.nanoTime() + "@example.com");
+        seoJdbc.update("DELETE FROM seo_page_audit");
+        seoJdbc.update("INSERT INTO seo_page_audit (stat_date, path, http_status, score, error_count, warning_count, findings, content_hash) "
+                + "VALUES (DATE '2026-11-05', '/modelle', 200, 100, 0, 0, '[]', 'h1')");
+
+        ResponseEntity<String> forbidden = restTemplate.exchange("/api/admin/seo/audit/indexnow", HttpMethod.POST,
+                createAuthRequest(java.util.Map.of("path", "/modelle"), user.getId(), user.getEmail()), String.class);
+        assertThat(forbidden.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+
+        org.mockito.Mockito.when(indexNowClient.isEnabled()).thenReturn(false);
+        ResponseEntity<String> disabled = restTemplate.exchange("/api/admin/seo/audit/indexnow", HttpMethod.POST,
+                createAuthRequest(java.util.Map.of("path", "/modelle"), admin.getId(), admin.getEmail()), String.class);
+        assertThat(disabled.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+
+        org.mockito.Mockito.when(indexNowClient.isEnabled()).thenReturn(true);
+        org.mockito.Mockito.when(indexNowClient.submit(java.util.List.of("/modelle"))).thenReturn(true);
+        for (String bad : new String[] {"/nicht-in-sitemap", "https://fremd.test/x", ""}) {
+            ResponseEntity<String> res = restTemplate.exchange("/api/admin/seo/audit/indexnow", HttpMethod.POST,
+                    createAuthRequest(java.util.Map.of("path", bad), admin.getId(), admin.getEmail()), String.class);
+            assertThat(res.getStatusCode()).as(bad).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        ResponseEntity<String> ok = restTemplate.exchange("/api/admin/seo/audit/indexnow", HttpMethod.POST,
+                createAuthRequest(java.util.Map.of("path", "/modelle"), admin.getId(), admin.getEmail()), String.class);
+        assertThat(ok.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(ok.getBody()).contains("\"submitted\":true");
     }
 
     @Test

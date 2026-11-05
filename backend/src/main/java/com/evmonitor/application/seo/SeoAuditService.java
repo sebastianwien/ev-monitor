@@ -3,6 +3,7 @@ package com.evmonitor.application.seo;
 import com.evmonitor.application.seo.SeoAudit.AuditRow;
 import com.evmonitor.application.seo.SeoAudit.Check;
 import com.evmonitor.application.seo.SeoAudit.Finding;
+import com.evmonitor.application.seo.SeoAudit.IndexInfo;
 import com.evmonitor.application.seo.SeoAudit.PageReport;
 import com.evmonitor.application.seo.SeoAudit.Severity;
 import com.evmonitor.application.seo.SeoAudit.Summary;
@@ -120,7 +121,7 @@ public class SeoAuditService {
                 findings.add(new Finding(Check.ORPHAN, Severity.WARNING, "Keine andere Seite der Sitemap verlinkt hierher"));
             }
             rows.add(new SeoAuditRepository.AuditRow(r.path(), r.status(), SeoAudit.score(findings),
-                    count(findings, Severity.ERROR), count(findings, Severity.WARNING), json(findings)));
+                    count(findings, Severity.ERROR), count(findings, Severity.WARNING), json(findings), r.contentHash()));
         }
         repository.replaceDay(today, rows);
         int purged = repository.purgeBefore(today.minusDays(deps.properties().getRetentionDays()));
@@ -198,37 +199,52 @@ public class SeoAuditService {
         return result;
     }
 
-    /** Letzter Prüftag ohne Core Web Vitals. */
+    /** Letzter Prüftag ohne Core Web Vitals und Index-Stand. */
     public View view() {
-        return view(VitalsSnapshot.EMPTY);
+        return view(VitalsSnapshot.EMPTY, Map.of());
     }
 
     /**
-     * Letzter Prüftag für den Unter-Tab, schlechteste zuerst. Vitals kommen wöchentlich und werden hier an jeden
-     * Prüftag gehängt; Werte über dem Grenzwert zählen als Hinweis in Score und Hinweiszahl.
+     * Letzter Prüftag für den Unter-Tab, schlechteste zuerst. Vitals (wöchentlich) und Index-Stand (je Pfad) werden
+     * an jeden Prüftag gehängt: Vitals über dem Grenzwert zählen als Hinweis, eine nicht indexierte Seite als Fehler,
+     * ein abweichender Google-Canonical als Hinweis.
      */
-    public View view(VitalsSnapshot vitals) {
+    public View view(VitalsSnapshot vitals, Map<String, IndexInfo> index) {
         Optional<LocalDate> day = repository.latestDay();
         LocalDateTime lastRunAt = runs.findTop10ByOrderByStartedAtDesc().stream()
                 .filter(r -> SOURCE_AUDIT.equals(r.getSource()))
                 .map(SeoSyncRunEntity::getStartedAt)
                 .findFirst().orElse(null);
         if (day.isEmpty()) {
-            return new View(isEnabled(), null, lastRunAt, vitals.week(), new Summary(0, 0, 0, 0, 0), List.of());
+            return new View(isEnabled(), null, lastRunAt, vitals.week(), new Summary(0, 0, 0, 0, 0, 0), List.of());
         }
         List<AuditRow> rows = repository.rows(day.get()).stream()
-                .map(r -> withVitals(r, vitals.byPath().get(r.path())))
+                .map(r -> withExtras(r, vitals.byPath().get(r.path()), index.get(r.path())))
                 .sorted(Comparator.comparingInt(AuditRow::score).thenComparing(AuditRow::path))
                 .toList();
         return new View(isEnabled(), day.get(), lastRunAt, vitals.week(), summary(rows), rows);
     }
 
-    private AuditRow withVitals(SeoAuditRepository.AuditRow r, Vitals v) {
+    private AuditRow withExtras(SeoAuditRepository.AuditRow r, Vitals v, IndexInfo index) {
         List<Finding> findings = new ArrayList<>(findings(r.findings()));
-        if (v == null) return new AuditRow(r.path(), r.httpStatus(), r.score(), r.errorCount(), r.warningCount(), findings, null);
-        List<Finding> cwv = cwvFindings(v);
-        findings.addAll(cwv);
-        return new AuditRow(r.path(), r.httpStatus(), SeoAudit.score(findings), r.errorCount(), r.warningCount() + cwv.size(), findings, v);
+        if (v != null) findings.addAll(cwvFindings(v));
+        if (index != null) findings.addAll(indexFindings(r.path(), index));
+        return new AuditRow(r.path(), r.httpStatus(), SeoAudit.score(findings), count(findings, Severity.ERROR),
+                count(findings, Severity.WARNING), findings, v, index);
+    }
+
+    private List<Finding> indexFindings(String path, IndexInfo index) {
+        if (!index.inspected()) return List.of();
+        List<Finding> out = new ArrayList<>();
+        if (!index.indexed()) {
+            String state = index.coverageState() == null ? "ohne Angabe" : index.coverageState();
+            out.add(new Finding(Check.INDEX, Severity.ERROR, "Nicht im Google-Index: " + state));
+        }
+        String own = "https://" + deps.properties().getSiteHost() + path;
+        if (index.googleCanonical() != null && !index.googleCanonical().equals(own)) {
+            out.add(new Finding(Check.INDEX, Severity.WARNING, "Google wählt eine andere Adresse als Canonical: " + index.googleCanonical()));
+        }
+        return out;
     }
 
     private List<Finding> cwvFindings(Vitals v) {
@@ -258,13 +274,15 @@ public class SeoAuditService {
         int prerender = 0;
         int broken = 0;
         int orphans = 0;
+        int notIndexed = 0;
         for (AuditRow r : rows) {
+            if (r.index() != null && r.index().inspected() && !r.index().indexed()) notIndexed++;
             if (r.errors() > 0) withErrors++;
             if (has(r, Check.PRERENDER)) prerender++;
             if (has(r, Check.BROKEN_LINK)) broken++;
             if (has(r, Check.ORPHAN)) orphans++;
         }
-        return new Summary(rows.size(), withErrors, prerender, broken, orphans);
+        return new Summary(rows.size(), withErrors, prerender, broken, orphans, notIndexed);
     }
 
     private static boolean has(AuditRow r, Check check) {

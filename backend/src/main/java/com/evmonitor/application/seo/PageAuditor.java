@@ -46,7 +46,7 @@ public class PageAuditor {
         List<Finding> findings = new ArrayList<>();
         if (status != 200 || html == null) {
             findings.add(error(Check.STATUS, status == 0 ? "Seite nicht erreichbar" : "HTTP " + status + " statt 200"));
-            return new PageReport(path, status, false, findings, Set.of());
+            return new PageReport(path, status, false, findings, Set.of(), null);
         }
         Document doc = Jsoup.parse(html, "https://" + properties.getSiteHost() + path);
 
@@ -63,7 +63,19 @@ public class PageAuditor {
         checkJsonLd(doc, type, findings);
         if (type == PageType.MODEL) checkPrerender(doc, path, findings);
 
-        return new PageReport(path, status, noindex, findings, internalLinks(doc, path));
+        return new PageReport(path, status, noindex, findings, internalLinks(doc, path), contentHash(doc));
+    }
+
+    /** Was Suchmaschinen als Inhalt sehen: Title, Description, Text. Skripte und Markup ändern den Hash nicht. */
+    private static String contentHash(Document doc) {
+        Element meta = doc.selectFirst("meta[name=description]");
+        String text = doc.title() + "\n" + (meta == null ? "" : meta.attr("content")) + "\n" + doc.body().text();
+        try {
+            return java.util.HexFormat.of().formatHex(
+                    java.security.MessageDigest.getInstance("SHA-256").digest(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+        } catch (java.security.NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     private void checkCanonical(Document doc, String path, List<Finding> findings) {

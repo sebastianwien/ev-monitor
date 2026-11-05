@@ -12,7 +12,7 @@ public final class SeoAudit {
     private SeoAudit() {
     }
 
-    public enum Check { STATUS, NOINDEX, CANONICAL, TITLE, DESCRIPTION, H1, JSONLD, PRERENDER, BROKEN_LINK, NOINDEX_LINK, ORPHAN, CWV }
+    public enum Check { STATUS, NOINDEX, CANONICAL, TITLE, DESCRIPTION, H1, JSONLD, PRERENDER, BROKEN_LINK, NOINDEX_LINK, ORPHAN, CWV, INDEX }
 
     public enum Severity { ERROR, WARNING }
 
@@ -20,8 +20,12 @@ public final class SeoAudit {
     public record Finding(Check check, Severity severity, String message) {
     }
 
-    /** Ergebnis einer gecrawlten Seite; links = normalisierte interne Seitenpfade ohne die Seite selbst. */
-    public record PageReport(String path, int status, boolean noindex, List<Finding> findings, Set<String> links) {
+    /**
+     * Ergebnis einer gecrawlten Seite; links = normalisierte interne Seitenpfade ohne die Seite selbst.
+     * contentHash = SHA-256 über Title, Description und sichtbaren Text, null ohne lesbare Seite.
+     */
+    public record PageReport(String path, int status, boolean noindex, List<Finding> findings, Set<String> links,
+                             String contentHash) {
     }
 
     /** Core Web Vitals einer Seite; source FIELD (echte Nutzer) oder LAB (Lighthouse, ohne INP). */
@@ -33,12 +37,31 @@ public final class SeoAudit {
         public static final VitalsSnapshot EMPTY = new VitalsSnapshot(null, Map.of());
     }
 
-    public record AuditRow(String path, int httpStatus, int score, int errors, int warnings, List<Finding> findings,
-                           Vitals vitals) {
+    /**
+     * Index-Stand eines Sitemap-Pfads. verdict/coverageState/lastCrawlAt/googleCanonical aus der URL Inspection API
+     * (null, solange nicht geprüft), indexnowAt = letzte angenommene Meldung an IndexNow.
+     */
+    public record IndexInfo(String verdict, String coverageState, LocalDateTime lastCrawlAt, String googleCanonical,
+                            LocalDateTime checkedAt, LocalDateTime indexnowAt) {
+        public boolean inspected() {
+            return checkedAt != null && verdict != null;
+        }
+
+        public boolean indexed() {
+            return "PASS".equals(verdict);
+        }
     }
 
-    /** Kacheln: geprüfte URLs, URLs mit Fehler, Seiten mit Prerender-Fehler, Seiten mit kaputtem Link, verwaiste Seiten. */
-    public record Summary(int checked, int withErrors, int prerenderFailed, int brokenLinkPages, int orphans) {
+    /** index null, wenn der Pfad weder geprüft noch gemeldet wurde. */
+    public record AuditRow(String path, int httpStatus, int score, int errors, int warnings, List<Finding> findings,
+                           Vitals vitals, IndexInfo index) {
+    }
+
+    /**
+     * Kacheln: geprüfte URLs, URLs mit Fehler, Seiten mit Prerender-Fehler, Seiten mit kaputtem Link, verwaiste Seiten,
+     * Seiten, die Google laut letzter Prüfung nicht im Index hat.
+     */
+    public record Summary(int checked, int withErrors, int prerenderFailed, int brokenLinkPages, int orphans, int notIndexed) {
     }
 
     /** day = Prüftag des letzten Laufs, null ohne Lauf; vitalsWeek analog. */

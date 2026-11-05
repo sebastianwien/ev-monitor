@@ -167,7 +167,7 @@ class SeoAuditServiceTest extends AbstractIntegrationTest {
         SeoAudit.VitalsSnapshot vitals = new SeoAudit.VitalsSnapshot(java.time.LocalDate.of(2026, 10, 19), Map.of(
                 "/", new SeoAudit.Vitals(3200, 0.25, 150, "FIELD"),
                 "/blog", new SeoAudit.Vitals(1800, 0.02, null, "LAB")));
-        Map<String, AuditRow> rows = service.view(vitals).rows().stream().collect(Collectors.toMap(AuditRow::path, r -> r));
+        Map<String, AuditRow> rows = service.view(vitals, Map.of()).rows().stream().collect(Collectors.toMap(AuditRow::path, r -> r));
 
         assertThat(rows.get("/").findings()).extracting(Finding::check).containsExactly(Check.CWV, Check.CWV);
         assertThat(rows.get("/").findings()).extracting(Finding::message).anyMatch(m -> m.contains("LCP 3,2 s"));
@@ -175,6 +175,6 @@ class SeoAuditServiceTest extends AbstractIntegrationTest {
         assertThat(rows.get("/").score()).isEqualTo(90);
         assertThat(rows.get("/").vitals().lcpMs()).isEqualTo(3200);
         assertThat(rows.get("/blog").findings()).isEmpty();
-        assertThat(service.view(vitals).vitalsWeek()).isEqualTo(java.time.LocalDate.of(2026, 10, 19));
+        assertThat(service.view(vitals, Map.of()).vitalsWeek()).isEqualTo(java.time.LocalDate.of(2026, 10, 19));
     }
 }

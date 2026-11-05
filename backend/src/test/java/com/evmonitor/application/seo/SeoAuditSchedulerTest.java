@@ -18,12 +18,13 @@ class SeoAuditSchedulerTest {
 
     private final SeoAuditService service = mock(SeoAuditService.class);
     private final SeoVitalsService vitals = mock(SeoVitalsService.class);
+    private final SeoIndexingService indexing = mock(SeoIndexingService.class);
     private final JobLockService locks = mock(JobLockService.class);
     private SeoAuditScheduler scheduler;
 
     @BeforeEach
     void setUp() {
-        scheduler = new SeoAuditScheduler(service, vitals, locks, new SyncTaskExecutor());
+        scheduler = new SeoAuditScheduler(service, vitals, indexing, locks, new SyncTaskExecutor());
         when(service.isEnabled()).thenReturn(true);
         when(locks.tryAcquire(eq(SeoAuditScheduler.LOCK_NAME), any())).thenReturn(true);
     }
@@ -33,6 +34,7 @@ class SeoAuditSchedulerTest {
         scheduler.runNightly();
 
         verify(service).run();
+        verify(indexing).run();
         verify(vitals).refreshIfDue();
         verify(locks).release(SeoAuditScheduler.LOCK_NAME);
     }
@@ -54,6 +56,7 @@ class SeoAuditSchedulerTest {
         doThrow(new IllegalStateException("kaputt")).when(service).run();
 
         assertThat(scheduler.tryStartManual()).isTrue();
+        verify(indexing).run();
         verify(vitals).refreshIfDue();
         verify(locks).release(SeoAuditScheduler.LOCK_NAME);
 

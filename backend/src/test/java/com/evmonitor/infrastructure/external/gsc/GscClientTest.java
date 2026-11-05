@@ -124,6 +124,48 @@ class GscClientTest {
         verify(http, times(3)).send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class));
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void inspectsUrlAndParsesIndexStatus() throws Exception {
+        when(http.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(
+                response(200, "{\"access_token\":\"tok-1\",\"expires_in\":3600}"),
+                response(200, "{\"inspectionResult\":{\"indexStatusResult\":{\"verdict\":\"NEUTRAL\","
+                        + "\"coverageState\":\"Gecrawlt - zurzeit nicht indexiert\",\"lastCrawlTime\":\"2026-10-12T08:15:30Z\","
+                        + "\"googleCanonical\":\"https://example.test/a\"}}}"),
+                response(200, "{\"inspectionResult\":{\"indexStatusResult\":{\"verdict\":\"VERDICT_UNSPECIFIED\","
+                        + "\"coverageState\":\"URL ist Google nicht bekannt\"}}}"));
+
+        GscClient.IndexStatus status = client.inspect("https://example.test/a");
+
+        assertThat(status.verdict()).isEqualTo("NEUTRAL");
+        assertThat(status.coverageState()).isEqualTo("Gecrawlt - zurzeit nicht indexiert");
+        assertThat(status.lastCrawlTime()).isEqualTo(Instant.parse("2026-10-12T08:15:30Z"));
+        assertThat(status.googleCanonical()).isEqualTo("https://example.test/a");
+
+        GscClient.IndexStatus unknown = client.inspect("https://example.test/b");
+        assertThat(unknown.lastCrawlTime()).isNull();
+        assertThat(unknown.googleCanonical()).isNull();
+
+        ArgumentCaptor<HttpRequest> captor = ArgumentCaptor.forClass(HttpRequest.class);
+        verify(http, times(3)).send(captor.capture(), any(HttpResponse.BodyHandler.class));
+        HttpRequest inspect = captor.getAllValues().get(1);
+        assertThat(inspect.uri().toString()).isEqualTo("https://searchconsole.googleapis.com/v1/urlInspection/index:inspect");
+        assertThat(inspect.headers().firstValue("Authorization")).contains("Bearer tok-1");
+        assertThat(body(inspect)).contains("\"inspectionUrl\":\"https://example.test/a\"").contains("\"siteUrl\":\"sc-domain:example.test\"");
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void inspectFailsLoudOnHttpError() throws Exception {
+        when(http.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class))).thenReturn(
+                response(200, "{\"access_token\":\"tok-1\",\"expires_in\":3600}"),
+                response(429, "{\"error\":\"quota\"}"));
+
+        assertThatThrownBy(() -> client.inspect("https://example.test/a"))
+                .isInstanceOf(GscClientException.class)
+                .hasMessageContaining("429");
+    }
+
     private static String rows(String... keyArrays) {
         StringBuilder sb = new StringBuilder("{\"rows\":[");
         for (int i = 0; i < keyArrays.length; i++) {

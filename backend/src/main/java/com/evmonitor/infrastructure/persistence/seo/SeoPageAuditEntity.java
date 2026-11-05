@@ -35,6 +35,8 @@ public class SeoPageAuditEntity {
     private int warningCount;
     @Column(name = "findings", nullable = false, columnDefinition = "TEXT")
     private String findings;
+    @Column(name = "content_hash", length = 64)
+    private String contentHash;
 
     public record Key(LocalDate day, String path) implements Serializable {
     }

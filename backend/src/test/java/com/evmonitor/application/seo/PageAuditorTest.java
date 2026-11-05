@@ -213,4 +213,17 @@ class PageAuditorTest {
                 + "<script type=\"application/ld+json\">{\"@type\":\"Product\",\"review\":{\"@type\":\"Review\"}}</script>";
         assertThat(auditor.audit(MODEL, 200, page(MODEL, withReview, GOOD_MODEL_BODY)).findings()).isEmpty();
     }
+
+    @Test
+    void contentHashChangesWithVisibleTextOnlyAndIsNullWithoutPage() {
+        String head = goodHead(MODEL, "BreadcrumbList");
+        PageReport a = auditor.audit(MODEL, 200, page(MODEL, head, GOOD_MODEL_BODY));
+        PageReport same = auditor.audit(MODEL, 200, page(MODEL, head + "<script>var t = 1;</script>", GOOD_MODEL_BODY));
+        PageReport changed = auditor.audit(MODEL, 200, page(MODEL, head, GOOD_MODEL_BODY.replace("17,3", "17,8")));
+
+        assertThat(a.contentHash()).hasSize(64);
+        assertThat(same.contentHash()).as("Skripte zählen nicht als Inhalt").isEqualTo(a.contentHash());
+        assertThat(changed.contentHash()).isNotEqualTo(a.contentHash());
+        assertThat(auditor.audit(MODEL, 404, null).contentHash()).isNull();
+    }
 }

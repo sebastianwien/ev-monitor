@@ -22,6 +22,7 @@ import com.evmonitor.infrastructure.external.SpritMonitorClient;
 import com.evmonitor.infrastructure.external.StripeReportClient;
 import com.evmonitor.infrastructure.external.audit.SiteCrawler;
 import com.evmonitor.infrastructure.external.gsc.GscClient;
+import com.evmonitor.infrastructure.external.indexnow.IndexNowClient;
 import com.evmonitor.infrastructure.external.plausible.PlausibleClient;
 import com.evmonitor.infrastructure.security.JwtService;
 import com.evmonitor.infrastructure.security.RateLimitService;
@@ -123,6 +124,10 @@ public abstract class AbstractIntegrationTest {
     /** Mock: Plausible-Analytics-API. */
     @MockitoBean
     protected PlausibleClient plausibleClient;
+
+    /** Mock: IndexNow meldet URLs an Bing und Co. */
+    @MockitoBean
+    protected IndexNowClient indexNowClient;
 
     /** Mock: SEO-Audit crawlt per HTTP. */
     @MockitoBean

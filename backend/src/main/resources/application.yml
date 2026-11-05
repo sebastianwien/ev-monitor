@@ -264,6 +264,8 @@ seo:
   audit:
     base-url: ${SEO_AUDIT_BASE_URL:}
     pagespeed-api-key: ${PAGESPEED_API_KEY:}
+    # IndexNow (Bing, Yandex, Seznam): 32 Zeichen a-f0-9, z. B. `openssl rand -hex 16`; leer = aus.
+    indexnow-key: ${INDEXNOW_KEY:}
   # Unter-Tab "Wettbewerb" (DataForSEO): Login und API-Passwort aus app.dataforseo.com/api-access; leer = aus.
   competition:
     login: ${DATAFORSEO_LOGIN:}

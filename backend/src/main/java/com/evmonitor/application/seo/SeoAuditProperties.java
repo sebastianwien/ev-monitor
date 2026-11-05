@@ -49,6 +49,12 @@ public class SeoAuditProperties {
     /** PageSpeed-Insights-Key; leer = keine Core Web Vitals. Nie loggen. */
     private String pagespeedApiKey = "";
 
+    /** IndexNow-Schlüssel (Bing, Yandex, Seznam); leer = aus. Öffentlich unter /indexnow-key.txt. */
+    private String indexnowKey = "";
+
+    /** Google-Index-Status je Sitemap-URL nach dem Crawl (URL Inspection API, braucht den GSC-Key). */
+    private boolean indexInspectionEnabled = true;
+
     /** Wie viele Seiten (nach Impressionen der letzten 28 Tage) wöchentlich auf Core Web Vitals gemessen werden. */
     private int vitalsTopPages = 20;
     private int vitalsLcpMaxMs = 2500;

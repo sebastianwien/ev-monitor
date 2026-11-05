@@ -24,21 +24,24 @@ public class SeoAuditScheduler {
 
     private final SeoAuditService service;
     private final SeoVitalsService vitals;
+    private final SeoIndexingService indexing;
     private final JobLockService locks;
     private final Executor executor;
 
     @Autowired
-    public SeoAuditScheduler(SeoAuditService service, SeoVitalsService vitals, JobLockService locks) {
-        this(service, vitals, locks, Executors.newSingleThreadExecutor(r -> {
+    public SeoAuditScheduler(SeoAuditService service, SeoVitalsService vitals, SeoIndexingService indexing, JobLockService locks) {
+        this(service, vitals, indexing, locks, Executors.newSingleThreadExecutor(r -> {
             Thread t = new Thread(r, "seo-audit-manual");
             t.setDaemon(true);
             return t;
         }));
     }
 
-    SeoAuditScheduler(SeoAuditService service, SeoVitalsService vitals, JobLockService locks, Executor executor) {
+    SeoAuditScheduler(SeoAuditService service, SeoVitalsService vitals, SeoIndexingService indexing, JobLockService locks,
+                      Executor executor) {
         this.service = service;
         this.vitals = vitals;
+        this.indexing = indexing;
         this.locks = locks;
         this.executor = executor;
     }
@@ -61,13 +64,21 @@ public class SeoAuditScheduler {
         return true;
     }
 
-    /** Erst der Crawl, dann (einmal je Woche) Core Web Vitals für die Seiten, die er erreicht hat. */
+    /**
+     * Erst der Crawl, dann Index-Status bei Google und IndexNow-Meldung geänderter Seiten, dann (einmal je Woche)
+     * Core Web Vitals für die Seiten, die der Crawl erreicht hat.
+     */
     private void runReleasing() {
         try {
             try {
                 service.run();
             } catch (Exception e) {
                 log.error("SEO-Audit abgebrochen", e);
+            }
+            try {
+                indexing.run();
+            } catch (Exception e) {
+                log.error("SEO-Index abgebrochen", e);
             }
             try {
                 vitals.refreshIfDue();

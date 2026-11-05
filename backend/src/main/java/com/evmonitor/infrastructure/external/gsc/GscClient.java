@@ -24,7 +24,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Lesender Zugriff auf die Search-Console-API {@code searchanalytics.query} per Service-Account.
+ * Lesender Zugriff auf die Search-Console-API ({@code searchanalytics.query}, {@code urlInspection.index.inspect})
+ * per Service-Account.
  * Token-Tausch ohne Google-SDK: signiertes JWT (RS256, jjwt) gegen ein Access-Token, eine Stunde gültig.
  */
 @Service
@@ -34,11 +35,19 @@ public class GscClient {
     public static final int ROW_LIMIT = 25_000;
     private static final String SCOPE = "https://www.googleapis.com/auth/webmasters.readonly";
     private static final String API = "https://searchconsole.googleapis.com/webmasters/v3/sites/";
+    private static final String INSPECT_API = "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect";
     private static final Duration JWT_LIFETIME = Duration.ofMinutes(10);
     private static final Duration TOKEN_SAFETY = Duration.ofMinutes(2);
 
     /** Eine Zeile der Antwort: Dimensionswerte in Abfragereihenfolge plus Kennzahlen. */
     public record GscRow(List<String> keys, int clicks, int impressions, double position) {
+    }
+
+    /**
+     * Index-Status einer URL laut Google. verdict PASS = im Index, NEUTRAL = ausgeschlossen oder unbekannt, FAIL = Fehler.
+     * coverageState ist Googles Klartext, lastCrawlTime und googleCanonical fehlen, wenn Google die URL nie gecrawlt hat.
+     */
+    public record IndexStatus(String verdict, String coverageState, Instant lastCrawlTime, String googleCanonical) {
     }
 
     private final GscProperties properties;
@@ -111,6 +120,40 @@ public class GscClient {
         } catch (Exception e) {
             throw new GscClientException("GSC query failed: " + e.getMessage(), e);
         }
+    }
+
+    /** Index-Status einer absoluten URL der Property; Kontingent laut Google 2 000 je Tag und Property. */
+    public IndexStatus inspect(String url) {
+        try {
+            String body = objectMapper.writeValueAsString(Map.of(
+                    "inspectionUrl", url,
+                    "siteUrl", properties.getSiteUrl(),
+                    "languageCode", "de"));
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(URI.create(INSPECT_API))
+                    .timeout(Duration.ofSeconds(60))
+                    .header("Authorization", "Bearer " + token())
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build();
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new GscClientException("GSC inspect HTTP " + response.statusCode() + ": " + shorten(response.body()));
+            }
+            JsonNode r = objectMapper.readTree(response.body()).path("inspectionResult").path("indexStatusResult");
+            String lastCrawl = textOrNull(r, "lastCrawlTime");
+            return new IndexStatus(r.path("verdict").asText("VERDICT_UNSPECIFIED"), textOrNull(r, "coverageState"),
+                    lastCrawl == null ? null : Instant.parse(lastCrawl), textOrNull(r, "googleCanonical"));
+        } catch (GscClientException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new GscClientException("GSC inspect failed: " + e.getMessage(), e);
+        }
+    }
+
+    private static String textOrNull(JsonNode node, String field) {
+        JsonNode v = node.get(field);
+        return v == null || v.isNull() || v.asText().isBlank() ? null : v.asText();
     }
 
     private List<GscRow> parseRows(JsonNode root) {

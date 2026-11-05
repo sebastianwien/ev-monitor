@@ -51,10 +51,10 @@ class SeoVitalsServiceTest {
         when(client.isEnabled()).thenReturn(true);
         when(repository.latestDay()).thenReturn(Optional.of(AUDIT_DAY));
         when(repository.rows(AUDIT_DAY)).thenReturn(List.of(
-                new AuditRow("/", 200, 100, 0, 0, "[]"),
-                new AuditRow("/modelle", 200, 100, 0, 0, "[]"),
-                new AuditRow("/modelle/A/B", 200, 100, 0, 0, "[]"),
-                new AuditRow("/kaputt", 404, 80, 1, 0, "[]")));
+                new AuditRow("/", 200, 100, 0, 0, "[]", null),
+                new AuditRow("/modelle", 200, 100, 0, 0, "[]", null),
+                new AuditRow("/modelle/A/B", 200, 100, 0, 0, "[]", null),
+                new AuditRow("/kaputt", 404, 80, 1, 0, "[]", null)));
     }
 
     @Test

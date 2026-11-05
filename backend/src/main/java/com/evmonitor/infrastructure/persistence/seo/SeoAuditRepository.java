@@ -15,8 +15,9 @@ import java.util.Optional;
 @Repository
 public class SeoAuditRepository {
 
-    /** findings: JSON-Liste [{check, severity, message}]. */
-    public record AuditRow(String path, int httpStatus, int score, int errorCount, int warningCount, String findings) {
+    /** findings: JSON-Liste [{check, severity, message}]; contentHash null ohne lesbare Seite. */
+    public record AuditRow(String path, int httpStatus, int score, int errorCount, int warningCount, String findings,
+                           String contentHash) {
     }
 
     /** source FIELD oder LAB; fehlende Werte null. */
@@ -33,7 +34,7 @@ public class SeoAuditRepository {
     public void replaceDay(LocalDate day, List<AuditRow> rows) {
         Date d = Date.valueOf(day);
         jdbc.update("DELETE FROM seo_page_audit WHERE stat_date = ?", d);
-        jdbc.batchUpdate("INSERT INTO seo_page_audit (stat_date, path, http_status, score, error_count, warning_count, findings) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        jdbc.batchUpdate("INSERT INTO seo_page_audit (stat_date, path, http_status, score, error_count, warning_count, findings, content_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 rows, 500, (ps, r) -> {
                     ps.setDate(1, d);
                     ps.setString(2, r.path());
@@ -42,6 +43,7 @@ public class SeoAuditRepository {
                     ps.setInt(5, r.errorCount());
                     ps.setInt(6, r.warningCount());
                     ps.setString(7, r.findings());
+                    ps.setString(8, r.contentHash());
                 });
     }
 
@@ -73,8 +75,8 @@ public class SeoAuditRepository {
     }
 
     public List<AuditRow> rows(LocalDate day) {
-        return jdbc.query("SELECT path, http_status, score, error_count, warning_count, findings FROM seo_page_audit WHERE stat_date = ? ORDER BY score, path",
-                (rs, i) -> new AuditRow(rs.getString(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5), rs.getString(6)),
+        return jdbc.query("SELECT path, http_status, score, error_count, warning_count, findings, content_hash FROM seo_page_audit WHERE stat_date = ? ORDER BY score, path",
+                (rs, i) -> new AuditRow(rs.getString(1), rs.getInt(2), rs.getInt(3), rs.getInt(4), rs.getInt(5), rs.getString(6), rs.getString(7)),
                 Date.valueOf(day));
     }
 
