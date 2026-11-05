@@ -67,7 +67,6 @@ for (const [width, height, voice] of [[390, 844, true], [820, 1180, true], [1440
       await expect(inSheet(page).getByTestId('day-missing')).toBeVisible();
       // Akku-Balken wie am Handy, Minimap je Fahrt (mit Spur durchgezogen, ohne Spur Luftlinie)
       await expect(inSheet(page).locator('[data-testid="day-bar"][data-kind="charge"]').first()).toBeVisible();
-      await expect(inSheet(page).getByTestId('day-ribbon-caption')).toContainText('30 %');
       await expect(inSheet(page).getByTestId('day-trip-thumb')).toHaveCount(2);
 
       // Ladung öffnen: Spracheingabe nur unter 1024 px

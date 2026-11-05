@@ -4567,7 +4567,6 @@ storyday:
   next: "Nästa dag"
   today: "i dag"
   axis_24: "24"
-  caption: "Batteri från {first} till {last}, lägst {min}."
   flow: "Förlopp"
   trip: "Resa"
   pill_trips: "{n} resa | {n} resor"

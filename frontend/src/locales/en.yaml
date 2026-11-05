@@ -4725,7 +4725,6 @@ storyday:
   next: "Next day"
   today: "today"
   axis_24: "24 h"
-  caption: "Battery from {first} to {last}, lowest {min}."
   flow: "Timeline"
   trip: "Trip"
   pill_trips: "{n} trip | {n} trips"

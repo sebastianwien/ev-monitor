@@ -270,11 +270,7 @@ export function ribbonSegments(all: DayEvent[]) {
     if (e.socTo != null) prev = [e.to, e.socTo]
   }
   const bands = ev.map(e => ({ kind: e.kind, id: e.id, x: e.from, w: e.to - e.from }))
-  const socs = ev.flatMap(e => [e.socFrom, e.socTo]).filter((v): v is number => v != null)
-  const first = ev.find(e => e.socFrom != null)?.socFrom ?? socs[0]
-  const last = [...ev].reverse().find(e => e.socTo != null)?.socTo ?? socs[socs.length - 1]
-  const caption = socs.length ? { first, last, min: Math.min(...socs), max: Math.max(...socs) } : null
-  return { lines, dots, bands, caption }
+  return { lines, dots, bands }
 }
 
 /** Nachtragen: Datum des gewählten Tages, Uhrzeit von jetzt (auf die Minute). */

@@ -120,16 +120,11 @@ describe('ribbonSegments', () => {
       { kind: 'trip', id: 't1', x: 540, w: 60 },
       { kind: 'charge', id: 'l1', x: 720, w: 30 },
     ])
-    expect(r.caption).toEqual({ first: 80, last: 80, min: 30, max: 80 })
   })
   it('nur Endstand: Punkt statt Linie', () => {
     const r = ribbonSegments(eventsOfDay('2026-08-16', [trip({ socStart: null })], []))
     expect(r.lines).toEqual([])
     expect(r.dots).toEqual([{ kind: 'trip', x: 600, soc: 70 }])
-  })
-  it('ohne SoC keine Bildunterschrift', () => {
-    const r = ribbonSegments(eventsOfDay('2026-08-16', [trip({ socStart: null, socEnd: null })], []))
-    expect(r.caption).toBeNull()
   })
 })
 

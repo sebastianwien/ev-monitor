@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ribbonSegments, batteryBars, barOfEvent, type BatteryBar, type DayEvent } from '../../../composables/storyDay'
+import { batteryBars, barOfEvent, type BatteryBar, type DayEvent } from '../../../composables/storyDay'
 
 /**
  * Akku des Tages wie im Akku-Diagramm des Handys: ein Balken je halbe Stunde, Höhe = Akkustand,
  * grün beim Laden, dunkel beim Fahren, grau im Stand. Wo es keinen Messwert gibt, kein Balken.
- * Raster in 25-%-Stufen und Sechs-Stunden-Schritten als Skala; Start, Ende und tiefsten Stand nennt die Bildunterschrift.
+ * Raster in 25-%-Stufen und Sechs-Stunden-Schritten als Skala. Hover (Desktop) oder Tipp (Handy) auf einen Balken
+ * zeigt dessen Akkustand, die übrigen treten leicht zurück.
  * aria-hidden, die Liste darunter sagt dasselbe vollständig. Antippbar nur, wenn `interactive`.
  * `highlightIds` (Logbuch, Hover über einer Zeile, beim Bündel alle Teile): deren Balken bleiben kräftig, die übrigen treten zurück.
  */
@@ -15,7 +16,10 @@ const emit = defineEmits<{ select: [event: DayEvent] }>()
 const { t } = useI18n()
 
 const bars = computed(() => batteryBars(props.events))
-const caption = computed(() => ribbonSegments(props.events).caption)
+/** Balken unter Maus oder Finger (Schlüssel `from`) */
+const active = ref<number | null>(null)
+// `from` ist die Minute des Tages: ein anderer Tag darf die Marke nicht erben
+watch(() => props.events, () => { active.value = null })
 /** Strecke ohne Aufzeichnung hat keine Zeit: kein Balken, hebt nichts hervor */
 const timed = computed(() => props.events.filter(e => e.kind !== 'gap'))
 const barClass = (b: BatteryBar) => b.kind === 'charge'
@@ -23,7 +27,15 @@ const barClass = (b: BatteryBar) => b.kind === 'charge'
   : b.kind === 'trip' ? 'bg-gray-900 dark:bg-gray-100' : 'bg-gray-300 dark:bg-gray-600'
 const pct = (v: number) => `${Math.round(v)} %`
 const highlighted = computed(() => timed.value.filter(e => props.highlightIds?.includes(e.id)))
-const dimmed = (b: BatteryBar) => highlighted.value.length > 0 && !highlighted.value.some(e => barOfEvent(b, e))
+const dimClass = (b: BatteryBar) => active.value != null
+  ? (active.value === b.from ? '' : 'opacity-50')
+  : highlighted.value.length > 0 && !highlighted.value.some(e => barOfEvent(b, e)) ? 'opacity-25' : ''
+function onTap(b: BatteryBar) {
+  if (b.soc == null) return
+  // zweiter Tipp auf denselben Balken blendet den Wert aus (Handy hat kein mouseleave)
+  active.value = active.value === b.from && !props.interactive ? null : b.from
+  if (props.interactive) pick(b)
+}
 function pick(b: BatteryBar) {
   const over = timed.value.filter(e => barOfEvent(b, e))
   const e = over.find(v => v.kind === 'charge') ?? over[0]
@@ -44,10 +56,14 @@ function pick(b: BatteryBar) {
         <div class="absolute inset-0 flex items-end gap-px">
           <component :is="interactive && b.soc != null ? 'button' : 'span'" v-for="b in bars" :key="b.from" type="button" tabindex="-1"
             class="relative flex h-full flex-1 items-end" :class="interactive && b.soc != null ? 'cursor-pointer' : ''"
-            @click="interactive && b.soc != null && pick(b)">
+            @mouseenter="b.soc != null && (active = b.from)" @mouseleave="active = null" @click="onTap(b)">
             <i v-if="b.soc != null" data-testid="day-bar" :data-kind="b.kind" class="block w-full rounded-t-[2px] transition-opacity duration-150"
-              :class="[barClass(b), dimmed(b) ? 'opacity-25' : '']"
+              :class="[barClass(b), dimClass(b)]"
               :style="{ height: `${Math.max(2, b.soc)}%` }" />
+            <!-- über dem Balken, oben gekappt, damit die Marke im Diagramm bleibt -->
+            <span v-if="active === b.from && b.soc != null" data-testid="day-bar-label"
+              class="pointer-events-none absolute left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-sm bg-gray-900 px-1 text-[10.5px] font-semibold tabular-nums text-white dark:bg-gray-100 dark:text-gray-900"
+              :style="{ bottom: `calc(${Math.min(Math.max(2, b.soc), 80)}% + 3px)` }">{{ pct(b.soc) }}</span>
           </component>
         </div>
       </div>
@@ -56,8 +72,5 @@ function pick(b: BatteryBar) {
           :class="i === 0 ? '' : i === 4 ? '-translate-x-full' : '-translate-x-1/2'" :style="{ left: `${i * 25}%` }">{{ h }}</span>
       </div>
     </div>
-    <p v-if="caption" data-testid="day-ribbon-caption" class="mt-1.5 text-[12.5px] tabular-nums text-gray-500 dark:text-gray-400">
-      {{ t('storyday.caption', { first: pct(caption.first!), last: pct(caption.last!), min: pct(caption.min) }) }}
-    </p>
   </div>
 </template>

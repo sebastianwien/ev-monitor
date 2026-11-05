@@ -4731,7 +4731,6 @@ storyday:
   next: "Nächster Tag"
   today: "heute"
   axis_24: "24 Uhr"
-  caption: "Akku von {first} auf {last}, tiefster Stand {min}."
   flow: "Ablauf"
   trip: "Fahrt"
   pill_trips: "{n} Fahrt | {n} Fahrten"

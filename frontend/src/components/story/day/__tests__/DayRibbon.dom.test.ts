@@ -42,3 +42,35 @@ describe('DayRibbon Hervorheben (Hover im Logbuch)', () => {
     expect(bars.some(b => b.classList.contains('opacity-25'))).toBe(false)
   })
 })
+
+describe('DayRibbon Hover über einem Balken', () => {
+  it('zeigt den Akkustand dieses Balkens und dimmt die übrigen leicht', async () => {
+    const bars = await mount(null)
+    bars[2].parentElement!.dispatchEvent(new MouseEvent('mouseenter'))
+    await nextTick()
+    const label = document.querySelector('[data-testid="day-bar-label"]')
+    expect(label?.textContent?.trim()).toMatch(/^\d+ %$/)
+    expect(bars.map(b => b.classList.contains('opacity-50'))).toEqual([true, true, false, true, true, true])
+    bars[2].parentElement!.dispatchEvent(new MouseEvent('mouseleave'))
+    await nextTick()
+    expect(document.querySelector('[data-testid="day-bar-label"]')).toBeNull()
+    expect(bars.some(b => b.classList.contains('opacity-50'))).toBe(false)
+  })
+
+  it('Tipp (Handy, ohne Hover) zeigt den Wert ebenso', async () => {
+    const bars = await mount(null)
+    bars[4].parentElement!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await nextTick()
+    expect(document.querySelector('[data-testid="day-bar-label"]')).not.toBeNull()
+    expect(bars[4].classList.contains('opacity-50')).toBe(false)
+    expect(bars[0].classList.contains('opacity-50')).toBe(true)
+    bars[4].parentElement!.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+    await nextTick()
+    expect(document.querySelector('[data-testid="day-bar-label"]')).toBeNull()
+  })
+
+  it('keine Textzeile unter dem Diagramm', async () => {
+    await mount(null)
+    expect(document.querySelector('[data-testid="day-ribbon-caption"]')).toBeNull()
+  })
+})
