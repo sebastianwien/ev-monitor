@@ -149,7 +149,7 @@
       </div>
 
       <!-- All rows stay in the DOM (links for search engines); collapsed, rows after the first 8 are only hidden -->
-      <TransitionGroup v-else tag="ol" class="mr-list mt-3 list-none border-t border-gray-200 lg:mt-0 lg:border-t-0 dark:border-gray-800" move-class="transition-transform duration-300 ease-out motion-reduce:transition-none">
+      <ol v-else class="mr-list mt-3 list-none border-t border-gray-200 lg:mt-0 lg:border-t-0 dark:border-gray-800">
         <ModelRankingRow
           v-for="(item, i) in ranked"
           :key="item.key"
@@ -169,7 +169,7 @@
           @toggle="openKey = openKey === item.key ? null : item.key"
           @compare="toggleCompare(item.key)"
         />
-      </TransitionGroup>
+      </ol>
       <div v-if="!loading && !loadError" class="grid justify-items-center gap-3 px-4 pb-6 pt-4 md:px-7">
         <button v-if="collapsed" type="button" class="inline-flex min-h-11 items-center gap-1.5 font-semibold text-green-700 underline-offset-4 hover:underline dark:text-green-400" data-testid="show-all" @click="showAll = true">
           {{ t('models_ranking.show_all', { count: formatNumber(ranked.length) }) }}
