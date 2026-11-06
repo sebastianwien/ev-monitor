@@ -17,7 +17,7 @@
               <span class="text-2xl font-bold text-gray-900 dark:text-gray-100">EV Monitor</span>
             </span>
             <span class="ci-logo-v1 items-center gap-2">
-              <span class="ci-logo-badge grid h-8 w-8 place-items-center rounded-full"><CiBoltMark class="h-5 w-3" /></span>
+              <CiAppIcon class="h-8 w-8 shrink-0" />
               <span class="ci-logo-word text-[22px]">ev<span class="ci-logo-dot">.</span><span class="ci-logo-monitor">monitor</span></span>
             </span>
           </a>
@@ -121,7 +121,7 @@ import {
 import { useAuthStore } from '../../stores/auth'
 import { useCoinStore } from '../../stores/coins'
 import BoltLogo from './BoltLogo.vue'
-import CiBoltMark from './CiBoltMark.vue'
+import CiAppIcon from './CiAppIcon.vue'
 import ThemeToggle from './ThemeToggle.vue'
 import LocaleSwitcher from './LocaleSwitcher.vue'
 import NavCar from './NavCar.vue'
