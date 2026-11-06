@@ -74,6 +74,16 @@ class MailingOverviewServiceTest {
     }
 
     @Test
+    void goalWithHitsInTheWindow_countsAsSeen_evenIfNotInTheLast30Days() {
+        when(log.sendStats(any())).thenReturn(List.of());
+        when(log.campaignVisits(any())).thenReturn(List.of(new CampaignVisits("re-engagement", 10)));
+        when(log.campaignGoals(any())).thenReturn(List.of(new CampaignGoal("re-engagement", "log_created", 2)));
+        when(events.last30Days()).thenReturn(new EventStats(true, LocalDate.now(), LocalDate.now(), List.of()));
+
+        assertThat(row(service.overview(365), "re-engagement").goalSeen()).isTrue();
+    }
+
+    @Test
     void plausibleOffOrFailing_leavesGoalSeenUnknown() {
         noActivity();
         when(events.last30Days()).thenReturn(new EventStats(false, LocalDate.now(), LocalDate.now(), List.of()));

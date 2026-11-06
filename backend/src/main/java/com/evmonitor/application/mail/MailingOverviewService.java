@@ -57,7 +57,10 @@ public class MailingOverviewService {
         return Arrays.stream(MailType.values()).map(t -> {
             SendStats s = sends.get(t.key());
             long goalVisitors = t.goal() == null ? 0 : goals.getOrDefault(t.key() + "|" + t.goal(), 0L);
-            Boolean goalSeen = t.goal() == null || seenGoals == null ? null : seenGoals.contains(t.goal());
+            // Treffer im gewählten Zeitraum belegen das Goal auch dann, wenn die letzten 30 Tage leer waren
+            Boolean goalSeen = t.goal() == null ? null
+                    : goalVisitors > 0 ? Boolean.TRUE
+                    : seenGoals == null ? null : seenGoals.contains(t.goal());
             return new MailingRow(t.key(), t.kind(), t.title(), t.purpose(), t.trigger(), t.audience(), t.goal(), goalSeen,
                     s == null ? 0 : s.sent(), s == null ? 0 : s.failed(), s == null ? null : s.lastSentAt(),
                     visits.getOrDefault(t.key(), 0L), goalVisitors);
