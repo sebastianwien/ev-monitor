@@ -227,19 +227,6 @@ public class EmailService {
         sendHtmlEmail(MailType.RE_ENGAGEMENT, toEmail, subject, html);
     }
 
-    public void sendAutoSyncAnnouncementEmail(String toEmail, String locale) {
-        String lang = resolveLocale(locale);
-        String html = loadTemplate("autosync-announcement.html", lang, Map.of(
-                "upgradeUrl", campaignUrl("/upgrade", "autosync-announcement"),
-                "consumptionMethodologyUrl", campaignUrl("/consumption-methodology", "autosync-announcement"),
-                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
-        ));
-        String subject = "en".equals(lang)
-                ? "Hey, there's something cool and new!"
-                : "Hey, es gibt was cooles Neues!";
-        sendHtmlEmail(MailType.AUTOSYNC_ANNOUNCEMENT, toEmail, subject, html);
-    }
-
     public void sendAutoSyncSatisfactionEmail(String toEmail, String username, String locale) {
         String lang = resolveLocale(locale);
         String html = loadTemplate("autosync-satisfaction.html", lang, Map.of(
