@@ -1,5 +1,7 @@
 package com.evmonitor.infrastructure.email;
 
+import com.evmonitor.application.mail.MailSendLog;
+import com.evmonitor.application.mail.MailType;
 import com.evmonitor.application.personalrange.PersonalRangeRequest;
 import com.evmonitor.application.personalrange.PersonalRangeRequestFixtures;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
@@ -35,12 +37,13 @@ class EmailServiceTest {
 
     @Mock private JavaMailSender mailSender;
     @Mock private JwtService jwtService;
+    @Mock private MailSendLog mailSendLog;
 
     private EmailService emailService;
 
     @BeforeEach
     void setUp() {
-        emailService = new EmailService(mailSender, jwtService);
+        emailService = new EmailService(mailSender, jwtService, mailSendLog);
         ReflectionTestUtils.setField(emailService, "baseUrl", "http://localhost:5173");
         ReflectionTestUtils.setField(emailService, "fromAddress", "noreply@ev-monitor.net");
     }
@@ -91,7 +94,8 @@ class EmailServiceTest {
                 .doesNotContain("Ladeleistung geschätzt")
                 // weekly charging for the commute, per season: winter big, summer below
                 .contains("Laden fürs Pendeln im Winter").contains("alle 4 Tage").contains("Sommer: alle 7 Tage")
-                .contains("http://localhost:5173/modelle/Tesla/Model_3");
+                .contains("http://localhost:5173/modelle/Tesla/Model_3?utm_source=email&amp;utm_medium=lifecycle&amp;utm_campaign=personal-range-result");
+        verify(mailSendLog).record(MailType.PERSONAL_RANGE_RESULT, "user@example.com", true);
     }
 
     @Test
@@ -262,6 +266,34 @@ class EmailServiceTest {
                 .doesNotContain("utm_");
     }
 
+    @Test
+    void sentMail_isRecordedWithItsCatalogType() throws Exception {
+        when(jwtService.generateUnsubscribeToken(anyString())).thenReturn("jwt-token");
+
+        sendAndGetHtml(() -> emailService.sendReEngagementEmail("u@example.com", "u", "de"));
+        sendAndGetHtml(() -> emailService.sendLoginCodeEmail("u@example.com", "123456", "de"));
+
+        verify(mailSendLog).record(MailType.RE_ENGAGEMENT, "u@example.com", true);
+        verify(mailSendLog).record(MailType.LOGIN_CODE, "u@example.com", true);
+    }
+
+    @Test
+    void failedSend_isRecordedAsFailed_andStillThrows() {
+        when(mailSender.createMimeMessage()).thenReturn(createRealMimeMessage());
+        doThrow(new org.springframework.mail.MailSendException("smtp down")).when(mailSender).send(any(MimeMessage.class));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> emailService.sendVerificationEmail("u@example.com", "t", "de"))
+                .isInstanceOf(RuntimeException.class);
+        verify(mailSendLog).record(MailType.VERIFICATION, "u@example.com", false);
+    }
+
+    @Test
+    void brokenSendLog_neverStopsTheMail() throws Exception {
+        doThrow(new IllegalStateException("db down")).when(mailSendLog).record(any(), anyString(), anyBoolean());
+
+        assertThat(sendAndGetHtml(() -> emailService.sendVerificationEmail("u@example.com", "t", "de"))).isNotNull();
+    }
+
     private String sendAndGetHtml(Runnable send) throws Exception {
         MimeMessage mimeMessage = createRealMimeMessage();
         when(mailSender.createMimeMessage()).thenReturn(mimeMessage);
@@ -299,6 +331,7 @@ class EmailServiceTest {
         assertThat(((InternetAddress) mimeMessage.getFrom()[0]).getPersonal())
                 .isEqualTo("Sebastian von ev-monitor");
         assertThat(mimeMessage.getReplyTo()[0].toString()).isEqualTo("sebastian@ev-monitor.net");
+        verify(mailSendLog).record(MailType.MONTHLY_RECAP, "ihle@example.com", true);
     }
 
     @Test

@@ -63,6 +63,24 @@ class PlausibleSyncServiceTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void sourceGoals_includeTheMailGoals_pageGoalsStayAsConfigured() {
+        List<Query> queries = new java.util.ArrayList<>();
+        when(plausibleClient.query(any())).thenAnswer(inv -> {
+            queries.add(inv.getArgument(0));
+            return answer(inv.getArgument(0));
+        });
+
+        service.sync(D1, D2);
+
+        Query sourceGoals = queries.stream().filter(q -> q.dimensions().contains("visit:utm_campaign")
+                && q.dimensions().contains("event:goal")).findFirst().orElseThrow();
+        assertThat(sourceGoals.goals()).contains("gate_code_verified", "log_created", "checkout_completed")
+                .doesNotHaveDuplicates();
+        assertThat(queries.stream().filter(q -> q.dimensions().contains("visit:entry_page") && q.goals() != null)
+                .flatMap(q -> q.goals().stream())).containsOnly("gate_code_verified");
+    }
+
+    @Test
     void writesNormalizedMergedRowsAndIsIdempotent() {
         when(plausibleClient.query(any())).thenAnswer(inv -> answer(inv.getArgument(0)));
 
