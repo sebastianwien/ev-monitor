@@ -183,6 +183,28 @@ html[data-ci="v1"]:not(.dark) .ci-price-pill {
   font-weight: 600;
 }
 
+/* Logo-CI v1.1: Links, Fokus und aktive Zustände in Signal Violet. Indigo ist im App-CI die Link- und
+   Akzentfarbe, deshalb wird hier die Indigo-Palette auf Violett gelegt. 600 bleibt Signal Violet,
+   weiße Schrift darauf hat 5,3:1 (AA), als Schrift auf Weiß reicht es ebenso. */
+html[data-ci="v1"]:not(.dark) {
+  --color-indigo-50: #ece9ff;
+  --color-indigo-100: #ddd8ff;
+  --color-indigo-200: #c9c1ff;
+  --color-indigo-300: #b4a8ff;
+  --color-indigo-400: #8a7ef6;
+  --color-indigo-500: #6252f0;
+  --color-indigo-600: #6252f0;
+  --color-indigo-700: #4f40d6;
+  --color-indigo-800: #3f31b8;
+  --color-indigo-900: #2f2490;
+}
+/* Fokus violett, auch wo die Klassen grün setzen (focus:ring-green-*, focus-visible:outline-green-*).
+   Rot und Amber bleiben, die tragen Bedeutung (Fehler, Warnung). */
+html[data-ci="v1"]:not(.dark) :focus-visible:not([class*="ring-red-"], [class*="ring-amber-"]) {
+  outline-color: var(--ci-violet) !important;
+  --tw-ring-color: var(--ci-violet) !important;
+}
+
 /* "fehlt" als reiner Text (Kachel "Offen"): violett wie ein Link */
 html[data-ci="v1"]:not(.dark) .ci-missing-text { color: var(--ci-violet-ink); }
 
