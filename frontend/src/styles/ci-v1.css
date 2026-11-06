@@ -1,4 +1,4 @@
-/* Probe-CI "v1" (Marketing-Entwurf app-design-v1): Skin über dem App-CI, nur hell, nur wo
+/* Probe-CI "v1" (Marketing-Entwurf app-design-v1): Skin über dem App-CI, hell und dunkel (Dunkelblock am Ende), nur wo
    composables/useCiSkin.ts data-ci="v1" setzt (?ci=v1). Die Vue-Dateien bleiben unverändert: Tailwind 4
    baut seine Klassen aus diesen Variablen, deshalb färbt das Umstellen der Palette die ganze Seite um.
    Ohne Layer, damit es die Utilities (edge-card, btn-3d) aus index.css überschreibt.
@@ -53,11 +53,11 @@ html[data-ci="v1"]:not(.dark) {
 }
 
 /* index.css setzt die Schrift auf body fest, ohne Variable, deshalb direkt */
-html[data-ci="v1"]:not(.dark) body {
+html[data-ci="v1"] body {
   font-family: var(--font-sans);
 }
 
-html[data-ci="v1"]:not(.dark) :is(h1, h2, h3) {
+html[data-ci="v1"] :is(h1, h2, h3) {
   font-family: var(--ci-heading);
   letter-spacing: -0.01em;
 }
@@ -110,8 +110,8 @@ html[data-ci="v1"]:not(.dark) .ci-selected {
 
 /* Logo: v1-Wortmarke nur im Skin, sonst das App-Logo */
 .ci-logo-v1 { display: none; }
-html[data-ci="v1"]:not(.dark) .ci-logo-default { display: none; }
-html[data-ci="v1"]:not(.dark) .ci-logo-v1 { display: flex; }
+html[data-ci="v1"] .ci-logo-default { display: none; }
+html[data-ci="v1"] .ci-logo-v1 { display: flex; }
 /* Logo-CI v1.1: kleines App-Icon (CiAppIcon.vue) plus Wortmarke Sora, Laufweite -2,5 %.
    "ev" Bold in Forest Ink, Punkt Bold in Volt Green, "monitor" Light in Monitor Teal */
 html[data-ci="v1"]:not(.dark) .ci-logo-word { font-family: var(--ci-heading); font-weight: 700; letter-spacing: -0.025em; line-height: 1; color: #063a31; }
@@ -198,7 +198,7 @@ html[data-ci="v1"]:not(.dark) {
 }
 /* Fokus violett, auch wo die Klassen grün setzen (focus:ring-green-*, focus-visible:outline-green-*).
    Rot und Amber bleiben, die tragen Bedeutung (Fehler, Warnung). */
-html[data-ci="v1"]:not(.dark) :focus-visible:not([class*="ring-red-"], [class*="ring-amber-"]) {
+html[data-ci="v1"] :focus-visible:not([class*="ring-red-"], [class*="ring-amber-"]) {
   outline-color: var(--ci-violet) !important;
   --tw-ring-color: var(--ci-violet) !important;
 }
@@ -213,3 +213,90 @@ html[data-ci="v1"]:not(.dark) .sheet-panel {
   border-color: var(--color-gray-500);
   box-shadow: 0 -10px 30px -12px rgb(6 58 49 / 0.35);
 }
+
+/* ---------- Dunkelmodus (Logo-CI v1.1, abgeleitet) ----------
+   Grundfarben aus dem CI: Fläche Deep Night, Karten Night Green zu 50 % darüber (wie gray-700/50 im App-CI),
+   Schrift Mist, Grün Mint Glow, Geld Spark Amber (9,7:1), Links und Auswahl Violet Light (8,1:1).
+   Die Graustufen sind grün getönt und halten die Kontraste des App-CI (gray-400 auf der Karte 5,5:1, gray-500 4,5:1
+   auf der Fläche). Kanten und Schatten bleiben die harten des App-CI, nur in Mist statt Weiß. */
+html[data-ci="v1"].dark {
+  --font-sans: 'Manrope Variable', system-ui, sans-serif;
+  --ci-heading: 'Sora Variable', 'Manrope Variable', system-ui, sans-serif;
+  --radius-xl: 12px;
+  --radius-2xl: 14px;
+  --radius-3xl: 18px;
+
+  --color-gray-50: #f3fbf8;
+  --color-gray-100: #dff7ef;
+  --color-gray-200: #c4e3d9;
+  --color-gray-300: #a6c9be;
+  --color-gray-400: #89ada2;
+  --color-gray-500: #638a80;
+  --color-gray-600: #2e5f53;
+  --color-gray-700: #0b4a3d;
+  --color-gray-800: #0a2e26;
+  --color-gray-900: #04201a;
+  --color-gray-950: #021310;
+
+  --color-green-300: #9cf8df;
+  --color-green-400: #6af5d0;
+  --color-green-500: #00b08c;
+  /* Knopfgrün wie hell: weiße Schrift 5,7:1 */
+  --color-green-600: #00755f;
+  --color-green-700: #00755f;
+  --color-green-800: #005c4a;
+  --color-green-900: #063a31;
+  --color-green-950: #062a23;
+  --color-story-accent-dark: #6af5d0;
+
+  --color-amber-200: #ffdca8;
+  --color-amber-300: #ffc978;
+  --color-amber-400: #ffb547;
+  --color-amber-500: #ffb547;
+  --color-amber-900: #5e3900;
+
+  --color-indigo-300: #c9c1ff;
+  --color-indigo-400: #b4a8ff;
+  --color-indigo-500: #8a7ef6;
+  --color-indigo-600: #6252f0;
+  --color-indigo-700: #4f40d6;
+  --color-indigo-800: #3f31b8;
+  --color-indigo-900: #2f2490;
+
+  --color-edge: rgb(223 247 239 / 0.35);
+  --color-edge-shadow: rgb(106 245 208 / 0.22);
+  --edge-shadow-base: rgb(106 245 208 / 0.22);
+  --btn-shadow-color: rgb(106 245 208 / 0.22);
+
+  --ci-violet: #b4a8ff;
+  --ci-violet-soft: rgb(98 82 240 / 0.22);
+  --ci-amber: #ffb547;
+  --ci-brand: #00b08c;
+  --ci-lime: #6af5d0;
+}
+
+/* Wortmarke auf Dunkel: "ev" weiß, Punkt und "monitor" Mint Glow */
+html[data-ci="v1"].dark .ci-logo-word { font-family: var(--ci-heading); font-weight: 700; letter-spacing: -0.025em; line-height: 1; color: #fff; }
+html[data-ci="v1"].dark :is(.ci-logo-dot, .ci-logo-monitor) { color: #6af5d0; }
+html[data-ci="v1"].dark .ci-logo-monitor { font-weight: 300; }
+
+/* Farbregeln wie hell: Verbrauch violett, eigener Wert nach Thema, "fehlt" als violette Handlung */
+html[data-ci="v1"].dark [data-ci-topic="energy"] .ci-value { color: var(--ci-violet); }
+html[data-ci="v1"].dark [data-ci-topic="money"] .ci-own { background-color: var(--ci-amber); }
+html[data-ci="v1"].dark [data-ci-topic="energy"] .ci-own { background-color: var(--ci-violet); }
+html[data-ci="v1"].dark .ci-missing { border: 0; background-color: var(--ci-violet-soft); color: var(--ci-violet); }
+html[data-ci="v1"].dark .ci-missing-text { color: var(--ci-violet); }
+html[data-ci="v1"].dark .ci-s2 { background-color: var(--ci-brand); }
+html[data-ci="v1"].dark .ci-loss { background-color: var(--ci-lime); }
+html[data-ci="v1"].dark .ci-price-pill {
+  display: inline-block;
+  margin-top: 2px;
+  padding: 1px 8px;
+  border-radius: 9999px;
+  background-color: rgb(255 181 71 / 0.15);
+  color: var(--ci-amber);
+  font-weight: 600;
+}
+
+/* App-Icon auf dunkler Navbar: die Fläche Deep Night verschwindet sonst im Grund, deshalb eine Mist-Haarlinie. Die halbe Linie liegt außerhalb der viewBox, sichtbar bleiben 3 von 100, rund 1 px */
+html[data-ci="v1"].dark .ci-app-face { stroke: rgb(223 247 239 / 0.35); stroke-width: 6; }

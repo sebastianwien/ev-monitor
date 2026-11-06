@@ -13,7 +13,7 @@
         <stop offset="100%" stop-color="#00755F" />
       </linearGradient>
     </defs>
-    <rect width="100" height="100" rx="22.5" :fill="`url(#${id}-face)`" />
+    <rect class="ci-app-face" width="100" height="100" rx="22.5" :fill="`url(#${id}-face)`" />
     <circle cx="50" cy="50" r="38" fill="#DFF7EF" />
     <svg x="35.4" y="25.7" width="29.2" height="48.6" viewBox="0 0 60 100">
       <path d="M38 0 L4 52 L24 52 L14 100 L56 40 L32 40 Z" :fill="`url(#${id}-bolt)`" />
