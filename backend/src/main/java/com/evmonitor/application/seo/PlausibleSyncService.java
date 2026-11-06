@@ -1,5 +1,6 @@
 package com.evmonitor.application.seo;
 
+import com.evmonitor.application.mail.MailType;
 import com.evmonitor.application.seo.SeoSyncService.SyncResult;
 import com.evmonitor.infrastructure.external.plausible.PlausibleClient;
 import com.evmonitor.infrastructure.external.plausible.PlausibleClient.Query;
@@ -21,10 +22,13 @@ import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * Holt Plausible fensterweise in die eigene DB: je Fenster ein Call für Tage, Seiten, Einstiegsseiten,
@@ -155,10 +159,11 @@ public class PlausibleSyncService {
             sources.add(new SourceRow(day(r), r.dim(1), unset(r.dim(2)), unset(r.dim(3)), (int) r.metric(0), (int) r.metric(1)));
         }
         List<SourceGoalRow> sourceGoals = new ArrayList<>();
-        if (!properties.getGoals().isEmpty()) {
+        List<String> sourceGoalNames = sourceGoals();
+        if (!sourceGoalNames.isEmpty()) {
             List<String> dims = new ArrayList<>(sourceDims);
             dims.add("event:goal");
-            for (Row r : query(List.of("visitors"), from, to, dims, properties.getGoals())) {
+            for (Row r : query(List.of("visitors"), from, to, dims, sourceGoalNames)) {
                 sourceGoals.add(new SourceGoalRow(day(r), r.dim(1), unset(r.dim(2)), unset(r.dim(3)), r.dim(4), (int) r.metric(0)));
             }
         }
@@ -166,6 +171,12 @@ public class PlausibleSyncService {
         Batch batch = new Batch(days, pageRows, pageGoalRows, sources, sourceGoals);
         repository.replaceRange(from, to, batch);
         return batch.size();
+    }
+
+    /** Je Quelle zusätzlich die Ziel-Goals der Mailings, damit der Admin-Tab sie je utm_campaign zeigen kann. */
+    private List<String> sourceGoals() {
+        return Stream.concat(properties.getGoals().stream(), Arrays.stream(MailType.values()).map(MailType::goal))
+                .filter(Objects::nonNull).distinct().toList();
     }
 
     private List<Row> query(List<String> metrics, LocalDate from, LocalDate to, List<String> dims, List<String> goals) {

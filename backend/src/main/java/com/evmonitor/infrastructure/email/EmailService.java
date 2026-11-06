@@ -1,6 +1,8 @@
 package com.evmonitor.infrastructure.email;
 
 import com.evmonitor.application.charging.LongTripPlan;
+import com.evmonitor.application.mail.MailSendLog;
+import com.evmonitor.application.mail.MailType;
 import com.evmonitor.application.personalrange.ChargeRhythm;
 import com.evmonitor.application.personalrange.PersonalRangeRequest;
 import com.evmonitor.application.personalrange.PersonalRangeResponse;
@@ -8,6 +10,7 @@ import com.evmonitor.application.recap.MonthlyRecap;
 import com.evmonitor.application.recap.RecapHighlights;
 import com.evmonitor.infrastructure.security.JwtService;
 import jakarta.mail.internet.MimeMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
@@ -22,11 +25,13 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+@Slf4j
 @Service
 public class EmailService {
 
     private final JavaMailSender mailSender;
     private final JwtService jwtService;
+    private final MailSendLog sendLog;
 
     @Value("${app.base-url:http://localhost:5173}")
     private String baseUrl;
@@ -38,9 +43,10 @@ public class EmailService {
     @Value("${app.mail.personal-reply-to:}")
     private String personalReplyTo;
 
-    public EmailService(JavaMailSender mailSender, JwtService jwtService) {
+    public EmailService(JavaMailSender mailSender, JwtService jwtService, MailSendLog sendLog) {
         this.mailSender = mailSender;
         this.jwtService = jwtService;
+        this.sendLog = sendLog;
     }
 
     public String buildUnsubscribeUrl(String email) {
@@ -84,7 +90,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "EV Monitor - Confirm your email"
                 : "EV Monitor - E-Mail bestätigen";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.VERIFICATION, toEmail, subject, html);
     }
 
     /** Six-digit login code for the gate on the model page. The code goes into subject and body. */
@@ -93,7 +99,7 @@ public class EmailService {
         String html = loadTemplate("login-code.html", lang, Map.of("code", code));
         String subject = "en".equals(lang) ? "Your code: " + code : "Dein Code: " + code;
         try {
-            sendHtmlEmail(toEmail, subject, html);
+            sendHtmlEmail(MailType.LOGIN_CODE, toEmail, subject, html);
         } catch (RuntimeException e) {
             // Default message carries the subject, and the subject carries the code: never log it
             throw new IllegalStateException("Failed to send login code to " + toEmail, e.getCause());
@@ -112,7 +118,7 @@ public class EmailService {
         PersonalRangeResponse r = content.result();
         Map<String, String> vars = new HashMap<>();
         vars.put("model", modelName);
-        vars.put("modelUrl", baseUrl + modelPath);
+        vars.put("modelUrl", campaignUrl(modelPath, MailType.PERSONAL_RANGE_RESULT.key()));
         // The yearly mileage drives the cost, the commute the weekly charging: the profile names both
         String commute = "en".equals(lang)
                 ? "commuting " + in.commuteKmPerDay() + " km on " + in.commuteDays() + " days"
@@ -133,7 +139,7 @@ public class EmailService {
                 : ("en".equals(lang) ? "commuting on 22 days" : "Pendeln an 22 Tagen"));
         String html = loadTemplate("personal-range-result.html", lang, vars);
         String subject = "en".equals(lang) ? "Your result for the " + modelName : "Dein Ergebnis für den " + modelName;
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.PERSONAL_RANGE_RESULT, toEmail, subject, html);
     }
 
     /** "8 h 5 min", "45 min", "9 h": units read the same in German and English */
@@ -194,7 +200,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "Your AutoSync trial ends on " + endsAtText
                 : "Dein AutoSync-Test endet am " + endsAtText;
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.TRIAL_ENDING, toEmail, subject, html);
     }
 
     public void sendPasswordResetEmail(String toEmail, String token, String locale) {
@@ -204,7 +210,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "EV Monitor - Reset your password"
                 : "EV Monitor - Passwort zurücksetzen";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.PASSWORD_RESET, toEmail, subject, html);
     }
 
     public void sendReEngagementEmail(String toEmail, String username, String locale) {
@@ -218,20 +224,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "A quick note from me"
                 : "Kurze Nachricht von mir";
-        sendHtmlEmail(toEmail, subject, html);
-    }
-
-    public void sendAutoSyncAnnouncementEmail(String toEmail, String locale) {
-        String lang = resolveLocale(locale);
-        String html = loadTemplate("autosync-announcement.html", lang, Map.of(
-                "upgradeUrl", campaignUrl("/upgrade", "autosync-announcement"),
-                "consumptionMethodologyUrl", campaignUrl("/consumption-methodology", "autosync-announcement"),
-                "unsubscribeUrl", buildUnsubscribeUrl(toEmail)
-        ));
-        String subject = "en".equals(lang)
-                ? "Hey, there's something cool and new!"
-                : "Hey, es gibt was cooles Neues!";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.RE_ENGAGEMENT, toEmail, subject, html);
     }
 
     public void sendAutoSyncSatisfactionEmail(String toEmail, String username, String locale) {
@@ -244,7 +237,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "How is AutoSync working for you?"
                 : "Wie läuft AutoSync für dich?";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.AUTOSYNC_SATISFACTION, toEmail, subject, html);
     }
 
     public void sendAutoSyncDormantEmail(String toEmail, String username, String locale) {
@@ -258,7 +251,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "Your car's been busy while you were away"
                 : "Dein Auto war fleißig, während du weg warst";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.AUTOSYNC_DORMANT, toEmail, subject, html);
     }
 
     public void sendOnboardingReminderEmail(String toEmail, String username, String locale) {
@@ -271,7 +264,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "EV Monitor - Ready for your first charging log?"
                 : "EV Monitor - Alles bereit für dein erstes Ladetagebuch?";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.ONBOARDING_REMINDER, toEmail, subject, html);
     }
 
     // ── EU Data Act AutoSync (VW Group) ──────────────────────────────────────────
@@ -286,7 +279,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "Your car now reports via the VW Data Act portal - Smartcar paused"
                 : "Dein Auto meldet jetzt über das VW-Data-Act-Portal - Smartcar pausiert";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.EUDA_HANDOVER, toEmail, subject, html);
     }
 
     public void sendVwEudaConnectionLostEmail(String toEmail, String username, String locale) {
@@ -299,7 +292,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "VW Data Act connection interrupted - please sign in again"
                 : "VW-Data-Act-Verbindung unterbrochen - bitte einmal neu anmelden";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.EUDA_CONNECTION_LOST, toEmail, subject, html);
     }
 
     public void sendVwEudaHistoryImportedEmail(String toEmail, String username, String locale,
@@ -315,7 +308,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "Your charging history is here: " + imported + " sessions imported"
                 : "Deine Ladehistorie ist da: " + imported + " Ladevorgänge importiert";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.EUDA_HISTORY_IMPORTED, toEmail, subject, html);
     }
 
     public void sendVwEudaTrialEndingEmail(String toEmail, String username, String locale, LocalDate endsAt) {
@@ -330,7 +323,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "Your VW Data Act AutoSync trial ends on " + endsAtText
                 : "Dein VW-Data-Act-AutoSync-Test endet am " + endsAtText;
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.EUDA_TRIAL_ENDING, toEmail, subject, html);
     }
 
     public void sendVwEudaTrialEndedEmail(String toEmail, String username, String locale) {
@@ -343,7 +336,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "VW Data Act AutoSync paused - your trial has ended"
                 : "VW-Data-Act-AutoSync pausiert - dein Test ist zu Ende";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.EUDA_TRIAL_ENDED, toEmail, subject, html);
     }
 
     // ── Monatsrückblick ─────────────────────────────────────────────────────────────
@@ -375,8 +368,10 @@ public class EmailService {
             message.setHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
             mailSender.send(message);
         } catch (Exception e) {
+            recordSend(MailType.MONTHLY_RECAP, recap.email(), false);
             throw new RuntimeException("Failed to send email '" + mail.subject() + "' to " + recap.email(), e);
         }
+        recordSend(MailType.MONTHLY_RECAP, recap.email(), true);
     }
 
     private static final Map<String, String> REJECTION_REASONS_DE = Map.of(
@@ -410,7 +405,7 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? "Your text about the " + mail.modelName() + " was not published"
                 : "Dein Text zum " + mail.modelName() + " wurde nicht veröffentlicht";
-        sendHtmlEmail(mail.toEmail(), subject, html);
+        sendHtmlEmail(MailType.RATING_REVIEW_REJECTED, mail.toEmail(), subject, html);
     }
 
     /**
@@ -426,10 +421,10 @@ public class EmailService {
         String subject = "en".equals(lang)
                 ? vehicleLabel + " is now available - add your car"
                 : vehicleLabel + " ist jetzt da - leg dein Auto an";
-        sendHtmlEmail(toEmail, subject, html);
+        sendHtmlEmail(MailType.MISSING_VEHICLE_DONE, toEmail, subject, html);
     }
 
-    private void sendHtmlEmail(String toEmail, String subject, String html) {
+    private void sendHtmlEmail(MailType type, String toEmail, String subject, String html) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -439,7 +434,18 @@ public class EmailService {
             helper.setText(html, true);
             mailSender.send(message);
         } catch (Exception e) {
+            recordSend(type, toEmail, false);
             throw new RuntimeException("Failed to send email '" + subject + "' to " + toEmail, e);
+        }
+        recordSend(type, toEmail, true);
+    }
+
+    /** Das Protokoll darf nie den Versand stören: Fehler dort werden nur geloggt, ohne Adresse. */
+    private void recordSend(MailType type, String toEmail, boolean sent) {
+        try {
+            sendLog.record(type, toEmail, sent);
+        } catch (RuntimeException e) {
+            log.warn("Mail send log failed for {}: {}", type.key(), e.getMessage());
         }
     }
 

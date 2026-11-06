@@ -16,14 +16,16 @@ declare global {
   }
 }
 
+import type { AnalyticsEvent } from './analyticsEvents'
+
 class AnalyticsService {
   /**
    * Track a custom event
    *
-   * @param event Event name (e.g., 'onboarding_started')
+   * @param event Name aus dem Katalog (analyticsEvents.ts): neues Event = neuer Eintrag dort
    * @param props Optional properties (max 30 props, each max 300 chars)
    */
-  track(event: string, props?: Record<string, string | number | boolean>): void {
+  track(event: AnalyticsEvent, props?: Record<string, string | number | boolean>): void {
     if (typeof window === 'undefined') return
 
     // Check if Plausible is loaded

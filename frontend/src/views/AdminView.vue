@@ -27,6 +27,7 @@ import { Line } from 'vue-chartjs'
 import AdminStripeTab from '../components/admin/AdminStripeTab.vue'
 import AdminWebhooksTab from '../components/admin/AdminWebhooksTab.vue'
 import AdminSurveysTab from '../components/admin/AdminSurveysTab.vue'
+import AdminMailingsTab from '../components/admin/AdminMailingsTab.vue'
 import AdminImportsTab from '../components/admin/AdminImportsTab.vue'
 import AdminVoiceUsageTab from '../components/admin/AdminVoiceUsageTab.vue'
 import AdminRatingsTab from '../components/admin/AdminRatingsTab.vue'
@@ -42,8 +43,8 @@ const route = useRoute()
 const authStore = useAuthStore()
 
 // ── Tabs ──────────────────────────────────────────────────────────────────────
-type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'seo' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'voice' | 'ratings' | 'specs' | 'vorschlaege' | 'wartung'
-const TABS: Tab[] = ['users', 'growth', 'activity', 'seo', 'stripe', 'webhooks', 'imports', 'surveys', 'voice', 'ratings', 'specs', 'vorschlaege', 'impersonate', 'wartung']
+type Tab = 'impersonate' | 'users' | 'growth' | 'activity' | 'seo' | 'stripe' | 'webhooks' | 'imports' | 'surveys' | 'mailings' | 'voice' | 'ratings' | 'specs' | 'vorschlaege' | 'wartung'
+const TABS: Tab[] = ['users', 'growth', 'activity', 'seo', 'stripe', 'webhooks', 'imports', 'surveys', 'mailings', 'voice', 'ratings', 'specs', 'vorschlaege', 'impersonate', 'wartung']
 /** Offene Erfahrungstexte für das Tab-Label, beim Öffnen der Seite einmal geladen. */
 const openRatingTexts = ref<number | null>(null)
 adminRatingService.openCount().then(n => { openRatingTexts.value = n }).catch(() => { /* Label ohne Zahl */ })
@@ -389,6 +390,7 @@ const onResizeUp = () => {
             { key: 'webhooks', label: 'Smartcar-Ladungen' },
             { key: 'imports', label: 'Importe' },
             { key: 'surveys', label: 'Umfragen' },
+            { key: 'mailings', label: 'Mailings' },
             { key: 'voice', label: 'Mistral' },
             { key: 'ratings', label: openRatingTexts === null ? 'Bewertungen' : `Bewertungen (${openRatingTexts} offen)` },
             { key: 'specs', label: 'Fahrzeug-Specs' },
@@ -605,6 +607,8 @@ const onResizeUp = () => {
       <AdminImportsTab v-else-if="activeTab === 'imports'" />
 
       <AdminSurveysTab v-else-if="activeTab === 'surveys'" />
+
+      <AdminMailingsTab v-else-if="activeTab === 'mailings'" />
 
       <AdminVoiceUsageTab v-else-if="activeTab === 'voice'" />
 

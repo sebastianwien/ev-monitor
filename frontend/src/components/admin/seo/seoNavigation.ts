@@ -1,6 +1,6 @@
 import type { SeoModelFilter, SeoPageFilter, SeoQueryFilter } from '../../../api/seoService'
 
-export type SeoSub = 'overview' | 'keywords' | 'landingpages' | 'acquisition' | 'audit' | 'serp'
+export type SeoSub = 'overview' | 'keywords' | 'landingpages' | 'acquisition' | 'audit' | 'serp' | 'events'
 
 /** Sprung aus der Übersicht in eine Ansicht mit vorgewähltem Befundfilter, Modell-Datenbasis oder Suchbegriff. */
 export interface SeoNavigation {

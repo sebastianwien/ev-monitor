@@ -290,6 +290,15 @@ onMounted(async () => {
             Ihre E-Mail-Adresse und den Inhalt der jeweiligen Nachricht.
           </p>
           <p class="mt-4">
+            Welche E-Mail wir wann an Ihr Konto gesendet haben, protokollieren wir (Art der Nachricht, Zeitpunkt
+            und ob der Versand gelang, ohne Inhalt), um den Versand zu überwachen und zu verbessern. Die Einträge
+            löschen wir nach 12 Monaten, bei Kontolöschung sofort. Links in unseren E-Mails tragen den Namen der
+            jeweiligen Nachricht (z. B. <code>utm_campaign=monthly-recap</code>), damit die Webanalyse
+            (Abschnitt 13) Besuche dieser Nachricht zuordnen kann; ein Bezug zu Ihrer Person entsteht dabei nicht.
+            Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einem zuverlässigen und
+            wirksamen E-Mail-Versand).
+          </p>
+          <p class="mt-4">
             Wenn Sie uns per E-Mail kontaktieren, speichern wir Ihre Nachricht und Ihre Adresse zur Bearbeitung
             der Anfrage und löschen sie, sobald die Anfrage abgeschlossen ist und keine Aufbewahrungspflicht
             entgegensteht.
@@ -528,7 +537,7 @@ onMounted(async () => {
             Wir passen diese Datenschutzerklärung bei geänderter Rechtslage oder Änderungen des Dienstes an. Die
             jeweils aktuelle Fassung finden Sie unter ev-monitor.net/datenschutz.
           </p>
-          <p class="mt-4 text-sm text-gray-500">Stand: Oktober 2026</p>
+          <p class="mt-4 text-sm text-gray-500">Stand: November 2026</p>
         </section>
       </div>
 

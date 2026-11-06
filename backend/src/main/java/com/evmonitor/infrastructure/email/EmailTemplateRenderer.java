@@ -32,17 +32,20 @@ public final class EmailTemplateRenderer {
     }
 
     public static String render(String templateName, String lang, Map<String, String> variables, Set<String> sections) {
+        String template = applySections(source(templateName, lang), sections);
+        for (Map.Entry<String, String> entry : variables.entrySet()) {
+            template = template.replace("{{" + entry.getKey() + "}}", escapeHtml(entry.getValue()));
+        }
+        return template;
+    }
+
+    /** Rohtext des Templates mit Platzhaltern und Abschnitten, für die Vorschau im Admin. */
+    static String source(String templateName, String lang) {
         try {
             ClassPathResource localeResource = new ClassPathResource("email-templates/" + lang + "/" + templateName);
             ClassPathResource fallbackResource = new ClassPathResource("email-templates/" + templateName);
-
             ClassPathResource resource = localeResource.exists() ? localeResource : fallbackResource;
-            String template = applySections(resource.getContentAsString(StandardCharsets.UTF_8), sections);
-
-            for (Map.Entry<String, String> entry : variables.entrySet()) {
-                template = template.replace("{{" + entry.getKey() + "}}", escapeHtml(entry.getValue()));
-            }
-            return template;
+            return resource.getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException e) {
             throw new RuntimeException("Failed to load email template: " + templateName, e);
         }
