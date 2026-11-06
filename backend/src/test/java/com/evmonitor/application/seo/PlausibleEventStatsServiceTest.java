@@ -3,6 +3,7 @@ package com.evmonitor.application.seo;
 import com.evmonitor.infrastructure.external.plausible.PlausibleClient.Query;
 import com.evmonitor.infrastructure.external.plausible.PlausibleClient.Row;
 import com.evmonitor.testutil.AbstractIntegrationTest;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +26,12 @@ class PlausibleEventStatsServiceTest extends AbstractIntegrationTest {
     @BeforeEach
     void setUp() {
         reset(plausibleClient);
+        service.clearCache();
+    }
+
+    /** Der Service ist ein Singleton im geteilten Context: gefüllter Cache würde spätere Tests (AdminSeoController) verfälschen. */
+    @AfterEach
+    void clearSharedCache() {
         service.clearCache();
     }
 
