@@ -129,6 +129,11 @@ onMounted(load)
                 <span v-if="goalRate(m.goalVisitors, m.visits) !== null" class="text-gray-400 text-xs" title="Goal-Besucher geteilt durch Besuche, beides als Summe der Tage: eine Näherung">(ca. {{ goalRate(m.goalVisitors, m.visits) }} %)</span>
               </template>
               <span v-else class="text-gray-500">nur Info</span>
+              <span
+                v-if="m.goal && m.goalSeen === false"
+                class="block text-xs text-amber-400"
+                title="Plausible hat dieses Goal in den letzten 30 Tagen nicht gemeldet: entweder nicht unter Settings > Goals angelegt oder ohne Treffer."
+              >In Plausible nicht gefunden</span>
             </span>
             <component :is="openKey === m.key ? ChevronUpIcon : ChevronDownIcon" class="w-5 h-5 text-gray-400 justify-self-end" aria-hidden="true" />
           </button>

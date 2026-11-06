@@ -8,6 +8,8 @@ export interface AdminMailing {
   trigger: string
   audience: string
   goal: string | null
+  /** Plausible meldete das Goal in den letzten 30 Tagen; false = nicht angelegt oder ohne Treffer; null = unbekannt. */
+  goalSeen: boolean | null
   sent: number
   failed: number
   lastSentAt: string | null
