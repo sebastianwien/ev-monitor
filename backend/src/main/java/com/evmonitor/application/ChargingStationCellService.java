@@ -16,7 +16,7 @@ import java.util.Optional;
 import java.util.regex.Pattern;
 
 /**
- * Die Ladestandorte einer Geohash-6-Zelle (rund 1,2 × 0,6 km) für die Säulenkarte.
+ * Die Ladestandorte einer Geohash-6-Zelle (in Deutschland etwa 0,75 × 0,6 km) für die Säulenkarte.
  *
  * <p>Anders als {@link NearbyCpoService} je Standort statt je Betreiber: EnBW steht in einer
  * Innenstadt-Zelle oft an mehreren Plätzen, jeder ist ein eigener Pin. Einrichtungen desselben
