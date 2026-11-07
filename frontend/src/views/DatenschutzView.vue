@@ -165,7 +165,7 @@ onMounted(async () => {
             öffnen. An unseren Server gehen nur die Kartenfelder des sichtbaren Ausschnitts, jedes rund 1,2 × 0,6 km
             groß, nie Ihre Position. Unser Server fragt für diese Felder das Ladesäulenregister über ArcGIS Online
             ab, ohne Ihre IP-Adresse und ohne Bezug zu Ihrer Person, und hält die Antwort bis zu 30 Tage je Feld
-            vor. Gespeichert wird zu Ihrer Person dabei nichts. Ihr Browser merkt sich lokal die zuletzt gezeigte
+            vor. Ihr Kartenausschnitt wird dabei nicht gespeichert. Ihr Browser merkt sich lokal die zuletzt gezeigte
             Kartenmitte, auf ein solches Feld gerundet, damit die Karte beim nächsten Öffnen sofort dort steht.
             Die Kartenbilder lädt Ihr Browser von der OpenStreetMap Foundation (Abschnitt 8), die Adresssuche
             nutzt Photon von komoot wie die Ortssuche beim Erfassen (nächster Absatz).
