@@ -167,6 +167,22 @@ onMounted(async () => {
             unseren Server übermittelt und nicht dauerhaft gespeichert.
           </p>
           <p class="mt-4">
+            <strong>Säulenkarte:</strong> Im Bereich "Säulen" zeigt eine Karte öffentliche Ladesäulen mit ihren
+            Preisen. Geben Sie Ihre Position frei, verwendet die App sie nur auf Ihrem Gerät, um die Karte dort zu
+            öffnen. An unseren Server gehen nur die Kartenfelder des sichtbaren Ausschnitts, jedes etwa 0,75 × 0,6 km
+            groß, nie Ihre Position. Unser Server fragt für diese Felder das Ladesäulenregister über ArcGIS Online
+            ab, ohne Ihre IP-Adresse und ohne Bezug zu Ihrer Person, und hält die Antwort bis zu 30 Tage je Feld
+            vor. Ihr Kartenausschnitt wird dabei nicht gespeichert. Ihr Browser merkt sich lokal die zuletzt
+            gezeigte Kartenmitte, auf ein solches Feld gerundet, damit die Karte beim nächsten Öffnen sofort dort
+            steht. Die Kartenbilder lädt Ihr Browser direkt von den Kartenservern der OpenStreetMap Foundation
+            (Vereinigtes Königreich), die dabei Ihre IP-Adresse und den angezeigten Ausschnitt erhält. Die
+            Adresssuche der Karte sendet den Suchtext schon beim Tippen direkt von Ihrem Gerät an den
+            Geokodierungsdienst Photon der komoot GmbH (Potsdam, Deutschland); haben Sie Ihre Position freigegeben,
+            geht eine auf rund 10 km gerundete Position mit, damit Treffer in Ihrer Nähe zuerst erscheinen.
+            Datenschutz:
+            <a href="https://www.komoot.com/privacy" target="_blank" rel="noopener" class="text-green-600 hover:text-green-700">komoot.com/privacy</a>.
+          </p>
+          <p class="mt-4">
             <strong>Ortssuche (OpenStreetMap Nominatim):</strong> Wenn Sie in einem Ortsfeld eine Adresse
             eintippen, wird der eingegebene Suchtext direkt von Ihrem Gerät an den Geokodierungsdienst Nominatim
             der OpenStreetMap Foundation (Vereinigtes Königreich) gesendet. Dabei erhält die OpenStreetMap
