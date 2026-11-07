@@ -1,5 +1,6 @@
 package com.evmonitor.infrastructure.config;
 
+import com.evmonitor.application.ChargingStationCellService;
 import com.evmonitor.application.CpoRegistryMatcher;
 import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.infrastructure.persistence.ChargingNetworkAliasEntity;
@@ -48,7 +49,22 @@ public class CpoRegistryConfig {
             cacheManager.registerCustomCache("nearbyCpos", registryCache());
             cacheManager.registerCustomCache("nearbyStations", registryCache());
             cacheManager.registerCustomCache("stationSearch", registryCache());
+            cacheManager.registerCustomCache(ChargingStationCellService.CACHE, stationCellsCache());
         };
+    }
+
+    /**
+     * Kartenzellen tragen ganze Standortlisten, in Innenstädten über hundert je Zelle. Begrenzt
+     * wird deshalb nach Standorten, nicht nach Zellen: 100.000 Standorte reichen für ganz
+     * Deutschland (rund 115.000 Ladeeinrichtungen, zu Plätzen zusammengefasst weniger) und
+     * bleiben bei unter 1 KB je Standort unter 100 MB.
+     */
+    private static com.github.benmanes.caffeine.cache.Cache<Object, Object> stationCellsCache() {
+        return Caffeine.newBuilder()
+                .maximumWeight(100_000)
+                .weigher((Object key, Object value) -> value instanceof java.util.Collection<?> c ? Math.max(1, c.size()) : 1)
+                .expireAfterWrite(Duration.ofDays(30))
+                .build();
     }
 
     private static com.github.benmanes.caffeine.cache.Cache<Object, Object> registryCache() {

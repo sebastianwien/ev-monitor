@@ -42,10 +42,7 @@ public record NearbyStation(String name, boolean known, int distanceMeters,
     /** "Strasse Nr, PLZ Ort" fuer die Anzeige, null ohne Adresse. */
     @JsonProperty
     public String address() {
-        if (street == null && city == null) return null;
-        String l1 = street == null ? null : houseNumber == null ? street : street + " " + houseNumber;
-        String l2 = city == null ? null : postalCode == null ? city : postalCode + " " + city;
-        return l1 == null ? l2 : l2 == null ? l1 : l1 + ", " + l2;
+        return RegistrySite.address(street, houseNumber, postalCode, city);
     }
 
     /** Hoechste Leistung unabhaengig von der Ladeart. */
