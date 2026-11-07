@@ -6,6 +6,7 @@ import com.evmonitor.infrastructure.external.ChargingStationRegistryClient;
 import com.evmonitor.infrastructure.external.ChargingStationRegistryClient.Station;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.cache.concurrent.ConcurrentMapCacheManager;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ class ChargingStationCellServiceTest {
                 List.of("EnBW", "IONITY"),
                 Map.of("enbw mobility+ ag und co.kg", "EnBW"));
         service = new ChargingStationCellService(registry, matcher,
-                new org.springframework.cache.concurrent.ConcurrentMapCacheManager());
+                new ConcurrentMapCacheManager());
     }
 
     /** Ausstattung einer Einrichtung im Test. */
