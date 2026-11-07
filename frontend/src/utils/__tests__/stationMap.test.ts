@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import geohash from 'ngeohash'
 import {
   cellsForBounds, neighborRing, distanceMeters, sortByDistance, inBounds, routeUrl, MAX_CELLS,
-  formatDistance, formatPricePerKwh, plugLine, feeLine, latestVerified,
+  formatDistance, formatPricePerKwh, plugLine, feeLine, latestVerified, stationsNotice,
 } from '../stationMap'
 
 /** Hannover Kröpcke, ein öffentlicher Platz. */
@@ -118,5 +118,30 @@ describe('routeUrl', () => {
 
   it('sonst Google Maps', () => {
     expect(routeUrl(52.3745, 9.7385, false)).toBe('https://www.google.com/maps/dir/?api=1&destination=52.3745,9.7385')
+  })
+})
+
+describe('stationsNotice', () => {
+  const base = { tooWide: false, located: 'ok' as const, remembered: true, outsideGermany: false, inView: 3, failed: false, viewLoaded: true, ringLoaded: true, listed: 3 }
+
+  it('alles da: kein Hinweis', () => {
+    expect(stationsNotice(base)).toBeNull()
+  })
+
+  it('zu weit draußen: heranzoomen; ohne Standort und ohne gemerkte Mitte: Ort suchen', () => {
+    expect(stationsNotice({ ...base, tooWide: true })).toBe('zoom')
+    expect(stationsNotice({ ...base, tooWide: true, located: 'denied', remembered: false })).toBe('search')
+    expect(stationsNotice({ ...base, tooWide: true, located: 'denied', remembered: true })).toBe('zoom')
+  })
+
+  it('außerhalb Deutschlands nur, solange dort keine Säule steht', () => {
+    expect(stationsNotice({ ...base, outsideGermany: true, inView: 0, listed: 0 })).toBe('outside')
+    expect(stationsNotice({ ...base, outsideGermany: true, inView: 2 })).toBeNull()
+  })
+
+  it('Fehler vor leer; leer erst, wenn auch die Nachbarfelder da sind', () => {
+    expect(stationsNotice({ ...base, failed: true })).toBe('error')
+    expect(stationsNotice({ ...base, inView: 0, listed: 0, ringLoaded: false })).toBeNull()
+    expect(stationsNotice({ ...base, inView: 0, listed: 0 })).toBe('empty')
   })
 })

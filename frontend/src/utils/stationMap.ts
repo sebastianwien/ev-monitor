@@ -129,3 +129,30 @@ export function routeUrl(lat: number, lon: number, apple: boolean): string {
 export function isAppleDevice(nav: Pick<Navigator, 'userAgent' | 'maxTouchPoints'> = navigator): boolean {
   return /iPhone|iPad|iPod/.test(nav.userAgent) || (/Macintosh/.test(nav.userAgent) && nav.maxTouchPoints > 1)
 }
+
+export type StationsNotice = 'zoom' | 'search' | 'outside' | 'error' | 'empty' | null
+
+export interface NoticeInput {
+  /** Ausschnitt braucht mehr als zwölf Felder */
+  tooWide: boolean
+  located: 'pending' | 'ok' | 'denied'
+  /** Karte öffnete an einer gemerkten Mitte */
+  remembered: boolean
+  outsideGermany: boolean
+  inView: number
+  /** Ein Feld blieb ohne Antwort (Register, Drossel) */
+  failed: boolean
+  viewLoaded: boolean
+  ringLoaded: boolean
+  /** Zeilen in der Liste, auch die nächsten aus den Nachbarfeldern */
+  listed: number
+}
+
+/** Genau ein Satz im Sheet, als Handlung; null, wenn die Liste für sich spricht. */
+export function stationsNotice(n: NoticeInput): StationsNotice {
+  if (n.tooWide) return n.located === 'denied' && !n.remembered ? 'search' : 'zoom'
+  if (n.outsideGermany && n.inView === 0) return 'outside'
+  if (n.failed) return 'error'
+  if (n.viewLoaded && n.ringLoaded && n.listed === 0) return 'empty'
+  return null
+}

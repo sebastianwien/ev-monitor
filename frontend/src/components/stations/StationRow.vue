@@ -21,7 +21,7 @@ const meta = computed(() => [formatDistance(props.distanceMeters, locale.value),
     @click="emit('select')">
     <span class="min-w-0 flex-1">
       <span class="block truncate text-base font-bold">{{ station.name }}</span>
-      <span class="block truncate text-[13px] text-gray-600 tabular-nums dark:text-gray-400">{{ meta }}</span>
+      <span class="block text-[13px] leading-snug text-gray-600 tabular-nums dark:text-gray-400">{{ meta }}</span>
     </span>
     <span v-if="price" class="shrink-0 text-right">
       <span class="ci-money text-[15px] font-bold tabular-nums">{{ formatEur(price.pricePerKwh, locale) }}</span>

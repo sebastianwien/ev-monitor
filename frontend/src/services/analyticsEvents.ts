@@ -129,6 +129,11 @@ export const ANALYTICS_EVENTS = {
   site_question_answered: { area: 'story', title: 'Ladeort-Frage beantwortet', question: 'Wie viele Ladungen werden so einem Ort zugeordnet?', where: 'Ladeort-Fragen', props: { logs: 'zugeordnete Ladungen' } },
   site_question_unknown: { area: 'story', title: 'Ladeort unbekannt', question: 'Wie oft kennen Nutzer den Ort nicht?', where: 'Ladeort-Fragen' },
   ticker_hidden: { area: 'nutzung', title: 'Ticker aus-/eingeblendet', question: 'Wer blendet den Ticker ganz aus?', where: 'Einstellungen', props: { state: 'shown oder hidden' } },
+  stations_opened: { area: 'nutzung', title: 'Säulenkarte geöffnet', question: 'Wie oft wird die Säulenkarte genutzt?', where: '/stations', props: { start: 'remembered (gemerkte Mitte) oder default' } },
+  station_selected: { area: 'nutzung', title: 'Säule geöffnet', question: 'Welche Säulen schauen sich Nutzer an, mit oder ohne Preis?', where: '/stations', props: { from: 'pin oder list', priced: 'true oder false' } },
+  station_route_clicked: { area: 'nutzung', title: 'Route zur Säule gestartet', question: 'Führt die Karte zu einer Ladung?', where: '/stations, Säule', props: { known: 'Betreiber im Katalog' } },
+  stations_search_used: { area: 'nutzung', title: 'Säulenkarte: Ort gesucht', question: 'Wird für einen anderen Ort als den Standort gesucht?', where: '/stations' },
+  stations_type_switched: { area: 'nutzung', title: 'Säulenkarte: Ladeart gewechselt', question: 'Wie viele wollen Normalladen statt Schnellladen?', where: '/stations', props: { type: 'AC oder DC' } },
 
   // Import und Verbindungen
   import_tab_clicked: { area: 'daten', title: 'Import-Reiter geklickt', question: 'Welche Integrationen werden angeklickt?', where: '/imports', props: { tab: 'Reiter' } },

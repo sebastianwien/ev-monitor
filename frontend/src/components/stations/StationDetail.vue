@@ -10,7 +10,7 @@ import { ChevronLeftIcon, MapPinIcon } from '@heroicons/vue/24/outline'
 import { chargingStationService, type MapStation, type StationTariff } from '../../api/chargingStationService'
 import { analytics } from '../../services/analytics'
 import { formatDistance, latestVerified, routeUrl, type ChargeType } from '../../utils/stationMap'
-import { formatDay, stationMeta } from './stationText'
+import { formatDay, openingLabel, paymentLabel, stationMeta } from './stationText'
 import StationPriceRow from './StationPriceRow.vue'
 
 const props = defineProps<{ station: MapStation; type: ChargeType; distanceMeters: number; apple: boolean }>()
@@ -43,7 +43,8 @@ onUnmounted(() => controller?.abort())
 
 const meta = computed(() => stationMeta(props.station, props.type, t).join(' · '))
 const where = computed(() => [formatDistance(props.distanceMeters, locale.value),
-  props.station.openingHours ? t('stations.opening_hours', { v: props.station.openingHours }) : null].filter(Boolean).join(' · '))
+  openingLabel(props.station.openingHours, t)].filter(Boolean).join(' · '))
+const payment = computed(() => paymentLabel(props.station.payment))
 const route = computed(() => routeUrl(props.station.latitude, props.station.longitude, props.apple))
 const verified = computed(() => {
   const iso = tariffs.value ? latestVerified(tariffs.value) : null
@@ -55,7 +56,7 @@ const onRoute = () => analytics.track('station_route_clicked', { known: props.st
 
 <template>
   <div data-testid="station-detail" class="pb-6">
-    <div class="flex items-center gap-1 px-2">
+    <div class="sticky top-0 z-10 flex items-center gap-1 bg-white px-2 dark:bg-gray-800">
       <button type="button" data-testid="station-back"
         class="grid h-11 w-11 shrink-0 place-items-center rounded-full text-gray-900 hover:bg-black/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-600 dark:text-gray-100 dark:hover:bg-white/10"
         :aria-label="t('stations.back')" @click="emit('back')">
@@ -69,7 +70,7 @@ const onRoute = () => analytics.track('station_route_clicked', { known: props.st
         <div v-if="station.address" class="text-[15px] text-gray-900 dark:text-gray-100">{{ station.address }}</div>
         <div class="mt-0.5">{{ where }}</div>
         <div v-if="meta">{{ meta }}</div>
-        <div v-if="station.payment">{{ t('stations.payment', { v: station.payment }) }}</div>
+        <div v-if="payment">{{ t('stations.payment', { v: payment }) }}</div>
       </div>
 
       <a :href="route" target="_blank" rel="noopener" data-testid="station-route"

@@ -17,7 +17,7 @@ beforeEach(() => { tariffs.mockReset(); track.mockReset() })
 
 const station: MapStation = {
   id: '1', name: 'EWE Go', known: true, latitude: 52.3745, longitude: 9.7385, maxAcKw: 22, maxDcKw: 150, chargePoints: 4,
-  plugTypes: ['Typ 2', 'CCS'], address: 'Georgstraße 1, 30159 Hannover', openingHours: '24/7', payment: 'Ladekarte; App',
+  plugTypes: ['Typ 2', 'CCS'], address: 'Georgstraße 1, 30159 Hannover', openingHours: '247', payment: 'RFID-Karte;Kreditkarte (NFC);',
   priceAc: null, priceDc: { pricePerKwh: 0.52, cardName: 'EWE Go', variant: null },
 }
 const tariff = (o: Partial<StationTariff>): StationTariff => ({
@@ -50,7 +50,9 @@ describe('StationDetail', () => {
     const t = text(host)
     expect(t).toContain('Georgstraße 1, 30159 Hannover')
     expect(t).toContain('CCS bis 150 kW · 4 Ladepunkte')
-    expect(t).toContain('Öffnungszeiten: 24/7')
+    // Register: "247" heißt rund um die Uhr, Bezahlarten mit Semikolon
+    expect(t).toContain('250 m · rund um die Uhr')
+    expect(t).toContain('Bezahlen: RFID-Karte, Kreditkarte (NFC)')
     expect(t).toContain('So viel kostet Laden hier')
     const rows = [...host.querySelectorAll('[data-testid="station-price-row"]')].map(text)
     expect(rows[0]).toContain('EWE Go')
@@ -109,5 +111,14 @@ describe('StationDetail', () => {
     host.querySelector<HTMLButtonElement>('button[data-testid="station-prices-retry"]')!.click()
     for (let i = 0; i < 4; i++) { await Promise.resolve(); await nextTick() }
     expect(host.querySelectorAll('[data-testid="station-price-row"]')).toHaveLength(1)
+  })
+
+  it('Öffnungszeiten "Keine Angabe" fallen weg, "Eingeschränkt" als Klartext', async () => {
+    tariffs.mockResolvedValue(null)
+    const { host } = await mount({ station: { ...station, openingHours: 'Keine Angabe' } })
+    expect(text(host)).not.toContain('Keine Angabe')
+    app?.unmount(); document.body.innerHTML = ''
+    const second = await mount({ station: { ...station, openingHours: 'Eingeschränkt' } })
+    expect(text(second.host)).toContain('eingeschränkt geöffnet')
   })
 })

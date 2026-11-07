@@ -25,10 +25,14 @@ const props = defineProps<{
   me: LatLon | null
   initialCenter: LatLon
   initialZoom: number
+  /** Unten vom Sheet verdeckt (px): Ausschnitt und Mitte gelten für die sichtbare Karte darüber */
+  bottomInset: number
 }>()
 const emit = defineEmits<{
   moved: [view: { bounds: Bounds; center: LatLon; zoom: number }]
   select: [id: string]
+  /** Der Nutzer zieht oder zoomt die Karte selbst */
+  userMove: []
 }>()
 
 const { t, locale } = useI18n()
@@ -41,8 +45,8 @@ let resizeObserver: ResizeObserver | null = null
 const markers = new Map<string, { marker: L.Marker; html: string }>()
 
 const MAX_ZOOM = 18
-/** Ab Straßenzoom steht jeder Standort für sich */
-const UNCLUSTER_ZOOM = 15
+/** Bis hierhin fasst die Karte Pins zusammen, die sich überdecken würden; in Innenstädten stehen Säulen dicht */
+const UNCLUSTER_ZOOM = 17
 const OSM = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>'
 // Heroicons 24 Outline "bolt": Pin ohne Preis zeigt nur, dass hier eine Säule steht
 const BOLT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/></svg>'
@@ -61,9 +65,10 @@ function ariaLabel(s: MapStation): string {
   return p == null ? s.name : t('stations.pin_aria', { name: s.name, price: formatEur(p, locale.value) })
 }
 
+/** Feste Tippfläche (mindestens 44 px hoch), die Kapsel sitzt unten mittig darin, ihre Spitze auf dem Standort */
+const PIN_BOX: L.PointTuple = [72, 44]
 function icon(html: string): L.DivIcon {
-  // Anker unten Mitte: die Spitze der Kapsel zeigt auf den Standort
-  return L.divIcon({ html, className: 'st-pin-wrap', iconSize: undefined, iconAnchor: [0, 0] })
+  return L.divIcon({ html, className: 'st-pin-wrap', iconSize: PIN_BOX, iconAnchor: [PIN_BOX[0] / 2, PIN_BOX[1]] })
 }
 
 /** Leaflet baut das Element bei jedem setIcon neu: Beschriftung und Auswahl danach wieder setzen. */
@@ -127,12 +132,18 @@ function drawMe() {
   meMarker.getElement()?.setAttribute('aria-label', t('stations.me_aria'))
 }
 
+/** Höhe der sichtbaren Karte über dem Sheet, mindestens ein Drittel der Fläche */
+const visibleHeight = (size: L.Point) => Math.max(size.y / 3, size.y - props.bottomInset)
+
 function emitMoved() {
   if (!map) return
-  const b = map.getBounds()
-  const c = map.getCenter()
+  const size = map.getSize()
+  const h = visibleHeight(size)
+  const sw = map.containerPointToLatLng([0, h])
+  const ne = map.containerPointToLatLng([size.x, 0])
+  const c = map.containerPointToLatLng([size.x / 2, h / 2])
   emit('moved', {
-    bounds: { south: b.getSouth(), west: b.getWest(), north: b.getNorth(), east: b.getEast() },
+    bounds: { south: sw.lat, west: sw.lng, north: ne.lat, east: ne.lng },
     center: { lat: c.lat, lon: c.lng },
     zoom: map.getZoom(),
   })
@@ -150,7 +161,8 @@ function init() {
   }).addTo(map)
   cluster = L.markerClusterGroup({
     disableClusteringAtZoom: UNCLUSTER_ZOOM,
-    maxClusterRadius: 48,
+    // Etwa eine Kapselbreite: Pins, die sich berühren würden, werden zur Gruppe
+    maxClusterRadius: 56,
     showCoverageOnHover: false,
     spiderfyOnMaxZoom: false,
     iconCreateFunction: c => L.divIcon({
@@ -158,30 +170,26 @@ function init() {
     }),
   }).addTo(map)
   map.on('moveend', emitMoved)
+  map.on('dragstart', () => emit('userMove'))
+  map.getContainer().addEventListener('wheel', () => emit('userMove'), { passive: true })
+  map.getContainer().addEventListener('touchstart', e => { if (e.touches.length > 1) emit('userMove') }, { passive: true })
   sync()
   drawMe()
   emitMoved()
 }
 
-/** Hin zu einem Ort, gleitend außer bei "weniger Bewegung". */
+/** Hin zu einem Ort, gleitend außer bei "weniger Bewegung"; er landet in der Mitte der sichtbaren Karte über dem Sheet. */
 function flyTo(center: LatLon, zoom?: number) {
   if (!map) return
   const z = zoom ?? map.getZoom()
-  if (reducedMotion()) map.setView([center.lat, center.lon], z, { animate: false })
-  else map.flyTo([center.lat, center.lon], z, { duration: 0.6 })
-}
-
-/** Der Pin soll über dem Sheet stehen: Karte so verschieben, dass er im freien oberen Teil liegt. */
-function reveal(center: LatLon, coveredPx: number) {
-  if (!map || !container.value) return
   const size = map.getSize()
-  const target = map.latLngToContainerPoint([center.lat, center.lon])
-  const freeMid = (size.y - coveredPx) / 2
-  if (target.y > 0 && target.y < size.y - coveredPx - 24) return
-  map.panBy([0, target.y - freeMid], { animate: !reducedMotion() })
+  const shift = (size.y - visibleHeight(size)) / 2
+  const target = map.unproject(map.project([center.lat, center.lon], z).add([0, shift]), z)
+  if (reducedMotion()) map.setView(target, z, { animate: false })
+  else map.flyTo(target, z, { duration: 0.6 })
 }
 
-defineExpose({ flyTo, reveal })
+defineExpose({ flyTo })
 
 watch(() => [props.stations, props.type, locale.value], sync)
 watch(() => props.selectedId, markSelected)
@@ -206,7 +214,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="stations-map absolute inset-0" data-testid="stations-map">
+  <!-- isolate: Leaflets eigene z-Index-Werte (Kacheln 200 bis Bedienelemente 1000) bleiben unter Sheet und Suche -->
+  <div class="stations-map absolute inset-0 isolate" data-testid="stations-map">
     <div ref="container" class="absolute inset-0" />
   </div>
 </template>
@@ -214,26 +223,30 @@ onUnmounted(() => {
 <style>
 /* Ungescoped: Leaflet baut Pins und Gruppen selbst. .stations-map grenzt auf diese Karte ein. */
 .stations-map .leaflet-container { background: #e5e7eb; font: inherit; }
-.stations-map .st-pin-wrap { background: none; border: 0; width: auto !important; height: auto !important; }
+.stations-map .st-pin-wrap { background: none; border: 0; }
 .stations-map .st-pin-wrap:focus-visible { outline: none; }
 .stations-map .st-pin {
-  position: absolute; left: 0; bottom: 8px; transform: translateX(-50%);
+  position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%);
   display: inline-flex; align-items: center; justify-content: center; min-height: 28px; min-width: 28px;
   padding: 3px 9px; border-radius: 9999px; border: 2px solid #fff;
   background: #111827; color: #fef3c7; font-weight: 700; font-size: 13px; line-height: 1;
   font-variant-numeric: tabular-nums; white-space: nowrap; cursor: pointer;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  transform-origin: 50% calc(100% + 8px);
+  transition: background-color 0.15s ease-out, color 0.15s ease-out, transform 0.15s ease-out;
 }
 .stations-map .st-pin::after {
   content: ""; position: absolute; left: 50%; bottom: -8px; margin-left: -5px;
   border: 5px solid transparent; border-top-color: #111827;
 }
 .stations-map .st-pin-plain { padding: 3px; color: #fff; }
-.stations-map .st-pin.is-selected { background: #4f46e5; color: #fff; z-index: 1; }
+.stations-map .st-pin.is-selected { background: #4f46e5; color: #fff; z-index: 1; transform: translateX(-50%) scale(1.12); }
 .stations-map .st-pin.is-selected::after { border-top-color: #4f46e5; }
+.stations-map .st-pin::after { transition: border-top-color 0.15s ease-out; }
+@media (prefers-reduced-motion: reduce) {
+  .stations-map .st-pin, .stations-map .st-pin::after { transition: none; }
+}
 .stations-map .st-pin-wrap:focus-visible .st-pin { outline: 3px solid #4f46e5; outline-offset: 2px; }
-/* Tap-Ziel mindestens 44 px, auch wenn die Kapsel kleiner ist */
-.stations-map .st-pin::before { content: ""; position: absolute; inset: -10px -6px; }
 .stations-map .st-cluster {
   display: grid; place-items: center; width: 40px; height: 40px; border-radius: 9999px;
   background: #111827; color: #fff; border: 2px solid #fff; font-weight: 700; font-size: 14px;
@@ -244,4 +257,6 @@ onUnmounted(() => {
   border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(17, 24, 39, 0.15);
 }
 .stations-map .leaflet-control-attribution { font-size: 10px; }
+/* Zuordnung über dem Sheet halten, das die Ansicht als --sheet-h meldet */
+.stations-map .leaflet-bottom { bottom: var(--sheet-h, 0px); }
 </style>

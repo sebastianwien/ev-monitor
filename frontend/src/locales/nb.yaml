@@ -4701,5 +4701,7 @@ stations:
   footer: "Priser uten månedsavgift, kontrollert {date}."
   footer_undated: "Priser uten månedsavgift."
   opening_hours: "Åpningstider: {v}"
+  open_247: "døgnåpen"
+  open_limited: "begrenset åpningstid"
   payment: "Betaling: {v}"
   prices_error: "Kunne ikke laste priser."

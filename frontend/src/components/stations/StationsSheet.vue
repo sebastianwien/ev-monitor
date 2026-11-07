@@ -45,19 +45,34 @@ let moved = false
 /** Direkt nach einem Zug schickt der Browser noch einen Klick; der darf die Höhe nicht weiterschalten */
 let swallowClick = false
 
+/**
+ * Bewegung und Loslassen am Fenster abhören: der Finger verlässt den Griff beim ersten Schritt,
+ * danach landen die Ereignisse bei der Karte. Ohne Pointer-Capture bleibt ein Tipp ein Klick.
+ */
+function listen(on: boolean) {
+  if (on) {
+    window.addEventListener('pointermove', onMove)
+    window.addEventListener('pointerup', onUp)
+    window.addEventListener('pointercancel', onUp)
+  } else {
+    window.removeEventListener('pointermove', onMove)
+    window.removeEventListener('pointerup', onUp)
+    window.removeEventListener('pointercancel', onUp)
+  }
+}
 function onDown(e: PointerEvent) {
   if (e.button !== 0) return
   start = { y: e.clientY, h: height.value, id: e.pointerId }
   last = prev = { y: e.clientY, t: e.timeStamp }
   moved = false
+  listen(true)
 }
 function onMove(e: PointerEvent) {
   if (!start || e.pointerId !== start.id) return
   const dy = e.clientY - start.y
   if (!moved && Math.abs(dy) < 4) return
-  // Erst beim Ziehen festhalten: ein Tipp bleibt ein Klick auf Griff oder Zurück-Pfeil
-  if (!moved) (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
   moved = true
+  e.preventDefault()
   prev = last
   last = { y: e.clientY, t: e.timeStamp }
   const h = heights.value
@@ -66,6 +81,7 @@ function onMove(e: PointerEvent) {
 function onUp(e: PointerEvent) {
   if (!start || e.pointerId !== start.id) return
   start = null
+  listen(false)
   if (!moved) return
   const current = dragH.value ?? height.value
   const dt = last.t - prev.t
@@ -100,16 +116,20 @@ onMounted(() => {
   observer = new ResizeObserver(() => { containerH.value = parent.clientHeight })
   observer.observe(parent)
 })
-onUnmounted(() => observer?.disconnect())
+onUnmounted(() => {
+  observer?.disconnect()
+  listen(false)
+})
 
-defineExpose({ heights })
+const scroller = ref<HTMLElement | null>(null)
+defineExpose({ heights, scroller })
 </script>
 
 <template>
   <section ref="root" :aria-label="label" data-testid="stations-sheet" :data-snap="snap"
-    class="absolute inset-x-0 bottom-0 z-[500] flex flex-col overflow-hidden rounded-t-2xl bg-white edge-box dark:bg-gray-800 md:rounded-b-2xl"
+    class="absolute inset-x-0 bottom-0 z-[650] flex flex-col overflow-hidden rounded-t-2xl bg-white edge-box dark:bg-gray-800 md:rounded-b-2xl"
     :style="style">
-    <div class="shrink-0 touch-none select-none" @pointerdown="onDown" @pointermove="onMove" @pointerup="onUp" @pointercancel="onUp">
+    <div class="shrink-0 touch-none select-none" @pointerdown="onDown">
       <button type="button" data-testid="stations-sheet-grip"
         class="flex h-7 w-full items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-indigo-600"
         :aria-label="snap === 'full' ? t('stations.shrink') : t('stations.grow')" @click="onGrip">
@@ -117,7 +137,7 @@ defineExpose({ heights })
       </button>
       <slot name="header" />
     </div>
-    <div class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+    <div ref="scroller" class="min-h-0 flex-1 overflow-y-auto overscroll-contain">
       <slot />
     </div>
   </section>

@@ -4859,5 +4859,7 @@ stations:
   footer: "Prices excl. monthly fee, checked on {date}."
   footer_undated: "Prices excl. monthly fee."
   opening_hours: "Opening hours: {v}"
+  open_247: "open 24/7"
+  open_limited: "limited opening hours"
   payment: "Payment: {v}"
   prices_error: "Prices could not be loaded."
