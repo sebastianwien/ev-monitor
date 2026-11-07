@@ -26,9 +26,13 @@ public final class EvidenceCheck {
         return name != null && !name.isBlank() && squash(pageText).contains(squash(name));
     }
 
-    /** Kleinbuchstaben ohne Leerraum: "AC : 0,52 €" und "AC: 0,52 €" werden gleich. */
+    /**
+     * Kleinbuchstaben ohne Leerraum und ohne Fußnotensternchen: "AC : 0,52 €" und "AC: 0,52 €"
+     * werden gleich, ebenso "Partner-Ladestation* 0,62 €" und "Partner-Ladestation 0,62 €" - das
+     * Modell lässt den Fußnotenverweis beim Zitieren oft weg.
+     */
     private static String squash(String s) {
-        return s.toLowerCase(Locale.ROOT).replace(' ', ' ').replaceAll("\\s+", "");
+        return s.toLowerCase(Locale.ROOT).replace(' ', ' ').replaceAll("[\\s*]+", "");
     }
 
     private static List<String> spellings(BigDecimal price) {

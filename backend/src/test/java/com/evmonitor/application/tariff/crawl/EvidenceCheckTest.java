@@ -32,6 +32,13 @@ class EvidenceCheckTest {
     }
 
     @Test
+    void footnoteAsterisk_onThePage_doesNotBreakTheQuote() {
+        String page = "EWE Go-Ladestation 0,52 € / kWh Partner-Ladestation* 0,62 € / kWh";
+        assertThat(EvidenceCheck.supports(page, "Partner-Ladestation 0,62 € / kWh", new BigDecimal("0.62"))).isTrue();
+        assertThat(EvidenceCheck.supports("Partner-Ladestation 0,62 € / kWh", "Partner-Ladestation* 0,62 € / kWh", new BigDecimal("0.62"))).isTrue();
+    }
+
+    @Test
     void quoteNotOnThePage_doesNotCount() {
         assertThat(EvidenceCheck.supports(PAGE, "Hochpreis AC/DC: 0,82 €/kWh", new BigDecimal("0.82"))).isFalse();
     }
