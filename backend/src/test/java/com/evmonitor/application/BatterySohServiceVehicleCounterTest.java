@@ -37,7 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 /**
- * VEHICLE_COUNTER: Summe der Fahrt-Zähler durch Summe der SoC-Deltas der Polestar-Fahrten mit Zählerpfad.
+ * VEHICLE_COUNTER: gewichteter Median über die letzten 5 Polestar-Fahrten mit Zählerpfad und mindestens 30 % Hub.
  * Nur Fahrten dieser Quelle und mit {@code energyPath = COUNTER} zählen, DC-Nachlauf wird ausgeschlossen,
  * die Tore der BMS-Quelle gelten (ein Eintrag je Monat, 5 Prozentpunkte Abstand).
  */
@@ -87,18 +87,18 @@ class BatterySohServiceVehicleCounterTest {
     private static final String COUNTER = "{\"polestar\":{\"energyPath\":\"COUNTER\"}}";
     private static final String SOC = "{\"polestar\":{\"energyPath\":\"SOC\"}}";
 
-    /** 20 Fahrten à 15 Prozentpunkte mit 1,04 kWh je Prozent: 104 kWh von 107 = 97,20 %. */
-    private List<EvTrip> twentyCounterTrips() {
+    /** 5 Fahrten à 40 Prozentpunkte mit 1,04 kWh je Prozent: 104 kWh von 107 = 97,20 %. */
+    private List<EvTrip> fiveCounterTrips() {
         List<EvTrip> trips = new ArrayList<>();
-        for (int i = 0; i < 20; i++) trips.add(trip(carId, i, 80, 65, "15.6", "POLESTAR_DATA_PORTAL", COUNTER));
+        for (int i = 0; i < 5; i++) trips.add(trip(carId, i, 90, 50, "41.6", "POLESTAR_DATA_PORTAL", COUNTER));
         return trips;
     }
 
     @Test
     void persistsEntryFromCounterTripsOnly() {
-        List<EvTrip> trips = twentyCounterTrips();
-        trips.add(trip(carId, 30, 80, 60, "12.0", "POLESTAR_DATA_PORTAL", SOC));      // SoC-Pfad: zählt nicht
-        trips.add(trip(carId, 31, 80, 60, "12.0", "SMARTCAR_LIVE", COUNTER));         // fremde Quelle: zählt nicht
+        List<EvTrip> trips = fiveCounterTrips();
+        trips.add(trip(carId, 30, 90, 50, "30.0", "POLESTAR_DATA_PORTAL", SOC));      // SoC-Pfad: zählt nicht
+        trips.add(trip(carId, 31, 90, 50, "30.0", "SMARTCAR_LIVE", COUNTER));         // fremde Quelle: zählt nicht
         when(tripRepository.findAllByCarIdAndDeletedAtIsNull(carId)).thenReturn(trips);
 
         service.persistVehicleCounter(carId);
@@ -108,13 +108,13 @@ class BatterySohServiceVehicleCounterTest {
         BatterySohEntry e = captor.getValue();
         assertEquals(BatterySohSource.VEHICLE_COUNTER, e.getSource());
         assertEquals(new BigDecimal("97.20"), e.getSohPercent());
-        assertEquals(20, e.getSampleSize());
-        assertEquals(new BigDecimal("300"), e.getSocHubPercent());
+        assertEquals(5, e.getSampleSize());
+        assertEquals(new BigDecimal("40"), e.getSocHubPercent());
     }
 
     @Test
     void skipsBelowGates() {
-        List<EvTrip> trips = twentyCounterTrips();
+        List<EvTrip> trips = fiveCounterTrips();
         trips.remove(0);
         when(tripRepository.findAllByCarIdAndDeletedAtIsNull(carId)).thenReturn(trips);
 
@@ -125,8 +125,8 @@ class BatterySohServiceVehicleCounterTest {
 
     @Test
     void excludesTripsWithinAnHourAfterDcCharge() {
-        List<EvTrip> trips = twentyCounterTrips();
-        // Fahrt 0 startet 30 min nach Ende einer DC-Ladung (loggedAt lokal + Dauer) und fällt raus -> nur 19 Fahrten
+        List<EvTrip> trips = fiveCounterTrips();
+        // Fahrt 0 startet 30 min nach Ende einer DC-Ladung (loggedAt lokal + Dauer) und fällt raus -> nur 4 Fahrten
         LocalDateTime dcStart = T0.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDateTime().minusMinutes(90);
         EvLog dc = mock(EvLog.class);
         when(dc.getChargingType()).thenReturn(ChargingType.DC);
@@ -143,7 +143,7 @@ class BatterySohServiceVehicleCounterTest {
 
     @Test
     void oneEntryPerMonthAndMaxFivePointsDeviation() {
-        when(tripRepository.findAllByCarIdAndDeletedAtIsNull(carId)).thenReturn(twentyCounterTrips());
+        when(tripRepository.findAllByCarIdAndDeletedAtIsNull(carId)).thenReturn(fiveCounterTrips());
         BatterySohEntry thisMonth = BatterySohEntry.manual(UUID.randomUUID(), carId, new BigDecimal("96.00"),
                 LocalDate.now(), LocalDateTime.now());
         when(sohRepository.findByCarId(carId)).thenReturn(List.of(thisMonth));

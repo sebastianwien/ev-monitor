@@ -28,7 +28,7 @@ import java.util.Optional;
  *
  * Two mechanisms suppress the remaining noise:
  *   1. A rolling window of the last 5 qualifying logs.
- *   2. A hub-weighted median over that window: each estimate carries its SoC hub as
+ *   2. A hub-weighted median over that window ({@link SohWeightedMedian}): each estimate carries its SoC hub as
  *      weight, so a 95% charge outvotes an 80% one. Weighted median (not mean) keeps
  *      a single broken estimate from dragging the result.
  *
@@ -50,11 +50,7 @@ public class BatterySohAutoDetector {
      */
     public static final int MIN_SAMPLE_SIZE = ROLLING_WINDOW_SIZE;
     private static final BigDecimal HUNDRED = new BigDecimal("100");
-    private static final BigDecimal TWO = new BigDecimal("2");
     private static final BigDecimal MAX_SOH = new BigDecimal("100.00");
-
-    /** A capacity estimate together with the SoC hub it was derived from. */
-    private record Estimate(BigDecimal capacityKwh, BigDecimal socHub) {}
 
     /**
      * @param sohPercent SoH in percent with scale 2 (e.g. 92.02)
@@ -86,7 +82,9 @@ public class BatterySohAutoDetector {
                 ? qualifying
                 : qualifying.subList(qualifying.size() - ROLLING_WINDOW_SIZE, qualifying.size());
 
-        Estimate median = weightedMedian(window);
+        SohWeightedMedian.Estimate median = SohWeightedMedian.of(window.stream()
+                .map(log -> new SohWeightedMedian.Estimate(estimateCapacity(log), socHub(log)))
+                .toList());
         BigDecimal sohPercent = median.capacityKwh()
                 .multiply(HUNDRED)
                 .divide(batteryCapacityKwh, 2, RoundingMode.HALF_UP);
@@ -95,31 +93,6 @@ public class BatterySohAutoDetector {
                 sohPercent.compareTo(MAX_SOH) > 0 ? MAX_SOH : sohPercent,
                 window.size(),
                 median.socHub()));
-    }
-
-    /**
-     * Weighted median: estimates sorted ascending by capacity, weighted by their SoC hub.
-     * Returns the first estimate at which the cumulative weight reaches half the total.
-     * With equal hubs this degenerates to the classic median.
-     */
-    private static Estimate weightedMedian(List<EvLog> window) {
-        List<Estimate> sorted = window.stream()
-                .map(log -> new Estimate(estimateCapacity(log), socHub(log)))
-                .sorted(Comparator.comparing(Estimate::capacityKwh))
-                .toList();
-
-        BigDecimal totalWeight = sorted.stream()
-                .map(Estimate::socHub)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        BigDecimal cumulative = BigDecimal.ZERO;
-        for (Estimate estimate : sorted) {
-            cumulative = cumulative.add(estimate.socHub());
-            if (cumulative.multiply(TWO).compareTo(totalWeight) >= 0) {
-                return estimate;
-            }
-        }
-        return sorted.get(sorted.size() - 1);
     }
 
     static boolean isQualifying(EvLog log) {

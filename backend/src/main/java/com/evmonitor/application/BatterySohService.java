@@ -258,8 +258,8 @@ public class BatterySohService {
 
     /**
      * SoH aus den Fahrt-Energiezählern des Fahrzeugs (Quelle VEHICLE_COUNTER, derzeit Polestar 3 über das
-     * Data Portal): Summe Zähler-kWh / Summe SoC-Delta über alle Fahrten mit Zählerpfad, siehe
-     * {@link VehicleCounterSohDetector}. Dieselben Tore wie {@link #persistBmsDerived}: nominale
+     * Data Portal): hub-gewichteter Median der letzten 5 Fahrten mit Zählerpfad und mindestens 30 % Hub,
+     * siehe {@link VehicleCounterSohDetector}. Dieselben Tore wie {@link #persistBmsDerived}: nominale
      * Netto-Kapazität vorhanden, 60 bis 105 %, ein Eintrag je Kalendermonat, höchstens 5 Prozentpunkte
      * Abstand zum letzten sichtbaren Eintrag. Läuft nach jeder gespeicherten Fahrt dieser Quelle.
      */
@@ -304,10 +304,10 @@ public class BatterySohService {
         }
 
         sohRepository.save(BatterySohEntry.fromVehicleCounter(UUID.randomUUID(), carId, sohPercent,
-                today, LocalDateTime.now(), detected.get().tripCount(), detected.get().totalHubPercent()));
+                today, LocalDateTime.now(), detected.get().tripCount(), detected.get().socHubPercent()));
         syncDegradationToCarField(carId);
         log.info("SoH VEHICLE_COUNTER für Auto {}: {} % aus {} Fahrten, Hub {} %", carId, sohPercent,
-                detected.get().tripCount(), detected.get().totalHubPercent());
+                detected.get().tripCount(), detected.get().socHubPercent());
     }
 
     /** {@code telemetry_extras.polestar.energyPath == COUNTER}: der Verbrauch stammt vom Bordzähler der Fahrt. */
