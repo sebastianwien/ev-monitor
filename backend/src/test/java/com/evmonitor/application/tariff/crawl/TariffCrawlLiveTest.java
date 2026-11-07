@@ -46,6 +46,7 @@ class TariffCrawlLiveTest {
             "https://incharge.vattenfall.de/fair-laden", Map.of("0,44 €/kWh oder 0,49 €/kWh", "0.49"),
             "https://www.smatrics.com/de/laden/tarife", Map.of("0,55€", "0.55"),
             "https://www.oeamtc.at/oeamtc-epower/", Map.of("AC-Ladepunkt: 0,44 €/kWh", "0.44"),
+            "https://www.ewe-go.de/ladetarif", Map.of("EWE Go-Ladestation 0,52 € / kWh", "0.52", "Partner-Ladestation* 0,62 € / kWh", "0.62"),
             "https://www.enbw.com/elektromobilitaet/produkte/ladetarife", Map.of());
 
     @Test
