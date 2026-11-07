@@ -34,6 +34,7 @@ nav:
   models_compare: Sammenlign biler
   cards: Ladekort
   vehicles: Kjøretøy
+  stations: "Ladere"
   account: Konto
   bottom:
     aria: Hovednavigasjon
@@ -41,6 +42,7 @@ nav:
     logs: Logg
     record: Legg til
     more: Mer
+    stations: "Ladere"
     import: Import
     watt: Watt-saldo
     settings: Innstillinger

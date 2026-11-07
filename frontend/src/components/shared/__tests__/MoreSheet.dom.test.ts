@@ -9,14 +9,14 @@ import MoreSheet from '../MoreSheet.vue'
 let app: App | null = null
 afterEach(() => { app?.unmount(); app = null; document.body.innerHTML = '' })
 
-async function mount(isNative: boolean) {
+async function mount(isNative: boolean, isDemo = false) {
   const stub = { template: '<div />' }
   const router = createRouter({ history: createMemoryHistory(), routes: [{ path: '/:p(.*)', component: stub }] })
   await router.push('/dashboard')
   await router.isReady()
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(MoreSheet, { feedbackMailto: 'mailto:x', isDemo: false, isNative })
+  app = createApp(MoreSheet, { feedbackMailto: 'mailto:x', isDemo, isNative, wattBalance: 844 })
   app.use(i18n).use(router).use(createPinia())
   app.mount(host)
   await nextTick()
@@ -35,5 +35,15 @@ describe('MoreSheet', () => {
     expect(links).toContain('/cars')
     expect(links).toContain('/charging-providers')
     expect(links).not.toContain('/impressum')
+  })
+
+  it('watt balance sits in the sheet since the stations tab took its place', async () => {
+    const root = await mount(false)
+    const watt = root.querySelector<HTMLAnchorElement>('a[href="/coins/history"]')
+    expect(watt?.textContent).toContain('844 W')
+  })
+
+  it('demo account: no watt entry', async () => {
+    expect(hrefs(await mount(false, true))).not.toContain('/coins/history')
   })
 })

@@ -22,6 +22,9 @@ export const CAR_TABS = [
   { to: '/charging-providers', labelKey: 'settings.tariff_title', barLabelKey: 'nav.cards' },
 ] as const
 
+/** Säulenkarte: mobil eigener Reiter der Bottom-Nav, Desktop in der Leiste nach den Logs. */
+export const STATIONS_TAB = { to: '/stations', labelKey: 'nav.stations' } as const
+
 /** Alle Wisch-Paare, beide Designs. */
 const PAGER_PAIRS: readonly (readonly string[])[] = [contextTabPaths(false), contextTabPaths(true)]
 
@@ -31,13 +34,14 @@ export function samePagerPair(from: string, to: string): boolean {
 }
 
 /**
- * Reihenfolge der Desktop-Leiste: vom Taeglichen (Dashboard, Logs) zum Seltenen
+ * Reihenfolge der Desktop-Leiste: vom Täglichen (Dashboard, Logs, Säulen) zum Seltenen
  * (Ladekarten, Fahrzeuge). Die Ladekarten stehen bewusst vor den Fahrzeugen - sie
- * sind der haeufigere Grund, die Verwaltung ueberhaupt zu oeffnen.
+ * sind der häufigere Grund, die Verwaltung überhaupt zu öffnen.
  */
 export const WORKSPACE_TABS = [
   CONTEXT_TABS[0],
   CONTEXT_TABS[1],
+  STATIONS_TAB,
   CAR_TABS[1],
   CAR_TABS[0],
 ] as const

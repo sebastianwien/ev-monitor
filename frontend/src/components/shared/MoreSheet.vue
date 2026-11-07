@@ -3,7 +3,7 @@ import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   XMarkIcon, TruckIcon, CreditCardIcon, ArrowsRightLeftIcon, ArrowDownTrayIcon,
-  Cog6ToothIcon,
+  Cog6ToothIcon, BoltIcon,
   ArrowRightOnRectangleIcon, ChatBubbleLeftEllipsisIcon,
 } from '@heroicons/vue/24/outline'
 import LocaleSwitcher from './LocaleSwitcher.vue'
@@ -17,6 +17,8 @@ const props = defineProps<{
   feedbackMailto: string
   isDemo: boolean
   isNative: boolean
+  /** Watt-Guthaben, steht rechts am Watt-Eintrag. */
+  wattBalance?: number
 }>()
 
 const emit = defineEmits<{ close: []; logout: [] }>()
@@ -28,8 +30,10 @@ defineExpose({ requestClose: () => sheet.value?.requestClose() })
 const { t } = useI18n()
 const { haptic } = useHaptic()
 
-interface NavItem { to: string; label: string; icon: typeof TruckIcon; demoHidden?: boolean }
+interface NavItem { to: string; label: string; icon: typeof TruckIcon; demoHidden?: boolean; watt?: boolean }
 const items: NavItem[] = [
+  // Watt hatte einen eigenen Reiter, bis die Säulenkarte seinen Platz bekam; Demo hat kein Guthaben
+  { to: '/coins/history', label: 'nav.bottom.watt', icon: BoltIcon, demoHidden: true, watt: true },
   { to: '/cars', label: 'dashboard.vehicles_btn', icon: TruckIcon },
   { to: '/charging-providers', label: 'nav.cards', icon: CreditCardIcon },
   { to: '/modelle', label: 'nav.models_compare', icon: ArrowsRightLeftIcon },
@@ -72,6 +76,7 @@ function onLogout() {
             <router-link v-if="!(item.demoHidden && props.isDemo)" :to="item.to" :class="ROW" @click="go(close)">
               <component :is="item.icon" :class="ROW_ICON" aria-hidden="true" />
               {{ t(item.label) }}
+              <span v-if="item.watt && props.wattBalance != null" class="ml-auto pr-2 text-[15px] font-semibold tabular-nums text-gray-600 dark:text-gray-300">{{ props.wattBalance }} W</span>
             </router-link>
           </template>
           <a :href="props.feedbackMailto" :class="ROW" @click="go(close)">

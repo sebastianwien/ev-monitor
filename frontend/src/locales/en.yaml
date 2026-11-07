@@ -35,6 +35,7 @@ nav:
   models_compare: "Compare cars"
   cards: "Charging cards"
   vehicles: "Vehicles"
+  stations: "Chargers"
   account: "Account"
   bottom:
     aria: "Main navigation"
@@ -42,6 +43,7 @@ nav:
     logs: "Logs"
     record: "Add"
     more: "More"
+    stations: "Chargers"
     import: "Import"
     watt: "Watt balance"
     settings: "Settings"

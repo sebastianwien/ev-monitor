@@ -34,6 +34,7 @@ nav:
   models_compare: Jämför bilar
   cards: Laddningskort
   vehicles: Fordon
+  stations: "Laddare"
   account: Konto
   bottom:
     aria: Huvudnavigering
@@ -41,6 +42,7 @@ nav:
     logs: Logg
     record: Lägg till
     more: Mer
+    stations: "Laddare"
     import: Import
     watt: Watt-saldo
     settings: Inställningar

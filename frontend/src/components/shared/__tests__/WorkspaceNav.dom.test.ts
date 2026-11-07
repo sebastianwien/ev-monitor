@@ -28,15 +28,15 @@ const hrefs = (host: HTMLElement) => [...host.querySelectorAll('a')].map(a => a.
 const current = (host: HTMLElement) => host.querySelector('[aria-current="page"]')?.getAttribute('href')
 
 describe('WorkspaceNav', () => {
-  it('chips: the four areas, import and model comparison sit in the account menu', async () => {
+  it('chips: the five areas, import and model comparison sit in the account menu', async () => {
     const host = await mount('/logs')
-    expect(hrefs(host)).toEqual(['/dashboard', '/logs', '/charging-providers', '/cars'])
+    expect(hrefs(host)).toEqual(['/dashboard', '/logs', '/stations', '/charging-providers', '/cars'])
     expect(current(host)).toBe('/logs')
   })
 
-  it('bar in the navbar: the same four areas with short labels', async () => {
+  it('bar in the navbar: the same five areas with short labels', async () => {
     const host = await mount('/cars', { variant: 'bar' })
-    expect([...host.querySelectorAll('a')].map(a => a.textContent!.trim())).toEqual(['Dashboard', 'Ladevorgänge & Trips', 'Ladekarten', 'Fahrzeuge'])
+    expect([...host.querySelectorAll('a')].map(a => a.textContent!.trim())).toEqual(['Dashboard', 'Ladevorgänge & Trips', 'Säulen', 'Ladekarten', 'Fahrzeuge'])
     expect(current(host)).toBe('/cars')
   })
 

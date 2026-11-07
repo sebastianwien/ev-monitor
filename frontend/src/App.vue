@@ -539,8 +539,6 @@ const handleBottomLogout = () => {
     <BottomNav
       v-if="authStore.isAuthenticated() && !mobileFullscreen"
       :more-open="moreOpen"
-      :watt-balance="coinStore.balance"
-      :is-demo="authStore.isDemoAccount"
       @record="handleBottomRecord"
       @toggle-more="toggleMore"
       @close-more="moreSheet?.requestClose()"
@@ -551,6 +549,7 @@ const handleBottomLogout = () => {
       :feedback-mailto="feedbackMailto"
       :is-demo="authStore.isDemoAccount"
       :is-native="isNative"
+      :watt-balance="coinStore.balance"
       @close="moreOpen = false"
       @logout="handleBottomLogout"
     />

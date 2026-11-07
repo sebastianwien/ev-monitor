@@ -2,7 +2,7 @@
 import { computed, onUnmounted, ref, watchEffect } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { HomeIcon, QueueListIcon, BoltIcon, Bars3Icon } from '@heroicons/vue/24/outline'
+import { HomeIcon, QueueListIcon, BoltIcon, Bars3Icon, MapPinIcon } from '@heroicons/vue/24/outline'
 import { useHaptic } from '../../composables/useHaptic'
 import { useKeyboardOpen } from '../../composables/useKeyboardOpen'
 import { useActiveIndicator } from '../../composables/useActiveIndicator'
@@ -10,10 +10,6 @@ import { useActiveIndicator } from '../../composables/useActiveIndicator'
 const props = defineProps<{
   /** Ob das Mehr-Sheet gerade offen ist (steuert den Aktiv-Zustand des Mehr-Tabs). */
   moreOpen: boolean
-  /** Watt-Guthaben (wird als eigener Tab angezeigt). */
-  wattBalance: number
-  /** Demo-Account: kein Watt-Tab (Guthaben fuer Demo nicht relevant). */
-  isDemo: boolean
 }>()
 
 const emit = defineEmits<{
@@ -37,9 +33,9 @@ onUnmounted(() => document.documentElement.style.removeProperty('--bottom-nav-h'
 
 const isStart = computed(() => route.path === '/dashboard' || route.path === '/story')
 const isLogs = computed(() => route.path === '/logs')
-const isWatt = computed(() => route.path === '/coins/history')
+const isStations = computed(() => route.path === '/stations')
 /** Genau ein Reiter sieht aktiv aus; ist das Mehr-Sheet offen, ist es Mehr. aria-current bleibt an der Route, Mehr meldet sich über aria-expanded. */
-const activeTab = computed(() => props.moreOpen ? 'more' : isStart.value ? 'start' : isLogs.value ? 'logs' : isWatt.value ? 'watt' : null)
+const activeTab = computed(() => props.moreOpen ? 'more' : isStart.value ? 'start' : isLogs.value ? 'logs' : isStations.value ? 'stations' : null)
 
 // Wie die Navbar-Reiter (docs/design/ci.md): aktiv gray-900 mit gleitendem 3 px Strich, hier an der Oberkante
 const TAB_BASE = 'flex-1 flex flex-col items-center justify-center gap-0.5 min-h-[44px] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-green-600'
@@ -115,19 +111,17 @@ function onMore() {
         <span class="absolute bottom-1.5 text-[11px] font-semibold leading-none text-gray-900 dark:text-gray-50">{{ t('nav.bottom.record') }}</span>
       </div>
 
-      <!-- Rechte Gruppe: Watt + Mehr -->
+      <!-- Rechte Gruppe: Säulen + Mehr (Watt liegt im Mehr-Menü) -->
       <div class="flex-1 flex">
         <router-link
-          v-if="!props.isDemo"
-          to="/coins/history"
-          :class="tabClass('watt')"
-          :data-active="activeTab === 'watt' || undefined"
-          :aria-current="isWatt ? 'page' : undefined"
-          :title="t('nav.bottom.watt')"
-          @click="onTabClick(isWatt)"
+          to="/stations"
+          :class="tabClass('stations')"
+          :data-active="activeTab === 'stations' || undefined"
+          :aria-current="isStations ? 'page' : undefined"
+          @click="onTabClick(isStations)"
         >
-          <BoltIcon class="h-6 w-6" />
-          <span :class="LABEL">{{ props.wattBalance }} W</span>
+          <MapPinIcon class="h-6 w-6" />
+          <span :class="LABEL">{{ t('nav.bottom.stations') }}</span>
         </router-link>
         <button
           type="button"

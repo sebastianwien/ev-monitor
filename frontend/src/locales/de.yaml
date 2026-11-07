@@ -35,6 +35,7 @@ nav:
   models_compare: "Autos vergleichen"
   cards: "Ladekarten"
   vehicles: "Fahrzeuge"
+  stations: "Säulen"
   account: "Konto"
   bottom:
     aria: "Hauptnavigation"
@@ -42,6 +43,7 @@ nav:
     logs: "Logs"
     record: "Erfassen"
     more: "Mehr"
+    stations: "Säulen"
     import: "Import"
     watt: "Watt-Guthaben"
     settings: "Einstellungen"

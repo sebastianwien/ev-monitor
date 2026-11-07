@@ -144,6 +144,13 @@ const router = createRouter({
             meta: { requiresAuth: true, plainBackground: true, workspaceFrame: true }
         },
         {
+            path: '/stations',
+            name: 'stations',
+            // Eigener Chunk: Leaflet und die Karte laden nur hier
+            component: () => import('../views/StationsMapView.vue'),
+            meta: { requiresAuth: true, plainBackground: true, workspaceFrame: true }
+        },
+        {
             path: '/coins/history',
             name: 'coin-history',
             component: CoinHistoryView,

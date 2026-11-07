@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { CONTEXT_TABS, CAR_TABS, WORKSPACE_TABS, WORKSPACE_LINKS, contextTabPaths, samePagerPair } from '../tabs'
+import { CONTEXT_TABS, CAR_TABS, STATIONS_TAB, WORKSPACE_TABS, WORKSPACE_LINKS, contextTabPaths, samePagerPair } from '../tabs'
 
 describe('Tab-Konfiguration', () => {
-  it('die Desktop-Leiste zeigt alle vier Ziele in der geplanten Reihenfolge', () => {
+  it('die Desktop-Leiste zeigt alle fünf Ziele in der geplanten Reihenfolge, Säulen nach den Logs', () => {
     expect(WORKSPACE_TABS.map(tab => tab.to)).toEqual([
-      '/dashboard', '/logs', '/charging-providers', '/cars',
+      '/dashboard', '/logs', '/stations', '/charging-providers', '/cars',
     ])
   })
 
@@ -13,7 +13,8 @@ describe('Tab-Konfiguration', () => {
     for (const tab of [...CONTEXT_TABS, ...CAR_TABS]) {
       expect(workspacePaths).toContain(tab.to)
     }
-    expect(WORKSPACE_TABS).toHaveLength(CONTEXT_TABS.length + CAR_TABS.length)
+    expect(WORKSPACE_TABS).toHaveLength(CONTEXT_TABS.length + CAR_TABS.length + 1)
+    expect(workspacePaths).toContain(STATIONS_TAB.to)
   })
 
   it('jeder Tab hat einen i18n-Key', () => {

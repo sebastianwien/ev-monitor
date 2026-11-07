@@ -17,7 +17,7 @@ async function mount(path: string, moreOpen = false) {
   await router.isReady()
   const host = document.createElement('div')
   document.body.appendChild(host)
-  app = createApp(BottomNav, { moreOpen, wattBalance: 844, isDemo: false, onCloseMore: () => { closed++ } })
+  app = createApp(BottomNav, { moreOpen, onCloseMore: () => { closed++ } })
   app.use(i18n).use(router)
   app.mount(host)
   return host
@@ -45,6 +45,13 @@ describe('BottomNav', () => {
     host.querySelector<HTMLElement>('a[href="/logs"]')!.click()
     host.querySelector<HTMLElement>(`button[aria-label]`)!.click()
     expect(closed).toBe(3)
+  })
+
+  it('stations tab sits where watt was, active on /stations; watt moved to the more sheet', async () => {
+    const host = await mount('/stations')
+    expect(active(host)).toEqual(['/stations'])
+    expect(host.querySelector('a[href="/stations"]')?.textContent).toContain('Säulen')
+    expect(host.querySelector('a[href="/coins/history"]')).toBeNull()
   })
 
   it('closed more sheet: a tab does not ask to close it', async () => {
