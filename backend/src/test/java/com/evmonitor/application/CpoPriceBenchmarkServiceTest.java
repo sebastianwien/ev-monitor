@@ -2,10 +2,13 @@ package com.evmonitor.application;
 
 import com.evmonitor.application.CpoPriceBenchmark.CardOffer;
 import com.evmonitor.application.publicapi.CpoNameNormalizer;
+import com.evmonitor.application.tariff.TariffCatalog;
 import com.evmonitor.domain.ChargingProviderTariff;
 import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.infrastructure.persistence.ChargingBenchmarkQueryRepository.PublicChargePrice;
+import com.evmonitor.infrastructure.persistence.EmpEntity;
+import com.evmonitor.infrastructure.persistence.JpaEmpRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +43,7 @@ class CpoPriceBenchmarkServiceTest {
 
     @Mock ChargingBenchmarkCache benchmarkCache;
     @Mock ChargingProviderTariffRepository tariffRepository;
-    @Mock com.evmonitor.infrastructure.persistence.JpaEmpRepository empRepository;
+    @Mock JpaEmpRepository empRepository;
 
     private CpoPriceBenchmarkService service;
     private final List<PublicChargePrice> rows = new ArrayList<>();
@@ -54,7 +57,7 @@ class CpoPriceBenchmarkServiceTest {
         lenient().when(benchmarkCache.publicChargePrices()).thenReturn(rows);
         lenient().when(tariffRepository.findValidOn(any())).thenReturn(tariffs);
         service = new CpoPriceBenchmarkService(benchmarkCache,
-                new com.evmonitor.application.tariff.TariffCatalog(tariffRepository, empRepository), normalizer);
+                new TariffCatalog(tariffRepository, empRepository), normalizer);
     }
 
     @Test
@@ -323,8 +326,8 @@ class CpoPriceBenchmarkServiceTest {
         assertThat(service.stationTariffs("Unbekannt", ChargingType.DC, 50)).isEmpty();
     }
 
-    private static com.evmonitor.infrastructure.persistence.EmpEntity emp(String name, String country) {
-        var e = new com.evmonitor.infrastructure.persistence.EmpEntity();
+    private static EmpEntity emp(String name, String country) {
+        var e = new EmpEntity();
         e.setName(name);
         e.setCountryCode(country);
         return e;
