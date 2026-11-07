@@ -2,9 +2,8 @@ package com.evmonitor.application;
 
 import com.evmonitor.application.CpoPriceBenchmark.CardOffer;
 import com.evmonitor.application.publicapi.CpoNameNormalizer;
-import com.evmonitor.application.tariff.TariffApplicability;
+import com.evmonitor.application.tariff.TariffCatalog;
 import com.evmonitor.domain.ChargingProviderTariff;
-import com.evmonitor.domain.ChargingProviderTariffRepository;
 import com.evmonitor.domain.ChargingType;
 import com.evmonitor.infrastructure.persistence.ChargingBenchmarkQueryRepository.PublicChargePrice;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,6 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -52,7 +50,7 @@ public class CpoPriceBenchmarkService {
     static final int MAX_CARDS = 5;
 
     private final ChargingBenchmarkCache benchmarkCache;
-    private final ChargingProviderTariffRepository tariffRepository;
+    private final TariffCatalog catalog;
     private final CpoNameNormalizer cpoNameNormalizer;
 
     public Optional<CpoPriceBenchmark> benchmark(String cpo, ChargingType type, UUID requesterId) {
@@ -82,14 +80,33 @@ public class CpoPriceBenchmarkService {
      * braucht belegte Preise, keine Mediane aus Aktionswochen.
      */
     public Optional<CpoTariffs> tariffs(String cpo, ChargingType type) {
+        return tariffs(cpo, type, null, catalog.on(LocalDate.now()));
+    }
+
+    /**
+     * Wie {@link #tariffs(String, ChargingType)}, für eine Säule in Deutschland mit bekannter Leistung:
+     * die kW-Stufe gilt, Anbieter aus anderen Ländern fallen weg (siehe {@link TariffCatalog#forGermanyOn}).
+     *
+     * @param powerKw höchste Leistung der Säule für diese Ladeart; null, wenn unbekannt
+     */
+    public Optional<CpoTariffs> stationTariffs(String cpo, ChargingType type, Integer powerKw) {
+        return tariffs(cpo, type, powerKw, catalog.forGermanyOn(LocalDate.now()));
+    }
+
+    private Optional<CpoTariffs> tariffs(String cpo, ChargingType type, Integer powerKw, TariffCatalog.Snapshot snapshot) {
         String operator = cpoNameNormalizer.canonicalOperator(cpo);
         if (operator == null || type == null || type == ChargingType.UNKNOWN) return Optional.empty();
-        List<CpoTariffs.Tariff> list = curatedOffers(operator, type).stream()
-                .sorted(Comparator.comparing(CardOffer::pricePerKwh).thenComparing(CardOffer::name))
-                .map(c -> new CpoTariffs.Tariff(c.name(), c.variant(), c.pricePerKwh(), c.monthlyFeeEur(),
-                        c.verifiedOn(), operator.equals(c.name())))
+        List<CpoTariffs.Tariff> list = snapshot.at(operator, type, powerKw).stream()
+                .map(t -> toTariff(t, operator))
                 .toList();
         return list.isEmpty() ? Optional.empty() : Optional.of(new CpoTariffs(operator, type, list));
+    }
+
+    /** Eine Katalogzeile für die Anzeige; {@code direct}, wenn der Kartenanbieter der Betreiber selbst ist. */
+    public static CpoTariffs.Tariff toTariff(ChargingProviderTariff t, String operator) {
+        return new CpoTariffs.Tariff(t.getEmpName(), t.getTariffVariant(), round(t.getPricePerKwh()), t.getMonthlyFeeEur(),
+                verifiedOn(t), operator.equals(t.getEmpName()),
+                t.getSessionFeeEur(), t.getBlockingFeePerMin(), t.getBlockingFeeAfterMin(), t.getBlockingFeeCapEur());
     }
 
     /** Gepflegt ersetzt die Fahrerkarte desselben Anbieters - der Tarif kennt Variante und Grundgebuehr. */
@@ -126,22 +143,17 @@ public class CpoPriceBenchmarkService {
                 .toList();
     }
 
-    /**
-     * Je Anbieter und Variante die genaueste Zeile für diesen Betreiber (siehe
-     * {@link TariffApplicability}). Dynamische Preise nie: der gepflegte Wert wäre nur ein Beispiel.
-     */
+    /** Je Anbieter und Variante die genaueste Zeile für diesen Betreiber (siehe {@link TariffCatalog}). */
     private List<CardOffer> curatedOffers(String operator, ChargingType type) {
-        Map<String, Optional<String>> tierByEmp = new HashMap<>();
-        TariffApplicability.TierLookup tiers = (emp, cpo) ->
-                tierByEmp.computeIfAbsent(emp, e -> tariffRepository.findTierForCpo(e, cpo));
-        List<ChargingProviderTariff> valid = tariffRepository.findValidOn(LocalDate.now()).stream()
-                .filter(t -> !t.isDynamicPricing())
-                .toList();
-        return TariffApplicability.applicable(valid, new TariffApplicability.Charge(operator, type, null), tiers).stream()
+        return catalog.on(LocalDate.now()).at(operator, type, null).stream()
                 .map(t -> new CardOffer(t.getEmpName(), t.getTariffVariant(), round(t.getPricePerKwh()), t.getMonthlyFeeEur(),
                         CardOffer.Source.CURATED, null,
-                        t.getLastVerifiedAt() == null ? null : t.getLastVerifiedAt().toLocalDate()))
+                        verifiedOn(t)))
                 .toList();
+    }
+
+    private static LocalDate verifiedOn(ChargingProviderTariff t) {
+        return t.getLastVerifiedAt() == null ? null : t.getLastVerifiedAt().toLocalDate();
     }
 
     private static List<BigDecimal> driverMedians(List<PublicChargePrice> rows) {

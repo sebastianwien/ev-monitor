@@ -40,6 +40,7 @@ class CpoPriceBenchmarkServiceTest {
 
     @Mock ChargingBenchmarkCache benchmarkCache;
     @Mock ChargingProviderTariffRepository tariffRepository;
+    @Mock com.evmonitor.infrastructure.persistence.JpaEmpRepository empRepository;
 
     private CpoPriceBenchmarkService service;
     private final List<PublicChargePrice> rows = new ArrayList<>();
@@ -52,7 +53,8 @@ class CpoPriceBenchmarkServiceTest {
         normalizer.init();
         lenient().when(benchmarkCache.publicChargePrices()).thenReturn(rows);
         lenient().when(tariffRepository.findValidOn(any())).thenReturn(tariffs);
-        service = new CpoPriceBenchmarkService(benchmarkCache, tariffRepository, normalizer);
+        service = new CpoPriceBenchmarkService(benchmarkCache,
+                new com.evmonitor.application.tariff.TariffCatalog(tariffRepository, empRepository), normalizer);
     }
 
     @Test
@@ -279,6 +281,53 @@ class CpoPriceBenchmarkServiceTest {
         assertThat(service.tariffs("EnBW", ChargingType.DC)).isEmpty();
         assertThat(service.tariffs("Unbekannt", ChargingType.DC)).isEmpty();
         assertThat(service.tariffs("EnBW", ChargingType.UNKNOWN)).isEmpty();
+    }
+
+    /** Die Säule zeigt vor dem Laden, was es kostet: auch Start- und Blockiergebühr. */
+    @Test
+    void tariffs_carryStartAndBlockingFees() {
+        tariffs.add(tariff("Aral pulse", "Klassik", null, null, "0.79", "0").toBuilder()
+                .appliesElsewhere(true).sessionFeeEur(new BigDecimal("0.49"))
+                .blockingFeePerMin(new BigDecimal("0.15")).blockingFeeAfterMin(45)
+                .blockingFeeCapEur(new BigDecimal("12.00")).build());
+
+        CpoTariffs.Tariff t = service.tariffs("EnBW", ChargingType.DC).orElseThrow().tariffs().getFirst();
+
+        assertThat(t.sessionFeeEur()).isEqualByComparingTo("0.49");
+        assertThat(t.blockingFeePerMin()).isEqualByComparingTo("0.15");
+        assertThat(t.blockingFeeAfterMin()).isEqualTo(45);
+        assertThat(t.blockingFeeCapEur()).isEqualByComparingTo("12.00");
+    }
+
+    /** An einer Säule in Deutschland: Leistung aus dem Register, ausländische Anbieter raus. */
+    @Test
+    void stationTariffs_usePowerAndLeaveForeignProvidersOut() {
+        when(empRepository.findAll()).thenReturn(List.of(emp("Smatrics", "AT")));
+        tariffs.add(tariff("EnBW", "S", null, null, "0.59", "0"));
+        tariffs.add(tariff("EnBW", "S", null, null, "0.69", "0").toBuilder().minPowerKw(50).build());
+        tariffs.add(tariff("Smatrics", "Flex", null, null, "0.45", "0").toBuilder().appliesElsewhere(true).build());
+
+        CpoTariffs at50 = service.stationTariffs("EnBW", ChargingType.DC, 50).orElseThrow();
+        CpoTariffs at150 = service.stationTariffs("EnBW", ChargingType.DC, 150).orElseThrow();
+
+        assertThat(at50.tariffs()).extracting(CpoTariffs.Tariff::pricePerKwh).containsExactly(new BigDecimal("0.590"));
+        assertThat(at150.tariffs()).extracting(CpoTariffs.Tariff::pricePerKwh).containsExactly(new BigDecimal("0.690"));
+        assertThat(service.tariffs("EnBW", ChargingType.DC).orElseThrow().tariffs())
+                .extracting(CpoTariffs.Tariff::name).contains("Smatrics");
+    }
+
+    @Test
+    void stationTariffs_unknownOperatorEmpty() {
+        tariffs.add(tariff("Maingau", "Standard", null, null, "0.72", "0").toBuilder().appliesElsewhere(true).build());
+
+        assertThat(service.stationTariffs("Unbekannt", ChargingType.DC, 50)).isEmpty();
+    }
+
+    private static com.evmonitor.infrastructure.persistence.EmpEntity emp(String name, String country) {
+        var e = new com.evmonitor.infrastructure.persistence.EmpEntity();
+        e.setName(name);
+        e.setCountryCode(country);
+        return e;
     }
 
     /** One driver per price, each with one session. */
