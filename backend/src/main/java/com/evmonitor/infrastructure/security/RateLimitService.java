@@ -77,6 +77,14 @@ public class RateLimitService {
             .refillIntervally(600, Duration.ofHours(1))
             .build();
 
+    // 300 neue Kartenzellen (Geohash 6, rund 1 km) pro Stunde und Nutzer für die Säulenkarte: ein
+    // Ausschnitt braucht bis zu zwölf, langes Schieben durch eine Stadt bleibt frei. Zellen aus dem
+    // Cache zählen nicht. Eigener Topf, damit die Karte nicht den Umkreis-Topf des Formulars leert.
+    private static final Bandwidth STATION_CELLS_LIMIT = Bandwidth.builder()
+            .capacity(300)
+            .refillIntervally(300, Duration.ofHours(1))
+            .build();
+
     // 120 demo read requests per minute per IP - generous for human browsing, blocks scraping.
     private static final Bandwidth DEMO_REQUEST_LIMIT = Bandwidth.builder()
             .capacity(120)
@@ -154,6 +162,8 @@ public class RateLimitService {
     private final Cache<String, Bucket> cpoLookupBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
     private final Cache<String, Bucket> stationSearchBuckets = Caffeine.newBuilder()
+            .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
+    private final Cache<String, Bucket> stationCellsBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
     private final Cache<String, Bucket> eudaLoginBuckets = Caffeine.newBuilder()
             .expireAfterAccess(2, TimeUnit.HOURS).maximumSize(10_000).build();
@@ -337,6 +347,18 @@ public class RateLimitService {
                 .tryConsume(1);
         if (!allowed) {
             log.warn("Rate limit exceeded for station search: {}", key);
+        }
+        return allowed;
+    }
+
+    /** Drosselt neue Kartenzellen der Säulenkarte je Nutzer; nur Zellen, die das Register fragen. */
+    public boolean tryConsumeStationCells(String key) {
+        if (!enabled) return true;
+        boolean allowed = stationCellsBuckets
+                .get(key, k -> Bucket.builder().addLimit(STATION_CELLS_LIMIT).build())
+                .tryConsume(1);
+        if (!allowed) {
+            log.warn("Rate limit exceeded for station cells: {}", key);
         }
         return allowed;
     }
