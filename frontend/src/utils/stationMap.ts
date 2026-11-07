@@ -2,7 +2,7 @@ import geohash from 'ngeohash'
 
 /**
  * Reine Logik der Säulenkarte: welche Kartenfelder ein Ausschnitt braucht, Entfernungen,
- * Anzeigeformate. Die Karte schickt nur Geohash-6-Felder (rund 1,2 × 0,6 km) an den Server,
+ * Anzeigeformate. Die Karte schickt nur Geohash-6-Felder (in Deutschland etwa 0,75 × 0,6 km) an den Server,
  * nie eine Position.
  */
 

@@ -23,7 +23,7 @@ import java.util.List;
  * Säulenkarte. Nur angemeldet (Regel {@code /api/**} in der Security-Config): beide Endpunkte
  * fragen ein fremdes Register ab bzw. rechnen Katalogpreise.
  *
- * <p>Datenschutz: die Karte schickt Geohash-6-Zellen (rund 1,2 × 0,6 km) ihres Ausschnitts, nie
+ * <p>Datenschutz: die Karte schickt Geohash-6-Zellen (in Deutschland etwa 0,75 × 0,6 km) ihres Ausschnitts, nie
  * eine Position. Nichts davon wird gespeichert; der Cache liegt auf der Zelle, ohne Nutzerbezug.
  */
 @RestController
