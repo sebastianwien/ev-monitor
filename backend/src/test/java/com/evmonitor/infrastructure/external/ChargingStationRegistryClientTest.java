@@ -333,4 +333,87 @@ class ChargingStationRegistryClientTest {
 
         assertThat(client.searchStations("EnBW Lichtenau")).isEmpty();
     }
+
+    // --- Rechteck mit Paging (Karte) ---
+
+    private static Map<String, Object> page(boolean exceeded, String... operators) {
+        List<Map<String, Object>> features = java.util.Arrays.stream(operators)
+                .map(o -> Map.<String, Object>of("attributes", Map.of("Betreiber", o)))
+                .toList();
+        return exceeded ? Map.of("features", features, "exceededTransferLimit", true) : Map.of("features", features);
+    }
+
+    private List<String> capturedQueries(int times) {
+        ArgumentCaptor<URI> uri = ArgumentCaptor.forClass(URI.class);
+        verify(restTemplate, times(times)).getForObject(uri.capture(), eq(Map.class));
+        return uri.getAllValues().stream()
+                .map(u -> java.net.URLDecoder.decode(u.toString(), java.nio.charset.StandardCharsets.UTF_8))
+                .toList();
+    }
+
+    @Test
+    void rechteckFragtEnvelopeMitFesterReihenfolgeAb() {
+        when(restTemplate.getForObject(any(URI.class), eq(Map.class))).thenReturn(page(false, "EnBW"));
+
+        client.findStationsInBox(52.37, 9.73, 52.376, 9.745);
+
+        String q = capturedQueries(1).getFirst();
+        assertThat(q).contains("geometryType=esriGeometryEnvelope")
+                .contains("\"xmin\":9.73").contains("\"ymin\":52.37")
+                .contains("\"xmax\":9.745").contains("\"ymax\":52.376")
+                .contains("orderByFields=OBJECTID")
+                .contains("resultOffset=0");
+    }
+
+    /**
+     * Das Register liefert hoechstens 200 je Anfrage und meldet den Rest ueber exceededTransferLimit.
+     * Weiter geht es ab der Zahl der tatsaechlich gelieferten Eintraege, auch wenn der Dienst weniger
+     * als angefragt schickt.
+     */
+    @Test
+    void rechteckBlaettertWeiterSolangeDasRegisterMehrMeldet() {
+        when(restTemplate.getForObject(any(URI.class), eq(Map.class)))
+                .thenReturn(page(true, "EnBW"), page(false, "Allego"));
+
+        var stations = client.findStationsInBox(52.37, 9.73, 52.376, 9.745).orElseThrow();
+
+        assertThat(stations).extracting(ChargingStationRegistryClient.Station::operator).containsExactly("EnBW", "Allego");
+        assertThat(capturedQueries(2).get(1)).contains("resultOffset=1&");
+    }
+
+    @Test
+    void rechteckHoertNachFuenfSeitenAuf() {
+        when(restTemplate.getForObject(any(URI.class), eq(Map.class))).thenReturn(page(true, "EnBW"));
+
+        var stations = client.findStationsInBox(52.37, 9.73, 52.376, 9.745).orElseThrow();
+
+        assertThat(stations).hasSize(5);
+        assertThat(capturedQueries(5).get(4)).contains("resultOffset=4&");
+    }
+
+    /** Ein halbes Ergebnis wuerde 30 Tage im Cache stehen - lieber gar keins. */
+    @Test
+    void rechteckMitAusfallAufEinerFolgeseiteIstLeeresOptional() {
+        when(restTemplate.getForObject(any(URI.class), eq(Map.class)))
+                .thenReturn(page(true, "EnBW"))
+                .thenThrow(new RestClientException("timeout"));
+
+        assertThat(client.findStationsInBox(52.37, 9.73, 52.376, 9.745)).isEmpty();
+    }
+
+    @Test
+    void rechteckOhneTrefferIstLeereListe() {
+        when(restTemplate.getForObject(any(URI.class), eq(Map.class))).thenReturn(page(false));
+
+        assertThat(client.findStationsInBox(52.37, 9.73, 52.376, 9.745)).isPresent()
+                .get(org.assertj.core.api.InstanceOfAssertFactories.LIST).isEmpty();
+    }
+
+    @Test
+    void rechteckAbgeschaltetFragtNichtAn() {
+        var disabled = new ChargingStationRegistryClient(restTemplate, false);
+
+        assertThat(disabled.findStationsInBox(52.37, 9.73, 52.376, 9.745)).isEmpty();
+        verifyNoInteractions(restTemplate);
+    }
 }
