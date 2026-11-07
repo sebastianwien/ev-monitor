@@ -41,8 +41,6 @@ public class NearbyCpoService {
     /** Weitester Umkreis fuer "Umkreis erweitern" - mehr liefert nur Rauschen und kostet Registerkontingent. */
     public static final int MAX_RADIUS_METERS = 2_500;
 
-    private static final double EARTH_RADIUS_M = 6_371_000;
-
     private static final String CPOS_CACHE = "nearbyCpos";
     private static final String STATIONS_CACHE = "nearbyStations";
 
@@ -156,23 +154,15 @@ public class NearbyCpoService {
             byName.merge(name.toLowerCase(), toNearby(s, name, canonical.isPresent(), center), NearbyCpoService::merge);
         }
         return byName.values().stream()
-                .filter(NearbyCpoService::isChargingSite)
+                .filter(s -> RegistrySite.isChargingSite(s.known(), s.fastCharging(), s.chargePoints()))
                 .sorted(Comparator.comparingInt(NearbyStation::distanceMeters))
                 .limit(MAX_STATIONS)
                 .toList();
     }
 
-    /**
-     * Im Register stehen auch Privatpersonen mit einer Wallbox an der Strasse. Ein unbekannter
-     * Betreiber mit einem einzigen Normal-Ladepunkt ist kein Ladeort fuer andere - und sein
-     * Name gehoert nicht ins Formular.
-     */
-    private static boolean isChargingSite(NearbyStation s) {
-        return s.known() || s.fastCharging() || s.chargePoints() > 1;
-    }
-
     private static NearbyStation toNearby(Station s, String name, boolean known, WGS84Point center) {
-        int distance = (int) Math.round(distanceMeters(center, s.latitude(), s.longitude()));
+        int distance = (int) Math.round(RegistrySite.distanceMeters(center.getLatitude(), center.getLongitude(),
+                s.latitude(), s.longitude()));
         return new NearbyStation(name, known, distance, s.maxAcKw(), s.maxDcKw(),
                 s.chargePoints() == null ? 0 : s.chargePoints(),
                 GeoHash.withCharacterPrecision(s.latitude(), s.longitude(), 7).toBase32(),
@@ -182,32 +172,15 @@ public class NearbyCpoService {
                 s.payment(), s.openingHours());
     }
 
-    private static Double max(Double a, Double b) {
-        // Kein verschachtelter Ternaer: der wuerde den Double zu double entpacken und bei null knallen.
-        if (a == null) return b;
-        if (b == null) return a;
-        return Math.max(a, b);
-    }
-
     /** Leistung je Ladeart und Ladepunkte ueber alle Saeulen, Registerdaten der naechsten. */
     private static NearbyStation merge(NearbyStation a, NearbyStation b) {
         NearbyStation near = a.distanceMeters() <= b.distanceMeters() ? a : b;
         return new NearbyStation(a.name(), a.known(), near.distanceMeters(),
-                max(a.maxAcKw(), b.maxAcKw()), max(a.maxDcKw(), b.maxDcKw()),
+                RegistrySite.max(a.maxAcKw(), b.maxAcKw()), RegistrySite.max(a.maxDcKw(), b.maxDcKw()),
                 a.chargePoints() + b.chargePoints(), near.geohash(),
                 near.latitude(), near.longitude(),
                 near.registerId(), near.street(), near.houseNumber(), near.postalCode(), near.city(),
                 near.plugTypes(), near.commissionedOn(),
                 near.siteLabel(), near.payment(), near.openingHours());
-    }
-
-    /** Haversine - im Umkreis weniger hundert Meter mehr als genau genug. */
-    private static double distanceMeters(WGS84Point from, double lat, double lon) {
-        double dLat = Math.toRadians(lat - from.getLatitude());
-        double dLon = Math.toRadians(lon - from.getLongitude());
-        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-                + Math.cos(Math.toRadians(from.getLatitude())) * Math.cos(Math.toRadians(lat))
-                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-        return 2 * EARTH_RADIUS_M * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 }
