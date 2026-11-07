@@ -49,6 +49,8 @@
 	<true/>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Zum Einsprechen eines Ladevorgangs: die Aufnahme wird in Text umgewandelt und nicht gespeichert.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Zeigt dir Ladesäulen in deiner Nähe und schlägt beim Erfassen die Säule vor, an der du lädst. Deine genaue Position wird nicht gespeichert.</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 </dict>

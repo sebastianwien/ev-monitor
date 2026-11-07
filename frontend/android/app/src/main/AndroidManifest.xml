@@ -38,4 +38,8 @@
     <!-- Sprachlog: getUserMedia im WebView; Capacitor fragt beide beim ersten Antippen des Mikrofons an -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Säulenkarte und Ortsvorschlag beim Erfassen: navigator.geolocation im WebView; Capacitors
+         BridgeWebChromeClient fragt beide zur Laufzeit an, sobald die Seite den Standort will -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 </manifest>
