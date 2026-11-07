@@ -306,7 +306,12 @@ onUnmounted(() => {
             @click="toMyLocation">{{ t('stations.to_location') }}</button>
         </div>
         </Collapse>
-        <StationRow v-for="s in listed" :key="s.id" :station="s" :type="type" :distance-meters="distanceTo(s)" @select="select(s.id, 'list')" />
+        <!-- Ladeart gewechselt: nur der gefilterte Inhalt bewegt sich (ci.md, Segment-Schalter) -->
+        <Transition name="filter-swap" mode="out-in">
+          <div :key="type">
+            <StationRow v-for="s in listed" :key="s.id" :station="s" :type="type" :distance-meters="distanceTo(s)" @select="select(s.id, 'list')" />
+          </div>
+        </Transition>
       </div>
       </Transition>
     </StationsSheet>
@@ -325,13 +330,18 @@ onUnmounted(() => {
 .step-forward-leave-to { opacity: 0; translate: -24px 0; }
 .step-back-enter-from { opacity: 0; translate: -24px 0; }
 .step-back-leave-to { opacity: 0; translate: 24px 0; }
+/* Ladeart gewechselt: Liste kommt 14 px von unten mit Einblenden */
+.filter-swap-enter-active { transition: opacity 220ms ease-out, translate 220ms ease-out; }
+.filter-swap-leave-active { transition: opacity 120ms ease-in; }
+.filter-swap-enter-from { opacity: 0; translate: 0 14px; }
+.filter-swap-leave-to { opacity: 0; }
 /* Vorschläge klappen unter dem Suchfeld auf */
 .suggest-enter-active { transition: opacity 150ms ease-out, translate 150ms ease-out; }
 .suggest-leave-active { transition: opacity 100ms ease-in; }
 .suggest-enter-from { opacity: 0; translate: 0 -4px; }
 .suggest-leave-to { opacity: 0; }
 @media (prefers-reduced-motion: reduce) {
-  .step-forward-enter-from, .step-forward-leave-to, .step-back-enter-from, .step-back-leave-to, .suggest-enter-from { translate: 0 0; }
+  .step-forward-enter-from, .step-forward-leave-to, .step-back-enter-from, .step-back-leave-to, .suggest-enter-from, .filter-swap-enter-from { translate: 0 0; }
 }
 /* Eigenes Leeren-Kreuz statt des nativen: sonst stehen zwei nebeneinander */
 input[type='search']::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }

@@ -14,7 +14,7 @@ const activeIndex = computed(() => props.options.findIndex(o => o.value === mode
       :style="{ width: `calc((100% - 0.25rem) / ${options.length})`, transform: `translateX(${activeIndex * 100}%)` }" />
     <button v-for="o in options" :key="o.value" type="button" role="radio" :aria-checked="model === o.value" :data-testid="o.testid"
       @click="model = o.value"
-      :class="['relative z-10 min-h-10 rounded-full text-[14px] font-semibold transition-colors', model === o.value ? 'text-white dark:text-gray-900' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white']">
+      :class="['relative z-10 rounded-full text-[14px] font-semibold transition-colors', accent ? 'min-h-11' : 'min-h-10', model === o.value ? 'text-white dark:text-gray-900' : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-white']">
       {{ o.label }}
     </button>
   </div>
