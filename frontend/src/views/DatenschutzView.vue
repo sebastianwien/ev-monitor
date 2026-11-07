@@ -160,6 +160,17 @@ onMounted(async () => {
             unseren Server übermittelt und nicht dauerhaft gespeichert.
           </p>
           <p class="mt-4">
+            <strong>Säulenkarte:</strong> Im Bereich "Säulen" zeigt eine Karte öffentliche Ladesäulen mit ihren
+            Preisen. Geben Sie Ihre Position frei, verwendet die App sie nur auf Ihrem Gerät, um die Karte dort zu
+            öffnen. An unseren Server gehen nur die Kartenfelder des sichtbaren Ausschnitts, jedes rund 1,2 × 0,6 km
+            groß, nie Ihre Position. Unser Server fragt für diese Felder das Ladesäulenregister über ArcGIS Online
+            ab, ohne Ihre IP-Adresse und ohne Bezug zu Ihrer Person, und hält die Antwort bis zu 30 Tage je Feld
+            vor. Gespeichert wird zu Ihrer Person dabei nichts. Ihr Browser merkt sich lokal die zuletzt gezeigte
+            Kartenmitte, auf ein solches Feld gerundet, damit die Karte beim nächsten Öffnen sofort dort steht.
+            Die Kartenbilder lädt Ihr Browser von der OpenStreetMap Foundation (Abschnitt 8), die Adresssuche
+            nutzt Photon von komoot wie die Ortssuche beim Erfassen (nächster Absatz).
+          </p>
+          <p class="mt-4">
             <strong>Ortssuche beim Erfassen (Photon von komoot):</strong> Wenn Sie beim Erfassen oder Bearbeiten eines
             Ladevorgangs einen Ort suchen, wird der eingegebene Suchtext schon während des Tippens direkt von Ihrem Gerät
             an den Geokodierungsdienst Photon der komoot GmbH (Potsdam, Deutschland) gesendet. Haben Sie Ihre Position
@@ -241,7 +252,7 @@ onMounted(async () => {
             (auf rund 5 km gerundet), keine Kontodaten.
           </p>
           <p class="mt-4">
-            Kleine Kartenbilder (Ladesäulen bei der Ortswahl, Ort eines Ladevorgangs) lädt Ihr Browser direkt von den
+            Kartenbilder (Säulenkarte, Ladesäulen bei der Ortswahl, Ort eines Ladevorgangs) lädt Ihr Browser direkt von den
             Kartenservern der <strong>OpenStreetMap Foundation</strong> (Vereinigtes Königreich). Dabei erhält die OpenStreetMap
             Foundation Ihre IP-Adresse und den angezeigten Kartenausschnitt. Für das Vereinigte Königreich besteht ein
             Angemessenheitsbeschluss der EU-Kommission.
