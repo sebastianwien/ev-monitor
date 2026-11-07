@@ -162,7 +162,7 @@ onMounted(async () => {
           <p class="mt-4">
             <strong>Säulenkarte:</strong> Im Bereich "Säulen" zeigt eine Karte öffentliche Ladesäulen mit ihren
             Preisen. Geben Sie Ihre Position frei, verwendet die App sie nur auf Ihrem Gerät, um die Karte dort zu
-            öffnen. An unseren Server gehen nur die Kartenfelder des sichtbaren Ausschnitts, jedes rund 1,2 × 0,6 km
+            öffnen. An unseren Server gehen nur die Kartenfelder des sichtbaren Ausschnitts, jedes etwa 0,75 × 0,6 km
             groß, nie Ihre Position. Unser Server fragt für diese Felder das Ladesäulenregister über ArcGIS Online
             ab, ohne Ihre IP-Adresse und ohne Bezug zu Ihrer Person, und hält die Antwort bis zu 30 Tage je Feld
             vor. Ihr Kartenausschnitt wird dabei nicht gespeichert. Ihr Browser merkt sich lokal die zuletzt gezeigte
