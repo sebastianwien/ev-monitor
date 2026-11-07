@@ -131,6 +131,59 @@ public class ChargingStationRegistryClient {
         return fetchStations(uri);
     }
 
+    /**
+     * Hoechstens so viele Seiten je Rechteck. Eine Geohash-6-Zelle fasst in Grossstaedten bis
+     * rund 200 Einrichtungen; fuenf Seiten sind 1.000 und damit Luft fuer jede Innenstadt.
+     */
+    static final int MAX_PAGES = 5;
+
+    /**
+     * Alle gemeldeten Ladeeinrichtungen in einem Rechteck, fuer die Karte. Das Register gibt
+     * hoechstens {@link #MAX_RECORDS} je Anfrage zurueck und meldet den Rest ueber
+     * {@code exceededTransferLimit}; dann wird mit {@code resultOffset} weitergeblaettert, in fester
+     * Reihenfolge, damit keine Einrichtung zwischen zwei Seiten verrutscht.
+     *
+     * @return wie {@link #findStationsNearby}; faellt eine Folgeseite aus, ist das ganze Ergebnis leer,
+     *         sonst stuende ein halber Ausschnitt dreissig Tage im Cache. Nach {@link #MAX_PAGES} Seiten
+     *         endet die Abfrage mit dem, was da ist - so viele Einrichtungen stehen in keiner Zelle.
+     */
+    public Optional<List<Station>> findStationsInBox(double minLat, double minLon, double maxLat, double maxLon) {
+        if (!enabled) {
+            return Optional.empty();
+        }
+        String envelope = "{\"xmin\":" + minLon + ",\"ymin\":" + minLat + ",\"xmax\":" + maxLon
+                + ",\"ymax\":" + maxLat + ",\"spatialReference\":{\"wkid\":4326}}";
+        List<Station> all = new java.util.ArrayList<>();
+        int offset = 0;
+        for (int page = 0; page < MAX_PAGES; page++) {
+            URI uri = UriComponentsBuilder.fromUriString(QUERY_URL)
+                    .queryParam("geometry", envelope)
+                    .queryParam("geometryType", "esriGeometryEnvelope")
+                    .queryParam("inSR", 4326)
+                    .queryParam("spatialRel", "esriSpatialRelIntersects")
+                    .queryParam("outFields", OUT_FIELDS)
+                    .queryParam("returnGeometry", false)
+                    .queryParam("orderByFields", "OBJECTID")
+                    .queryParam("resultOffset", offset)
+                    .queryParam("resultRecordCount", MAX_RECORDS)
+                    .queryParam("f", "json")
+                    .build()
+                    .encode()
+                    .toUri();
+            Optional<Page> result = fetchPage(uri);
+            if (result.isEmpty()) {
+                return Optional.empty();
+            }
+            all.addAll(result.get().stations());
+            offset += result.get().rawCount();
+            if (!result.get().more() || result.get().rawCount() == 0) {
+                return Optional.of(List.copyOf(all));
+            }
+        }
+        log.info("Ladesaeulenregister: Rechteck mit mehr als {} Einrichtungen, Rest abgeschnitten", MAX_PAGES * MAX_RECORDS);
+        return Optional.of(List.copyOf(all));
+    }
+
     /** Hoechstens so viele Suchbegriffe; mehr ist kein Suchtext mehr, sondern Rauschen. */
     static final int MAX_SEARCH_TOKENS = 5;
 
@@ -184,22 +237,33 @@ public class ChargingStationRegistryClient {
         return clauses.isEmpty() ? null : String.join(" AND ", clauses);
     }
 
-    @SuppressWarnings("unchecked")
     private Optional<List<Station>> fetchStations(URI uri) {
+        return fetchPage(uri).map(Page::stations);
+    }
+
+    /**
+     * Eine Antwortseite; {@code more}, wenn das Register weitere Treffer zurueckhaelt.
+     * {@code rawCount} zaehlt alle gelieferten Eintraege vor dem Filter, danach richtet sich die naechste Seite.
+     */
+    private record Page(List<Station> stations, boolean more, int rawCount) {}
+
+    @SuppressWarnings("unchecked")
+    private Optional<Page> fetchPage(URI uri) {
         try {
             Map<String, Object> response = restTemplate.getForObject(uri, Map.class);
             if (response == null || !(response.get("features") instanceof List<?> features)) {
                 log.debug("Ladesaeulenregister: unerwartete Antwort, keine Vorschlaege");
                 return Optional.empty();
             }
-            return Optional.of(features.stream()
+            List<Station> stations = features.stream()
                     .map(f -> f instanceof Map<?, ?> m ? m.get("attributes") : null)
                     .filter(Map.class::isInstance)
                     .map(a -> (Map<String, Object>) a)
                     .filter(a -> !OUT_OF_SERVICE.equalsIgnoreCase(text(a.get("Status"))))
                     .map(ChargingStationRegistryClient::toStation)
                     .filter(s -> s.operator() != null)
-                    .toList());
+                    .toList();
+            return Optional.of(new Page(stations, Boolean.TRUE.equals(response.get("exceededTransferLimit")), features.size()));
         } catch (Exception e) {
             log.debug("Ladesaeulenregister nicht erreichbar: {}", e.getMessage());
             return Optional.empty();
